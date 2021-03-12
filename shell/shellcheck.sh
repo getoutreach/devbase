@@ -5,7 +5,12 @@
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 BIN_DIR="$SCRIPTS_DIR/../bin"
-SHELLCHECK_VERSION="0.7.1"
+
+# shellcheck source=./lib/bootstrap.sh
+source "$SCRIPTS_DIR/lib/bootstrap.sh"
+
+SHELLCHECK_VERSION="$(get_application_version "shellcheck")"
+
 GOOS=$(go env GOOS)
 ARCH=$(uname -m)
 binPath="$BIN_DIR/shellcheck-$SHELLCHECK_VERSION"

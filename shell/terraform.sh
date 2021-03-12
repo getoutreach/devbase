@@ -4,6 +4,8 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$DIR/gobin.sh"
-TERRAFORM_VERSION="0.13.5"
 
-exec "$GOBIN" "github.com/hashicorp/terraform@v$TERRAFORM_VERSION" "$@"
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
+
+exec "$GOBIN" "github.com/hashicorp/terraform@v$(get_application_version "terraform")" "$@"

@@ -5,7 +5,7 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBINVERSION=v1.0.1
 GOBINBOOTSTRAPVERSION=v0.0.14
-GOBINBOOTSTRAPPATH="$DIR/../bin/gobin-go-1.15"
+GOBINBOOTSTRAPPATH="$DIR/../../bin/gobin-go-1.15"
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 
@@ -45,7 +45,7 @@ fi
 # shellcheck disable=SC2155
 gobin_tmpdir="$(mktemp -d -t gobin-XXXXXXXX)"
 trap 'rm -rf "$gobin_tmpdir"' EXIT INT TERM
-cp "$DIR/../.tool-versions" "$gobin_tmpdir/.tool-versions"
+cp "$DIR/../../.tool-versions" "$gobin_tmpdir/.tool-versions"
 
 # Change into the temporary directory
 pushd "$gobin_tmpdir" >/dev/null || exit 1

@@ -4,9 +4,12 @@ set -e
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+# shellcheck source=./lib/bootstrap.sh
+source "$SCRIPTS_DIR/lib/bootstrap.sh"
+
 # Tools
-JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0)
-GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v0.1.0)
+JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v"$(get_application_version "jsonnetfmt")")
+GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
 GOFMT="${GOFMT:-gofmt}"
 
 # shellcheck source=./lib/runtimes.sh
@@ -38,8 +41,8 @@ find . -path ./vendor -prune -o -name node_modules -type d \
   -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
 
 info_sub "Prettier (yaml/json)"
-run_node_command "$SCRIPTS_DIR/.." yarn
-run_node_command "$SCRIPTS_DIR/.." yarn prettier --write "**/*.{yaml,yml,json}"
+run_node_command "$SCRIPTS_DIR/../.." yarn
+run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json}"
 for tfdir in deployments monitoring; do
-  "$SCRIPTS_DIR/terraform.sh" fmt "$SCRIPTS_DIR/../$tfdir"
+  "$SCRIPTS_DIR/terraform.sh" fmt "$SCRIPTS_DIR/../../$tfdir"
 done

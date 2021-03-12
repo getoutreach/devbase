@@ -11,6 +11,9 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
 
+# shellcheck source=./lib/bootstrap.sh
+source "$SCRIPTS_DIR/lib/bootstrap.sh"
+
 if [[ -n $CIRCLECI ]]; then
   {
     echo "warning: running protobuf generatation in CI is only supported for bootstrap and is DEPRECATED"
@@ -40,3 +43,15 @@ docker exec "$CONTAINER_ID" sh -c "groupadd -f --gid $gid localuser && useradd -
 info_sub "go"
 docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go \
   --go-source-relative -o ./
+
+if has_grpc_client "node"; then
+  info_sub "node"
+  docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
+    --with-typescript -o "./clients/node/src/grpc/"
+fi
+
+if has_grpc_client "ruby"; then
+  info_sub "ruby"
+  docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l ruby \
+    -o "./clients/ruby/lib/$(get_app_name)_client"
+fi

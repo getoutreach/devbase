@@ -5,8 +5,10 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$DIR/gobin.sh"
-SHFMT_VERSION="3.1.2"
+
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
 
 # Always set simplify mode.
 args=("-s" "$@")
-exec "$GOBIN" "mvdan.cc/sh/v3/cmd/shfmt@v$SHFMT_VERSION" "${args[@]}"
+exec "$GOBIN" "mvdan.cc/sh/v3/cmd/shfmt@v$(get_application_version "shfmt")" "${args[@]}"
