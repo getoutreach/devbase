@@ -44,5 +44,5 @@ info_sub "Prettier (yaml/json)"
 run_node_command "$SCRIPTS_DIR/../.." yarn
 run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json}"
 for tfdir in deployments monitoring; do
-  "$SCRIPTS_DIR/terraform.sh" fmt "$SCRIPTS_DIR/../../$tfdir"
+  "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
 done

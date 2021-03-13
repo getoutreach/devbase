@@ -36,7 +36,7 @@ fi
 if [[ "$(yq -r .library <"$(get_service_yaml)")" != "true" ]]; then
   info "Running terraform fmt ($(get_application_version "terraform"))"
   for tfdir in deployments monitoring; do
-    if ! "$DIR"/terraform.sh fmt -diff -check "$DIR/../$tfdir"; then
+    if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
       error "terraform fmt $tfdir failed on some files. Run 'make fmt' to fix."
       exit 1
     fi
@@ -50,7 +50,7 @@ if ! find . -path ./api/clients -prune -o -name '*.proto' -exec "$DIR"/clang-for
 fi
 
 info "Running Go linter"
-"$LINTER" -c "$(dirname "$0")/golangci.yml" --build-tags "$TEST_TAGS" --timeout 10m run ./...
+"$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
 CLIENTS_DIR="$DIR/../api/clients"
 
 # GRPC client validation

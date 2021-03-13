@@ -36,11 +36,19 @@ has_resource() {
 get_resource_version() {
   name="$1"
 
-  yq -r ".resources[\"$name\"]" <"$(get_service_yaml)"
+  if [[ "$(yq -r '.resources'< "$(get_service_yaml)")" == "null" ]]; then
+    echo ""
+  else 
+    yq -r ".resources[\"$name\"]" <"$(get_service_yaml)"
+  fi
 }
 
 has_grpc_client() {
   name="$1"
+
+  if [[ "$(yq -r '.grpcClients'< "$(get_service_yaml)")" == "null" ]]; then
+    return 1
+  fi
 
   if [[ -n "$(yq -r ".grpcClients[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
     return 0
