@@ -43,6 +43,9 @@ find . -path ./vendor -prune -o -name node_modules -type d \
 info_sub "Prettier (yaml/json)"
 run_node_command "$SCRIPTS_DIR/../.." yarn
 run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json}"
-for tfdir in deployments monitoring; do
-  "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
-done
+
+if [[ "$(yq -r .library <"$(get_service_yaml)")" != "true" ]]; then
+  for tfdir in deployments monitoring; do
+    "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
+  done
+fi
