@@ -4,7 +4,7 @@
 # with your editor.
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-BIN_DIR="$SCRIPTS_DIR/../bin"
+BIN_DIR="$SCRIPTS_DIR/../../bin"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
