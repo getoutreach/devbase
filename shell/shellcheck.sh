@@ -29,8 +29,6 @@ args=("-P" "SCRIPTDIR" "-x" "$@")
 
 if [[ ! -e $binPath ]]; then
   {
-    info "downloading shellcheck@$SHELLCHECK_VERSION to '$binPath'"
-
     # JIT download shellcheck
     curl --location --output "$tmp_dir/shellcheck.tar.xz" --silent \
       "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.$GOOS.$ARCH.tar.xz"
