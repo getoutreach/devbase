@@ -31,7 +31,7 @@ fi
 
 # Create the protoc container.
 info "Generating GRPC Clients"
-CONTAINER_ID=$(docker run --rm -v "$(pwd)/api:/defs" \
+CONTAINER_ID=$(docker run --rm -v "$SCRIPTS_DIR/../../api:/defs" \
   --entrypoint bash -d "$IMAGE" -c 'exec tail -f /dev/null')
 
 trap 'docker stop -t0 $CONTAINER_ID >/dev/null' EXIT
