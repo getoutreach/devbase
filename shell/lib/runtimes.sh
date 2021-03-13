@@ -2,9 +2,9 @@
 # runtimes for various languages, etc
 
 # shellcheck source=./libs/logging.sh
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./bootstrap.sh
-source "$DIR/bootstrap.sh"
+source "$LIB_DIR/bootstrap.sh"
 
 APPNAME="$(get_app_name)"
 
