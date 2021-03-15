@@ -3,7 +3,7 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
-SCRIPTS_DIR="$DIR/../scripts"
+SCRIPTS_DIR="$DIR/../shell"
 LIB_DIR="$SCRIPTS_DIR/lib"
 
 appName="bootstraptestservice"
@@ -39,7 +39,7 @@ prefix="/src/$projectDir/api/clients/ruby"
 
 echo "building ruby package" >&2
 mkdir -p "./pkg"
-"$DIR/run-docker-container.sh" "$DIR/../..":/src "$prefix/pkg:./" \
+"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../../..":/src "$prefix/pkg:./" \
   -w "$prefix" gcr.io/outreach-docker/ruby:"$rubyVersion" bash -c "bundle install; bundle exec rake build"
 if [[ ! -e $package ]]; then
   error "failed to find built package ($package)"

@@ -10,7 +10,7 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-SCRIPTS_DIR="$DIR/../shell"
+SCRIPTS_DIR="$DIR"
 LIB_DIR="$SCRIPTS_DIR/lib"
 
 localDirArg="$1"

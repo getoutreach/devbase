@@ -3,7 +3,7 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
-SCRIPTS_DIR="$CIRCLE_DIR/../scripts"
+SCRIPTS_DIR="$DIR/../shell"
 LIB_DIR="$SCRIPTS_DIR/lib"
 
 appName="bootstraptestservice"
@@ -47,6 +47,6 @@ fi
 
 info "pushing to packagecloud" >&2
 
-"$CIRCLE_DIR/run-docker-container.sh" "$DIR/../../pkg":/src -- \
+"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../../../pkg":/src -- \
   -w "/src" -e "PACKAGECLOUD_TOKEN=$PACKAGECLOUD_TOKEN" gcr.io/outreach-docker/package-cloud \
   package_cloud push outreach/rubygems "$package"
