@@ -55,7 +55,7 @@ CLIENTS_DIR="$DIR/../api/clients"
 
 # GRPC client validation
 if [[ "$(yq -r .grpc <"$(get_service_yaml)")" == "true" ]]; then
-  CLIENTS_DIR="$DIR/../api/clients"
+  CLIENTS_DIR="$DIR/../../api/clients"
   if has_grpc_client "node"; then
     nodeSourceDir="$CLIENTS_DIR/node"
 
