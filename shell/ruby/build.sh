@@ -39,7 +39,7 @@ prefix="/src/$projectDir/api/clients/ruby"
 
 echo "building ruby package" >&2
 mkdir -p "./pkg"
-"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../../..":/src "$prefix/pkg:./" \
+"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../..":/src "$prefix/pkg:./" \
   -w "$prefix" gcr.io/outreach-docker/ruby:"$rubyVersion" bash -c "bundle install; bundle exec rake build"
 if [[ ! -e $package ]]; then
   error "failed to find built package ($package)"
