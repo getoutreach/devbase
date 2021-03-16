@@ -33,7 +33,7 @@ if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
 fi
 
 # Validators to run when not using a library
-if [[ "$(yq -r .library <"$(get_service_yaml)")" != "true" ]]; then
+if ! has_feature "library"; then
   info "Running terraform fmt ($(get_application_version "terraform"))"
   for tfdir in deployments monitoring; do
     if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
@@ -51,12 +51,12 @@ fi
 
 info "Running Go linter"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
-CLIENTS_DIR="$DIR/../api/clients"
 
 # GRPC client validation
-if [[ "$(yq -r .grpc <"$(get_service_yaml)")" == "true" ]]; then
-  CLIENTS_DIR="$DIR/../../api/clients"
+if has_feature "grpc"; then
   if has_grpc_client "node"; then
+    CLIENTS_DIR="$DIR/../../api/clients"
+
     nodeSourceDir="$CLIENTS_DIR/node"
 
     run_node_command "$nodeSourceDir" yarn install --frozen-lockfile

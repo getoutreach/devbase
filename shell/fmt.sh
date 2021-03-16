@@ -44,7 +44,22 @@ info_sub "Prettier (yaml/json)"
 run_node_command "$SCRIPTS_DIR/../.." yarn
 run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json}"
 
-if [[ "$(yq -r .library <"$(get_service_yaml)")" != "true" ]]; then
+if has_feature "grpc"; then
+  if has_grpc_client "node"; then
+    CLIENTS_DIR="$SCRIPTS_DIR/../api/clients"
+
+    info_sub "Prettier (Node.js)"
+
+    nodeSourceDir="$CLIENTS_DIR/node"
+
+    run_node_command "$nodeSourceDir" yarn install
+
+    # When files are modified this returns 1.
+    run_node_command "$nodeSourceDir" yarn pretty-fix
+  fi
+fi
+
+if ! has_feature "library"; then
   for tfdir in deployments monitoring; do
     "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
   done

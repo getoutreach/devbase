@@ -14,6 +14,20 @@ get_application_version() {
   yq -r ".[\"$name\"]" <"$BOOTSTRAPDIR/versions.yaml"
 }
 
+# has_feature returns 0 if a value is true
+# or 1 if false
+has_feature() {
+  local feat="$1"
+
+  val=$(yq -r ".[\"$feat\"]" <"$(get_service_yaml)")
+
+  if [[ $val == "true" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
 get_service_yaml() {
   if [[ -e "service.yaml" ]]; then
     echo "service.yaml"
@@ -23,7 +37,7 @@ get_service_yaml() {
 }
 
 has_resource() {
-  name="$1"
+  local name="$1"
 
   # Check if the resource is present
   if [[ -n "$(get_resource_version "$name")" ]]; then
@@ -34,7 +48,7 @@ has_resource() {
 }
 
 get_resource_version() {
-  name="$1"
+  local name="$1"
 
   if [[ "$(yq -r '.resources' <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
@@ -44,7 +58,7 @@ get_resource_version() {
 }
 
 has_grpc_client() {
-  name="$1"
+  local name="$1"
 
   if [[ "$(yq -r '.grpcClients' <"$(get_service_yaml)")" == "null" ]]; then
     return 1
