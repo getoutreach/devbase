@@ -3,7 +3,7 @@
 # wrapper arround jsonnet for rendering files
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
 APPNAME="$(get_app_name)"
 
