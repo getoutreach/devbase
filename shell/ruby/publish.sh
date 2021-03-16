@@ -34,7 +34,7 @@ fi
 
 # setup docker authentication
 # shellcheck source=../lib/docker-authn.sh
-source "$DIR/docker-authn.sh"
+source "$LIB_DIR/docker-authn.sh"
 
 # shellcheck disable=SC2001
 package="$(sed 's/-rc/\.pre\.rc/' <<<"pkg/${appName}_client-$newVersion.gem")"
