@@ -55,7 +55,7 @@ info "Running Go linter"
 # GRPC client validation
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$DIR/../../api/clients"
+    CLIENTS_DIR="$(pwd)/api/clients"
 
     nodeSourceDir="$CLIENTS_DIR/node"
 

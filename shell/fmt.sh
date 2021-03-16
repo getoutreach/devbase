@@ -46,7 +46,7 @@ run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$SCRIPTS_DIR/../api/clients"
+    CLIENTS_DIR="$(pwd)/api/clients"
 
     info_sub "Prettier (Node.js)"
 
