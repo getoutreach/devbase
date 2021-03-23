@@ -35,6 +35,16 @@ BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUN
 .PHONY: default
 default: build
 
+## release:         tag a new release with goreleaser
+.PHONY: release
+release:
+	@# Create a tag for our version
+	@git tag -d "$(APP_VERSION)" >&2 || true
+	@git tag "$(APP_VERSION)" >&2
+	@./scripts/gobin.sh github.com/goreleaser/goreleaser@v{{ .versions.goreleaser }} release --skip-publish --rm-dist
+	@# Delete the tag once we're done.
+	@git tag -d "$(APP_VERSION)" >&2
+
 ## help             show this help
 .PHONY : help
 help: Makefile
