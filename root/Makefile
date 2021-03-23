@@ -41,7 +41,7 @@ release:
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 || true
 	@git tag "$(APP_VERSION)" >&2
-	@./.bootstrap/shell/gobin.sh github.com/goreleaser/goreleaser@v{{ .versions.goreleaser }} release --skip-publish --rm-dist
+	@./.bootstrap/shell/gobin.sh github.com/goreleaser/goreleaser@v0.160.0 release --skip-publish --rm-dist
 	@# Delete the tag once we're done.
 	@git tag -d "$(APP_VERSION)" >&2
 
