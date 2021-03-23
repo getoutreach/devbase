@@ -27,6 +27,10 @@ if [[ $TEST_TAGS == *"or_int"* ]]; then
   BENCH_FLAGS=${BENCH_FLAGS:--bench=^Bench -benchtime=1x}
 fi
 
+if [[ -n $GO_TEST_TIMEOUT ]]; then
+  TEST_FLAGS=${TEST_FLAGS:--timeout "$GO_TEST_TIMEOUT"}
+fi
+
 if [[ -n $WITH_COVERAGE || -n $CI ]]; then
   COVER_FLAGS=${COVER_FLAGS:- -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
@@ -115,6 +119,6 @@ set -ex
 # Why: We want these to split. For those wondering about "$@":
 # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
 # shellcheck disable=SC2086
-go test $BENCH_FLAGS $COVER_FLAGS \
+go test $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
   -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing" -tags="$TEST_TAGS" \
   "$@" ./...
