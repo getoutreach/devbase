@@ -35,6 +35,10 @@ if [[ ! -e $GOBINBOOTSTRAPPATH ]]; then
   } >&2
 fi
 
+if [[ $1 == "download-only" ]]; then
+  exit 0
+fi
+
 # Fetch outreach's gobin using the OSS gobin until we can use go install
 # gobin picks up the Go binary from the path and runs it from within
 # the temp directory while building things.  This has the unfortunate

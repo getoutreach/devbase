@@ -16,11 +16,6 @@ version="latest"
 namespace="$APPNAME--$bento"
 environment=${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}
 
-if [[ $DEVENV_VERSION == "" ]] && [[ $environment == "development" ]]; then
-  warn "This script is DEPRECATED, please run 'devenv deploy-app --local .' instead." >&2
-  sleep 5
-fi
-
 if ! command -v kubecfg >/dev/null; then
   info "Hint: brew install kubecfg"
   fatal "kubecfg must be installed"

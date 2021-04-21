@@ -4,19 +4,17 @@
 # with your editor.
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-BIN_DIR="$SCRIPTS_DIR/../../bin"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/logging.sh
+source "$SCRIPTS_DIR/lib/logging.sh"
 
+BIN_DIR="$(get_repo_directory)/bin"
 SHELLCHECK_VERSION="$(get_application_version "shellcheck")"
-
 GOOS=$(go env GOOS)
 ARCH=$(uname -m)
 binPath="$BIN_DIR/shellcheck-$SHELLCHECK_VERSION"
-
-# shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
 
 # Ensure $BIN_DIR exists, since GOBIN makes it, but
 # we may run before it.

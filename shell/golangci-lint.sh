@@ -10,7 +10,7 @@ GOBIN="$DIR/gobin.sh"
 source "$DIR/lib/bootstrap.sh"
 
 if [[ -z $workspaceFolder ]]; then
-  workspaceFolder="$DIR/../.."
+  workspaceFolder="$(get_repo_directory)"
 fi
 
 # Enable only fast linters, and always use the correct config.
