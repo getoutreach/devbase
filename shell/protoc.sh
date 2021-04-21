@@ -19,7 +19,7 @@ if [[ -n $CIRCLECI ]]; then
     echo "warning: running protobuf generatation in CI is only supported for bootstrap and is DEPRECATED"
     echo "         this will result in only Go protobuf artifacts being generated"
   } >&2
-  exec protoc -I. --go_out=plugins=grpc,paths=source_relative:. "$(get_repo_directory)/api/*.proto"
+  exec protoc -I. --go_out=plugins=grpc,paths=source_relative:. "$(get_repo_directory)/api/"*.proto
 fi
 
 # Fallback if uid/gid is somehow empty
