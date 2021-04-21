@@ -34,15 +34,15 @@ info_sub "jsonnetfmt"
 find . -name '*.jsonnet' -exec "$JSONNETFMT" -i {} +
 
 info_sub "clang-format"
-find . -path ./api/clients -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
+find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
 
 info_sub "shfmt"
 find . -path ./vendor -prune -o -name node_modules -type d \
   -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
 
 info_sub "Prettier (yaml/json)"
-run_node_command "$SCRIPTS_DIR/../.." yarn
-run_node_command "$SCRIPTS_DIR/../.." yarn prettier --write "**/*.{yaml,yml,json}"
+run_node_command "$(get_repo_directory)" yarn
+run_node_command "$(get_repo_directory)" yarn prettier --write "**/*.{yaml,yml,json}"
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then

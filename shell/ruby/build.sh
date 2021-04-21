@@ -6,10 +6,13 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 SCRIPTS_DIR="$DIR/../shell"
 LIB_DIR="$SCRIPTS_DIR/lib"
 
+# shellcheck source=../lib/bootstrap.sh
+source "$LIB_DIR/bootstrap.sh"
+
 appName="bootstraptestservice"
 rubyVersion="2.6"
 subDir="api/clients/ruby"
-versionFile="$DIR/../../$subDir/lib/${appName}_client/version.rb"
+versionFile="$(get_repo_directory)/$subDir/lib/${appName}_client/version.rb"
 
 newVersion="$1"
 
@@ -39,7 +42,7 @@ prefix="/src/$projectDir/api/clients/ruby"
 
 echo "building ruby package" >&2
 mkdir -p "./pkg"
-"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../..":/src "$prefix/pkg:./" \
+"$SCRIPTS_DIR/run-docker-container.sh" "$(get_repo_directory)":/src "$prefix/pkg:./" \
   -w "$prefix" gcr.io/outreach-docker/ruby:"$rubyVersion" bash -c "bundle install; bundle exec rake build"
 if [[ ! -e $package ]]; then
   error "failed to find built package ($package)"

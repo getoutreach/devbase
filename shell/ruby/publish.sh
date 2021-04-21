@@ -6,6 +6,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 SCRIPTS_DIR="$DIR/../shell"
 LIB_DIR="$SCRIPTS_DIR/lib"
 
+# shellcheck source=../lib/bootstrap.sh
+source "$LIB_DIR/bootstrap.sh"
+
 appName="bootstraptestservice"
 
 newVersion="$1"
@@ -47,6 +50,6 @@ fi
 
 info "pushing to packagecloud" >&2
 
-"$SCRIPTS_DIR/run-docker-container.sh" "$DIR/../../pkg":/src -- \
+"$SCRIPTS_DIR/run-docker-container.sh" "$(get_repo_directory)/pkg":/src -- \
   -w "/src" -e "PACKAGECLOUD_TOKEN=$PACKAGECLOUD_TOKEN" gcr.io/outreach-docker/package-cloud \
   package_cloud push outreach/rubygems "$package"

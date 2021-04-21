@@ -4,6 +4,10 @@
 REPODIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." >/dev/null 2>&1 && pwd)"
 BOOTSTRAPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
 
+get_repo_directory() {
+  echo "$REPODIR"
+}
+
 get_app_name() {
   yq -r '.name' <"$(get_service_yaml)"
 }

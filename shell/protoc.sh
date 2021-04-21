@@ -19,7 +19,7 @@ if [[ -n $CIRCLECI ]]; then
     echo "warning: running protobuf generatation in CI is only supported for bootstrap and is DEPRECATED"
     echo "         this will result in only Go protobuf artifacts being generated"
   } >&2
-  exec protoc -I. --go_out=plugins=grpc,paths=source_relative:. "./*.proto"
+  exec protoc --go_out=plugins=grpc,paths=source_relative:. --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
 
 # Fallback if uid/gid is somehow empty
@@ -31,7 +31,7 @@ fi
 
 # Create the protoc container.
 info "Generating GRPC Clients"
-CONTAINER_ID=$(docker run --rm -v "$SCRIPTS_DIR/../../api:/defs" \
+CONTAINER_ID=$(docker run --rm -v "$(get_repo_directory)/api:/defs" \
   --entrypoint bash -d "$IMAGE" -c 'exec tail -f /dev/null')
 
 trap 'docker stop -t0 $CONTAINER_ID >/dev/null' EXIT
