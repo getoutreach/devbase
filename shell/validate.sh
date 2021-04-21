@@ -44,7 +44,7 @@ if ! has_feature "library"; then
 fi
 
 info "Running clang-format"
-if ! find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$DIR"/clang-format-validate.sh {} +; then
+if ! git ls-files '*.proto' | xargs -n40 "$(get_repo_directory)/clang-format-validate.sh"; then
   error "clang-format failed on some files. Run 'make fmt' to fix."
   exit 1
 fi
