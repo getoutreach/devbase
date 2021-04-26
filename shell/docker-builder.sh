@@ -34,6 +34,10 @@ DOCKER_BUILDKIT=1 docker build --ssh default --progress=plain \
   --build-arg "VERSION=${VERSION}" \
   .
 
+# Scan the built image 
+info "Scanning docker image for vulnerabilities"
+/usr/local/bin/twist-scan.sh "$appName"
+
 declare -a TAGS
 # Handle released versions
 if [[ -n $CIRCLE_TAG ]]; then
