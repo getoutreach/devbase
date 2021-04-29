@@ -3,7 +3,7 @@
 # Run a golang binary using gobin
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-GOBINVERSION=v1.0.1
+GOBINVERSION=v1.3.0
 GOBINBOOTSTRAPVERSION=v0.0.14
 GOBINBOOTSTRAPPATH="$DIR/../../bin/gobin-go-1.15"
 GOOS=$(go env GOOS)
