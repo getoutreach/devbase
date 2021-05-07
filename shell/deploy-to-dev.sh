@@ -60,4 +60,5 @@ kubecfg \
   -V environment="$environment" \
   -V version="$version" \
   -V bento="$bento" \
+  -V dev_email="${DEV_EMAIL:-$(git config user.email)}" \
   -V host="bento1a.outreach-dev.com"
