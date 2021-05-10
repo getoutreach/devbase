@@ -9,7 +9,7 @@ LIB_DIR="$SCRIPTS_DIR/lib"
 # shellcheck source=../lib/bootstrap.sh
 source "$LIB_DIR/bootstrap.sh"
 
-appName="bootstraptestservice"
+appName="$(get_app_name)"
 rubyVersion="2.6"
 subDir="api/clients/ruby"
 versionFile="$(get_repo_directory)/$subDir/lib/${appName}_client/version.rb"

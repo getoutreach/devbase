@@ -9,7 +9,7 @@ LIB_DIR="$SCRIPTS_DIR/lib"
 # shellcheck source=../lib/bootstrap.sh
 source "$LIB_DIR/bootstrap.sh"
 
-appName="bootstraptestservice"
+appName="$(get_app_name)"
 
 newVersion="$1"
 
