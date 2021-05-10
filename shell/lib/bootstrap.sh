@@ -54,7 +54,7 @@ has_resource() {
 get_resource_version() {
   local name="$1"
 
-  if [[ "$(yq -r '.resources' <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -r ".resources[\"$name\"]" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
     yq -r ".resources[\"$name\"]" <"$(get_service_yaml)"
