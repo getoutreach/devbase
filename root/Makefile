@@ -123,6 +123,12 @@ devserver: build
 	if [[ -z $$SKIP_DEVCONFIG ]]; then ./.bootstrap/shell/devconfig.sh; fi
 	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) $(BINDIR)/$(BIN_NAME)
 
+## debug:           run the service via delve
+.PHONY: debug
+debug: build
+	if [[ -z $$SKIP_DEVCONFIG ]]; then ./.bootstrap/shell/devconfig.sh; fi
+	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./.bootstrap/shell/debug.sh
+
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
 docker-build:

@@ -5,3 +5,4 @@ grpcui: 1.0.0
 golangci-lint: 1.36.0
 jsonnetfmt: 0.16.0
 goimports: 0.1.0
+delve: 1.6.0
