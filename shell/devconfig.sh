@@ -9,7 +9,7 @@ source "$DIR/lib/bootstrap.sh"
 
 APPNAME="$(get_app_name)"
 
-overridePath="$(dirname "$0")/devconfig.override.sh"
+overridePath="$(get_repo_directory)/scripts/devconfig.override.sh"
 configDir="$HOME/.outreach/$APPNAME"
 volumeDir="${TMPDIR:-/tmp}/$APPNAME"
 

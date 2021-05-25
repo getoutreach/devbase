@@ -54,7 +54,7 @@ kubecfg \
   --jurl http://k8s-clusters.outreach.cloud/ \
   --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
   -n "$namespace" \
-  --context "dev-environment" "$action" "./deployments/$APPNAME/$APPNAME.jsonnet" \
+  --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$APPNAME/$APPNAME.jsonnet" \
   -V cluster="development.us-west-2" \
   -V namespace="$namespace" \
   -V environment="$environment" \
