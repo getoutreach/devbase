@@ -7,7 +7,8 @@ if [[ $CI == "true" ]]; then
   "$DIR/circleci/setup-e2e.sh"
 
   # Bootstrap puts this here. We could def make this better.
-  docker exec -it devenv /host_mnt/scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../../.version")"
+  # sudo is used here because CI has to do some docker perm hacks
+  sudo docker exec -it devenv /host_mnt/scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")"
 fi
 
 exec $("$DIR/gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")")
