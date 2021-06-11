@@ -10,4 +10,4 @@ if [[ $CI == "true" ]]; then
   docker exec -it devenv /host_mnt/scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../../.version")"
 fi
 
-"$DIR/gobin.sh" "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")"
+exec $("$DIR/gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")")

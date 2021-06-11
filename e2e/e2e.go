@@ -206,7 +206,7 @@ func main() {
 	}
 
 	log.Info().Msg("Deploying current application into cluster")
-	cmd = exec.CommandContext(ctx, "devenv", "deploy-app", "--local", ".")
+	cmd = exec.CommandContext(ctx, "devenv", "deploy-app", ".")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
