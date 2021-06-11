@@ -6,11 +6,9 @@ if [[ $CI == "true" ]]; then
   # Install some dependencies
   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
   sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-  sudo apt-get update -y && sudo apt-get install -y vault
-
-  sudo add-apt-repository ppa:longsleep/golang-backports
+  sudo add-apt-repository -y ppa:longsleep/golang-backports
   sudo apt update
-  sudo apt install -y golang-go
+  sudo apt install -y golang-go vault
 
   "$DIR/circleci/setup-vault.sh"
   "$DIR/circleci/setup-e2e.sh"
