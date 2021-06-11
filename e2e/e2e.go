@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"time"
 
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -19,7 +20,7 @@ import (
 
 var virtualDeps = map[string][]string{
 	// TODO: Put a service.yaml in flagship with this
-	"flagship": []string{
+	"flagship": {
 		"outreach-templating-service",
 		"olis",
 		"mint",
@@ -202,5 +203,29 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
+	}
+
+	log.Info().Msg("Deploying current application into cluster")
+	cmd = exec.CommandContext(ctx, "devenv", "deploy-app", "--local", ".")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+	}
+
+	log.Info().Msg("Waiting for application to be ready")
+	time.Sleep(30 * time.Second) // TODO: Eventually actually wait
+
+	log.Info().Msg("Running e2e tests")
+	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Env = os.Environ()
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
 }
