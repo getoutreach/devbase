@@ -24,9 +24,6 @@ BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test,or_int
 SKIP_VALIDATE       ?=
 FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
-E2E_ARGS            ?=  --deploy-app giraffe --deploy-app authz
-E2E_NAMESPACE       ?= $(APP)--bento1a
-E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
 BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE}
@@ -95,12 +92,9 @@ coverage:: pre-coverage
 integration:: pre-integration
 	TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./.bootstrap/shell/test.sh
 
-## e2e:             run e2e tests
 .PHONY: e2e
 e2e:: pre-e2e
-	@devenv --skip-update status -q || \
-		(echo "Starting developer environment"; set -x; devenv --skip-update provision ${E2E_ARGS})
-	TEST_TAGS=or_test,or_e2e $(BASE_TEST_ENV) MY_NAMESPACE=$(E2E_NAMESPACE) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./.bootstrap/shell/test.sh
+	./.bootstrap/shell/e2e.sh
 
 ## benchmark:       run benchmarks
 .PHONY: benchmark
