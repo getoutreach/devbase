@@ -164,7 +164,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
 	}
 
-	log.Info().Msg("Provisioning devenv")
+	log.Info().Int("deps", len(deps)).Msg("Provisioning devenv")
 
 	// TODO: outreach specific code
 	target := "base"
@@ -174,6 +174,9 @@ func main() {
 			break
 		}
 	}
+
+	//nolint:errcheck // Why: Best effort remove existing cluster
+	exec.CommandContext(ctx, "devenv", "destroy").Run()
 
 	cmd := exec.CommandContext(ctx, "devenv", "provision", "--snapshot-target", target)
 	cmd.Stderr = os.Stderr
@@ -185,6 +188,7 @@ func main() {
 	}
 
 	for _, d := range deps {
+		log.Info().Msgf("Deploying dependency '%s'", d)
 		cmd := exec.CommandContext(ctx, "devenv", "deploy-app", d)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
