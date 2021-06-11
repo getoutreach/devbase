@@ -164,7 +164,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
 	}
 
-	log.Info().Int("deps", len(deps)).Msg("Provisioning devenv")
+	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
 
 	// TODO: outreach specific code
 	target := "base"
@@ -188,6 +188,11 @@ func main() {
 	}
 
 	for _, d := range deps {
+		// Skip dep with same name as our target, e.g. flagship
+		if d == target {
+			continue
+		}
+
 		log.Info().Msgf("Deploying dependency '%s'", d)
 		cmd := exec.CommandContext(ctx, "devenv", "deploy-app", d)
 		cmd.Stderr = os.Stderr
