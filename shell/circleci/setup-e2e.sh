@@ -27,11 +27,20 @@ EOF
 info "Setting up devenv container"
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
   --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.0 -c "exec sleep infinity"
+
 # Create CircleCI user and give it the needed perms
 docker exec devenv addgroup -g "$(id -g)" circleci
 docker exec devenv adduser -u "$(id -u)" -D -H -G circleci circleci
 docker exec devenv addgroup circleci docker
 docker exec devenv bash -c "echo 'circleci ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/circleci"
 docker exec devenv bash -c "mkdir /go; chown -R circleci:circleci /go"
+
+# Allow the devenv to update itself
 docker exec --user circleci devenv bash -c "echo '$OUTREACH_GITHUB_TOKEN' > ~/.outreach/github.token"
+docker exec devenv bash -c "devenv status >/dev/null 2>&1; devenv --version"
+
+# Setup the name/email for git
+docker exec devenv git config --global user.name "CircleCI E2E Test"
+docker exec devenv git config --global user.email "circleci@outreach.io"
+
 docker exec devenv chown :docker /var/run/docker.sock
