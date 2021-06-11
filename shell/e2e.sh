@@ -14,7 +14,7 @@ if [[ $CI == "true" ]]; then
 
   # Bootstrap puts this here. We could def make this better.
   # sudo is used here because CI has to do some docker perm hacks
-  sudo docker exec -it --user circleci -w /host_mnt -e CI=true -e VAULT_ADDR=$VAULT_ADDR devenv \
+  sudo docker exec -it --user circleci -w /host_mnt -e CI=true -e "VAULT_ADDR=$VAULT_ADDR" devenv \
     ./scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")"
 else
   exec $("$DIR/gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")")

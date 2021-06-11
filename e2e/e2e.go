@@ -218,6 +218,17 @@ func main() {
 	log.Info().Msg("Waiting for application to be ready")
 	time.Sleep(30 * time.Second) // TODO: Eventually actually wait
 
+	log.Info().Msg("Starting devenv tunnel")
+	cmd = exec.CommandContext(ctx, "devenv", "tunnel")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	err = cmd.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+	}
+	time.Sleep(30 * time.Second) // TODO: Localizer should expose an event when "ready"
+
 	log.Info().Msg("Running e2e tests")
 	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
 	cmd.Stderr = os.Stderr
