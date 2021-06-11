@@ -6,16 +6,16 @@ if [[ $CI == "true" ]]; then
   # Install some dependencies
   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
   sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-  sudo add-apt-repository -y ppa:longsleep/golang-backports
   sudo apt update
-  sudo apt install -y golang-go vault
+  sudo apt install -y vault
 
   "$DIR/circleci/setup-vault.sh"
   "$DIR/circleci/setup-e2e.sh"
 
   # Bootstrap puts this here. We could def make this better.
   # sudo is used here because CI has to do some docker perm hacks
-  sudo docker exec -it --user circleci devenv /host_mnt/scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")"
+  sudo docker exec -it --user circleci -w /host_mnt -e CI=true -e VAULT_ADDR=$VAULT_ADDR devenv \
+    ./scripts/shell-wrapper.sh gobin.sh "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")"
 else
   exec $("$DIR/gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")")
 fi

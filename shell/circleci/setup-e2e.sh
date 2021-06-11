@@ -32,4 +32,6 @@ docker exec devenv addgroup -g "$(id -g)" circleci
 docker exec devenv adduser -u "$(id -u)" -D -H -G circleci circleci
 docker exec devenv addgroup circleci docker
 docker exec devenv bash -c "echo 'circleci ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/circleci"
+docker exec devenv bash -c "mkdir /go; chown -R circleci:circleci /go"
+docker exec --user circleci devenv bash -c "echo '$OUTREACH_GITHUB_TOKEN' > ~/.outreach/github.token"
 docker exec devenv chown :docker /var/run/docker.sock

@@ -179,7 +179,7 @@ func main() {
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "destroy").Run()
 
-	cmd := exec.CommandContext(ctx, "devenv", "provision", "--snapshot-target", target)
+	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "provision", "--snapshot-target", target)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -195,7 +195,7 @@ func main() {
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
-		cmd := exec.CommandContext(ctx, "devenv", "deploy-app", d)
+		cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", d)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
@@ -206,7 +206,7 @@ func main() {
 	}
 
 	log.Info().Msg("Deploying current application into cluster")
-	cmd = exec.CommandContext(ctx, "devenv", "deploy-app", ".")
+	cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", ".")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -223,7 +223,6 @@ func main() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
-	cmd.Env = os.Environ()
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
