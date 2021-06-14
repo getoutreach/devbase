@@ -36,11 +36,12 @@ docker exec devenv bash -c "echo 'circleci ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers
 docker exec devenv bash -c "mkdir /go; chown -R circleci:circleci /go"
 
 # Allow the devenv to update itself
+info "Updating devenv (if needed)"
 docker exec --user circleci devenv bash -c "echo '$OUTREACH_GITHUB_TOKEN' > ~/.outreach/github.token"
-docker exec devenv bash -c "devenv status >/dev/null 2>&1; devenv --version"
+docker exec --user circleci devenv bash -c "devenv status; devenv --version"
 
 # Setup the name/email for git
-docker exec devenv git config --global user.name "CircleCI E2E Test"
-docker exec devenv git config --global user.email "circleci@outreach.io"
+docker exec --user circleci devenv git config --global user.name "CircleCI E2E Test"
+docker exec --user circleci devenv git config --global user.email "circleci@outreach.io"
 
 docker exec devenv chown :docker /var/run/docker.sock
