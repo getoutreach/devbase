@@ -35,21 +35,23 @@ if [[ -n $WITH_COVERAGE || -n $CI ]]; then
   COVER_FLAGS=${COVER_FLAGS:- -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
 
-info "Verifying go.{mod,sum} files are up to date"
-go mod tidy
+if [[ $TEST_TAGS != *"or_e2e"* ]]; then
+  info "Verifying go.{mod,sum} files are up to date"
+  go mod tidy
 
-# We only ever error on this in CI, since it's updated when we run the above...
-# Eventually we can do `go mod tidy -check` or something else:
-# https://github.com/golang/go/issues/27005
-if [[ -n $CI ]]; then
-  git diff --exit-code go.{mod,sum} || fatal "go.{mod,sum} are out of date, please run 'go mod tidy' and commit the result"
-fi
+  # We only ever error on this in CI, since it's updated when we run the above...
+  # Eventually we can do `go mod tidy -check` or something else:
+  # https://github.com/golang/go/issues/27005
+  if [[ -n $CI ]]; then
+    git diff --exit-code go.{mod,sum} || fatal "go.{mod,sum} are out of date, please run 'go mod tidy' and commit the result"
+  fi
 
-# Perform linting and format validations
-if [[ -n $SKIP_VALIDATE ]]; then
-  info "Skipping linting and format validations"
-else
-  "$DIR/validate.sh"
+  # Perform linting and format validations
+  if [[ -n $SKIP_VALIDATE ]]; then
+    info "Skipping linting and format validations"
+  else
+    "$DIR/validate.sh"
+  fi
 fi
 
 if [[ -z $CI && $TEST_TAGS == *"or_int"* ]]; then
