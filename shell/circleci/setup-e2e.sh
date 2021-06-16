@@ -27,7 +27,6 @@ EOF
 info "Setting up devenv container"
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
   --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.3 -c "exec sleep infinity"
-docker exec devenv chown -R circleci:circleci /usr/local/bin
 
 # Create CircleCI user and give it the needed perms
 docker exec devenv addgroup -g "$(id -g)" circleci
@@ -35,6 +34,7 @@ docker exec devenv adduser -u "$(id -u)" -D -H -G circleci circleci
 docker exec devenv addgroup circleci docker
 docker exec devenv bash -c "echo 'circleci ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/circleci"
 docker exec devenv bash -c "mkdir /go; chown -R circleci:circleci /go"
+docker exec devenv chown -R circleci:circleci /usr/local/bin
 
 # Allow the devenv to update itself
 info "Updating devenv (if needed)"
