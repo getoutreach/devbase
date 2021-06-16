@@ -26,7 +26,7 @@ EOF
 
 info "Setting up devenv container"
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
-  --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.2 -c "exec sleep infinity"
+  --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.3 -c "exec sleep infinity"
 
 # Create CircleCI user and give it the needed perms
 docker exec devenv addgroup -g "$(id -g)" circleci
