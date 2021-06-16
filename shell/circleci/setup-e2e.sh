@@ -25,6 +25,7 @@ aws_secret_access_key    = $AWS_SECRET_ACCESS_KEY
 EOF
 
 info "Setting up devenv container"
+docker exec devenv chown -R circleci:circleci /usr/local/bin
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
   --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.3 -c "exec sleep infinity"
 
