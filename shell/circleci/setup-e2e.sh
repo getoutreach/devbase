@@ -25,9 +25,9 @@ aws_secret_access_key    = $AWS_SECRET_ACCESS_KEY
 EOF
 
 info "Setting up devenv container"
-docker exec devenv chown -R circleci:circleci /usr/local/bin
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
   --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:1.1.3 -c "exec sleep infinity"
+docker exec devenv chown -R circleci:circleci /usr/local/bin
 
 # Create CircleCI user and give it the needed perms
 docker exec devenv addgroup -g "$(id -g)" circleci
@@ -39,7 +39,7 @@ docker exec devenv bash -c "mkdir /go; chown -R circleci:circleci /go"
 # Allow the devenv to update itself
 info "Updating devenv (if needed)"
 docker exec --user circleci devenv bash -c "echo '$OUTREACH_GITHUB_TOKEN' > ~/.outreach/github.token"
-docker exec --user circleci devenv bash -c "devenv status; devenv --version"
+docker exec --user circleci devenv bash -c "devenv --force-update-check status; devenv --version"
 
 # Setup the name/email for git
 docker exec --user circleci devenv git config --global user.name "CircleCI E2E Test"
