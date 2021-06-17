@@ -177,7 +177,7 @@ func main() {
 	}
 
 	//nolint:errcheck // Why: Best effort remove existing cluster
-	exec.CommandContext(ctx, "devenv", "destroy").Run()
+	exec.CommandContext(ctx, "devenv", "--skip-app", "destroy").Run()
 
 	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "provision", "--snapshot-target", target)
 	cmd.Stderr = os.Stderr
@@ -219,7 +219,7 @@ func main() {
 	time.Sleep(30 * time.Second) // TODO: Eventually actually wait
 
 	log.Info().Msg("Starting devenv tunnel")
-	cmd = exec.CommandContext(ctx, "devenv", "tunnel")
+	cmd = exec.CommandContext(ctx, "devenv", "--skip-app", "tunnel")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin

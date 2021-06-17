@@ -35,7 +35,7 @@ if [[ -n $WITH_COVERAGE || -n $CI ]]; then
   COVER_FLAGS=${COVER_FLAGS:- -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
 
-if ! grep or_e2e <<<"$TEST_TAGS"; then
+if ! grep or_e2e <<<"$TEST_TAGS" >/dev/null 2>&1; then
   info "Verifying go.{mod,sum} files are up to date"
   go mod tidy
 
