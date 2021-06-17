@@ -19,7 +19,7 @@ import (
 )
 
 var virtualDeps = map[string][]string{
-	// TODO: Put a service.yaml in flagship with this
+	// TODO(jaredallard): [DT-510] Store flagship dependencies in the outreach repository
 	"flagship": {
 		"outreach-templating-service",
 		"olis",
@@ -189,7 +189,7 @@ func main() {
 	}
 
 	for _, d := range deps {
-		// Skip dep with same name as our target, e.g. flagship
+		// Skip dep with same name as our target
 		if d == target {
 			continue
 		}
@@ -227,7 +227,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
 	}
-	time.Sleep(30 * time.Second) // TODO: Localizer should expose an event when "ready"
+	time.Sleep(30 * time.Second) // TODO(jaredallard): [DT-511] Localizer should expose an event when "ready"
 
 	log.Info().Msg("Running e2e tests")
 	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")

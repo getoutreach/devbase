@@ -116,6 +116,13 @@ if [[ -z $CI && $TEST_TAGS == *"or_int"* ]]; then
   fi
 fi
 
+testInclude="$(get_repo_directory)/scripts/test.include.sh"
+if [[ -e $testInclude ]]; then
+  # Why: This is dynamic and can't be parsed
+  # shellcheck disable=SC1090
+  source "$testInclude"
+fi
+
 info "Running go test ($TEST_TAGS)"
 set -ex
 # Why: We want these to split. For those wondering about "$@":
