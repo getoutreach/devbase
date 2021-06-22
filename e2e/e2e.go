@@ -223,7 +223,7 @@ func main() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}

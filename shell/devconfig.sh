@@ -57,8 +57,6 @@ get_vault_secrets() {
 
   mkdir -p "$path"
 
-  ensure_logged_into_vault
-
   # shellcheck disable=SC2155
   local data="$(vault kv get -format=json "$key" | jq -cr '.data.data')"
   if [[ -z $data ]]; then
