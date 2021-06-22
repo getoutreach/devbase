@@ -20,6 +20,8 @@ mkdir -p "$configDir"
 
 VAULT_ADDR=https://vault.outreach.cloud
 if [[ -n $CI ]]; then
+  # shellcheck source=./circleci/setup-vault.sh
+  source "$DIR/circleci/setup-vault.sh"
   VAULT_ADDR=https://vault-dev.outreach.cloud
 fi
 export VAULT_ADDR
