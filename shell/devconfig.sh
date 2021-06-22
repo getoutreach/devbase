@@ -18,7 +18,11 @@ source "$DIR/lib/logging.sh"
 
 mkdir -p "$configDir"
 
-export VAULT_ADDR=https://vault.outreach.cloud
+VAULT_ADDR=https://vault.outreach.cloud
+if [[ -n $CI ]]; then
+  VAULT_ADDR=https://vault-dev.outreach.cloud
+fi
+export VAULT_ADDR
 
 ensure_logged_into_vault() {
 
