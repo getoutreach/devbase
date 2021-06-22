@@ -61,7 +61,8 @@ get_vault_secrets() {
 
   mapfile -t subKeys < <(jq -r 'keys[]' <<<"$data")
   for subKey in "${subKeys[@]}"; do
-    jq -cr ".[\"$subKey\"]" <<<"$data" | sed 's/\n//' | tr -d '\n' >"$path/$subKey"
+    jq -cr ".[\"$subKey\"]" <<<"$data" >"$path/$subKey"
+    printf %s "$(<"$path/$subKey")" >"$path/$subKey" # this is a hack to remove trailing new lines
   done
 
   return 0
