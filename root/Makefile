@@ -160,12 +160,12 @@ fmt:: pre-fmt
 
 ## fly-login:       log into concourse
 .PHONY: fly-login
-fly-login::
+fly-login:
 	${FLY} -t devs userinfo || ${FLY} -t devs login --concourse-url https://concourse.outreach.cloud -n devs
 
 ## update-pipeline: update application pipeline in concourse
 .PHONY: update-pipeline
-update-pipeline:: fly-login
+update-pipeline: fly-login
 	@echo " ===> updating concourse pipeline <==="
 	@if [[ ! -e "concourse/jsonnet-libs" ]]; then git clone https://github.com/getoutreach/jsonnet-libs concourse/jsonnet-libs; else cd concourse/jsonnet-libs && git reset --hard origin/master && git pull; fi
 	cd concourse; rm -f /tmp/pipeline.yml; jsonnet -J ./jsonnet-libs -y pipeline.jsonnet > /tmp/pipeline.yml && ${FLY} -t devs sp -c /tmp/pipeline.yml -p $(APP)
