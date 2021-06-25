@@ -27,8 +27,9 @@ if [[ -n $CIRCLE_TAG ]]; then
   # Only push on a tag
   extraArgs+=("--push")
 else
+  # TODO: buildx doesn't currently support this.
   # Load it into the docker cache so we can run twist-scan
-  extraArgs+=("--load")
+  #extraArgs+=("--load")
 fi
 
 echo "🔨 Building Docker Image"
@@ -39,8 +40,9 @@ docker buildx build --ssh default --progress=plain \
   --build-arg "VERSION=${VERSION}" "${extraArgs[@]}" .
 set +x
 
-if [[ -z $CIRCLE_TAG ]]; then
-  # Scan the built image
-  info "Scanning docker image for vulnerabilities"
-  /usr/local/bin/twist-scan.sh "$appName"
-fi
+# TODO: Re-enable this when buildx supports exporting multiple-manifest docker images
+#if [[ -z $CIRCLE_TAG ]]; then
+#  # Scan the built image
+#  info "Scanning docker image for vulnerabilities"
+#  /usr/local/bin/twist-scan.sh "$appName"
+#fi
