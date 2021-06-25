@@ -50,7 +50,6 @@ pre-debug::
 pre-docker-build::
 pre-fmt::
 
-
 ## release:         tag a new release with goreleaser
 .PHONY: release
 release:: pre-release
