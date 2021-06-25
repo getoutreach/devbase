@@ -27,6 +27,7 @@ if [[ -n $CIRCLE_TAG ]]; then
   # Only push on a tag
   extraArgs+=("--push")
 else
+  echo "Note: Skipping twist-scan due to buildx limitations"
   # TODO: buildx doesn't currently support this.
   # Load it into the docker cache so we can run twist-scan
   #extraArgs+=("--load")
