@@ -12,48 +12,35 @@ source "$DIR/lib/bootstrap.sh"
 appName="$(get_app_name)"
 remote_image_name="gcr.io/outreach-docker/$appName"
 
-# shellcheck source=./lib/logging.sh
-source "$LIB_DIR/logging.sh"
-
 # setup docker authentication
 # shellcheck source=./lib/docker-authn.sh
 source "$LIB_DIR/docker-authn.sh"
 
-info "setting up ssh access"
-# Setup SSH access
-eval "$(ssh-agent)"
-ssh-add -D
+# shellcheck source=./lib/buildx.sh
+source "$LIB_DIR/buildx.sh"
 
-# HACK: This is a fragile attempt to add whatever key is for github.com to our ssh-agent
-grep -A 2 github.com ~/.ssh/config | grep IdentityFile | awk '{ print $2 }' | xargs -n 1 ssh-add
+# shellcheck source=./lib/ssh-auth.sh
+source "$LIB_DIR/ssh-auth.sh"
 
-info "building docker image"
-DOCKER_BUILDKIT=1 docker build --ssh default --progress=plain \
-  -t "$appName" \
-  --file "deployments/$appName/Dockerfile" \
-  --build-arg "VERSION=${VERSION}" \
-  .
-
-# Scan the built image 
-info "Scanning docker image for vulnerabilities"
-/usr/local/bin/twist-scan.sh "$appName"
-
-declare -a TAGS
-# Handle released versions
+extraArgs=("-t" "$remote_image_name:$VERSION")
 if [[ -n $CIRCLE_TAG ]]; then
-  # Note: $VERSION is needed for Maestro when using the semver strategy
-  TAGS+=("$VERSION" "latest")
-else # Handle non-release/main branches here, we only tag based on a calculated branch tag
-  # strip the branch name of invalid spec characters
-  TAGS+=("$VERSION-branch.${CIRCLE_BRANCH//[^a-zA-Z\-\.]/-}")
+  # Only push on a tag
+  extraArgs+=("--push")
+else
+  # Load it into the docker cache so we can run twist-scan
+  extraArgs+=("--load")
 fi
 
-for tag in "${TAGS[@]}"; do
-  # fqin is the fully-qualified image name, it's tag is truncated to 127 characters to match the
-  # docker tag length spec: https://docs.docker.com/engine/reference/commandline/tag/
-  fqin="$remote_image_name:$(cut -c 1-127 <<<"$tag")"
+echo "🔨 Building Docker Image"
+set -x
+docker buildx build --ssh default --progress=plain \
+  --platform linux/arm64,linux/amd64 \
+  --file "deployments/$appName/Dockerfile" \
+  --build-arg "VERSION=${VERSION}" "${extraArgs[@]}" .
+set +x
 
-  info "pushing image '$fqin'"
-  docker tag "$appName" "$fqin"
-  docker push "$fqin"
-done
+if [[ -z $CIRCLE_TAG ]]; then
+  # Scan the built image
+  info "Scanning docker image for vulnerabilities"
+  /usr/local/bin/twist-scan.sh "$appName"
+fi
