@@ -22,28 +22,27 @@ source "$LIB_DIR/buildx.sh"
 # shellcheck source=./lib/ssh-auth.sh
 source "$LIB_DIR/ssh-auth.sh"
 
-extraArgs=("-t" "$remote_image_name:$VERSION")
+args=("--ssh" "default" "--progress=plain" "--file" "deployments/$appName/Dockerfile" "--build-arg" "VERSION=${VERSION}")
 if [[ -n $CIRCLE_TAG ]]; then
   # Only push on a tag
   extraArgs+=("--push")
-else
-  echo "Note: Skipping twist-scan due to buildx limitations"
-  # TODO: buildx doesn't currently support this.
-  # Load it into the docker cache so we can run twist-scan
-  #extraArgs+=("--load")
 fi
 
-echo "🔨 Building Docker Image"
-set -x
-docker buildx build --ssh default --progress=plain \
-  --platform linux/arm64,linux/amd64 \
-  --file "deployments/$appName/Dockerfile" \
-  --build-arg "VERSION=${VERSION}" "${extraArgs[@]}" .
-set +x
+# Build a quick native image on PRs and load it into docker cache
+# for security scanning
+if [[ -e "/usr/local/bin/twist-scan.sh" ]] && [[ -z $CIRCLE_TAG ]]; then
+  info "Building Docker Image (test)"
+  docker buildx build "${args[@]}" -t "$appName" --load .
 
-# TODO: Re-enable this when buildx supports exporting multiple-manifest docker images
-#if [[ -z $CIRCLE_TAG ]]; then
-#  # Scan the built image
-#  info "Scanning docker image for vulnerabilities"
-#  /usr/local/bin/twist-scan.sh "$appName"
-#fi
+  info "🔐 Scanning docker image for vulnerabilities"
+  /usr/local/bin/twist-scan.sh "$appName"
+fi
+
+if [[ -n $CIRCLE_TAG ]]; then
+  echo "🔨 Building and Pushing Docker Image (production)"
+  set -x
+  docker buildx build "${args[@]}" --platform linux/arm64,linux/amd64 \
+    -t "$remote_image_name:$VERSION" --push .
+  set +x
+
+fi
