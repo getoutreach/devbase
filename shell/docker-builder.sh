@@ -44,5 +44,4 @@ if [[ -n $CIRCLE_TAG ]]; then
   docker buildx build "${args[@]}" --platform linux/arm64,linux/amd64 \
     -t "$remote_image_name:$VERSION" --push .
   set +x
-
 fi
