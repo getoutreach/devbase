@@ -44,6 +44,6 @@ set +x
 # TODO: Re-enable this when buildx supports exporting multiple-manifest docker images
 #if [[ -z $CIRCLE_TAG ]]; then
 #  # Scan the built image
-#  info "Scanning docker image for vulnerabilities"
-#  /usr/local/bin/twist-scan.sh "$appName"
+  info "Scanning docker image for vulnerabilities"
+  /usr/local/bin/twist-scan.sh "$appName"
 #fi
