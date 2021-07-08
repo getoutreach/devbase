@@ -3,27 +3,29 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-LIB_DIR="$DIR/lib"
+LIB_DIR="${DIR}/lib"
+SEC_DIR="${DIR}/security"
+TWIST_SCAN_DIR="${SEC_DIR}/prismaci"
 VERSION="$(make version)"
 
 # shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+source "${DIR}/lib/bootstrap.sh"
 
 appName="$(get_app_name)"
-remote_image_name="gcr.io/outreach-docker/$appName"
+remote_image_name="gcr.io/outreach-docker/${appName}"
 
 # setup docker authentication
 # shellcheck source=./lib/docker-authn.sh
-source "$LIB_DIR/docker-authn.sh"
+source "${LIB_DIR}/docker-authn.sh"
 
 # shellcheck source=./lib/buildx.sh
-source "$LIB_DIR/buildx.sh"
+source "${LIB_DIR}/buildx.sh"
 
 # shellcheck source=./lib/ssh-auth.sh
-source "$LIB_DIR/ssh-auth.sh"
+source "${LIB_DIR}/ssh-auth.sh"
 
-extraArgs=("-t" "$remote_image_name:$VERSION")
-if [[ -n $CIRCLE_TAG ]]; then
+extraArgs=("-t" "$remote_image_name:${VERSION}")
+if [[ -n ${CIRCLE_TAG} ]]; then
   # Only push on a tag
   extraArgs+=("--push")
 else
@@ -37,13 +39,12 @@ echo "🔨 Building Docker Image"
 set -x
 docker buildx build --ssh default --progress=plain \
   --platform linux/arm64,linux/amd64 \
-  --file "deployments/$appName/Dockerfile" \
+  --file "deployments/${appName}/Dockerfile" \
   --build-arg "VERSION=${VERSION}" "${extraArgs[@]}" .
 set +x
 
-# TODO: Re-enable this when buildx supports exporting multiple-manifest docker images
-#if [[ -z $CIRCLE_TAG ]]; then
-#  # Scan the built image
+if [[ -z ${CIRCLE_TAG} ]]; then
+  # Scan the built image
   info "Scanning docker image for vulnerabilities"
-  /usr/local/bin/twist-scan.sh "$appName"
-#fi
+  source "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}"
+fi

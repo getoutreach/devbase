@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# This script scans docker images for vulnerabilities, generates local
+# report and also uploads the report to Prisma Cloud. The script expects
+# special credentials - those are set by prismacloud-credentials circleci context.
+#
+
+## Add some safeties for external dependencies when running
+if [ -z "${CIRCLECI}" ]; then
+  echo "I can only run in CircleCI"
+  exit 1
+fi
+if ! [ -x "$(which curl)" ]; then 
+  echo "We need an executable called curl in the $PATH in order to execute"
+  exit 1
+fi
+if ! [ -x "$(which jq)" ]; then 
+  echo "We need an executable called curl in the $PATH in order to execute"
+  exit 1
+fi
+if [ -z "${PC_CONSOLE_URL}" ]; then
+  echo "Need an environment variable called PC_CONSOLE_URL"
+  exit 1
+fi
+if [ -z "${PC_ACCESS_KEY}" ]; then
+  echo "Need an environment variable called PC_ACCESS_KEY"
+  exit 1
+fi
+if [ -z "${PC_SECRET_KEY}" ]; then
+  echo "Need an environment variable called PC_SECRET_KEY"
+  exit 1
+fi
+if [ -z "${DOCKER_CERT_PATH}" ]; then
+  echo "Need a docker certificate path called DOCKER_CERT_PATH, see usage below"
+  exit 1
+fi
+## /Add some safeties for external dependencies when running
+
+PC_CLOUD_TOKEN_JSON=/tmp/token.json
+info "setting up prismacloud auth"
+curl -s -S -o ${PC_CLOUD_TOKEN_JSON} -X POST --user-agent "CircleCI/Getoutreach/2.2.0" \
+  -H "Content-type: application/json" \
+  -d '{"username": "'"${PC_ACCESS_KEY}"'", "password": "'"${PC_SECRET_KEY}"'"}' \
+  "${PC_CONSOLE_URL}/api/v1/authenticate"
+
+PC_CLOUD_TOKEN=$(jq -r -c '.token' <${PC_CLOUD_TOKEN_JSON})
+
+PC_CLOUD_TWISTCLI=/tmp/twistcli
+info "downloading twistcli from prismacloud"
+curl -L --header "authorization: Bearer ${PC_CLOUD_TOKEN}" \
+  "${PC_CONSOLE_URL}/api/v1/util/twistcli" -o ${PC_CLOUD_TWISTCLI}
+chmod a+x ${PC_CLOUD_TWISTCLI}
+
+
+if [ -z "${DOCKER_HOST}" ]; then
+    # trying the default unix one
+    TWISTCLI_DOCKER_HOST=/var/run/docker.sock
+else
+    TWISTCLI_DOCKER_HOST=$(echo "${DOCKER_HOST}" | sed -e 's/tcp/https/')
+fi
+
+${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
+  --ci --details --address "${PC_CONSOLE_URL}" \
+  --custom-labels \
+  --docker-address "${TWISTCLI_DOCKER_HOST}" \
+  --docker-tlscert "${DOCKER_CERT_PATH}/cert.pem" \
+  --docker-tlscacert "${DOCKER_CERT_PATH}/ca.pem" \
+  --docker-tlskey "${DOCKER_CERT_PATH}/key.pem" \
+  --output-file "${TEST_RESULTS}/image_scan.json" \
+  "$@"
+  
