@@ -36,7 +36,7 @@ if [[ -z $CIRCLE_TAG ]]; then
   source "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}"
 fi
 
-if [[ -n ${CIRCLE_TAG} ]]; then
+if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"
   set -x
   docker buildx build "${args[@]}" --platform linux/arm64,linux/amd64 \
