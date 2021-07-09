@@ -7,6 +7,6 @@
 
 # We only upload to opslevel on tagged releases.
 if [[ -z $CIRCLE_TAG ]]; then
-  echo "OpsLevel upload can only run in CircleCI on tagged releases"
-  exit 1
+  echo "Skip OpsLevel upload since release tag is missing"
+  exit 0
 fi
