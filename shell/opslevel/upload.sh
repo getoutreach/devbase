@@ -6,7 +6,8 @@
 #
 
 # We only upload to opslevel on tagged releases.
-if [[ -z $CIRCLE_TAG ]]; then
-  echo "Skip OpsLevel upload since release tag is missing"
-  exit 0
-fi
+# TODO: uncomment
+#if [[ -z $CIRCLE_TAG ]]; then
+#  echo "Skip OpsLevel upload since release tag is missing"
+#  exit 0
+#fi
