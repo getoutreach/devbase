@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # This script scans docker images for vulnerabilities, generates local
 # report and also uploads the report to Prisma Cloud. The script expects
