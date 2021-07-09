@@ -10,12 +10,12 @@ if [ -z "${CIRCLECI}" ]; then
   echo "I can only run in CircleCI"
   exit 1
 fi
-if ! [ -x "$(which curl)" ]; then 
-  echo "We need an executable called curl in the $PATH in order to execute"
+if ! command -v curl >/dev/null 2>&1; then 
+  echo "We need an executable called curl in the \$PATH in order to execute"
   exit 1
 fi
-if ! [ -x "$(which jq)" ]; then 
-  echo "We need an executable called curl in the $PATH in order to execute"
+if ! command -v jq >/dev/null 2>&1; then 
+  echo "We need an executable called curl in the \$PATH in order to execute"
   exit 1
 fi
 if [ -z "${PC_CONSOLE_URL}" ]; then
