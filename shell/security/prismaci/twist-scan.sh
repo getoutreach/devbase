@@ -49,7 +49,7 @@ curl -L --header "authorization: Bearer ${PC_CLOUD_TOKEN}" \
 chmod a+x ${PC_CLOUD_TWISTCLI}
 
 
-if [ -z "${DOCKER_HOST}" ]; then
+if [[ -z $DOCKER_HOST ]]; then
     # trying the default unix one
     TWISTCLI_DOCKER_HOST=/var/run/docker.sock
 else
