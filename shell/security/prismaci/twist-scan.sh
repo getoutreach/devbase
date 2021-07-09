@@ -49,17 +49,12 @@ curl -L --header "authorization: Bearer ${PC_CLOUD_TOKEN}" \
 chmod a+x ${PC_CLOUD_TWISTCLI}
 
 
-if [[ -z $DOCKER_HOST ]]; then
-    # trying the default unix one
-    TWISTCLI_DOCKER_HOST=/var/run/docker.sock
-else
-    TWISTCLI_DOCKER_HOST=$(sed -e 's/tcp/https/' <<< "${DOCKER_HOST}")
-fi
-
+# Note: we are relying on a default docker host address (which is, per twistcli doc: unix:///var/run/docker.sock)
+# since we are running this script on a bare VM. If this ever changes, pls set --docker-address explicitly.
+# Note: https version of the address will require TLS cert - see twistcli doc for details.
 ${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
   --ci --details --address "${PC_CONSOLE_URL}" \
   --custom-labels \
-  --docker-address "${TWISTCLI_DOCKER_HOST}" \
   --output-file "${TEST_RESULTS}/image_scan.json" \
   "$@"
   
