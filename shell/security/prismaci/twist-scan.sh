@@ -53,7 +53,7 @@ if [[ -z $DOCKER_HOST ]]; then
     # trying the default unix one
     TWISTCLI_DOCKER_HOST=/var/run/docker.sock
 else
-    TWISTCLI_DOCKER_HOST=$(echo "${DOCKER_HOST}" | sed -e 's/tcp/https/')
+    TWISTCLI_DOCKER_HOST=$(sed -e 's/tcp/https/' <<< "${DOCKER_HOST}")
 fi
 
 ${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
