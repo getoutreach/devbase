@@ -30,10 +30,7 @@ if [ -z "${PC_SECRET_KEY}" ]; then
   echo "Need an environment variable called PC_SECRET_KEY"
   exit 1
 fi
-if [ -z "${DOCKER_CERT_PATH}" ]; then
-  echo "Need a docker certificate path called DOCKER_CERT_PATH, see usage below"
-  exit 1
-fi
+
 ## /Add some safeties for external dependencies when running
 
 PC_CLOUD_TOKEN_JSON=/tmp/token.json
@@ -63,9 +60,6 @@ ${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
   --ci --details --address "${PC_CONSOLE_URL}" \
   --custom-labels \
   --docker-address "${TWISTCLI_DOCKER_HOST}" \
-  --docker-tlscert "${DOCKER_CERT_PATH}/cert.pem" \
-  --docker-tlscacert "${DOCKER_CERT_PATH}/ca.pem" \
-  --docker-tlskey "${DOCKER_CERT_PATH}/key.pem" \
   --output-file "${TEST_RESULTS}/image_scan.json" \
   "$@"
   
