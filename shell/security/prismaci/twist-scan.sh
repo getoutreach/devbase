@@ -6,7 +6,7 @@
 #
 
 ## Add some safeties for external dependencies when running
-if [ -z "${CIRCLECI}" ]; then
+if [[ -z $CIRCLECI ]]; then
   echo "I can only run in CircleCI"
   exit 1
 fi
