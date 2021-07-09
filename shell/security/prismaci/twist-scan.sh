@@ -18,15 +18,15 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "We need an executable called curl in the \$PATH in order to execute"
   exit 1
 fi
-if [ -z "${PC_CONSOLE_URL}" ]; then
+if [[ -z $PC_CONSOLE_URL ]]; then
   echo "Need an environment variable called PC_CONSOLE_URL"
   exit 1
 fi
-if [ -z "${PC_ACCESS_KEY}" ]; then
+if [[ -z $PC_ACCESS_KEY ]]; then
   echo "Need an environment variable called PC_ACCESS_KEY"
   exit 1
 fi
-if [ -z "${PC_SECRET_KEY}" ]; then
+if [[ -z $PC_SECRET_KEY ]]; then
   echo "Need an environment variable called PC_SECRET_KEY"
   exit 1
 fi
