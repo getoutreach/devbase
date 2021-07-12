@@ -25,6 +25,9 @@ source "$DIR/../lib/opslevel.sh"
 ARTIFACTS_JSON_FILE=/tmp/artifacts.json
 download_artifacts_json "${ARTIFACTS_JSON_FILE}"
 
+# print the artifacts content for troubleshooting
+cat "${ARTIFACTS_JSON_FILE}"
+
 # Upload scan results to Prisma Cloud
 # shellcheck source=./upload_prismaci.sh
 source "$DIR/upload_prismaci.sh" "${ARTIFACTS_JSON_FILE}"
