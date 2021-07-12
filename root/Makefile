@@ -94,7 +94,7 @@ integration:: pre-integration
 
 .PHONY: e2e
 e2e:: pre-e2e
-	./.bootstrap/shell/e2e.sh
+	TEST_TAGS=or_test,or_e2e ./.bootstrap/shell/e2e.sh
 
 ## benchmark:       run benchmarks
 .PHONY: benchmark
