@@ -28,14 +28,13 @@ args=("--ssh" "default" "--progress=plain" "--file" "deployments/${appName}/Dock
 
 # Build a quick native image on PRs and load it into docker cache
 # for security scanning
-# TODO: uncomment
-#if [[ -z $CIRCLE_TAG ]]; then
+if [[ -z $CIRCLE_TAG ]]; then
   info "Building Docker Image (test)"
   docker buildx build "${args[@]}" -t "${appName}" --load .
 
   info "🔐 Scanning docker image for vulnerabilities"
   source "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}"
-#fi
+fi
 
 if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"

@@ -6,11 +6,10 @@
 #
 
 # We only upload to opslevel on tagged releases.
-# TODO: uncomment
-#if [[ -z $CIRCLE_TAG ]]; then
-#  echo "Skip OpsLevel upload since release tag is missing"
-#  exit 0
-#fi
+if [[ -z $CIRCLE_TAG ]]; then
+  echo "Skip OpsLevel upload since release tag is missing"
+  exit 0
+fi
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # Preload libs that all others opslevel/* scripts rely on.
