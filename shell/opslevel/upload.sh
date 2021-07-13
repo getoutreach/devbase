@@ -15,8 +15,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # Preload libs that all others opslevel/* scripts rely on.
 
-# shellcheck source=../lib/circleci-api.sh
-source "$DIR/../lib/circleci-api.sh"
 # shellcheck source=../lib/artifacts.sh
 source "$DIR/../lib/artifacts.sh"
 # shellcheck source=../lib/opslevel.sh

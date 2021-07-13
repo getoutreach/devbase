@@ -6,7 +6,7 @@ download_artifacts_json() {
     local target_file="$1"
     ARTIFACTS_API_URL="https://circleci.com/api/v1.1/project/github/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BUILD_NUM}/artifacts"
     echo "Downloading artifacts from ${ARTIFACTS_API_URL}:"
-    ARTIFACTS_JSON=$(curl -H "Circle-Token: $(get_circleci_api_token)" "${ARTIFACTS_API_URL}")
+    ARTIFACTS_JSON=$(curl -H "Circle-Token: ${CIRCLE_API_TOKEN}" "${ARTIFACTS_API_URL}")
     echo "${ARTIFACTS_JSON}" > "${target_file}"
     # also echo the artifacts content to console/log for troubleshooting
     echo "${ARTIFACTS_JSON}"
@@ -27,5 +27,5 @@ download_artifact_by_full_url() {
   local local_file="$2"
 
   echo "Downloading ${full_url}"
-  curl -L -H "Circle-Token: $(get_circleci_api_token)" "${full_url}" > "${local_file}"
+  curl -L -H "Circle-Token: ${CIRCLE_API_TOKEN}" "${full_url}" > "${local_file}"
 }
