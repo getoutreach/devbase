@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+# Sets up SSH authentication in CI
+set -e
+
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 echo "🔒 Setting up ssh access"
+
 # Setup SSH access
 eval "$(ssh-agent)"
 ssh-add -D

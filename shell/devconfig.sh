@@ -18,7 +18,11 @@ source "$DIR/lib/logging.sh"
 
 mkdir -p "$configDir"
 
-export VAULT_ADDR=https://vault.outreach.cloud
+VAULT_ADDR=https://vault.outreach.cloud
+if [[ -n $CI ]]; then
+  VAULT_ADDR=https://vault-dev.outreach.cloud
+fi
+export VAULT_ADDR
 
 ensure_logged_into_vault() {
 
@@ -51,8 +55,6 @@ get_vault_secrets() {
 
   mkdir -p "$path"
 
-  ensure_logged_into_vault
-
   # shellcheck disable=SC2155
   local data="$(vault kv get -format=json "$key" | jq -cr '.data.data')"
   if [[ -z $data ]]; then
@@ -68,7 +70,9 @@ get_vault_secrets() {
   return 0
 }
 
-ensure_logged_into_vault
+if [[ -z $CI ]]; then
+  ensure_logged_into_vault
+fi
 
 info "Generating local config/secrets in '$configDir'"
 envsubst="$("$DIR/gobin.sh" -p github.com/a8m/envsubst/cmd/envsubst@v1.2.0)"
