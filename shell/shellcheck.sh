@@ -14,6 +14,13 @@ BIN_DIR="$(get_repo_directory)/bin"
 SHELLCHECK_VERSION="$(get_application_version "shellcheck")"
 GOOS=$(go env GOOS)
 ARCH=$(uname -m)
+
+# No builds for M1 macs at the moment, so just download
+# the amd64 build.
+if [[ $GOOS == "darwin" ]] && [[ $ARCH == "arm64" ]]; then
+  ARCH="x86_64"
+fi
+
 binPath="$BIN_DIR/shellcheck-$SHELLCHECK_VERSION"
 
 # Ensure $BIN_DIR exists, since GOBIN makes it, but
