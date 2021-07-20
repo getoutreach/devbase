@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	dockerclient "github.com/docker/docker/client"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -95,7 +96,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 // grabDependencies traverses the dependency tree by calculating
 // it on the fly via git cloning of the dependencies. Passed in
-// is a hash map used to prevent infinite recurison and de-duplicate
+// is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
 func grabDependencies(ctx context.Context, deps map[string]bool, name string, auth *sshhelper.ExistingSSHAgentCallback) error {
 	fs := memfs.New()
@@ -152,38 +153,15 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 	return nil
 }
 
-func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	log.Info().Msg("Building dependency tree")
-
-	deps, err := BuildDependenciesList(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to build dependency tree")
-	}
-
-	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
-
-	// TODO: outreach specific code
-	target := "base"
-	for _, d := range deps {
-		if d == "flagship" {
-			target = "flagship"
-			break
-		}
-	}
-
+func provisionNew(ctx context.Context, deps []string, target string) error {
 	//nolint:errcheck // Why: Best effort remove existing cluster
-	exec.CommandContext(ctx, "devenv", "--skip-app", "destroy").Run()
+	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
 	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "provision", "--snapshot-target", target)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
@@ -205,8 +183,50 @@ func main() {
 		}
 	}
 
+	return nil
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	log.Info().Msg("Building dependency tree")
+
+	deps, err := BuildDependenciesList(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to build dependency tree")
+	}
+
+	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
+
+	// TODO(jaredallard): outreach specific code
+	target := "base"
+	for _, d := range deps {
+		if d == "flagship" {
+			target = "flagship"
+			break
+		}
+	}
+
+	d, err := dockerclient.NewEnvClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create Docker client")
+	}
+
+	if _, err := d.ContainerInspect(ctx, "dev-environment-control-plane"); dockerclient.IsErrNotFound(err) {
+		err = provisionNew(ctx, deps, target)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create cluster")
+		}
+	} else {
+		log.Info().
+			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
+	}
+
 	log.Info().Msg("Deploying current application into cluster")
-	cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", ".")
+	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", ".")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -216,7 +236,7 @@ func main() {
 	}
 
 	log.Info().Msg("Waiting for application to be ready")
-	time.Sleep(30 * time.Second) // TODO: Eventually actually wait
+	time.Sleep(30 * time.Second) // TODO(jaredallard): Eventually actually wait
 
 	log.Info().Msg("Running devconfig")
 	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
