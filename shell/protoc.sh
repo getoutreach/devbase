@@ -47,8 +47,7 @@ docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go 
 if has_grpc_client "node"; then
   info_sub "node"
   docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
-    --with-typescript -o "./clients/node/src/grpc/" --grpc-out="service=grpc-node,mode=grpc-js:$OUT_DIR" \
-    --ts-out="service=grpc-node,mode=grpc-js:$OUT_DIR"
+    --with-typescript -o "./clients/node/src/grpc/"
 fi
 
 if has_grpc_client "ruby"; then
