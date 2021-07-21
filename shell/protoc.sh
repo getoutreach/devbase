@@ -2,7 +2,7 @@
 # This script is a light wrapper around the 'docker-protoc' image (see: https://github.com/namely/docker-protoc),
 # which is capable of compiling proto definitions into various languages.
 # This is not meant to be used in CircleCI (except by bootstrap itself to validate the general process).
-IMAGE="gcr.io/outreach-docker/protoc:latest"
+IMAGE="gcr.io/outreach-docker/protoc:1.37_1"
 uid=$(id -u)
 gid=$(id -g)
 
@@ -47,7 +47,8 @@ docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go 
 if has_grpc_client "node"; then
   info_sub "node"
   docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
-    --with-typescript -o "./clients/node/src/grpc/"
+    --with-typescript -o "./clients/node/src/grpc/" --grpc-out="service=grpc-node,mode=grpc-js:$OUT_DIR" \
+    --ts-out="service=grpc-node,mode=grpc-js:$OUT_DIR"
 fi
 
 if has_grpc_client "ruby"; then
