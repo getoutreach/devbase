@@ -27,7 +27,8 @@ FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concour
 OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
 BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE}
-
+E2E_NAMESPACE       ?= $(APP)--bento1a
+E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 
 .PHONY: default
 default: build
@@ -94,7 +95,7 @@ integration:: pre-integration
 
 .PHONY: e2e
 e2e:: pre-e2e
-	TEST_TAGS=or_test,or_e2e ./.bootstrap/shell/e2e.sh
+	TEST_TAGS=or_test,or_e2e OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./.bootstrap/shell/e2e.sh
 
 ## benchmark:       run benchmarks
 .PHONY: benchmark
