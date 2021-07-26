@@ -222,10 +222,11 @@ func main() {
 			return nil
 		}
 
-		f, err := os.ReadFile(path)
+		f, err := os.Open(path)
 		if err != nil {
-			return errors.Wrap(err, "read file")
+			return errors.Wrap(err, "open file")
 		}
+		defer f.Close()
 
 		fset := token.NewFileSet()
 
@@ -235,11 +236,18 @@ func main() {
 		}
 
 		ast.Inspect(root, func(n ast.Node) bool {
+			if runEndToEndTests {
+				// No need to keep traversing.
+				return false
+			}
+
 			if c, ok := n.(*ast.Comment); ok {
 				if strings.HasPrefix(strings.TrimSpace(c.Text), "+build") {
 					if strings.Contains(c.Text, "or_e2e") {
 						runEndToEndTests = true
-						return true
+
+						// Stop descending into this node.
+						return false
 					}
 				}
 			}
