@@ -242,13 +242,12 @@ func main() {
 			}
 
 			if c, ok := n.(*ast.Comment); ok {
-				if strings.HasPrefix(strings.TrimSpace(c.Text), "+build") {
-					if strings.Contains(c.Text, "or_e2e") {
-						runEndToEndTests = true
+				text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
+				if strings.HasPrefix(text, "+build") && strings.Contains(text, "or_e2e") {
+					runEndToEndTests = true
 
-						// Stop descending into this node.
-						return false
-					}
+					// Stop descending into this node.
+					return false
 				}
 			}
 
