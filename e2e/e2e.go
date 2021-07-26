@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	dockerclient "github.com/docker/docker/client"
@@ -191,6 +196,77 @@ func main() {
 	defer cancel()
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	// runEndToEndTests is a flag that denotes whether or not this needs to actually
+	// run or not based off of the filepath.Walk function immediately proceeding.
+	var runEndToEndTests bool
+
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if runEndToEndTests {
+			// No need to keep walking through files if we've already found one file
+			// that requries e2e tests.
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			// Skip symlinks.
+			return nil
+		}
+
+		if !strings.HasSuffix(path, "_test.go") {
+			// Skip all files that aren't go test files.
+			return nil
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return errors.Wrap(err, "open file")
+		}
+		defer f.Close()
+
+		fset := token.NewFileSet()
+
+		root, err := parser.ParseFile(fset, filepath.Base(path), f, parser.ParseComments)
+		if err != nil {
+			return errors.Wrap(err, "parse file")
+		}
+
+		ast.Inspect(root, func(n ast.Node) bool {
+			if runEndToEndTests {
+				// No need to keep traversing.
+				return false
+			}
+
+			if c, ok := n.(*ast.Comment); ok {
+				text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
+				if strings.HasPrefix(text, "+build") && strings.Contains(text, "or_e2e") {
+					runEndToEndTests = true
+
+					// Stop descending into this node.
+					return false
+				}
+			}
+
+			return true
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		// This err shouldn't fail the e2e tests, just warn on it.
+		log.Warn().Err(err).Msg("Failed to walk repository to determine whether or not e2e tests needed to be ran")
+	}
+
+	// No or_e2e build tags were found.
+	if !runEndToEndTests {
+		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
+		os.Exit(0)
+	}
 
 	log.Info().Msg("Building dependency tree")
 
