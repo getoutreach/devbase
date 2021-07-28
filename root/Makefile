@@ -169,11 +169,11 @@ version:
 	@echo "$(APP_VERSION)"
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
-.PHONY: benchmarker-gen:
+.PHONY: benchmarker-gen
 benchmarker-gen:
 	benchmarker grpc --server localhost:5000 --output benchmarker-grpc --format json --ignore-service Throttler
 
 ## benchmarker-run:	run the generated benchmarker input file using your locally running gRPC server
-.PHONY: benchmarker-run:
+.PHONY: benchmarker-run
 benchmarker-run:
 	benchmarker --input benchmarker-grpc.json --output benchmarker-output.json --format json --verbose
