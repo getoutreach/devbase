@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"go/build"
 	"os"
 	"os/exec"
 	"path"
@@ -222,38 +220,15 @@ func main() {
 			return nil
 		}
 
-		f, err := os.Open(path)
+		pkg, err := build.Default.Import(path, filepath.Base(path), build.ImportComment)
 		if err != nil {
-			return errors.Wrap(err, "open file")
-		}
-		defer f.Close()
-
-		fset := token.NewFileSet()
-
-		root, err := parser.ParseFile(fset, filepath.Base(path), f, parser.ParseComments)
-		if err != nil {
-			return errors.Wrap(err, "parse file")
+			return errors.Wrap(err, "import")
 		}
 
-		ast.Inspect(root, func(n ast.Node) bool {
-			if runEndToEndTests {
-				// No need to keep traversing.
-				return false
-			}
-
-			if c, ok := n.(*ast.Comment); ok {
-				text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
-				if strings.HasPrefix(text, "+build") && strings.Contains(text, "or_e2e") {
-					runEndToEndTests = true
-
-					// Stop descending into this node.
-					return false
-				}
-			}
-
-			return true
-		})
-
+		for _, tag := range pkg.AllTags {
+			runEndToEndTests = runEndToEndTests || tag == "or_e2e"
+		}
+		
 		return nil
 	})
 
