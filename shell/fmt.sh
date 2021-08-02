@@ -48,11 +48,15 @@ if has_feature "grpc"; then
   if has_grpc_client "node"; then
     CLIENTS_DIR="$(pwd)/api/clients"
 
-    info_sub "Prettier (Node.js)"
-
     nodeSourceDir="$CLIENTS_DIR/node"
 
     run_node_command "$nodeSourceDir" yarn install
+
+    info_sub "ESLint (Node.js)"
+
+    run_node_command "$nodeSourceDir" yarn lint-fix
+
+    info_sub "Prettier (Node.js)"
 
     # When files are modified this returns 1.
     run_node_command "$nodeSourceDir" yarn pretty-fix
