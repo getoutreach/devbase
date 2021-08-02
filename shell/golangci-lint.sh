@@ -14,6 +14,6 @@ if [[ -z $workspaceFolder ]]; then
 fi
 
 # Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--allow-parallel-runners")
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
 exec "$GOBIN" "github.com/golangci/golangci-lint/cmd/golangci-lint@v$(get_application_version "golangci-lint")" "${args[@]}"
