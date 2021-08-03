@@ -16,4 +16,7 @@ fi
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
+# trade memory for CPU when running the linters
+export GOGC=20
+
 exec "$GOBIN" "github.com/golangci/golangci-lint/cmd/golangci-lint@v$(get_application_version "golangci-lint")" "${args[@]}"
