@@ -228,7 +228,7 @@ func main() {
 		for _, tag := range pkg.AllTags {
 			runEndToEndTests = runEndToEndTests || tag == "or_e2e"
 		}
-		
+
 		return nil
 	})
 
@@ -308,7 +308,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
 	}
-	time.Sleep(30 * time.Second) // TODO(jaredallard): [DT-511] Localizer should expose an event when "ready"
+	time.Sleep(30 * time.Second) // TODO(jaredallard)[DT-511]: Localizer should expose an event when "ready"
 
 	log.Info().Msg("Running e2e tests")
 	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
