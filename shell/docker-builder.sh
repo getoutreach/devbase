@@ -33,7 +33,7 @@ if [[ -z $CIRCLE_TAG ]]; then
   docker buildx build "${args[@]}" -t "${appName}" --load .
 
   info "🔐 Scanning docker image for vulnerabilities"
-  source "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}"
+  "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}" || echo "Warning: Failed to scan image"
 fi
 
 if [[ -n $CIRCLE_TAG ]]; then
