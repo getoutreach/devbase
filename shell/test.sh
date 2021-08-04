@@ -69,7 +69,7 @@ if [[ -z $CI && $TEST_TAGS == *"or_int"* ]]; then
 
   if has_resource "mysql"; then
     info_sub "creating mysql container"
-    mysqlID=$(docker run -itd --rm -p 3306:3306 -e "MYSQL_DATABASE=$(get_app_name)" -e MYSQL_ROOT_PASSWORD=root "gcr.io/outreach-docker/mysql:$(get_resource_version "mysql")")
+    mysqlID=$(docker run -itd --rm -p 3306:3306 -e "MYSQL_DATABASE=$(get_app_name)" -e "MYSQL_ROOT_HOST=%" -e MYSQL_ROOT_PASSWORD=root "gcr.io/outreach-docker/mysql:$(get_resource_version "mysql")")
     cleanup="$cleanup; docker stop $mysqlID"
     # shellcheck disable=SC2064
     trap "$cleanup" EXIT INT TERM
