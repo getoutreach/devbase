@@ -24,13 +24,14 @@ source "${LIB_DIR}/buildx.sh"
 # shellcheck source=./lib/ssh-auth.sh
 source "${LIB_DIR}/ssh-auth.sh"
 
+secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
 args=("--ssh" "default" "--progress=plain" "--file" "deployments/${appName}/Dockerfile" "--build-arg" "VERSION=${VERSION}")
 
 # Build a quick native image on PRs and load it into docker cache
 # for security scanning
 if [[ -z $CIRCLE_TAG ]]; then
   info "Building Docker Image (test)"
-  docker buildx build "${args[@]}" -t "${appName}" --load .
+  docker buildx build "${args[@]}" "${secrets[@]}" -t "${appName}" --load .
 
   info "🔐 Scanning docker image for vulnerabilities"
   source "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}"
@@ -39,7 +40,7 @@ fi
 if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"
   set -x
-  docker buildx build "${args[@]}" --platform linux/arm64,linux/amd64 \
+  docker buildx build "${args[@]}" "${secrets[@]}" --platform linux/arm64,linux/amd64 \
     -t "${remote_image_name}:${VERSION}" -t "$remote_image_name:latest" --push .
   set +x
 fi
