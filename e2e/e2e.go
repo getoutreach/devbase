@@ -12,6 +12,7 @@ import (
 
 	dockerclient "github.com/docker/docker/client"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
+	"github.com/getoutreach/localizer/pkg/localizer"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -299,16 +300,37 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	log.Info().Msg("Starting devenv tunnel")
-	cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Start()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+	var killLocalizer bool
+	if !localizer.IsRunning() {
+		killLocalizer = true
+
+		log.Info().Msg("Starting devenv tunnel")
+		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+		}
+
+		tick := time.NewTicker(2 * time.Second)
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info().Msg("context cancelled")
+				return
+			case <-tick.C:
+			}
+
+			if !localizer.IsRunning() {
+				log.Info().Msg("waiting for localizer to be running...")
+				continue
+			}
+
+			break
+		}
 	}
-	time.Sleep(30 * time.Second) // TODO(jaredallard)[DT-511]: Localizer should expose an event when "ready"
 
 	log.Info().Msg("Running e2e tests")
 	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
@@ -318,5 +340,17 @@ func main() {
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
+	}
+
+	if killLocalizer {
+		log.Info().Msg("Killing underlying localizer used for devenv tunnel")
+		cmd = exec.CommandContext(ctx, "sudo", "killall", "localizer")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Start()
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to kill localizer")
+		}
 	}
 }
