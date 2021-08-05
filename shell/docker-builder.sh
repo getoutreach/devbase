@@ -40,7 +40,7 @@ fi
 if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"
   set -x
-  docker buildx build "${args[@]}" --platform linux/arm64,linux/amd64 \
+  docker buildx build "${args[@]}" "${secrets[@]}" --platform linux/arm64,linux/amd64 \
     -t "${remote_image_name}:${VERSION}" -t "$remote_image_name:latest" --push .
   set +x
 fi
