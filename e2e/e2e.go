@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -356,6 +357,8 @@ func main() {
 			log.Warn().Err(err).Msg("Failed to kill localizer, couldn't find process ID")
 			return
 		}
+
+		fmt.Println("captured PID", buf.String())
 
 		cmd = exec.CommandContext(ctx, "sudo", "kill", strings.TrimSpace(buf.String()))
 		cmd.Stderr = os.Stderr
