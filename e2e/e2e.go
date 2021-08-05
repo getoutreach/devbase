@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"go/build"
 	"os"
@@ -344,13 +345,25 @@ func main() {
 
 	if killLocalizer {
 		log.Info().Msg("Killing underlying localizer used for devenv tunnel")
-		cmd = exec.CommandContext(ctx, "sudo", "killall", "localizer")
+
+		var buf bytes.Buffer
+		cmd = exec.CommandContext(ctx, "pgrep", "localizer")
+		cmd.Stderr = &buf
+		cmd.Stdout = &buf
+		cmd.Stdin = os.Stdin
+		err = cmd.Start()
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to kill localizer, couldn't find process ID")
+			return
+		}
+
+		cmd = exec.CommandContext(ctx, "sudo", "kill", strings.TrimSpace(buf.String()))
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
 		err = cmd.Start()
 		if err != nil {
-			log.Warn().Err(err).Msg("Failed to kill localizer")
+			log.Warn().Err(err).Msg("Failed to kill localizer using process ID")
 		}
 	}
 }
