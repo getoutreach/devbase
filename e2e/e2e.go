@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"go/build"
 	"os"
@@ -14,6 +13,7 @@ import (
 	dockerclient "github.com/docker/docker/client"
 	"github.com/getoutreach/async/pkg/async"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
+	localizerapi "github.com/getoutreach/localizer/api"
 	"github.com/getoutreach/localizer/pkg/localizer"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -22,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
 
@@ -336,28 +337,13 @@ func main() {
 	if killLocalizer {
 		log.Info().Msg("Killing underlying localizer used for devenv tunnel")
 
-		var buf bytes.Buffer
-		cmd = exec.CommandContext(ctx, "pgrep", "localizer")
-		cmd.Stderr = &buf
-		cmd.Stdout = &buf
-		cmd.Stdin = os.Stdin
-		err = cmd.Start()
+		client, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
 		if err != nil {
-			log.Warn().Err(err).Msg("Failed to kill localizer, couldn't find process ID")
-			return
+			log.Warn().Err(err).Msg("Failed to connect to localizer server to kill running instance")
 		}
 
-		log.Info().Fields(map[string]interface{}{
-			"pid": buf.String(),
-		}).Msg("captured localizer pid")
-
-		cmd = exec.CommandContext(ctx, "sudo", "kill", strings.TrimSpace(buf.String()))
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Start()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to kill localizer using process ID")
+		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+			log.Warn().Err(err).Msg("failed to kill running localizer server")
 		}
 	}
 }
