@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	dockerclient "github.com/docker/docker/client"
+	"github.com/getoutreach/async/pkg/async"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	"github.com/getoutreach/localizer/pkg/localizer"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -316,21 +316,8 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
 		}
 
-		tick := time.NewTicker(2 * time.Second)
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Msg("context cancelled")
-				return
-			case <-tick.C:
-			}
-
-			if !localizer.IsRunning() {
-				log.Info().Msg("waiting for localizer to be running...")
-				continue
-			}
-
-			break
+		for ctx.Err() != nil && !localizer.IsRunning() {
+			async.Sleep(ctx, time.Second*2)
 		}
 	}
 
@@ -358,7 +345,9 @@ func main() {
 			return
 		}
 
-		fmt.Println("captured PID", buf.String())
+		log.Info().Fields(map[string]interface{}{
+			"pid": buf.String(),
+		}).Msg("captured localizer pid")
 
 		cmd = exec.CommandContext(ctx, "sudo", "kill", strings.TrimSpace(buf.String()))
 		cmd.Stderr = os.Stderr

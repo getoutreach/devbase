@@ -5,7 +5,8 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.5.4 // indirect
 	github.com/docker/docker v20.10.7+incompatible
-	github.com/getoutreach/gobox v1.2.0
+	github.com/getoutreach/async v1.2.0
+	github.com/getoutreach/gobox v1.8.0
 	github.com/getoutreach/localizer v1.11.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
