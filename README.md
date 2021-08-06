@@ -21,4 +21,5 @@ versions:
   devbase: jaredallard/feat/my-cool-feature
 ```
 
-CI will now use that branch, to use it locally re-run any `make` command. **Note**: This will not automatically update locally when the remote branch is changed, in order to do that you will need to `rm -rf .bootstrap` and re-run a `make` command.
+CI will now use that branch, to use it locally re-run any `make` command. **Note**: This will not automatically update locally when the remote branch is changed, in order to do that you will need to `rm -rf .bootstrap` and re-run a `make` command. If you are testing changes to `make e2e`, you must also run
+`rm -rf ~/.outreach/.cache/gobin/binaries/$(go version | awk '{ print $3 }' | tr -d 'go')/github.com/getoutreach/devbase` before re-running a make command, in addition to `rm -rf .bootstrap`.

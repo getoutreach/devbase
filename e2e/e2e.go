@@ -309,6 +309,17 @@ func main() {
 	if !localizer.IsRunning() {
 		killLocalizer = true
 
+		// Preemptively ask for sudo to prevent input mangaling with o.LocalApps
+		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
+		cmd = exec.CommandContext(ctx, "sudo", "echo", "Hello, world!")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get sudo")
+		}
+
 		log.Info().Msg("Starting devenv tunnel")
 		cmd = exec.CommandContext(ctx, "/Users/georgeshaw/go/src/github.com/getoutreach/devenv/bin/devenv", "--skip-update", "tunnel")
 		cmd.Stderr = os.Stderr
