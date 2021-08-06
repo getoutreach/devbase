@@ -335,12 +335,13 @@ func main() {
 	}
 
 	if killLocalizer {
-		log.Info().Msg("Killing underlying localizer used for devenv tunnel")
+		log.Info().Msg("Killing the spawned localizer process")
 
-		client, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
+		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to connect to localizer server to kill running instance")
 		}
+		defer closer()
 
 		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
 			log.Warn().Err(err).Msg("failed to kill running localizer server")
