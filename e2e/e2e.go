@@ -346,11 +346,13 @@ func main() {
 
 		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
 		for ctx.Err() != nil {
+			log.Info().Msg("calling stable RPC")
 			resp, err := localizerClient.Stable(ctx, &localizerapi.Empty{})
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
 			}
 
+			log.Info().Bool("stable", resp.Stable).Msg("stable resp")
 			if resp.Stable {
 				break
 			}
