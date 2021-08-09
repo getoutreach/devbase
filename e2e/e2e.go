@@ -306,6 +306,8 @@ func main() {
 	}
 
 	var killLocalizer bool
+	var localizerClient localizerapi.LocalizerServiceClient
+
 	if !localizer.IsRunning() {
 		killLocalizer = true
 
@@ -331,6 +333,28 @@ func main() {
 		}
 
 		for ctx.Err() != nil && !localizer.IsRunning() {
+			async.Sleep(ctx, time.Second*1)
+		}
+
+		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
+		}
+		defer closer()
+
+		localizerClient = client
+
+		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
+		for ctx.Err() != nil && localizer.IsRunning() {
+			resp, err := localizerClient.Stable(ctx, &localizerapi.Empty{})
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
+			}
+
+			if resp.Stable {
+				break
+			}
+
 			async.Sleep(ctx, time.Second*2)
 		}
 	}
@@ -346,15 +370,9 @@ func main() {
 	}
 
 	if killLocalizer {
-		log.Info().Msg("Killing the spawned localizer process")
+		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
 
-		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to connect to localizer server to kill running instance")
-		}
-		defer closer()
-
-		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+		if _, err := localizerClient.Kill(ctx, &localizerapi.Empty{}); err != nil {
 			log.Warn().Err(err).Msg("failed to kill running localizer server")
 		}
 	}
