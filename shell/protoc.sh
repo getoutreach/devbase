@@ -2,7 +2,7 @@
 # This script is a light wrapper around the 'docker-protoc' image (see: https://github.com/namely/docker-protoc),
 # which is capable of compiling proto definitions into various languages.
 # This is not meant to be used in CircleCI (except by bootstrap itself to validate the general process).
-IMAGE="gcr.io/outreach-docker/protoc:latest"
+IMAGE="gcr.io/outreach-docker/protoc:1.37_1"
 uid=$(id -u)
 gid=$(id -g)
 
