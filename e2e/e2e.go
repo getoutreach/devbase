@@ -332,7 +332,7 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
 		}
 
-		for ctx.Err() != nil && !localizer.IsRunning() {
+		for ctx.Err() == nil && !localizer.IsRunning() {
 			async.Sleep(ctx, time.Second*1)
 		}
 
@@ -345,7 +345,7 @@ func main() {
 		localizerClient = client
 
 		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
-		for ctx.Err() != nil {
+		for ctx.Err() == nil {
 			log.Info().Msg("calling stable RPC")
 			resp, err := localizerClient.Stable(ctx, &localizerapi.Empty{})
 			if err != nil {
