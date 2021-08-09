@@ -345,7 +345,7 @@ func main() {
 		localizerClient = client
 
 		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
-		for ctx.Err() != nil && localizer.IsRunning() {
+		for ctx.Err() != nil {
 			resp, err := localizerClient.Stable(ctx, &localizerapi.Empty{})
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
