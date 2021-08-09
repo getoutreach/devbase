@@ -353,6 +353,8 @@ github.com/getoutreach/async v1.2.0 h1:PRchKt2aFxhsubRUxXlfGsGN7ReYJJrf28lBLFqtM
 github.com/getoutreach/async v1.2.0/go.mod h1:GFREYtOnudivESmmcUHt1bA7TZHBfGYFevdIh7QFcwg=
 github.com/getoutreach/gobox v1.8.0 h1:LmnsuIssNdKntg62ihJb22u38r6OdA+hhAH9sIhr9WI=
 github.com/getoutreach/gobox v1.8.0/go.mod h1:GXinZAZWZo4UdGHxXfnJ4YXOmfYX/mFB2x/ghNZDkPA=
+github.com/getoutreach/localizer v1.12.0 h1:GxmfsCtTXDcbceKLKs4reIw4XnZpRH5tkSGncWee5lk=
+github.com/getoutreach/localizer v1.12.0/go.mod h1:gKArRCbfSj3FmyHKmR/WnCYon62E9K9jYYMOWcyllSE=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
