@@ -88,17 +88,9 @@ DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/deploy-to-dev.sh" show | yq -r
     echo -e "$configData" | sed "s:/run/secrets/outreach.io:$configDir:g" |
       sed "s:/run/volumes/outreach.io:$volumeDir:g" >"$tmpFile"
 
-    # If the file already exists, then merge it with the new one.
-    # NOTE: We probably want to make this smarter and log when merging. I don't think
-    # that is feasible to do in bash, though....
-    if [[ -e $saveFile ]] && [[ ${saveFile##*.} =~ ^(yaml|yml)$ ]]; then
-      info_sub "$configFile (merged)"
-      yq --yaml-output -s '.[0] * .[1]' "$tmpFile" "$saveFile" >"$mergedFile"
-      mv "$mergedFile" "$saveFile"
-    else
-      info_sub "$configFile"
-      mv "$tmpFile" "$saveFile"
-    fi
+    info_sub "$configFile"
+    mv "$tmpFile" "$saveFile"
+
 
     rm "$tmpFile" "$mergedFile" >/dev/null 2>&1 || true
   done
