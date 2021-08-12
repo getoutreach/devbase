@@ -323,7 +323,7 @@ func main() {
 		}
 
 		log.Info().Msg("Starting devenv tunnel")
-		cmd = exec.CommandContext(ctx, "/Users/georgeshaw/go/src/github.com/getoutreach/devenv/bin/devenv", "--skip-update", "tunnel")
+		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
