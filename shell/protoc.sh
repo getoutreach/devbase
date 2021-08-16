@@ -46,7 +46,7 @@ docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go 
 
 if has_grpc_client "node"; then
   info_sub "node"
-  docker exec -e "NODE_GRPC_TOOLS_NODE_PROTOC_TS_VERSION=5.3.2" --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
+  docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
     --with-typescript -o "./clients/node/src/grpc/"
 fi
 
