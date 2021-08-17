@@ -303,12 +303,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	var killLocalizer bool
-	var localizerClient localizerapi.LocalizerServiceClient
-
 	if !localizer.IsRunning() {
-		killLocalizer = true
-
 		// Preemptively ask for sudo to prevent input mangaling with o.LocalApps
 		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
 		cmd = exec.CommandContext(ctx, "sudo", "echo", "Hello, world!")
@@ -319,18 +314,6 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to get sudo")
 		}
-
-		log.Info().Msg("Logging devenv version")
-		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "--version")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Start()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to log devenv version")
-		}
-
-		time.Sleep(5 * time.Second)
 
 		log.Info().Msg("Starting devenv tunnel")
 		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
@@ -352,11 +335,9 @@ func main() {
 		}
 		defer closer()
 
-		localizerClient = client
-
 		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
 		for ctx.Err() == nil {
-			resp, err := localizerClient.Stable(ctx, &localizerapi.Empty{})
+			resp, err := client.Stable(ctx, &localizerapi.Empty{})
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
 			}
@@ -367,6 +348,15 @@ func main() {
 
 			async.Sleep(ctx, time.Second*2)
 		}
+
+		// Defer the killing of the localizer server that was spawned.
+		defer func() {
+			log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
+
+			if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+				log.Warn().Err(err).Msg("failed to kill running localizer server")
+			}
+		}()
 	}
 
 	log.Info().Msg("Running e2e tests")
@@ -377,13 +367,5 @@ func main() {
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
-	}
-
-	if killLocalizer {
-		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-
-		if _, err := localizerClient.Kill(ctx, &localizerapi.Empty{}); err != nil {
-			log.Warn().Err(err).Msg("failed to kill running localizer server")
-		}
 	}
 }
