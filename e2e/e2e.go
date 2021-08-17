@@ -280,8 +280,6 @@ func main() {
 			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
-	log.Info().Msg("a new change! sanity check")
-
 	log.Info().Msg("Deploying current application into cluster")
 	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", ".")
 	cmd.Stderr = os.Stderr
