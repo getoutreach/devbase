@@ -320,6 +320,18 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to get sudo")
 		}
 
+		log.Info().Msg("Logging devenv version")
+		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "--version")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to log devenv version")
+		}
+
+		time.Sleep(5 * time.Second)
+
 		log.Info().Msg("Starting devenv tunnel")
 		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
 		cmd.Stderr = os.Stderr
