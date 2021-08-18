@@ -11,7 +11,10 @@ import (
 	"time"
 
 	dockerclient "github.com/docker/docker/client"
+	"github.com/getoutreach/async/pkg/async"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
+	localizerapi "github.com/getoutreach/localizer/api"
+	"github.com/getoutreach/localizer/pkg/localizer"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -19,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
 
@@ -228,7 +232,7 @@ func main() {
 		for _, tag := range pkg.AllTags {
 			runEndToEndTests = runEndToEndTests || tag == "or_e2e"
 		}
-		
+
 		return nil
 	})
 
@@ -299,16 +303,61 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	log.Info().Msg("Starting devenv tunnel")
-	cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Start()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+	if !localizer.IsRunning() {
+		// Preemptively ask for sudo to prevent input mangaling with o.LocalApps
+		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
+		cmd = exec.CommandContext(ctx, "sudo", "echo", "Hello, world!")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get sudo")
+		}
+
+		log.Info().Msg("Starting devenv tunnel")
+		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+		}
+
+		for ctx.Err() == nil && !localizer.IsRunning() {
+			async.Sleep(ctx, time.Second*1)
+		}
+
+		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
+		}
+		defer closer()
+
+		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
+		for ctx.Err() == nil {
+			resp, err := client.Stable(ctx, &localizerapi.Empty{})
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
+			}
+
+			if resp.Stable {
+				break
+			}
+
+			async.Sleep(ctx, time.Second*2)
+		}
+
+		// Defer the killing of the localizer server that was spawned.
+		defer func() {
+			log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
+
+			if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+				log.Warn().Err(err).Msg("failed to kill running localizer server")
+			}
+		}()
 	}
-	time.Sleep(30 * time.Second) // TODO(jaredallard): [DT-511] Localizer should expose an event when "ready"
 
 	log.Info().Msg("Running e2e tests")
 	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
