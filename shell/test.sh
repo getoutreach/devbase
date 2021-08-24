@@ -124,7 +124,6 @@ if [[ -e $testInclude ]]; then
 fi
 
 info "Running go test ($TEST_TAGS)"
-set -ex
 # Why: We want these to split. For those wondering about "$@":
 # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
 # shellcheck disable=SC2086
