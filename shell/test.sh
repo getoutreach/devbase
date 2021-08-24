@@ -128,11 +128,14 @@ set -ex
 # Why: We want these to split. For those wondering about "$@":
 # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
 # shellcheck disable=SC2086
-"$DIR/gobin.sh" gotest.tools/gotestsum@v1.7.0 --junitfile bin/unit-tests.xml -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
+"$DIR/gobin.sh" gotest.tools/gotestsum@v$(get_application_version "gotestsum") \
+  --junitfile bin/unit-tests.xml --format dots-v2 -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
   -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
   "$@" ./...
 
 if [[ -n $CI ]]; then
+  # Move this to a temporary directoy so that we can control
+  # what gets uploaded via the store_test_results call
   mkdir -p /tmp/test-results
-  mv bin/unit-tests.xml /tmp/test-results
+  mv bin/unit-tests.xml /tmp/test-results/
 fi
