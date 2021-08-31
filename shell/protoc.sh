@@ -33,6 +33,12 @@ get_import_basename() {
   basename $(go list -f '{{ .Path }}' -m "$1" | sed 's|/v[0-9]||') # sed removes the version off the module path if present
 }
 for import in $(get_list "go-protoc-imports"); do
+  currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
+  requiredver="1.16.0"
+  if [ ! "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
+    echo "Go version must be greater than ${requiredver} to use 'go-protoc-imports' feature"
+    exit 1
+  fi
   go install "$import"
   # check exit for this instead of the install itself, as the install can
   # return non-zero, but still retrieve the dependency. As long as we can
