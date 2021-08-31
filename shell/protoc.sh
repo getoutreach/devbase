@@ -58,7 +58,6 @@ docker exec "$CONTAINER_ID" sh -c "groupadd -f --gid $gid localuser && useradd -
 info_sub "go"
 docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go \
   $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
-  $(if has_feature "validation"; then echo "--with-validator --validator-source-relative"; fi) \
   --go-source-relative -o ./
 
 if has_grpc_client "node"; then
