@@ -74,3 +74,13 @@ has_grpc_client() {
 
   return 1
 }
+
+get_list() {
+  local name="$1"
+
+  if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+    echo ""
+  else
+    yq -r ".\"$name\"[]" <"$(get_service_yaml)"
+  fi
+}
