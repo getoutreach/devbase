@@ -8,9 +8,9 @@ GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 
 # shellcheck source=./lib/bootstrap.sh
-source "$SCRIPTS_DIR/lib/bootstrap.sh"
+source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
+source "$DIR/lib/logging.sh"
 
 BIN_DIR="$(get_repo_directory)/bin"
 GOBIN_PATH="$BIN_DIR/gobin-$GOBIN_VERSION"
