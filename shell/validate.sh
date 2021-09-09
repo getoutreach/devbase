@@ -18,8 +18,10 @@ source "$DIR/lib/runtimes.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+info "Running linters"
+
 # Run shellcheck on shell-scripts, only if installed.
-info "Running shellcheck"
+info_sub "shellcheck"
 # Make sure to ignore the monitoring/.terraform directory
 # shellcheck disable=SC2038
 if ! git ls-files '*.sh' | xargs -n40 "${SHELLCHECKPATH}" -x -P SCRIPTDIR; then
@@ -27,7 +29,7 @@ if ! git ls-files '*.sh' | xargs -n40 "${SHELLCHECKPATH}" -x -P SCRIPTDIR; then
   exit 1
 fi
 
-info "Running shfmt"
+info_sub "shfmt"
 if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
   error "shfmt failed on some files. Run 'make fmt' to fix."
   exit 1
@@ -35,7 +37,7 @@ fi
 
 # Validators to run when not using a library
 if ! has_feature "library"; then
-  info "Running terraform fmt ($(get_application_version "terraform"))"
+  info_sub "terraform"
   for tfdir in deployments monitoring; do
     if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
       error "terraform fmt $tfdir failed on some files. Run 'make fmt' to fix."
@@ -44,17 +46,17 @@ if ! has_feature "library"; then
   done
 fi
 
-info "Running clang-format"
+info_sub "clang-format"
 if ! git ls-files '*.proto' | xargs -n40 "$DIR/clang-format-validate.sh"; then
   error "clang-format failed on some files. Run 'make fmt' to fix."
   exit 1
 fi
 
-info "Running Go linter"
+info_sub "golangci-lint"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
 
-info "Running Outreach-specific lint rules (lintroller)"
-"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@$(get_application_version "lintroller")" -config scripts/golangci-lint.yml ./...
+info_sub "Outreach-specific lint rules (lintroller)"
+"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@$(get_application_version "lintroller")" -config scripts/golangci.yml ./...
 
 # GRPC client validation
 if has_feature "grpc"; then
@@ -65,10 +67,10 @@ if has_feature "grpc"; then
 
     run_node_command "$nodeSourceDir" yarn install --frozen-lockfile
 
-    info "Running Prettier (Node.js)"
+    info_sub "Prettier (node)"
     run_node_command "$nodeSourceDir" yarn pretty
 
-    info "Running ESLint (Node.js)"
+    info_sub "ESLint (node)"
     run_node_command "$nodeSourceDir" yarn lint
   fi
 fi
