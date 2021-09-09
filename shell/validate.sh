@@ -9,6 +9,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
 SHELLFMTPATH="$DIR/shfmt.sh"
 SHELLCHECKPATH="$DIR/shellcheck.sh"
+GOBIN="$DIR/gobin.sh"
 
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
@@ -51,6 +52,9 @@ fi
 
 info "Running Go linter"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
+
+info "Running Outreach-specific lint rules (lintroller)"
+"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" -config scripts/golangci-lint.yml ./...
 
 # GRPC client validation
 if has_feature "grpc"; then
