@@ -38,7 +38,10 @@ if [[ ! -e $GOBIN_PATH ]]; then
   fi
 
   pushd "$tmp_dir" >/dev/null || exit 1
-  tar xvf "$tmp_dir/gobin.tar.gz"
+  tar xvf "$tmp_dir/gobin.tar.gz" || (
+    echo "Failed to extract gobin"
+    exit 1
+  )
   cp gobin "$GOBIN_PATH"
   popd >/dev/null || exit 1
 fi
