@@ -32,6 +32,10 @@ if [[ ! -e $GOBIN_PATH ]]; then
   tmp_dir=$(mktemp -d)
   curl --location --output "$tmp_dir/gobin.tar.gz" --silent \
     "https://github.com/getoutreach/gobin/releases/download/v$GOBIN_VERSION/gobin_${GOBIN_VERSION}_${GOOS}_${GOARCH}.tar.gz"
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Failed to download gobin"
+    exit 1
+  fi
 
   pushd "$tmp_dir" >/dev/null || exit 1
   tar xvf "$tmp_dir/gobin.tar.gz"
