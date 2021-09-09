@@ -3,7 +3,7 @@
 # Run a golang binary using gobin
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-GOBIN_VERSION=1.3.0
+GOBIN_VERSION=1.4.0
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 
@@ -38,10 +38,7 @@ if [[ ! -e $GOBIN_PATH ]]; then
   fi
 
   pushd "$tmp_dir" >/dev/null || exit 1
-  tar xvf "$tmp_dir/gobin.tar.gz" || (
-    echo "Failed to extract gobin"
-    exit 1
-  )
+  tar xvf "$tmp_dir/gobin.tar.gz"
   cp gobin "$GOBIN_PATH"
   popd >/dev/null || exit 1
 fi
