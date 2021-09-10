@@ -55,8 +55,10 @@ fi
 info_sub "golangci-lint"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
 
-info_sub "Outreach-specific lint rules (lintroller)"
-"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@$(get_application_version "lintroller")" -config scripts/golangci.yml ./...
+info_sub "lintroller"
+# The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
+"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@$(get_application_version "lintroller")" \
+  -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
 
 # GRPC client validation
 if has_feature "grpc"; then
@@ -67,10 +69,10 @@ if has_feature "grpc"; then
 
     run_node_command "$nodeSourceDir" yarn install --frozen-lockfile
 
-    info_sub "Prettier (node)"
+    info_sub "prettier (node)"
     run_node_command "$nodeSourceDir" yarn pretty
 
-    info_sub "ESLint (node)"
+    info_sub "eslint (node)"
     run_node_command "$nodeSourceDir" yarn lint
   fi
 fi
