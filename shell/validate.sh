@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -e -o pipefail
 
 # The linter is flaky in some environments so we allow it to be overridden.
 # Also, if your editor already supports linting, you can make your tests run
@@ -24,7 +24,7 @@ info "Running linters"
 info_sub "shellcheck"
 # Make sure to ignore the monitoring/.terraform directory
 # shellcheck disable=SC2038
-if ! git ls-files '*.sh' | xargs -n40 "${SHELLCHECKPATH}" -x -P SCRIPTDIR; then
+if ! git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR; then
   error "shellcheck failed on some files. Run 'make fmt' to fix."
   exit 1
 fi
