@@ -57,7 +57,7 @@ info_sub "golangci-lint"
 
 info_sub "lintroller"
 # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@$(get_application_version "lintroller")" \
+"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
   -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
 
 # GRPC client validation
