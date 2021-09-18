@@ -26,9 +26,10 @@ SKIP_VALIDATE       ?=
 FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
 OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
-BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE}
+BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} OSS=$(OSS)
 E2E_NAMESPACE       ?= $(APP)--bento1a
 E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
+OSS                 ?= $(OSS)
 
 .PHONY: default
 default: build
