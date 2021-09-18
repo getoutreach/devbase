@@ -55,7 +55,7 @@ fi
 info_sub "golangci-lint"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
 
-if [[ "$OSS" == "true" ]]; then
+if [[ "$OSS" == "false" ]]; then
   info_sub "lintroller"
   # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
   "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
