@@ -55,10 +55,12 @@ fi
 info_sub "golangci-lint"
 "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
 
-info_sub "lintroller"
-# The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-"$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
-  -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
+if [[ "$OSS" == "true" ]]; then
+  info_sub "lintroller"
+  # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
+  "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
+    -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
+fi
 
 # GRPC client validation
 if has_feature "grpc"; then
