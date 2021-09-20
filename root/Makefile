@@ -1,31 +1,43 @@
-# go option
+# application information
+APP                 ?= unset
+ORG                 ?= getoutreach
+APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
+
+# go options
 GO                  ?= go
 GOFMT               ?= gofmt
-CLANG_FORMAT        ?= ./.bootstrap/shell/clang-format.sh
-JSONNETFMT          ?= ./.bootstrap/shell/gobin.sh github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0
 SHELL               := /usr/bin/env bash
 GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
 PKG                 := $(GO) mod download -x
-APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
 LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(shell cat ~/.outreach/$(APP)/honeycomb/apiKey)
 GOFLAGS             :=
-LOG                 := "$(CURDIR)/.bootstrap/shell/makefile-logger.sh"
-GOPRIVATE           := github.com/getoutreach/*
+GOPRIVATE           := github.com/$(ORG)/*
 GOPROXY             := https://proxy.golang.org
 GO_EXTRA_FLAGS      := -v -tags=or_dev
 TAGS                :=
 BINDIR              := $(CURDIR)/bin
 BIN_NAME            := $(APP)
-PKGDIR              := github.com/getoutreach/$(APP)
+PKGDIR              := github.com/$(ORG)/$(APP)
 CGO_ENABLED         ?= 1
 TOOL_DEPS           := ${GO}
+
+# formatters / misc
+CLANG_FORMAT        ?= ./.bootstrap/shell/clang-format.sh
+JSONNETFMT          ?= ./.bootstrap/shell/gobin.sh github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0
+LOG                 := "$(CURDIR)/.bootstrap/shell/makefile-logger.sh"
+FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
+
+# Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test,or_int
 SKIP_VALIDATE       ?=
-FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
+
+# Outreach stuff, will be moved out... one day.
 OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
+
+# E2E
 BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} OSS=$(OSS)
 E2E_NAMESPACE       ?= $(APP)--bento1a
 E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
