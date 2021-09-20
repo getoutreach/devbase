@@ -76,16 +76,6 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 		return nil, errors.Wrap(err, "failed to parse service.yaml")
 	}
 
-	// Populate the initial dependencies to prevent us
-	// downloading them again later
-	for _, d := range s.Dependencies.Optional {
-		deps[d] = true
-	}
-
-	for _, d := range s.Dependencies.Required {
-		deps[d] = true
-	}
-
 	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
 		err := grabDependencies(ctx, deps, d, auth)
 		if err != nil {
