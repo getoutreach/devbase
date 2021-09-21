@@ -50,7 +50,7 @@ if ! grep or_e2e <<<"$TEST_TAGS" >/dev/null 2>&1; then
   if [[ -n $SKIP_VALIDATE ]]; then
     info "Skipping linting and format validations"
   else
-    OSS=$(OSS) "$DIR/validate.sh"
+    OSS=$OSS "$DIR/validate.sh"
   fi
 fi
 
