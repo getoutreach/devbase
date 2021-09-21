@@ -45,7 +45,7 @@ type Service struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
 		Optional []string `yaml:"optional"`
 
-		// Reqiored is a list of services that this service cannot function without
+		// Required is a list of services that this service cannot function without
 		Required []string `yaml:"required"`
 	} `yaml:"dependencies"`
 }
@@ -137,6 +137,10 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 		log.Info().Msgf("Using baked-in dependency list")
 		foundDeps = virtualDeps[name]
 	}
+	
+	// Mark us as resolved to prevent inf dependency resolution
+	// when we encounter cyclical dependency.
+	deps[name] = true
 
 	for _, d := range foundDeps {
 		err := grabDependencies(ctx, deps, d, auth)
@@ -144,8 +148,6 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 			return err
 		}
 	}
-
-	deps[name] = true
 
 	return nil
 }
