@@ -27,15 +27,13 @@ source "${LIB_DIR}/ssh-auth.sh"
 secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
 args=("--ssh" "default" "--progress=plain" "--file" "deployments/${appName}/Dockerfile" "--build-arg" "VERSION=${VERSION}")
 
-# Build a quick native image on PRs and load it into docker cache
-# for security scanning
-if [[ -z $CIRCLE_TAG ]]; then
-  info "Building Docker Image (test)"
-  docker buildx build "${args[@]}" "${secrets[@]}" -t "${appName}" --load .
+# Build a quick native image and load it into docker cache for security scanning
+# Scan reports for release images are also uploaded to OpsLevel (test image reports only available on PR runs as artifacts).
+info "Building Docker Image (for scanning)"
+docker buildx build "${args[@]}" "${secrets[@]}" -t "${appName}" --load .
 
-  info "🔐 Scanning docker image for vulnerabilities"
-  "${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}" || echo "Warning: Failed to scan image"
-fi
+info "🔐 Scanning docker image for vulnerabilities"
+"${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}" || echo "Warning: Failed to scan image"
 
 if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"
