@@ -8,3 +8,4 @@ goimports: 0.1.0
 delve: 1.6.0
 gotestsum: 1.7.0
 lintroller: 1.7.0
+codeowners-validator: 0.6.0
