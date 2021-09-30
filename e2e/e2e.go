@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	dockerclient "github.com/docker/docker/client"
 	"github.com/getoutreach/async/pkg/async"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	localizerapi "github.com/getoutreach/localizer/api"
@@ -137,7 +136,7 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 		log.Info().Msgf("Using baked-in dependency list")
 		foundDeps = virtualDeps[name]
 	}
-	
+
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
 	deps[name] = true
@@ -257,12 +256,7 @@ func main() {
 		}
 	}
 
-	d, err := dockerclient.NewEnvClient()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create Docker client")
-	}
-
-	if _, err := d.ContainerInspect(ctx, "dev-environment-control-plane"); dockerclient.IsErrNotFound(err) {
+	if err := exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run(); err != nil {
 		err = provisionNew(ctx, deps, target)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create cluster")
@@ -282,9 +276,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 	}
 
-	log.Info().Msg("Waiting for application to be ready")
-	time.Sleep(30 * time.Second) // TODO(jaredallard): Eventually actually wait
-
 	log.Info().Msg("Running devconfig")
 	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
 	cmd.Stderr = os.Stderr
@@ -298,13 +289,13 @@ func main() {
 	if !localizer.IsRunning() {
 		// Preemptively ask for sudo to prevent input mangaling with o.LocalApps
 		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
-		cmd = exec.CommandContext(ctx, "sudo", "echo", "Hello, world!")
+		cmd = exec.CommandContext(ctx, "sudo", "true")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
 		err = cmd.Run()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to get sudo")
+			log.Fatal().Err(err).Msg("Failed to get root permissions")
 		}
 
 		log.Info().Msg("Starting devenv tunnel")
