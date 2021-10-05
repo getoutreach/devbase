@@ -15,7 +15,7 @@ if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
 elif [[ -f "$HOME/.outreach/github.token" ]]; then
 	GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
 else
-	echo "" >/dev/stderr
+    echo "" >/dev/stderr
     echo "Unable to find Github personal access token. This is required by clerkgen" >/dev/stderr
     exit 1
 fi
@@ -23,14 +23,16 @@ fi
 # Verify GH_TOKEN
 resp=$(curl -s -o /dev/null -I -w "%{http_code}" -H "Authorization: token $GH_TOKEN" https://api.github.com/orgs/getoutreach/repos)
 if [[ $resp -ne 200 ]]; then
+    echo "" >/dev/stderr
     echo "Unable to run clerkgen. Github personal access is not valid." >/dev/stderr
-	exit 1
+    exit 1
 fi
 
 # Verify docker is running
 docker info > /dev/null 2>/dev/stderr
 exit_code=$(echo $?)
 if [[ $exit_code != "0" ]]; then
+    echo "" >/dev/stderr
     echo "Unable to run clerkgen. Docker is not running. Please start docker." >/dev/stderr
     exit "$exit_code"
 fi
@@ -39,6 +41,7 @@ fi
 aws sts get-caller-identity > /dev/null 2>/dev/stderr
 exit_code=$(echo $?)
 if [[ $exit_code != "0" ]]; then
+    echo "" >/dev/stderr
     echo "Unable to run clerkgen. AWS credentials are not valid. Please run 'saml2aws login'." >/dev/stderr
     exit "$exit_code"
 fi
