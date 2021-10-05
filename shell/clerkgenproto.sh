@@ -29,22 +29,18 @@ if [[ $resp -ne 200 ]]; then
 fi
 
 # Verify docker is running
-docker info > /dev/null 2>/dev/stderr
-exit_code=$(echo $?)
-if [[ $exit_code != "0" ]]; then
+if ! docker info > /dev/null 2>/dev/stderr; then
     echo "" >/dev/stderr
     echo "Unable to run clerkgen. Docker is not running. Please start docker." >/dev/stderr
-    exit "$exit_code"
+    exit 1
 fi
 
 #Verify AWS creds
-aws sts get-caller-identity > /dev/null 2>/dev/stderr
-exit_code=$(echo $?)
-if [[ $exit_code != "0" ]]; then
+if ! aws sts get-caller-identity > /dev/null 2>/dev/stderr; then
     echo "" >/dev/stderr
     echo "Unable to run clerkgen. AWS credentials are not valid. Please run 'saml2aws login'." >/dev/stderr
-    exit "$exit_code"
+    exit 1
 fi
 
 # Run clerkgen
-"$GOBIN" "github.com/getoutreach/clerkgen/cmd/clerkgenproto@v$(get_application_version "clerkgenproto")" "$@"
+exec "$GOBIN" "github.com/getoutreach/clerkgen/cmd/clerkgenproto@v$(get_application_version "clerkgenproto")" "$@"
