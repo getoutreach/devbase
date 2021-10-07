@@ -9,6 +9,11 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# Don't run clerkgen in CircleCI
+if [[ -n $CIRCLECI ]]; then
+  exit 0
+fi
+
 # Get GH_TOKEN
 if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
 	GH_TOKEN="$OUTREACH_GITHUB_TOKEN"
