@@ -37,7 +37,7 @@ info_sub "clang-format"
 find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
 
 info_sub "shfmt"
-find . -path ./vendor -prune -o -name node_modules -type d \
+find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
   -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
 
 info_sub "Prettier (yaml/json)"
