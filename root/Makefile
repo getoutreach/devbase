@@ -41,7 +41,7 @@ ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
 BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} OSS=$(OSS)
 E2E_NAMESPACE       ?= $(APP)--bento1a
 E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
-OSS                 ?= $(OSS)
+OSS                 ?= false
 
 .PHONY: default
 default: build
