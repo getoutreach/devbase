@@ -63,7 +63,7 @@ info_sub "golangci-lint"
 if [[ "$OSS" == "false" ]]; then
   info_sub "lintroller"
   # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-  "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
+  GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
     -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
 fi
 
