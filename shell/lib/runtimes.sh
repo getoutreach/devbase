@@ -8,7 +8,7 @@ source "$LIB_DIR/bootstrap.sh"
 
 APPNAME="$(get_app_name)"
 
-DOCKER_NODE="gcr.io/outreach-docker/node:12-alpine"
+DOCKER_NODE="gcr.io/outreach-docker/node:14-alpine"
 
 uid=$(id -u)
 gid=$(id -g)
