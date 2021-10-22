@@ -9,4 +9,4 @@ delve: 1.6.0
 gotestsum: 1.7.0
 lintroller: 1.8.1
 codeowners-validator: 0.6.0
-clerkgenproto: 1.12.0
+clerkgenproto: 1.13.0
