@@ -40,12 +40,5 @@ if ! docker info > /dev/null 2>/dev/stderr; then
     exit 1
 fi
 
-#Verify AWS creds
-if ! aws sts get-caller-identity > /dev/null 2>/dev/stderr; then
-    echo "" >/dev/stderr
-    echo "Unable to run clerkgen. AWS credentials are not valid. Please run 'saml2aws login'." >/dev/stderr
-    exit 1
-fi
-
 # Run clerkgen
 exec "$GOBIN" "github.com/getoutreach/clerkgen/cmd/clerkgenproto@v$(get_application_version "clerkgenproto")" "$@"
