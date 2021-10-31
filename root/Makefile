@@ -167,6 +167,16 @@ docker-build:: pre-docker-build
 fmt:: pre-fmt
 	@./scripts/shell-wrapper.sh fmt.sh
 
+## docs:            build protobuf/TypeScript HTML docs
+.PHONY: docs
+docs:: pre-docs
+	@./.bootstrap/shell/docs-build.sh
+
+## docs-publish:    publish protobuf/TypeScript HTML docs to GitHub Pages
+.PHONY: docs-publish
+docs-publish:: pre-docs-publish
+	@./.bootstrap/shell/docs-publish.sh
+
 ## fly-login:       log into concourse
 .PHONY: fly-login
 fly-login:
