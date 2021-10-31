@@ -13,6 +13,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
+DOCS_DIR="$(get_repo_directory)/apidocs"
 NODEJS_CLIENT_DIR="$(get_repo_directory)/api/clients/node"
 
 GITHUB_ACTOR=outreach-ci
@@ -35,15 +36,15 @@ if ! git branch --list --remote | grep --quiet "origin/${PUBLISH_BRANCH}$"; then
 	# Delete everything
 	git rm --force -r .
 else
-	mv docs staged_docs
+	mv "$DOCS_DIR" staged_docs
 	echo "Switching to existing $PUBLISH_BRANCH..."
 	git checkout $PUBLISH_BRANCH
-	git rm -r docs
-	mv staged_docs docs
+  git rm -r "$DOCS_DIR"
+  mv staged_docs "$DOCS_DIR"
 fi
 
 if [[ -n $GH_PAGES_CUSTOM_DOMAIN ]]; then
-	echo "$GH_PAGES_CUSTOM_DOMAIN" >docs/CNAME
+	echo "$GH_PAGES_CUSTOM_DOMAIN" >"$DOCS_DIR"/CNAME
 fi
 
 git add .

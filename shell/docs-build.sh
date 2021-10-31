@@ -13,7 +13,7 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 ROOT_DIR="$(get_repo_directory)"
 API_DIR="$ROOT_DIR/api"
 NODEJS_CLIENT_DIR="$API_DIR/clients/node"
-DOCS_DIR="$ROOT_DIR/docs"
+DOCS_DIR="$ROOT_DIR/apidocs"
 PROTO_DOCS_DIR="$DOCS_DIR/proto"
 
 mkdir -p "$PROTO_DOCS_DIR"
