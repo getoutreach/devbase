@@ -131,6 +131,7 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 			return errors.Wrapf(err, "failed to parse service.yaml in dependency %s", name)
 		}
 
+		//nolint:gocritic // Why: done on purpose
 		foundDeps = append(s.Dependencies.Required, s.Dependencies.Optional...)
 	} else {
 		log.Info().Msgf("Using baked-in dependency list")
@@ -151,6 +152,7 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 	return nil
 }
 
+//nolint:unparam // Why: keeping in the interface for now
 func provisionNew(ctx context.Context, deps []string, target string) error {
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
@@ -184,7 +186,7 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	return nil
 }
 
-func main() {
+func main() { //nolint:funlen,gocyclo
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -235,14 +237,16 @@ func main() {
 	// No or_e2e build tags were found.
 	if !runEndToEndTests {
 		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
-		os.Exit(0)
+		return
 	}
 
 	log.Info().Msg("Building dependency tree")
 
 	deps, err := BuildDependenciesList(ctx)
 	if err != nil {
+		//nolint:gocritic // Why: need to get exit code >0
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
+		return
 	}
 
 	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
@@ -259,6 +263,7 @@ func main() {
 	if err := exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run(); err != nil {
 		err = provisionNew(ctx, deps, target)
 		if err != nil {
+			//nolint:gocritic // Why: need to get exit code >0
 			log.Fatal().Err(err).Msg("Failed to create cluster")
 		}
 	} else {

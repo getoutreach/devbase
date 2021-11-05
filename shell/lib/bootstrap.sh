@@ -1,8 +1,31 @@
 #!/usr/bin/env bash
 # Get bootstrap information
 
-REPODIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." >/dev/null 2>&1 && pwd)"
+REPODIR=""
 BOOTSTRAPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
+
+find_service_yaml() {
+  local path="$1"
+
+  # We may want to do something better here one day
+  if [[ $path == "/" ]]; then
+    echo "Error: Failed to find service.yaml"
+    exit 1
+  fi
+
+  if [[ -e "$path/service.yaml" ]]; then
+    REPODIR="$path"
+    return
+  fi
+
+  # traverse back a dir
+  find_service_yaml "$(cd "$path/.." >/dev/null 2>&1 && pwd)"
+}
+
+find_repo_dir() {
+  find_service_yaml "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+}
+find_repo_dir
 
 get_repo_directory() {
   echo "$REPODIR"

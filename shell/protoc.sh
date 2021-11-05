@@ -30,7 +30,7 @@ if [[ -z $uid ]] || [[ -z $gid ]]; then
 fi
 
 get_import_basename() {
-  basename $(go list -f '{{ .Path }}' -m "$1" | sed 's|/v[0-9]||') # sed removes the version off the module path if present
+  basename "$(go list -f '{{ .Path }}' -m "$1" | sed 's|/v[0-9]||') " # sed removes the version off the module path if present
 }
 for import in $(get_list "go-protoc-imports"); do
   currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
@@ -39,20 +39,23 @@ for import in $(get_list "go-protoc-imports"); do
     echo "Go version must be greater than ${requiredver} to use 'go-protoc-imports' feature"
     exit 1
   fi
+
   go install "$import"
   # check exit for this instead of the install itself, as the install can
   # return non-zero, but still retrieve the dependency. As long as we can
   # retrieve the dep with go list, we can import the files for protoc
   go list -f '{{ .Dir }}' -m "$import"
-  exit_code=$(echo $?)
+
+  exit_code=$?
   if [[ $exit_code != "0" ]]; then
     exit $exit_code
   fi
 done
 # Create the protoc container.
 info "Generating GRPC Clients"
+# shellcheck disable=SC2046 # Why: We want it to split
 CONTAINER_ID=$(docker run --rm -v "$(get_repo_directory)/api:/defs" \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-v $(go list -f '{{ .Dir }}' -m $import):/mod/$(get_import_basename "$import")"; done) \
+  $(for import in $(get_list "go-protoc-imports"); do echo "-v $(go list -f '{{ .Dir }}' -m "$import"):/mod/$(get_import_basename "$import")"; done) \
   --entrypoint bash -d "$IMAGE" -c 'exec tail -f /dev/null')
 
 trap 'docker stop -t0 $CONTAINER_ID >/dev/null' EXIT
@@ -62,6 +65,7 @@ docker exec "$CONTAINER_ID" sh -c "groupadd -f --gid $gid localuser && useradd -
 
 # Create the language specific clients
 info_sub "go"
+# shellcheck disable=SC2046 # Why: We want it to split
 docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go \
   $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
   $(if has_feature "validation"; then echo "--with-validator --validator-source-relative"; fi) \
@@ -69,14 +73,16 @@ docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go 
 
 if has_grpc_client "node"; then
   info_sub "node"
+  # shellcheck disable=SC2046 # Why: We want it to split
   docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
+    $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
     --with-typescript -o "./clients/node/src/grpc/"
 fi
 
 if has_grpc_client "ruby"; then
   info_sub "ruby"
+  # shellcheck disable=SC2046 # Why: We want it to split
   docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l ruby \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
+    $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
     -o "./clients/ruby/lib/$(get_app_name)_client"
 fi

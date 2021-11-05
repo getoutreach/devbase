@@ -10,12 +10,14 @@ if [[ -z $CIRCLECI ]]; then
   echo "I can only run in CircleCI"
   exit 1
 fi
-if ! command -v curl >/dev/null 2>&1; then 
-  echo "We need an executable called curl in the \$PATH in order to execute"
+if ! command -v curl >/dev/null 2>&1; then
+  # shellcheck disable=SC2016 # Why: On purpose.
+  echo 'We need an executable called curl in the $PATH in order to execute'
   exit 1
 fi
-if ! command -v jq >/dev/null 2>&1; then 
-  echo "We need an executable called curl in the \$PATH in order to execute"
+if ! command -v jq >/dev/null 2>&1; then
+  # shellcheck disable=SC2016 # Why: On purpose.
+  echo 'We need an executable called curl in the $PATH in order to execute'
   exit 1
 fi
 if [[ -z $PC_CONSOLE_URL ]]; then
@@ -48,7 +50,6 @@ curl -L --header "authorization: Bearer ${PC_CLOUD_TOKEN}" \
   "${PC_CONSOLE_URL}/api/v1/util/twistcli" -o ${PC_CLOUD_TWISTCLI}
 chmod a+x ${PC_CLOUD_TWISTCLI}
 
-
 # Note: we are relying on a default docker host address (which is, per twistcli doc: unix:///var/run/docker.sock)
 # since we are running this script on a bare VM. If this ever changes, pls set --docker-address explicitly.
 # Note: https version of the address will require TLS cert - see twistcli doc for details.
@@ -57,4 +58,3 @@ ${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
   --custom-labels \
   --output-file "${TEST_RESULTS}/image_scan.json" \
   "$@"
-  

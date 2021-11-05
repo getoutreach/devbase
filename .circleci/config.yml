@@ -75,7 +75,9 @@ jobs:
     working_directory: ~/devbase
     steps:
       - use_docker
-      - run: echo "add tests!"
+      - run:
+          name: Run tests
+          command: make test
 
   release-dryrun:
     executor:
