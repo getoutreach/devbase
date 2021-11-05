@@ -8,7 +8,6 @@ docker:
     auth:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT
-working_directory: ~/{{ .repo }}
 environment:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/getoutreach/*
