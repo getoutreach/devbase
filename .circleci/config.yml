@@ -1,123 +1,28 @@
 version: 2.1
 
-executors:
-  testbed-docker:
-    docker:
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.17.1
-        auth:
-          username: _json_key
-          password: $GCLOUD_SERVICE_ACCOUNT
-    working_directory: ~/devbase
-    environment:
-      TEST_RESULTS: /tmp/test-results
-      GOPRIVATE: github.com/getoutreach/*
-      GOPROXY: https://proxy.golang.org
-
-commands:
-  # General CI commands
-  setup_environment:
-    parameters:
-      machine:
-        type: boolean
-        default: false
-      setup_remote_docker:
-        type: boolean
-        default: false
-    steps:
-      - when:
-          condition: << parameters.setup_remote_docker >>
-          steps:
-            - use_docker
-      - checkout
-      # Adds a github org scoped SSH key to the project added by Wheatley
-      - add_ssh_keys
-      # When in machine mode we need to install yq
-      - when:
-          condition: << parameters.machine >>
-          steps:
-            - run:
-                name: Install Dependencies
-                command: pip3 install yq
-      - run:
-          name: Setup CI Environment
-          command: ./shell/circleci/setup.sh
-  use_docker:
-    steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
-          version: 20.10.7
-
-  # Commands for messing with cache/dependencies
-  save_go_cache:
-    steps:
-      - save_cache:
-          key: v1-pkg-cache-1.17.1-{{ "{{" }} checksum "go.sum" {{ "}}" }}
-          paths:
-            - "~/go/pkg/mod"
-            - "~/.cache/go-build"
-            - "~/.cache/golangci-lint"
-            - "~/.outreach/.cache/gobin/binaries/1.17.1"
-  with_go_cache:
-    parameters:
-      save:
-        type: boolean
-        default: false
-    steps:
-      - restore_cache:
-          keys:
-            - v2-pkg-cache-1.17.1-{{ "{{" }} checksum "go.sum" {{ "}}" }}
-            - v2-pkg-cache-1.17.1
-      - run:
-          name: Install Golang dependencies
-          command: make dep
-      - when:
-          condition: << parameters.save >>
-          steps:
-            - save_go_cache
-  save_node_cache:
-    steps:
-      - save_cache:
-          key: release-node-cache-{{ "{{" }} checksum "cache-version.txt" {{ "}}" }}-{{ "{{ "}} checksum "package.json" {{ "}} "}}
-          paths:
-            - node_modules
-  with_node_cache:
-    parameters:
-      save:
-        type: boolean
-        default: false
-    steps:
-      - restore_cache:
-          keys:
-            - release-node-cache-{{ "{{" }} checksum "cache-version.txt" {{ "}}" }}-{{ "{{" }} checksum "package.json" {{ "}}" }}
-            - release-node-cache-{{ "{{" }} checksum "cache-version.txt" {{ "}}" }}
-      - run:
-          name: Install semantic-release Dependencies
-          command: yarn --frozen-lockfile
-      - when:
-          condition: << parameters.save >>
-          steps:
-            - save_node_cache
+orbs:
+  shared: getoutreach/shared@dev:first
 
 jobs:
   test:
     executor:
-      name: testbed-docker
+      name: shared/testbed-docker
     steps:
-      - setup_environment:
+      - shared/setup_environment:
           setup_remote_docker: true
-      - with_go_cache
+      - shared/with_go_cache
       - run:
           name: Run tests
           command: make test
-      - save_go_cache
+      - shared/save_go_cache
 
   release-dryrun:
     executor:
-      name: testbed-docker
+      name: shared/testbed-docker
     steps:
-      - setup_environment:
+      - shared/setup_environment:
           setup_remote_docker: true
-      - with_node_cache:
+      - shared/with_node_cache:
           save: true
       - run:
           name: Build Orb
@@ -127,11 +32,11 @@ jobs:
           command: ./shell/ci/release/dryrun.sh
   release:
     executor:
-      name: testbed-docker
+      name: shared/testbed-docker
     steps:
-      - setup_environment:
+      - shared/setup_environment:
           setup_remote_docker: true
-      - with_node_cache:
+      - shared/with_node_cache:
           save: true
       - run:
           name: Build Orb
