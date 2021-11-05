@@ -145,6 +145,7 @@ workflows:
       - release:
           context:
             - docker-registry
+            - npm-credentials
           requires:
             - test
           filters:
@@ -155,6 +156,7 @@ workflows:
       - release-dryrun:
           context:
             - docker-registry
+            - npm-credentials
           filters:
             branches:
               ignore:
@@ -163,6 +165,7 @@ workflows:
       - test:
           context:
             - docker-registry
+            - npm-credentials
           filters:
             # This enables running test when a tag is created.
             # This still runs on each branch.
