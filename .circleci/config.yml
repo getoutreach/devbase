@@ -48,6 +48,32 @@ commands:
           version: 20.10.7
 
   # Commands for messing with cache/dependencies
+  save_go_cache:
+    steps:
+      - save_cache:
+          key: v1-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+          paths:
+            - "~/go/pkg/mod"
+            - "~/.cache/go-build"
+            - "~/.cache/golangci-lint"
+            - "~/.outreach/.cache/gobin/binaries/{{ .versions.go }}"
+  with_go_cache:
+    parameters:
+      save:
+        type: boolean
+        default: false
+    steps:
+      - restore_cache:
+          keys:
+            - v2-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+            - v2-pkg-cache-{{ .versions.go }}
+      - run:
+          name: Install Golang dependencies
+          command: make dep
+      - when:
+          condition: << parameters.save >>
+          steps:
+            - save_go_cache
   save_node_cache:
     steps:
       - save_cache:
@@ -79,6 +105,8 @@ jobs:
     steps:
       - setup_environment:
           setup_remote_docker: true
+      - with_go_cache:
+          save: true
       - run:
           name: Run tests
           command: make test
