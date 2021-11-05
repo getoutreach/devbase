@@ -8,7 +8,7 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "$LIB_DIR/bootstrap.sh"
 
-wantedResources=$(get_list "resources")
+wantedResources=$(get_keys "resources")
 
 declare -A resources=(
   [postgres]="5432"

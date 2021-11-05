@@ -107,3 +107,11 @@ get_list() {
     yq -r ".\"$name\"[]" <"$(get_service_yaml)"
   fi
 }
+
+get_keys() {
+  if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+    echo ""
+  else
+    yq -r ".\"$name\" | keys[]" <"$(get_service_yaml)"
+  fi
+}
