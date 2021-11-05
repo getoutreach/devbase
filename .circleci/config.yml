@@ -20,7 +20,14 @@ commands:
       machine:
         type: boolean
         default: false
+      setup_remote_docker:
+        type: boolean
+        default: false
     steps:
+      - when:
+          condition: << parameters.setup_remote_docker >>
+          steps:
+            - use_docker
       - checkout
       # Adds a github org scoped SSH key to the project added by Wheatley
       - add_ssh_keys
@@ -33,7 +40,7 @@ commands:
                 command: pip3 install yq
       - run:
           name: Setup CI Environment
-          command: ./shell/circleci/setup.sh
+          command: ./scripts/shell-wrapper.sh circleci/setup.sh
   use_docker:
     steps:
       - setup_remote_docker:
@@ -74,7 +81,8 @@ jobs:
           password: $GCLOUD_SERVICE_ACCOUNT
     working_directory: ~/devbase
     steps:
-      - use_docker
+      - setup_environment:
+          setup_remote_docker: true
       - run:
           name: Run tests
           command: make test
@@ -83,8 +91,8 @@ jobs:
     executor:
       name: testbed-docker
     steps:
-      - use_docker
-      - setup_environment
+      - setup_environment:
+          setup_remote_docker: true
       - with_node_cache:
           save: true
       - run:
@@ -94,8 +102,8 @@ jobs:
     executor:
       name: testbed-docker
     steps:
-      - use_docker
-      - setup_environment
+      - setup_environment:
+          setup_remote_docker: true
       - with_node_cache:
           save: true
       - run:
