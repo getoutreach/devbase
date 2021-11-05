@@ -1,6 +1,11 @@
 .PHONY: fmt
 fmt:
-	@./shell/fmt.sh
+	@make -f root/Makefile fmt
 
+.PHONY: test
 test:
-	@./shell/test.sh
+	@make -f root/Makefile test
+
+.PHONY: dep
+dep:
+	@make -f root/Makefile dep
