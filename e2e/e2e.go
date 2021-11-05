@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getoutreach/async/pkg/async"
+	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	localizerapi "github.com/getoutreach/localizer/api"
 	"github.com/getoutreach/localizer/pkg/localizer"
