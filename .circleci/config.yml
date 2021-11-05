@@ -105,11 +105,11 @@ jobs:
     steps:
       - setup_environment:
           setup_remote_docker: true
-      - with_go_cache:
-          save: true
+      - with_go_cache
       - run:
           name: Run tests
           command: make test
+      - save_go_cache
 
   release-dryrun:
     executor:
