@@ -8,7 +8,7 @@ CI_AUTH_DIR="$DIR/../ci/auth"
 authn=(
   "npm"
   "ssh"
-  "docker"
+  "gcr"
   "vault"
   "aws"
 )
