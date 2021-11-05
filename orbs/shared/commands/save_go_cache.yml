@@ -1,0 +1,9 @@
+description: Save the Go cache at a standard path
+steps:
+  - save_cache:
+      key: v1-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+      paths:
+        - "~/go/pkg/mod"
+        - "~/.cache/go-build"
+        - "~/.cache/golangci-lint"
+        - "~/.outreach/.cache/gobin/binaries/{{ .versions.go }}"

@@ -120,6 +120,9 @@ jobs:
       - with_node_cache:
           save: true
       - run:
+          name: Build Orb
+          command: make build-orb
+      - run:
           name: Release (Dry-run)
           command: ./shell/ci/release/dryrun.sh
   release:
@@ -130,6 +133,9 @@ jobs:
           setup_remote_docker: true
       - with_node_cache:
           save: true
+      - run:
+          name: Build Orb
+          command: make build-orb
       - run:
           name: Release
           command: GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release

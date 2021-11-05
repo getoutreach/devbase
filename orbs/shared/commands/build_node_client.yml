@@ -1,0 +1,6 @@
+description: Build the node client
+steps:
+  - run:
+      name: Build {{ .appName }}-client
+      working_directory: api/clients/node/{{ .appName }}-client
+      command: yarn build

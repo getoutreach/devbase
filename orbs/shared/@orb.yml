@@ -1,0 +1,6 @@
+version: 2.1
+
+description: CircleCI configuration for use with box applications
+display:
+  home_url: "https://www.github.com/getoutreach/devbase"
+  source_url: "https://www.github.com/getoutreach/devbase/tree/main/orbs"

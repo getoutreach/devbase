@@ -1,0 +1,11 @@
+description: Standard executor for Docker based runtimes
+docker:
+  - image: gcr.io/outreach-docker/bootstrap/testbed:{{ .versions.go }}
+    auth:
+      username: _json_key
+      password: $GCLOUD_SERVICE_ACCOUNT
+working_directory: ~/{{ .repo }}
+environment:
+  TEST_RESULTS: /tmp/test-results
+  GOPRIVATE: github.com/getoutreach/*
+  GOPROXY: https://proxy.golang.org

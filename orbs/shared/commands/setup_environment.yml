@@ -1,0 +1,26 @@
+description: Sets up CI with environment configuration
+parameters:
+  machine:
+    type: boolean
+    default: false
+  setup_remote_docker:
+    type: boolean
+    default: false
+steps:
+  - when:
+      condition: << parameters.setup_remote_docker >>
+      steps:
+        - use_docker
+  - checkout
+  # Adds a github org scoped SSH key to the project added by Wheatley
+  - add_ssh_keys
+  # When in machine mode we need to install yq
+  - when:
+      condition: << parameters.machine >>
+      steps:
+        - run:
+            name: Install Dependencies
+            command: pip3 install yq
+  - run:
+      name: Setup CI Environment
+      command: ./scripts/shell-wrapper.sh circleci/setup.sh
