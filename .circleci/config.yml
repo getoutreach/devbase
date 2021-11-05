@@ -51,12 +51,12 @@ commands:
   save_go_cache:
     steps:
       - save_cache:
-          key: v1-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+          key: v1-pkg-cache-1.17.1-{{ "{{" }} checksum "go.sum" {{ "}}" }}
           paths:
             - "~/go/pkg/mod"
             - "~/.cache/go-build"
             - "~/.cache/golangci-lint"
-            - "~/.outreach/.cache/gobin/binaries/{{ .versions.go }}"
+            - "~/.outreach/.cache/gobin/binaries/1.17.1"
   with_go_cache:
     parameters:
       save:
@@ -65,8 +65,8 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v2-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
-            - v2-pkg-cache-{{ .versions.go }}
+            - v2-pkg-cache-1.17.1-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+            - v2-pkg-cache-1.17.1
       - run:
           name: Install Golang dependencies
           command: make dep
