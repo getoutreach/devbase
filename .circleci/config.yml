@@ -74,12 +74,8 @@ commands:
 
 jobs:
   test:
-    docker:
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.15.2
-        auth:
-          username: _json_key
-          password: $GCLOUD_SERVICE_ACCOUNT
-    working_directory: ~/devbase
+    executor:
+      name: testbed-docker
     steps:
       - setup_environment:
           setup_remote_docker: true
