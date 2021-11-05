@@ -125,11 +125,20 @@ fi
 
 if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info "Running go test ($TEST_TAGS)"
+
+  format="dots-v2"
+  if [[ -n $CI ]]; then
+    format="pkgname"
+  fi
+
+  # Ensure this exists for tests results, just in case
+  mkdir -p "bin"
+
   # Why: We want these to split. For those wondering about "$@":
   # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
   # shellcheck disable=SC2086
   "$DIR/gobin.sh" gotest.tools/gotestsum@v"$(get_application_version "gotestsum")" \
-    --junitfile bin/unit-tests.xml --format dots-v2 -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
+    --junitfile "$(get_repo_directory)/bin/unit-tests.xml" --format "$format" -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
     -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
     "$@" ./...
 
@@ -137,6 +146,6 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # Move this to a temporary directoy so that we can control
     # what gets uploaded via the store_test_results call
     mkdir -p /tmp/test-results
-    mv bin/unit-tests.xml /tmp/test-results/
+    mv "$(get_repo_directory)/bin/unit-tests.xml" /tmp/test-results/
   fi
 fi
