@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-BUILDX_VERSION="v0.6.1"
+BUILDX_VERSION="v0.6.3"
 BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-amd64"
 
 echo "👉 Installing Buildx"

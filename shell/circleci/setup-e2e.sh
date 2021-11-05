@@ -6,24 +6,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=../lib/logging.sh
 source "$DIR/../lib/logging.sh"
 
-info "Setting up box configuration stub"
-boxPath="$HOME/.outreach/.config/box/box.yaml"
-mkdir -p "$(dirname "$boxPath")"
-cat >"$boxPath" <<EOF
-lastUpdated: 2021-01-01T00:00:00.0000000Z
-storageURL: git@github.com:getoutreach/box
-EOF
-
-"$DIR/../lib/docker-authn.sh"
-
-info "Setting up AWS access"
-mkdir -p "$HOME/.aws"
-cat >"$HOME/.aws/credentials" <<EOF
-[default]
-aws_access_key_id        = $AWS_ACCESS_KEY_ID
-aws_secret_access_key    = $AWS_SECRET_ACCESS_KEY
-EOF
-
 info "Setting up devenv container"
 docker run --net=host -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME:$HOME" -v "$(pwd):/host_mnt" \
   --name devenv --entrypoint bash -d gcr.io/outreach-docker/devenv:v1.15.6 -c "exec sleep infinity"
