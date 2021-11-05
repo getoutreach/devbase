@@ -33,7 +33,7 @@ commands:
                 command: pip3 install yq
       - run:
           name: Setup CI Environment
-          command: ./scripts/shell-wrapper.sh circleci/setup.sh
+          command: ./shell/circleci/setup.sh
   use_docker:
     steps:
       - setup_remote_docker:
