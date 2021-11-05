@@ -1,6 +1,10 @@
 description: Standard executor for Docker based runtimes
+parameters:
+  go_version:
+    type: string
+    default: unknown
 docker:
-  - image: gcr.io/outreach-docker/bootstrap/testbed:{{ .versions.go }}
+  - image: gcr.io/outreach-docker/bootstrap/testbed:<< parameters.go_version >>
     auth:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT

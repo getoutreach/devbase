@@ -3,15 +3,19 @@ parameters:
   save:
     type: boolean
     default: false
+  go_version:
+    type: string
+    default: unknown
 steps:
   - restore_cache:
       keys:
-        - v2-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
-        - v2-pkg-cache-{{ .versions.go }}
+        - v1-go-<< parameters.go_version >>-cache-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+        - v1-go-<< parameters.go_version >>-cache
   - run:
       name: Install Golang dependencies
       command: make dep
   - when:
       condition: << parameters.save >>
       steps:
-        - save_go_cache
+        - save_go_cache:
+            go_version: << parameters.go_version >>

@@ -1,7 +1,11 @@
 description: Save the Go cache at a standard path
+parameters:
+  go_version:
+    type: string
+    default: unknown
 steps:
   - save_cache:
-      key: v1-pkg-cache-{{ .versions.go }}-{{ "{{" }} checksum "go.sum" {{ "}}" }}
+      key: v1-go-<< parameters.go_version >>-cache-{{ "{{" }} checksum "go.sum" {{ "}}" }}
       paths:
         - "~/go/pkg/mod"
         - "~/.cache/go-build"
