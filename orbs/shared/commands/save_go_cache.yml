@@ -10,4 +10,4 @@ steps:
         - "~/go/pkg/mod"
         - "~/.cache/go-build"
         - "~/.cache/golangci-lint"
-        - "~/.outreach/.cache/gobin/binaries/{{ .versions.go }}"
+        - "~/.outreach/.cache/gobin/binaries/<< parameters.go_version >>"
