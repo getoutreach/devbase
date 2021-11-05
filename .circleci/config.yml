@@ -16,7 +16,8 @@ jobs:
       - run:
           name: Run tests
           command: make test
-      - shared/save_go_cache
+      - shared/save_go_cache:
+          go_version: 1.17.1
 
   release-dryrun:
     executor:
