@@ -9,7 +9,7 @@ TWIST_SCAN_DIR="${SEC_DIR}/../../prismaci"
 VERSION="$(make version)"
 
 # shellcheck source=../../lib/bootstrap.sh
-source "${DIR}/lib/bootstrap.sh"
+source "${LIB_DIR}/lib/bootstrap.sh"
 
 appName="$(get_app_name)"
 remote_image_name="gcr.io/outreach-docker/${appName}"
