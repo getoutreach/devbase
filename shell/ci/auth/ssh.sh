@@ -3,7 +3,6 @@
 set -e
 
 # Setup SSH access
-eval "$(ssh-agent)"
 ssh-add -D
 
 # HACK: This is a fragile attempt to add whatever key is for github.com to our ssh-agent
