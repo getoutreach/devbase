@@ -17,6 +17,9 @@ remote_image_name="gcr.io/outreach-docker/${appName}"
 # shellcheck source=../../lib/buildx.sh
 source "${LIB_DIR}/buildx.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
 args=("--ssh" "default" "--progress=plain" "--file" "deployments/${appName}/Dockerfile" "--build-arg" "VERSION=${VERSION}")
 
