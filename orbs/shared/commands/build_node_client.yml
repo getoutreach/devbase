@@ -3,4 +3,4 @@ steps:
   - run:
       name: Build Node Client
       working_directory: api/clients/node/
-      command: cd *-client; yarn build
+      command: yarn --frozen-lockfile build
