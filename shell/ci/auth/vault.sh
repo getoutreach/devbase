@@ -2,7 +2,7 @@
 # Sets up vault authn
 set -e
 
-if [[ -z $VAULT_ROLE_ID ]] || [[ -z $VAULT_SECRET_ID ]]; then
+if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
   # TODO(jaredallard): Put in box configuration. Need to build support for that.
   VAULT_ADDR=https://vault-dev.outreach.cloud vault write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
