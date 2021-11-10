@@ -7,4 +7,6 @@ if [[ -z $VAULT_ROLE_ID ]] || [[ -z $VAULT_SECRET_ID ]]; then
   VAULT_ADDR=https://vault-dev.outreach.cloud vault write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
     jq .auth.client_token -r >~/.vault-token
+else
+  echo "Skipping, no VAULT_ROLE_ID or VAULT_SECRET_ID set"
 fi
