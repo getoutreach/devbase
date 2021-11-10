@@ -1,0 +1,9 @@
+description: Save the Docker cache at a standard path
+parameters:
+  app_name:
+    type: string
+steps:
+  - save_cache:
+      key: v1-docker-cache-{{ checksum "deployments/<< parameters.app_name >>/Dockerfile" }}
+      paths:
+        - "~/.cache/docker-layers"

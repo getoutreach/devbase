@@ -1,0 +1,24 @@
+description: Restore Docker cache to a standard path
+parameters:
+  save:
+    type: boolean
+    default: true
+  app_name:
+    type: string
+  script:
+    type: string
+    description: Script to run to build Docker image
+    default: "./scripts/shell-wrapper.sh ci/release/docker.sh"
+steps:
+  - restore_cache:
+      keys:
+        - v1-docker-cache-{{ checksum "deployments/<< parameters.app_name >>/Dockerfile" }}
+        - v1-docker-cache
+  - run:
+      name: Build and Push Docker Image
+      command: << parameters.script >>
+  - when:
+      condition: << parameters.save >>
+      steps:
+        - save_docker_cache:
+            app_name: << parameters.app_name >>
