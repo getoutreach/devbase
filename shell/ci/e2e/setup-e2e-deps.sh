@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Setup dependencies for e2e tests
+set -e
 
 # Vault
 curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -

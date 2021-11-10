@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Runs e2e tests for the service in the current directory
+set -e
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 if [[ $CI == "true" ]]; then
