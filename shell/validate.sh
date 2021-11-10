@@ -35,10 +35,11 @@ if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
   exit 1
 fi
 
-info_sub "codeowners-validator"
-if ! "$DIR"/codeowners-validator.sh; then
-  fatal "GitHub CODEOWNERS file failed to validate"
-fi
+# TODO(chrisprobinson)[DTSS-975] - Hitting github rate limiting, disabled for now.
+# info_sub "codeowners-validator"
+# if ! "$DIR"/codeowners-validator.sh; then
+#  fatal "GitHub CODEOWNERS file failed to validate"
+# fi
 
 # Validators to run when not using a library
 if ! has_feature "library"; then
