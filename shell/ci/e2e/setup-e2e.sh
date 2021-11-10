@@ -20,3 +20,7 @@ chmod +x ./devenv
 info "Moving devenv into PATH"
 sudo mv devenv /usr/local/bin/devenv
 sudo chown circleci:circleci /usr/local/bin/devenv
+
+info "Setting up Git"
+git config --global user.name "CircleCI E2E Test"
+git config --global user.email "circleci@outreach.io"
