@@ -29,6 +29,12 @@ boxPath="$HOME/.outreach/.config/box/box.yaml"
 mkdir -p "$(dirname "$boxPath")"
 cat >"$boxPath" <<EOF
 lastUpdated: 2021-01-01T00:00:00.0000000Z
+config:
+  refreshInterval: 0s
+  devenv:
+    vault: {}
+    runtimeConfig: {}
+    snapshots: {}
 storageURL: git@github.com:getoutreach/box
 EOF
 
