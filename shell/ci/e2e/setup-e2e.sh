@@ -9,6 +9,7 @@ source "$DIR/../../lib/logging.sh"
 info "Setting up devenv container"
 # Pull the devenv out of the container
 docker run --entrypoint bash -d gcr.io/outreach-docker/devenv:v1.15.6 -c 'cat "$(command -v devenv)"' >"/usr/local/bin/devenv"
+chmod +x /usr/local/bin/devenv
 
 # Allow the devenv to update itself
 info "Updating devenv (if needed)"
