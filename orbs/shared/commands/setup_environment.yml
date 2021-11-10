@@ -14,13 +14,21 @@ steps:
   - checkout
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
-  # When in machine mode we need to install yq
+  # When in machine mode we need to install some dependencies
   - when:
       condition: << parameters.machine >>
       steps:
         - run:
             name: Install Dependencies
-            command: pip3 install yq
+            command: |-
+              # yq
+              pip3 install yq
+
+              # Vault
+              curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+              apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+              apt-get update
+              apt-get install -y vault
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
