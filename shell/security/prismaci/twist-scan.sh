@@ -5,6 +5,12 @@
 # special credentials - those are set by prismacloud-credentials circleci context.
 #
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 ## Add some safeties for external dependencies when running
 if [[ -z $CIRCLECI ]]; then
   echo "I can only run in CircleCI"
