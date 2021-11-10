@@ -11,6 +11,7 @@ authn=(
   "gcr"
   "vault"
   "aws"
+  "github"
 )
 
 for authName in "${authn[@]}"; do
