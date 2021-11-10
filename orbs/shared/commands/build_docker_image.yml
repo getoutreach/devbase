@@ -1,0 +1,21 @@
+description: Restore Docker cache to a standard path
+parameters:
+  save:
+    type: boolean
+    default: true
+  script:
+    type: string
+    description: Script to run to build Docker image
+    default: "./scripts/shell-wrapper.sh ci/release/docker.sh"
+steps:
+  # Cache functionality is disabled because it wasn't working :(
+  # - restore_cache:
+  #     keys:
+  #       - v1-docker-cache-
+  - run:
+      name: Build and Push Docker Image
+      command: << parameters.script >>
+  # - when:
+  #     condition: << parameters.save >>
+  #     steps:
+  #       - save_docker_cache

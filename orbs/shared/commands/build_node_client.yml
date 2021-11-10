@@ -1,0 +1,6 @@
+description: Builds a Node.JS client for a Go service
+steps:
+  - run:
+      name: Build Node Client
+      working_directory: api/clients/node/
+      command: yarn --frozen-lockfile build

@@ -9,7 +9,6 @@ IMAGE_SCAN_ARTIFACT_NAME="tmp/test-results/image_scan.json"
 SCAN_RESULTS_FILE="/tmp/image_scan.json"
 SCAN_RESULTS_OPSLEVEL_FILE="/tmp/image_scan_opslevel.json"
 
-
 if [[ -z $OL_PC_WEBHOOK_URL ]]; then
   echo "To enable Prisma CI scan summary upload to OpsLevel, set OL_PC_WEBHOOK_URL to the integration web hook URL"
   exit 0
@@ -28,11 +27,11 @@ download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
 # Generate summary file, see image_scan_filter.jq for more details.
 jq \
-    -f "${DIR}/image_scan_filter.jq" \
-    --arg url "${ARTIFACT_URL}" \
-    --arg project "${CIRCLE_PROJECT_REPONAME}" \
-    "${SCAN_RESULTS_FILE}" \
-> "${SCAN_RESULTS_OPSLEVEL_FILE}"
+  -f "${DIR}/image_scan_filter.jq" \
+  --arg url "${ARTIFACT_URL}" \
+  --arg project "${CIRCLE_PROJECT_REPONAME}" \
+  "${SCAN_RESULTS_FILE}" \
+  >"${SCAN_RESULTS_OPSLEVEL_FILE}"
 
 # log the summary for troubleshooting, it is short
 echo "Image Scan summary to be shared with OpsLevel:"

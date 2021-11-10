@@ -16,28 +16,28 @@ fi
 
 # Get GH_TOKEN
 if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
-	GH_TOKEN="$OUTREACH_GITHUB_TOKEN"
+  GH_TOKEN="$OUTREACH_GITHUB_TOKEN"
 elif [[ -f "$HOME/.outreach/github.token" ]]; then
-	GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
 else
-    echo "" >/dev/stderr
-    echo "Unable to find Github personal access token. This is required by clerkgen" >/dev/stderr
-    exit 1
+  echo "" >/dev/stderr
+  echo "Unable to find Github personal access token. This is required by clerkgen" >/dev/stderr
+  exit 1
 fi
 
 # Verify GH_TOKEN
 resp=$(curl -s -o /dev/null -I -w "%{http_code}" -H "Authorization: token $GH_TOKEN" https://api.github.com/orgs/getoutreach/repos)
 if [[ $resp -ne 200 ]]; then
-    echo "" >/dev/stderr
-    echo "Unable to run clerkgen. Github personal access is not valid." >/dev/stderr
-    exit 1
+  echo "" >/dev/stderr
+  echo "Unable to run clerkgen. Github personal access is not valid." >/dev/stderr
+  exit 1
 fi
 
 # Verify docker is running
-if ! docker info > /dev/null 2>/dev/stderr; then
-    echo "" >/dev/stderr
-    echo "Unable to run clerkgen. Docker is not running. Please start docker." >/dev/stderr
-    exit 1
+if ! docker info >/dev/null 2>/dev/stderr; then
+  echo "" >/dev/stderr
+  echo "Unable to run clerkgen. Docker is not running. Please start docker." >/dev/stderr
+  exit 1
 fi
 
 # Run clerkgen

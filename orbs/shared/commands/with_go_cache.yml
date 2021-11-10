@@ -1,0 +1,18 @@
+description: Restore go cache from a standard key to a standard path, then run make dep, optionally save after.
+parameters:
+  save:
+    type: boolean
+    default: false
+steps:
+  - get_go_version
+  - restore_cache:
+      keys:
+        - v1-go-{{ checksum "go-version.txt" }}-cache-{{ checksum "go.sum" }}
+        - v1-go-{{ checksum "go-version.txt" }}-cache
+  - run:
+      name: Install Golang Dependencies
+      command: make dep
+  - when:
+      condition: << parameters.save >>
+      steps:
+        - save_go_cache
