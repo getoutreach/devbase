@@ -15,7 +15,7 @@ if [[ $CI == "true" ]]; then
     -e "OUTREACH_DOMAIN=$OUTREACH_DOMAIN" -e "OUTREACH_ACCOUNTS_BASE_URL=$OUTREACH_ACCOUNTS_BASE_URL" \
     -e KUBECONFIG="/home/circleci/.outreach/kubeconfig.yaml" \
     devenv bash \
-    -c "source .bootstrap/shell/lib/ssh-auth.sh; ./scripts/shell-wrapper.sh gobin.sh 'github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")'"
+    -c "eval \"$(ssh-agent)\"; source .bootstrap/shell/lib/ssh-auth.sh; ./scripts/shell-wrapper.sh gobin.sh 'github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")'"
 else
   exec "$("$DIR/gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../.version")")"
 fi
