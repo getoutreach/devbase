@@ -1,0 +1,6 @@
+description: Save the current node cache at a standard path
+steps:
+  - save_cache:
+      key: release-node-cache-{{ checksum "cache-version.txt" }}-{{ checksum "package.json" }}
+      paths:
+        - node_modules

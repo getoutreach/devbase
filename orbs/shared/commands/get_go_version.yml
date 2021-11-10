@@ -1,0 +1,5 @@
+description: Get the current Go version and dump it to a file
+steps:
+  - run:
+      name: Detect Go Version
+      command: go version | awk '{ print $3 }' | sed 's/go//' | tee go-version.txt

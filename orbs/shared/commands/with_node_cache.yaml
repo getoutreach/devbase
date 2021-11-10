@@ -1,0 +1,17 @@
+description: Restore node cache to a standard path based on a standard path, then run yarn. Optionally save cache after.
+parameters:
+  save:
+    type: boolean
+    default: false
+steps:
+  - restore_cache:
+      keys:
+        - release-node-cache-{{ checksum "cache-version.txt" }}-{{ checksum "package.json" }}
+        - release-node-cache-{{ checksum "cache-version.txt" }}
+  - run:
+      name: Install semantic-release Dependencies
+      command: yarn --frozen-lockfile
+  - when:
+      condition: << parameters.save >>
+      steps:
+        - save_node_cache

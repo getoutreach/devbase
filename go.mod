@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/getoutreach/async v1.2.0
 	github.com/getoutreach/gobox v1.21.0
 	github.com/getoutreach/localizer v1.12.0
 	github.com/go-git/go-billy/v5 v5.3.1

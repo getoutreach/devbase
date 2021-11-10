@@ -1,0 +1,18 @@
+description: Basic setup
+usage:
+  version: 2.1
+  orbs:
+    shared: getoutreach/shared@1.2.3
+  jobs:
+    test:
+      executor:
+        name: shared/testbed-docker
+      steps:
+        # Sets up all available auth baased on the context
+        # checks out the repository and ensures that SSH keys
+        # are available
+        - shared/setup_environment
+  workflows:
+    test:
+      jobs:
+        - test

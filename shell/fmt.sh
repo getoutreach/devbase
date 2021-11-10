@@ -40,7 +40,7 @@ info_sub "shfmt"
 find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
   -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
 
-info_sub "Prettier (yaml/json)"
+info_sub "prettier (yaml/json)"
 run_node_command "$(get_repo_directory)" yarn
 run_node_command "$(get_repo_directory)" yarn prettier --write "**/*.{yaml,yml,json}"
 
@@ -52,11 +52,11 @@ if has_feature "grpc"; then
 
     run_node_command "$nodeSourceDir" yarn install
 
-    info_sub "ESLint (Node.js)"
+    info_sub "eslint (Node.js)"
 
     run_node_command "$nodeSourceDir" yarn lint-fix
 
-    info_sub "Prettier (Node.js)"
+    info_sub "prettier (Node.js)"
 
     # When files are modified this returns 1.
     run_node_command "$nodeSourceDir" yarn pretty-fix
@@ -64,7 +64,9 @@ if has_feature "grpc"; then
 fi
 
 if ! has_feature "library"; then
-  for tfdir in deployments monitoring; do
-    "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
-  done
+  if [[ -e deployments ]] && [[ -e monitoring ]]; then
+    for tfdir in deployments monitoring; do
+      "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
+    done
+  fi
 fi

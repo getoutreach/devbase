@@ -91,7 +91,6 @@ DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/deploy-to-dev.sh" show | yq -r
     info_sub "$configFile"
     mv "$tmpFile" "$saveFile"
 
-
     rm "$tmpFile" "$mergedFile" >/dev/null 2>&1 || true
   done
 

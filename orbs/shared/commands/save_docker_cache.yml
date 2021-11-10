@@ -1,0 +1,6 @@
+description: Save the Docker cache at a standard path
+steps:
+  - save_cache:
+      key: v1-docker-cache-{{ epoch }}
+      paths:
+        - "~/.cache/docker-layers"

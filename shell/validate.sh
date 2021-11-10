@@ -42,13 +42,15 @@ fi
 
 # Validators to run when not using a library
 if ! has_feature "library"; then
-  info_sub "terraform"
-  for tfdir in deployments monitoring; do
-    if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
-      error "terraform fmt $tfdir failed on some files. Run 'make fmt' to fix."
-      exit 1
-    fi
-  done
+  if [[ -e deployments ]] && [[ -e monitoring ]]; then
+    info_sub "terraform"
+    for tfdir in deployments monitoring; do
+      if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
+        error "terraform fmt $tfdir failed on some files. Run 'make fmt' to fix."
+        exit 1
+      fi
+    done
+  fi
 fi
 
 info_sub "clang-format"
@@ -57,10 +59,12 @@ if ! git ls-files '*.proto' | xargs -n40 "$DIR/clang-format-validate.sh"; then
   exit 1
 fi
 
-info_sub "golangci-lint"
-"$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
+if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
+  info_sub "golangci-lint"
+  "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
+fi
 
-if [[ "$OSS" == "false" ]]; then
+if [[ $OSS == "false" ]]; then
   info_sub "lintroller"
   # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
   GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \

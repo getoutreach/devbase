@@ -23,10 +23,10 @@ CGO_ENABLED         ?= 1
 TOOL_DEPS           := ${GO}
 
 # formatters / misc
-CLANG_FORMAT        ?= ./.bootstrap/shell/clang-format.sh
-JSONNETFMT          ?= ./.bootstrap/shell/gobin.sh github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0
-LOG                 := "$(CURDIR)/.bootstrap/shell/makefile-logger.sh"
-FLY                 ?= $(shell ./.bootstrap/shell/gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
+CLANG_FORMAT        ?= ./scripts/shell-wrapper.sh clang-format.sh
+JSONNETFMT          ?= ./scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0
+LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
+FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
@@ -69,7 +69,7 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 || true
 	@git tag "$(APP_VERSION)" >&2
-	@./.bootstrap/shell/gobin.sh github.com/goreleaser/goreleaser@v0.180.3 release --skip-publish --rm-dist
+	@./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v0.180.3 release --skip-publish --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
@@ -82,7 +82,7 @@ help: Makefile
 ## check-deps:      check for required dependencies
 .PHONY: check-deps
 check-deps:
-	@[[ ! -z "${SKIP_CHECK_DEPS}" ]] || ./.bootstrap/shell/check_deps.sh ${TOOL_DEPS}
+	@[[ ! -z "${SKIP_CHECK_DEPS}" ]] || ./scripts/shell-wrapper.sh check_deps.sh ${TOOL_DEPS}
 
 ## pre-commit:      run housekeeping utilities before creating a commit
 .PHONY: pre-commit
@@ -95,29 +95,29 @@ build:: pre-build gobuild
 ## test:            run unit tests
 .PHONY: test
 test:: pre-test
-	$(BASE_TEST_ENV) ./.bootstrap/shell/test.sh
+	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
 
 ## coverage:        generate code coverage
 .PHONY: coverage
 coverage:: pre-coverage
-	 WITH_COVERAGE=true GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) ./.bootstrap/shell/test.sh
+	 WITH_COVERAGE=true GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) ./scripts/shell-wrapper.sh test.sh
 	 go tool cover --html=/tmp/coverage.out
 
 ## integration:     run integration tests
 .PHONY: integration
 integration:: pre-integration
-	TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./.bootstrap/shell/test.sh
+	TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
 
 .PHONY: e2e
 e2e:: pre-e2e
-	TEST_TAGS=or_test,or_e2e OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./.bootstrap/shell/e2e.sh
+	TEST_TAGS=or_test,or_e2e OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh e2e.sh
 
 ## benchmark:       run benchmarks
 .PHONY: benchmark
 benchmark:: pre-benchmark
-	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./.bootstrap/shell/test.sh | tee /tmp/benchmark.txt
+	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh | tee /tmp/benchmark.txt
 	@$(LOG) info "Results of benchmarks: "
-	./.bootstrap/shell/gobin.sh golang.org/x/perf/cmd/benchstat /tmp/benchmark.txt
+	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat /tmp/benchmark.txt
 
 ## dep:             download go dependencies
 .PHONY: dep
@@ -141,18 +141,18 @@ gobuild: check-deps
 .PHONY: grpcui
 grpcui:
 	@$(LOG) info "Launching gRPCUI"
-	./.bootstrap/shell/grpcui.sh localhost:5000
+	./scripts/shell-wrapper.sh grpcui.sh localhost:5000
 ## devserver:       run the service
 .PHONY: devserver
 devserver:: pre-devserver build
-	if [[ -z $$SKIP_DEVCONFIG ]]; then ./.bootstrap/shell/devconfig.sh; fi
+	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
 	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) $(BINDIR)/$(BIN_NAME)
 
 ## debug:           run the service via delve
 .PHONY: debug
 debug:: pre-debug build
-	if [[ -z $$SKIP_DEVCONFIG ]]; then ./.bootstrap/shell/devconfig.sh; fi
-	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./.bootstrap/shell/debug.sh
+	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
+	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh
 
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
@@ -165,7 +165,7 @@ docker-build:: pre-docker-build
 ## fmt:             run source code formatters
 .PHONY: fmt
 fmt:: pre-fmt
-	@./.bootstrap/shell/fmt.sh
+	@./scripts/shell-wrapper.sh fmt.sh
 
 ## fly-login:       log into concourse
 .PHONY: fly-login
