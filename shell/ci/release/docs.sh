@@ -10,7 +10,7 @@ if [[ -z $TAG ]]; then
 fi
 
 # We need to use the module path to support major versions properly
-MODULE_PATH="$(go list -f '{{ "{{" }} .Path {{ "}}" }}' -m)"
+MODULE_PATH="$(go list -f '{{ .Path }}' -m)"
 
 # TODO(jaredallard): Move this into box configuration?
 URL="https://engdocs.outreach.cloud/fetch/$MODULE_PATH@$TAG"
