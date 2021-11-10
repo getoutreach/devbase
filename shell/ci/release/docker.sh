@@ -20,7 +20,7 @@ source "${LIB_DIR}/buildx.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-cache_dir="$HOME/.cache/docker-layers"
+# cache_dir="$HOME/.cache/docker-layers"
 
 secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
 
@@ -28,8 +28,9 @@ args=(
   "--ssh" "default"
   "--progress=plain" "--file" "deployments/${appName}/Dockerfile"
   "--build-arg" "VERSION=${VERSION}"
-  "--cache-from" "type=local,mode=max,src=${cache_dir}"
-  "--cache-to" "type=local,mode=max,dest=${cache_dir}"
+  # cache disabled for now, wasn't working
+  # "--cache-from" "type=local,mode=max,src=${cache_dir}"
+  # "--cache-to" "type=local,mode=max,dest=${cache_dir}"
 )
 
 # Build a quick native image and load it into docker cache for security scanning
