@@ -28,8 +28,8 @@ args=(
   "--ssh" "default"
   "--progress=plain" "--file" "deployments/${appName}/Dockerfile"
   "--build-arg" "VERSION=${VERSION}"
-  "--cache-from" "type=local,src=${cache_dir}"
-  "--cache-to" "type=local,dest=${cache_dir}"
+  "--cache-from" "type=local,mode=max,src=${cache_dir}"
+  "--cache-to" "type=local,mode=max,dest=${cache_dir}"
 )
 
 # Build a quick native image and load it into docker cache for security scanning
