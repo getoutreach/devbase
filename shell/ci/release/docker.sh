@@ -36,7 +36,7 @@ args=(
 # Scan reports for release images are also uploaded to OpsLevel (test image reports only available on PR runs as artifacts).
 info "Building Docker Image (for scanning)"
 (
-  set +x
+  set -x
   docker buildx build "${args[@]}" "${secrets[@]}" -t "${appName}" --load .
 )
 
@@ -46,7 +46,7 @@ info "🔐 Scanning docker image for vulnerabilities"
 if [[ -n $CIRCLE_TAG ]]; then
   echo "🔨 Building and Pushing Docker Image (production)"
   (
-    set +x
+    set -x
     docker buildx build "${args[@]}" "${secrets[@]}" --platform linux/arm64,linux/amd64 \
       -t "${remote_image_name}:${VERSION}" -t "$remote_image_name:latest" --push .
   )
