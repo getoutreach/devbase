@@ -25,37 +25,37 @@ PUBLISH_BRANCH=gh-pages
 set -e
 
 if [[ -d "$NODEJS_CLIENT_DIR"/node_modules ]]; then
-	rm -r "$NODEJS_CLIENT_DIR"/node_modules
+  rm -r "$NODEJS_CLIENT_DIR"/node_modules
 fi
 
 if ! git branch --list --remote | grep --quiet "origin/${PUBLISH_BRANCH}$"; then
-	echo "Creating new $PUBLISH_BRANCH..."
-	# Create a new branch without any history
-	git checkout --orphan $PUBLISH_BRANCH
+  echo "Creating new $PUBLISH_BRANCH..."
+  # Create a new branch without any history
+  git checkout --orphan $PUBLISH_BRANCH
 
-	# Delete everything
-	git rm --force -r .
+  # Delete everything
+  git rm --force -r .
 else
-	mv "$DOCS_DIR" staged_docs
-	echo "Switching to existing $PUBLISH_BRANCH..."
-	git checkout $PUBLISH_BRANCH
+  mv "$DOCS_DIR" staged_docs
+  echo "Switching to existing $PUBLISH_BRANCH..."
+  git checkout $PUBLISH_BRANCH
   git rm -r "$DOCS_DIR"
   mv staged_docs "$DOCS_DIR"
 fi
 
 if [[ -n $GH_PAGES_CUSTOM_DOMAIN ]]; then
-	echo "$GH_PAGES_CUSTOM_DOMAIN" >"$DOCS_DIR"/CNAME
+  echo "$GH_PAGES_CUSTOM_DOMAIN" >"$DOCS_DIR"/CNAME
 fi
 
 git add .
 
 if test -n "$(git status -s)"; then
-	git config user.name "$GIT_COMMIT_USER"
-	git config user.email "$GIT_COMMIT_EMAIL"
-	git commit --message "docs: rebuild docs [skip ci]"
+  git config user.name "$GIT_COMMIT_USER"
+  git config user.email "$GIT_COMMIT_EMAIL"
+  git commit --message "docs: rebuild docs [skip ci]"
 
-	echo "machine github.com login $GITHUB_ACTOR password $OUTREACH_GITHUB_TOKEN" >~/.netrc
-	chmod 600 ~/.netrc
+  echo "machine github.com login $GITHUB_ACTOR password $OUTREACH_GITHUB_TOKEN" >~/.netrc
+  chmod 600 ~/.netrc
 
-	git push origin HEAD:$PUBLISH_BRANCH
+  git push origin HEAD:$PUBLISH_BRANCH
 fi
