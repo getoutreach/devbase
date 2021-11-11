@@ -16,6 +16,10 @@ NODEJS_CLIENT_DIR="$API_DIR/clients/node"
 DOCS_DIR="$ROOT_DIR/apidocs"
 PROTO_DOCS_DIR="$DOCS_DIR/proto"
 
+info "Documentation Generation"
+
+info_sub "Protobuf"
+
 mkdir -p "$PROTO_DOCS_DIR"
 
 if [[ -n $CI ]]; then
@@ -27,6 +31,8 @@ else
 fi
 
 if [[ -f "$NODEJS_CLIENT_DIR/package.json" ]]; then
+  info_sub "TypeScript"
+
   TYPEDOC_ARGS=()
   if [[ -n $GIT_REVISION ]]; then
     TYPEDOC_ARGS+=("--gitRevision" "$GIT_REVISION")
