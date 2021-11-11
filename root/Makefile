@@ -49,7 +49,7 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt
+.PHONY: pre-release pre-build pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
 pre-test::
@@ -62,6 +62,8 @@ pre-devserver::
 pre-debug::
 pre-docker-build::
 pre-fmt::
+pre-docs::
+pre-docs-publish::
 
 ## release:         tag a new release with goreleaser
 .PHONY: release
