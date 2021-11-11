@@ -16,7 +16,7 @@ NODEJS_CLIENT_DIR="$API_DIR/clients/node"
 DOCS_DIR="$ROOT_DIR/apidocs"
 PROTO_DOCS_DIR="$DOCS_DIR/proto"
 
-info "Documentation Generation"
+info "Generating Documentation"
 
 info_sub "Protobuf"
 
