@@ -23,9 +23,9 @@ info_sub "Protobuf"
 mkdir -p "$PROTO_DOCS_DIR"
 
 if [[ -n $CI ]]; then
-  pushd "$API_DIR" || fatal "Could not change directory to api"
+  pushd "$API_DIR" >/dev/null || fatal "Could not change directory to api"
   protoc --doc_out="$PROTO_DOCS_DIR" --doc_opt=html,index.html ./*.proto
-  popd || fatal "Could not pop directory out of api"
+  popd >/dev/null || fatal "Could not pop directory out of api"
 else
   "$SCRIPTS_DIR/protoc.sh"
 fi
@@ -38,9 +38,9 @@ if [[ -f "$NODEJS_CLIENT_DIR/package.json" ]]; then
     TYPEDOC_ARGS+=("--gitRevision" "$GIT_REVISION")
   fi
 
-  pushd "$NODEJS_CLIENT_DIR" || fatal "Could not change directory to Node.js client"
+  pushd "$NODEJS_CLIENT_DIR" >/dev/null || fatal "Could not change directory to Node.js client"
   yarn typedoc --out "$DOCS_DIR"/typescript "${TYPEDOC_ARGS[@]}" src/index.ts
-  popd || fatal "Could not change directory out of Node.js client"
+  popd >/dev/null || fatal "Could not change directory out of Node.js client"
 fi
 
 # Allow files starting with an underscore to be viewed in GitHub Pages
