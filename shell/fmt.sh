@@ -20,22 +20,25 @@ GOFMT="${GOFMT:-gofmt}"
 info "Running Formatters"
 
 info_sub "goimports"
-git ls-files "*.go" | xargs -n40 "$GOIMPORTS" -w
+find . -path ./vendor -prune -o -type f -name '*.go' \
+  -exec "$GOIMPORTS" -w {} +
 
 info_sub "gofmt"
-git ls-files "*.go" | xargs -n40 gofmt -w -s
+find . -path ./vendor -prune -o -type f -name '*.go' \
+  -exec gofmt -w -s {} +
 
 info_sub "go mod tidy"
 go mod tidy
 
 info_sub "jsonnetfmt"
-git ls-files '*.(jsonnet|libsonnet)' | xargs -n40 "$JSONNETFMT"
+find . -name '*.jsonnet' -exec "$JSONNETFMT" -i {} +
 
 info_sub "clang-format"
-git ls-files "*.proto" | xargs -n40 "$SCRIPTS_DIR/clang-format.sh" -style=file -i
+find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
 
 info_sub "shfmt"
-git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
+find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
+  -prune -o -type f -name '*.sh' -exec "$SHELLFMTPATH" -w -l {} +
 
 info_sub "prettier (yaml/json)"
 yarn_install_if_needed
