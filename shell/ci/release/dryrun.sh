@@ -2,6 +2,10 @@
 # This script attempts to dry-run a release in CI to fake semantic-release.
 set -e
 
+# Setup git commands
+git config --global user.name "Devbase CI"
+git config --global user.email "devbase@outreach.io"
+
 # Make https://github.com/pvdlg/env-ci/blob/master/services/circleci.js
 # think we're not on a PR.
 unset CIRCLE_PR_NUMBER
@@ -39,8 +43,6 @@ git checkout "$CIRCLE_BRANCH"
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 git merge --squash "$OLD_CIRCLE_BRANCH"
-git config --global user.name "Devbase CI"
-git config --global user.email "devbase@outreach.io"
 git commit -m "$COMMIT_MESSAGE"
 
 GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release --dry-run
