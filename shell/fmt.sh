@@ -48,10 +48,10 @@ if has_feature "grpc"; then
     yarn_install_if_needed
 
     info_sub "eslint (node)"
-    yarn lint-fix
+    yarn lint-fix >/dev/null
 
     info_sub "prettier (node)"
-    yarn pretty-fix # When files are modified this returns 1.
+    yarn pretty-fix >/dev/null # When files are modified this returns 1.
     popd >/dev/null 2>&1
   fi
 fi
