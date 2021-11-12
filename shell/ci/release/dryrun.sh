@@ -34,6 +34,8 @@ git pull
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 git merge --squash "$OLD_CIRCLE_BRANCH"
+git config --global user.name "Devbase CI"
+git config --global user.email "devbase@outreach.io"
 git commit --file .git/SQUASH_MSG
 
 GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release --dry-run
