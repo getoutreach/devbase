@@ -16,7 +16,7 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./languages/nodejs.sh
-source "$SCRIPTS_DIR/languages/nodejs.sh"
+source "$DIR/languages/nodejs.sh"
 
 info "Running linters"
 
