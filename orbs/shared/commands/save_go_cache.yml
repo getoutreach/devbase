@@ -8,3 +8,6 @@ steps:
         - "~/.cache/go-build"
         - "~/.cache/golangci-lint"
         - "~/.outreach/.cache/gobin/binaries"
+  - run:
+      name: Cleanup Go Version Detection
+      command: rm "go-version.txt" || true

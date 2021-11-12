@@ -10,6 +10,9 @@ steps:
         - v1-go-{{ checksum "go-version.txt" }}-cache-{{ checksum "go.sum" }}
         - v1-go-{{ checksum "go-version.txt" }}-cache
   - run:
+      name: Cleanup Go Version Detection
+      command: rm "go-version.txt" || true
+  - run:
       name: Install Golang Dependencies
       command: make dep
   - when:
