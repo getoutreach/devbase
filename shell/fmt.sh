@@ -12,54 +12,56 @@ JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnet
 GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
 GOFMT="${GOFMT:-gofmt}"
 
-# shellcheck source=./lib/runtimes.sh
-source "$SCRIPTS_DIR/lib/runtimes.sh"
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
 
 info "Running Formatters"
 
 info_sub "goimports"
-find . -path ./vendor -prune -o -type f -name '*.go' \
-  -exec "$GOIMPORTS" -w {} +
+git ls-files "*.go" | xargs -n40 "$GOIMPORTS" -w
 
 info_sub "gofmt"
-find . -path ./vendor -prune -o -type f -name '*.go' \
-  -exec gofmt -w -s {} +
+git ls-files "*.go" | xargs -n40 gofmt -w -s
 
 info_sub "go mod tidy"
 go mod tidy
 
 info_sub "jsonnetfmt"
-find . -name '*.jsonnet' -exec "$JSONNETFMT" -i {} +
+git ls-files '*.(jsonnet|libsonnet)' | xargs -n40 "$JSONNETFMT"
 
 info_sub "clang-format"
-find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
+git ls-files "*.proto" | xargs -n40 "$SCRIPTS_DIR/clang-format.sh" -style=file -i
 
 info_sub "shfmt"
-find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
-  -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
+git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
 
 info_sub "prettier (yaml/json)"
-run_node_command "$(get_repo_directory)" yarn
-run_node_command "$(get_repo_directory)" yarn prettier --write "**/*.{yaml,yml,json}"
+# Only install node_modules the first time. It's up to the user
+# to run it again if needed.
+if [[ ! -d "node_modules" ]]; then
+  rm -rf "node_modules"
+  yarn
+fi
+yarn prettier --write "**/*.{yaml,yml,json}"
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$(pwd)/api/clients"
+    nodeSourceDir="$(pwd)/api/clients/node"
 
-    nodeSourceDir="$CLIENTS_DIR/node"
+    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
+    # Only install node_modules the first time. It's up to the user
+    # to run it again if needed.
+    if [[ ! -d "node_modules" ]]; then
+      rm -rf "node_modules"
+      yarn
+    fi
 
-    run_node_command "$nodeSourceDir" yarn install
+    info_sub "eslint (node)"
+    yarn lint-fix
 
-    info_sub "eslint (Node.js)"
-
-    run_node_command "$nodeSourceDir" yarn lint-fix
-
-    info_sub "prettier (Node.js)"
-
-    # When files are modified this returns 1.
-    run_node_command "$nodeSourceDir" yarn pretty-fix
+    info_sub "prettier (node)"
+    yarn pretty-fix # When files are modified this returns 1.
+    popd >/dev/null 2>&1
   fi
 fi
 
