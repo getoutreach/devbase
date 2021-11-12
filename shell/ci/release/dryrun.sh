@@ -31,11 +31,16 @@ export CIRCLE_BRANCH
 git checkout "$CIRCLE_BRANCH"
 git pull
 
+git checkout "$OLD_CIRCLE_BRANCH"
+# Grab the first commit's message
+COMMIT_MESSAGE=$(git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --oneline | tail -1 | sed -E 's/^[a-zA-Z0-9]+ //')
+git checkout "$CIRCLE_BRANCH"
+
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 git merge --squash "$OLD_CIRCLE_BRANCH"
 git config --global user.name "Devbase CI"
 git config --global user.email "devbase@outreach.io"
-git commit --file .git/SQUASH_MSG
+git commit -m "$COMMIT_MESSAGE"
 
 GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release --dry-run
