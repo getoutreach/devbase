@@ -39,7 +39,7 @@ git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
 
 info_sub "prettier (yaml/json)"
 yarn_install_if_needed
-yarn prettier --write "**/*.{yaml,yml,json}"
+yarn prettier --write "**/*.{yaml,yml,json}" >/dev/null
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
