@@ -15,6 +15,8 @@ GOBIN="$DIR/gobin.sh"
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./languages/nodejs.sh
+source "$SCRIPTS_DIR/languages/nodejs.sh"
 
 info "Running linters"
 
@@ -77,12 +79,7 @@ if has_feature "grpc"; then
     nodeSourceDir="$(get_repo_directory)/api/clients/node"
 
     pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
-    # Only install node_modules the first time. It's up to the user
-    # to run it again if needed.
-    if [[ ! -d "node_modules" ]]; then
-      rm -rf "node_modules"
-      run_node_command "$nodeSourceDir" yarn install --frozen-lockfile
-    fi
+    yarn_install_if_needed
 
     info_sub "prettier (node)"
     run_node_command "$nodeSourceDir" yarn pretty

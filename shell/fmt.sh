@@ -6,15 +6,16 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
+# shellcheck source=./languages/nodejs.sh
+source "$SCRIPTS_DIR/languages/nodejs.sh"
+# shellcheck source=./lib/logging.sh
+source "$SCRIPTS_DIR/lib/logging.sh"
 
 # Tools
 JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v"$(get_application_version "jsonnetfmt")")
 GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
 SHELLFMTPATH="$SCRIPTS_DIR/shfmt.sh"
 GOFMT="${GOFMT:-gofmt}"
-
-# shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
 
 info "Running Formatters"
 
@@ -37,25 +38,14 @@ info_sub "shfmt"
 git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
 
 info_sub "prettier (yaml/json)"
-# Only install node_modules the first time. It's up to the user
-# to run it again if needed.
-if [[ ! -d "node_modules" ]]; then
-  rm -rf "node_modules"
-  yarn
-fi
+yarn_install_if_needed
 yarn prettier --write "**/*.{yaml,yml,json}"
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
     nodeSourceDir="$(pwd)/api/clients/node"
-
     pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
-    # Only install node_modules the first time. It's up to the user
-    # to run it again if needed.
-    if [[ ! -d "node_modules" ]]; then
-      rm -rf "node_modules"
-      yarn
-    fi
+    yarn_install_if_needed
 
     info_sub "eslint (node)"
     yarn lint-fix
