@@ -14,11 +14,11 @@ function exec(cmd) {
 
 const relativeNodeClientPath = path.join("api", "clients", "node");
 
-// repoRoot/.bootstrap/shell/circleci -> repoRoot/$relativeNodeClientPath
-const nodeClientPath = path.resolve(__dirname, "../../..", relativeNodeClientPath);
+// repoRoot/.bootstrap/shell/ci/testing -> repoRoot/$relativeNodeClientPath
+const nodeClientPath = path.resolve(__dirname, "../../../..", relativeNodeClientPath);
 
 if (!fs.existsSync(nodeClientPath)) {
-  console.log("No Node.js gRPC client found, exiting");
+  console.log(`No Node.js gRPC client found in "${nodeClientPath}", exiting`);
   process.exit(0);
 }
 
