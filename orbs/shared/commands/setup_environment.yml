@@ -6,6 +6,10 @@ parameters:
   setup_remote_docker:
     type: boolean
     default: false
+  go_version:
+    type: string
+    description: The go version to be installed, only applicable if machine is set to true.
+    default: "1.17.0"
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
@@ -29,6 +33,15 @@ steps:
               sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
               sudo apt-get update
               sudo apt-get install -y vault
+
+              # Go
+              REQUIRED_GO_VERSION=<< parameters.go_version >>
+              curl -sSL --fail --retry 3 --output /tmp/go.tar.gz "https://golang.org/dl/go$(echo $REQUIRED_GO_VERSION).linux-amd64.tar.gz"
+              sudo rm -rf /usr/local/go
+              sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+              sudo rm -rf /tmp/go.tar.gz
+              echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
+              source ~/.profile
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
