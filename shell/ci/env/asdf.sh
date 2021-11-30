@@ -15,7 +15,7 @@ source "${LIB_DIR}/logging.sh"
 # outside of a platform that has BASH_ENV as a way to carry over environment
 # variables between steps will not work. This only works to allow this script
 # to be called to pre-load asdf into a container.
-if [[ -n $BASH_ENV ]]; then
+if [[ -z $BASH_ENV ]]; then
   BASH_ENV="$HOME/.bashrc"
 fi
 
