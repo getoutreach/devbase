@@ -28,7 +28,7 @@ steps:
             name: Install Dependencies
             command: |-
               # remove the existing yq, if it already exists
-              sudo apt-get autoremove yq || false
+              sudo apt-get autoremove yq || true
 
               # yq
               pip3 install yq
