@@ -63,7 +63,7 @@ EOF
       info_sub "$preload"
 
       # Ensure the plugin (language) exists and install the version
-      plugin_install || exit 1
+      plugin_install "$language" || exit 1
       asdf install "$language" "$version" || exit 1
     done
   fi
