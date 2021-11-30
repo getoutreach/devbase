@@ -16,7 +16,7 @@ source "${LIB_DIR}/logging.sh"
 # variables between steps will not work. This only works to allow this script
 # to be called to pre-load asdf into a container.
 if [[ -z $BASH_ENV ]]; then
-  BASH_ENV="$HOME/.bashrc"
+  BASH_ENV="$HOME/.fake_bash_env"
 fi
 
 # inject_bash_env injects asdf support into the value of BASH_ENV and sources it
