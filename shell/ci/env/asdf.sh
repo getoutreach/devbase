@@ -27,10 +27,6 @@ inject_bash_env() {
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
 EOF
-
-  # Setup asdf for our current terminal session
-  # shellcheck disable=SC1090
-  source "$BASH_ENV"
 }
 
 # init_asdf installs asdf and ensures it's usable, preloading versions
@@ -48,6 +44,10 @@ github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version prot
 EOF
 
   inject_bash_env
+
+  # Setup asdf for our current terminal session
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
 
   # Install preloaded versions, usually used for docker executors
   # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
@@ -90,6 +90,10 @@ if ! command -v asdf >/dev/null; then
 else
   # Ensure that steps are using asdf. init_asdf above calls this.
   inject_bash_env
+
+  # Setup asdf for our current terminal session
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
 fi
 
 if [[ -e ".tool-versions" ]]; then
