@@ -13,10 +13,10 @@ GOBIN="$DIR/gobin.sh"
 
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
-# shellcheck source=./lib/runtimes.sh
-source "$DIR/lib/runtimes.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./languages/nodejs.sh
+source "$DIR/languages/nodejs.sh"
 
 info "Running linters"
 
@@ -60,6 +60,7 @@ if ! git ls-files '*.proto' | xargs -n40 "$DIR/clang-format-validate.sh"; then
   exit 1
 fi
 
+# Only run golangci-lint if we find any go files
 if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info_sub "golangci-lint"
   "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
@@ -75,16 +76,16 @@ fi
 # GRPC client validation
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$(get_repo_directory)/api/clients"
+    nodeSourceDir="$(get_repo_directory)/api/clients/node"
 
-    nodeSourceDir="$CLIENTS_DIR/node"
-
-    run_node_command "$nodeSourceDir" yarn install --frozen-lockfile
+    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
+    yarn_install_if_needed
 
     info_sub "prettier (node)"
     run_node_command "$nodeSourceDir" yarn pretty
 
     info_sub "eslint (node)"
     run_node_command "$nodeSourceDir" yarn lint
+    popd >/dev/null 2>&1 || exit 1
   fi
 fi
