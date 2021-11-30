@@ -58,7 +58,7 @@ EOF
       # shellcheck disable=SC2016
       language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
       # shellcheck disable=SC2016
-      version="$(aws -F '@' '{ print $2 }' <<<"$preload")"
+      version="$(awk -F '@' '{ print $2 }' <<<"$preload")"
 
       info_sub "$preload"
 
