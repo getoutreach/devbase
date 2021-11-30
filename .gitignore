@@ -1,4 +1,4 @@
 .version
 node_modules
 bin
-orb.yaml
+orb.yml
