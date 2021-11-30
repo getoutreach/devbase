@@ -6,12 +6,18 @@ parameters:
   setup_remote_docker:
     type: boolean
     default: false
+  checkout:
+    type: boolean
+    default: true
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
       steps:
         - use_docker
-  - checkout
+  - when:
+      condition: << parameters.checkout >>
+      steps:
+        - checkout
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   # When in machine mode we need to install some dependencies
@@ -21,6 +27,9 @@ steps:
         - run:
             name: Install Dependencies
             command: |-
+              # remove the existing yq, if it already exists
+              sudo apt-get autoremove yq || false
+
               # yq
               pip3 install yq
 
