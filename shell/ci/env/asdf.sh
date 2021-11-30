@@ -11,10 +11,8 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-defaultPlugins=("golang" "ruby" "nodejs")
-
 init_asdf() {
-  echo "Setting up ASDF"
+  info "Installing asdf"
   git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
 
   cat >>"$BASH_ENV" <<EOF
@@ -47,6 +45,8 @@ EOF
       # shellcheck disable=SC2016
       version="$(aws -F '@' '{ print $2 }' <<<"$preload")"
 
+      info_sub "$preload"
+
       # Ensure the plugin (language) exists and install the version
       plugin_install || exit 1
       asdf install "$language" "$version" || exit 1
@@ -62,7 +62,8 @@ plugin_install() {
 
 plugins_from_tool_versions() {
   while read -r line; do
-    name="$(awk '{ print $2 }' <<<"$line")"
+    name="$(awk '{ print $1 }' <<<"$line")"
+    version="$(awk '{ print $2 }' <<<"$line")"
     plugin_install "$name" || warn "Failed to install language '$name', may fail to invoke things using that language"
   done <.tool-versions
 }
@@ -72,13 +73,8 @@ if ! command -v asdf >/dev/null; then
   init_asdf
 fi
 
-info "Setting up ASDF plugins"
-for plugin in "${defaultPlugins[@]}"; do
-  info_sub "$plugin"
-  asdf plugin-add "$plugin"
-done
-
 if [[ -e ".tool-versions" ]]; then
+  info "Installing languages/plugins from .tool-versions"
   # Best effort install the plugins before doing anything else.
   plugins_from_tool_versions
   asdf install

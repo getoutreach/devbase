@@ -3,7 +3,7 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-CI_AUTH_DIR="$DIR/../ci/auth"
+CI_DIR="$DIR/../ci"
 
 authn=(
   "npm"
@@ -18,7 +18,7 @@ authn=(
 
 for authName in "${authn[@]}"; do
   echo "🔒 Setting up $authName access"
-  "$CI_AUTH_DIR/$authName.sh"
+  "$CI_DIR/auth/$authName.sh"
 done
 
 # Setup $TEST_RESULTS if it's set
@@ -42,3 +42,7 @@ EOF
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >>cache-version.txt
+
+# Ensure that asdf is ready to be used
+echo "🔨 Setting up asdf"
+"$CI_DIR/env/asdf.sh"
