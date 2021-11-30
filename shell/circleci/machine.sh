@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # Sets up a machine in CircleCI
 
+# Install Python and pip
+if ! command -v pip3 >/dev/null; then
+  sudo apt-get update -y
+  sudo apt-get install --no-install-recommends -y python3-pip
+  sudo pip3 install yq
+  sudo apt-get clean -y
+fi
+
+echo "Installing yq"
 # remove the existing yq, if it already exists
 sudo rm "$(command -v yq)" || true
-
-# yq
-echo "Installing yq"
 pip3 install yq
 
 # Vault
