@@ -12,6 +12,8 @@ authn=(
   "vault"
   "aws"
   "github"
+  "packagecloud"
+  "github_packages"
 )
 
 for authName in "${authn[@]}"; do
