@@ -6,28 +6,71 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
 defaultPlugins=("golang" "ruby" "nodejs")
 
-echo "Setting up ASDF"
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
+init_asdf() {
+  echo "Setting up ASDF"
+  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
 
-cat >>"$BASH_ENV" <<EOF
+  cat >>"$BASH_ENV" <<EOF
 
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
 EOF
 
-# langauage specifics
-echo -e "npm\nyarn\n" >"$HOME/.default-npm-packages"
-echo -e "bundler\n" >"$HOME/.default-gems"
+  # langauage specifics
+  echo -e "npm\nyarn\n" >"$HOME/.default-npm-packages"
+  echo -e "bundler\n" >"$HOME/.default-gems"
+  cat >"$HOME/.default-golang-pkgs" <<EOF
+github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
+github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
+EOF
 
-# Setup asdf for our current terminal session
-# shellcheck disable=SC1090
-source "$BASH_ENV"
+  # Setup asdf for our current terminal session
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
+
+  # Install preloaded versions, usually used for docker executors
+  # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
+  if [[ -z $PRELOAD_VERSIONS ]]; then
+    info "Preloading language versions"
+    # IDEA(jaredallard): We could probably JIT install the plugin here?
+    for preload in $PRELOAD_VERSIONS; do
+      # shellcheck disable=SC2016
+      language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
+      # shellcheck disable=SC2016
+      version="$(aws -F '@' '{ print $2 }' <<<"$preload")"
+
+      # Ensure the plugin (language) exists and install the version
+      plugin_install || exit 1
+      asdf install "$language" "$version" || exit 1
+    done
+  fi
+}
+
+# plugin_install installs an asdf plugin
+plugin_install() {
+  name="$1"
+  asdf plugin-add "$name"
+}
+
+plugins_from_tool_versions() {
+  while read -r line; do
+    name="$(awk '{ print $2 }' <<<"$line")"
+    plugin_install "$name" || warn "Failed to install language '$name', may fail to invoke things using that language"
+  done <.tool-versions
+}
+
+# Install asdf if it doesn't exist.
+if ! command -v asdf >/dev/null; then
+  init_asdf
+fi
 
 info "Setting up ASDF plugins"
 for plugin in "${defaultPlugins[@]}"; do
@@ -35,23 +78,9 @@ for plugin in "${defaultPlugins[@]}"; do
   asdf plugin-add "$plugin"
 done
 
-# Install preloaded versions, usually used for docker executors
-# Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
-if [[ -z $PRELOAD_VERSIONS ]]; then
-  info "Preloading language versions"
-  # IDEA(jaredallard): We could probably JIT install the plugin here?
-  for preload in $PRELOAD_VERSIONS; do
-    # shellcheck disable=SC2016
-    language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
-    # shellcheck disable=SC2016
-    version="$(aws -F '@' '{ print $2 }' <<<"$preload")"
-    asdf install "$language" "$version"
-  done
-fi
-
 if [[ -e ".tool-versions" ]]; then
-  info "Setting up required versions"
-  # IDEA(jaredallard): We could probably JIT install the plugin here?
+  # Best effort install the plugins before doing anything else.
+  plugins_from_tool_versions
   asdf install
   asdf reshim
 fi
