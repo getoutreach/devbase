@@ -39,7 +39,7 @@ get_app_name() {
 # and returns it
 get_tool_version() {
   name="$1"
-  yq -r ".[\"$name\"]" <"$BOOTSTRAPDIR/versions.yaml"
+  yq -r ".[\"$name\"]" <"$DEVBASE_DIR/versions.yaml"
 }
 
 # get_application_version executes get_tool_version
