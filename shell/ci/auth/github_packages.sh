@@ -21,6 +21,8 @@ if command -v bundle >/dev/null 2>&1; then
 :github: Bearer $GITHUB_TOKEN
 EOF
 
+  chmod 0600 "$HOME/.gem/credentials"
+
   cat >"$HOME/.gemrc" <<EOF
 ---
 :backtrace: false
