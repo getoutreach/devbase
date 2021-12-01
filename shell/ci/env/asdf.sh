@@ -72,6 +72,12 @@ EOF
 # plugin_install installs an asdf plugin
 plugin_install() {
   name="$1"
+
+  # NOOP if it already exists
+  if asdf plugin list | grep -E "^$name$" >/dev/null; then
+    return
+  fi
+
   asdf plugin-add "$name"
 }
 
