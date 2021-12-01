@@ -27,6 +27,19 @@ steps:
         - run:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
+  - when:
+      condition: << parameters.machine >>
+      steps:
+        - restore_cache:
+            keys:
+              - v1-asdf-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
+  - when:
+      condition: << parameters.machine >>
+      steps:
+        - save_cache:
+            key: v1-asdf-cache-{{ checksum "cache-version.txt" }}
+            paths:
+              - "~/.asdf"
