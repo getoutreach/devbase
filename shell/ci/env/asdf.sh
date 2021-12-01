@@ -23,12 +23,12 @@ fi
 inject_bash_env() {
   cat >"$BASH_ENV" <<'EOF'
 
+ORIG_BASH_ENV=$BASH_ENV
+unset BASH_ENV
+
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
-
-ORIG_BASH_ENV=$BASH_ENV
-unset BASH_ENV
 
 
 # plugins_from_tool_versions installs all plugins from .tool-versions
@@ -68,6 +68,8 @@ if [[ -e ".tool-versions" ]] && [[ -z $SKIP_ASDF_INSTALL ]]; then
   asdf reshim
 fi
 
+# Only ever run asdf install once per shell
+export SKIP_ASDF_INSTALL=true
 export BASH_ENV=$ORIG_BASH_ENV
 EOF
 }
