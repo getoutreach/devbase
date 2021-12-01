@@ -26,6 +26,45 @@ inject_bash_env() {
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
+
+
+# plugins_from_tool_versions installs all plugins from .tool-versions
+plugins_from_tool_versions() {
+  while read -r line; do
+    # Skip comments
+    if grep -E "^#" <<<"\$line" >/dev/null; then
+      continue
+    fi
+
+    name="\$(awk '{ print \$1 }' <<<'\$line')"
+    version="\$(awk '{ print \$2 }' <<<'\$line')"
+    plugin_install "\$name" || warn "Failed to install language '\$name', may fail to invoke things using that language"
+  done <.tool-versions
+}
+
+# plugin_install installs an asdf plugin
+plugin_install() {
+  name="\$1"
+
+  # NOOP if it already exists
+  if asdf plugin list | grep -E "^\$name\$" >/dev/null; then
+    return
+  fi
+
+  asdf plugin-add "\$name"
+}
+
+
+# On every new shell creation ensure that our .tool-versions versions
+# have been installed.
+if [[ -e ".tool-versions" ]] && [[ -z \$SKIP_ASDF_INSTALL ]]; then
+  info "Installing languages/plugins from .tool-versions"
+  # Best effort install the plugins before doing anything else.
+  plugins_from_tool_versions
+  asdf install
+  asdf reshim
+fi
+
 EOF
 }
 
@@ -69,27 +108,6 @@ EOF
   fi
 }
 
-# plugin_install installs an asdf plugin
-plugin_install() {
-  name="$1"
-
-  # NOOP if it already exists
-  if asdf plugin list | grep -E "^$name$" >/dev/null; then
-    return
-  fi
-
-  asdf plugin-add "$name"
-}
-
-# plugins_from_tool_versions installs all plugins from .tool-versions
-plugins_from_tool_versions() {
-  while read -r line; do
-    name="$(awk '{ print $1 }' <<<"$line")"
-    version="$(awk '{ print $2 }' <<<"$line")"
-    plugin_install "$name" || warn "Failed to install language '$name', may fail to invoke things using that language"
-  done <.tool-versions
-}
-
 # Install asdf if it doesn't exist.
 if [[ ! -e "$HOME/.asdf" ]]; then
   init_asdf
@@ -100,12 +118,4 @@ else
   # Setup asdf for our current terminal session
   # shellcheck disable=SC1090
   source "$BASH_ENV"
-fi
-
-if [[ -e ".tool-versions" ]]; then
-  info "Installing languages/plugins from .tool-versions"
-  # Best effort install the plugins before doing anything else.
-  plugins_from_tool_versions
-  asdf install
-  asdf reshim
 fi
