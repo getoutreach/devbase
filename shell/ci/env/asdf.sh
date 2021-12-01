@@ -63,7 +63,7 @@ init_asdf() {
 
   # langauage specifics
   echo -e "npm\nyarn" >"$HOME/.default-npm-packages"
-  echo -e "bundler" >"$HOME/.default-gems"
+  echo -e "bundler\npackage_cloud" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)

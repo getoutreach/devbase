@@ -45,5 +45,6 @@ gem push --key github \
   "$gemFile"
 
 warn "DEPRECATED: Pushing to packagecloud, if this is being used please migrate to Github Packages"
+gem install package_cloud
 package_cloud push outreach/rubygems "$gemFile"
 popd >/dev/null || exit 1
