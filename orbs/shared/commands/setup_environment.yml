@@ -30,6 +30,11 @@ steps:
   - when:
       condition: << parameters.machine >>
       steps:
+        - run:
+            name: Setup CACHE_VERSION
+            command: |-
+              # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
+              echo "$CACHE_VERSION" > cache-version.txt
         - restore_cache:
             keys:
               - v1-asdf-cache-{{ checksum "cache-version.txt" }}

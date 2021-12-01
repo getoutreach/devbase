@@ -41,7 +41,7 @@ storageURL: git@github.com:getoutreach/box
 EOF
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
-echo "$CACHE_VERSION" >>cache-version.txt
+echo "$CACHE_VERSION" >cache-version.txt
 
 # Ensure that asdf is ready to be used
 echo "🔨 Setting up asdf"
