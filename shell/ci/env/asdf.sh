@@ -23,13 +23,11 @@ fi
 inject_bash_env() {
   cat >"$BASH_ENV" <<'EOF'
 
-ORIG_BASH_ENV=$BASH_ENV
-unset BASH_ENV
-
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
-
+EOF
+}
 
 # plugins_from_tool_versions installs all plugins from .tool-versions
 plugins_from_tool_versions() {
@@ -57,23 +55,6 @@ plugin_install() {
   asdf plugin-add "$name"
 }
 
-
-# On every new shell creation ensure that our .tool-versions versions
-# have been installed.
-if [[ -e ".tool-versions" ]] && [[ -z $SKIP_ASDF_INSTALL ]]; then
-  echo "🛠  Installing languages/plugins from .tool-versions"
-  # Best effort install the plugins before doing anything else.
-  plugins_from_tool_versions
-  asdf install
-  asdf reshim
-fi
-
-# Only ever run asdf install once per shell
-export SKIP_ASDF_INSTALL=true
-export BASH_ENV=$ORIG_BASH_ENV
-EOF
-}
-
 # init_asdf installs asdf and ensures it's usable, preloading versions
 # of plugins if configured to do so.
 init_asdf() {
@@ -93,35 +74,50 @@ EOF
   # Setup asdf for our current terminal session
   # shellcheck disable=SC1090
   source "$BASH_ENV"
-
-  # Install preloaded versions, usually used for docker executors
-  # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
-  if [[ -n $PRELOAD_VERSIONS ]]; then
-    info "Preloading language versions"
-    # IDEA(jaredallard): We could probably JIT install the plugin here?
-    for preload in $PRELOAD_VERSIONS; do
-      # shellcheck disable=SC2016
-      language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
-      # shellcheck disable=SC2016
-      version="$(awk -F '@' '{ print $2 }' <<<"$preload")"
-
-      info_sub "$preload"
-
-      # Ensure the plugin (language) exists and install the version
-      plugin_install "$language" || exit 1
-      asdf install "$language" "$version" || exit 1
-    done
-  fi
 }
 
 # Install asdf if it doesn't exist.
 if [[ ! -e "$HOME/.asdf" ]]; then
   init_asdf
-else
-  # Ensure that steps are using asdf. init_asdf above calls this.
-  inject_bash_env
+fi
 
-  # Setup asdf for our current terminal session
-  # shellcheck disable=SC1090
-  source "$BASH_ENV"
+# Ensure that we can use asdf in all steps
+inject_bash_env
+
+# Setup asdf for our current terminal session, future ones will
+# call BASH_ENV.
+# shellcheck disable=SC1090
+source "$BASH_ENV"
+
+# Install preloaded versions, usually used for docker executors
+# Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
+if [[ -n $PRELOAD_VERSIONS ]]; then
+  info "Preloading language versions"
+  # IDEA(jaredallard): We could probably JIT install the plugin here?
+  for preload in $PRELOAD_VERSIONS; do
+    # shellcheck disable=SC2016
+    language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
+    # shellcheck disable=SC2016
+    version="$(awk -F '@' '{ print $2 }' <<<"$preload")"
+
+    info_sub "$preload"
+
+    # Ensure the plugin (language) exists and install the version
+    plugin_install "$language" || exit 1
+    asdf install "$language" "$version" || exit 1
+  done
+fi
+
+readarray -t tool_versions < <(find . -name .tool-versions | grep -vE "./.bootstrap")
+if [[ -n ${tool_versions[*]} ]]; then
+  echo "🛠  Installing languages/plugins from .tool-versions"
+
+  for tool_version in "${tool_versions[@]}"; do
+    dir="$(dirname "$tool_version")"
+    pushd "$dir" >/dev/null || exit 1
+    plugins_from_tool_versions
+    asdf install
+    asdf reshim
+    popd >/dev/null || exit 1
+  done
 fi
