@@ -21,7 +21,7 @@ fi
 
 # inject_bash_env injects asdf support into the value of BASH_ENV and sources it
 inject_bash_env() {
-  cat >>"$BASH_ENV" <<EOF
+  cat >"$BASH_ENV" <<EOF
 
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
@@ -82,11 +82,8 @@ github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
 EOF
 
-  inject_bash_env
-
-  # Setup asdf for our current terminal session
-  # shellcheck disable=SC1090
-  source "$BASH_ENV"
+  # shellcheck disable=SC1090,1091
+  . "$HOME/.asdf/asdf.sh"
 
   # Install preloaded versions, usually used for docker executors
   # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
@@ -114,8 +111,8 @@ if [[ ! -e "$HOME/.asdf" ]]; then
 else
   # Ensure that steps are using asdf. init_asdf above calls this.
   inject_bash_env
-
-  # Setup asdf for our current terminal session
-  # shellcheck disable=SC1090
-  source "$BASH_ENV"
 fi
+
+# Setup asdf for our current terminal session
+# shellcheck disable=SC1090
+source "$BASH_ENV"
