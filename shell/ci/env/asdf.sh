@@ -27,6 +27,9 @@ inject_bash_env() {
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
 
+ORIG_BASH_ENV=$BASH_ENV
+unset BASH_ENV
+
 
 # plugins_from_tool_versions installs all plugins from .tool-versions
 plugins_from_tool_versions() {
@@ -58,13 +61,14 @@ plugin_install() {
 # On every new shell creation ensure that our .tool-versions versions
 # have been installed.
 if [[ -e ".tool-versions" ]] && [[ -z $SKIP_ASDF_INSTALL ]]; then
-  echo "🛠 Installing languages/plugins from .tool-versions"
+  echo "🛠  Installing languages/plugins from .tool-versions"
   # Best effort install the plugins before doing anything else.
   plugins_from_tool_versions
   asdf install
   asdf reshim
 fi
 
+export BASH_ENV=$ORIG_BASH_ENV
 EOF
 }
 
