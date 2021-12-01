@@ -82,10 +82,10 @@ if has_feature "grpc"; then
     yarn_install_if_needed
 
     info_sub "prettier (node)"
-    run_node_command "$nodeSourceDir" yarn pretty
+    yarn pretty
 
     info_sub "eslint (node)"
-    run_node_command "$nodeSourceDir" yarn lint
+    yarn lint
     popd >/dev/null 2>&1 || exit 1
   fi
 fi
