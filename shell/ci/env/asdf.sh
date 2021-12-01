@@ -85,7 +85,7 @@ plugins_from_tool_versions() {
 }
 
 # Install asdf if it doesn't exist.
-if ! command -v asdf >/dev/null; then
+if [[ ! -e "$HOME/.asdf" ]]; then
   init_asdf
 else
   # Ensure that steps are using asdf. init_asdf above calls this.
