@@ -62,8 +62,8 @@ init_asdf() {
   git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
 
   # langauage specifics
-  echo -e "npm\nyarn\n" >"$HOME/.default-npm-packages"
-  echo -e "bundler\n" >"$HOME/.default-gems"
+  echo -e "npm\nyarn" >"$HOME/.default-npm-packages"
+  echo -e "bundler" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
