@@ -74,38 +74,38 @@ EOF
   # Setup asdf for our current terminal session
   # shellcheck disable=SC1090
   source "$BASH_ENV"
+
+  # Install preloaded versions, usually used for docker executors
+  # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
+  if [[ -n $PRELOAD_VERSIONS ]]; then
+    info "Preloading language versions"
+    # IDEA(jaredallard): We could probably JIT install the plugin here?
+    for preload in $PRELOAD_VERSIONS; do
+      # shellcheck disable=SC2016
+      language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
+      # shellcheck disable=SC2016
+      version="$(awk -F '@' '{ print $2 }' <<<"$preload")"
+
+      info_sub "$preload"
+
+      # Ensure the plugin (language) exists and install the version
+      plugin_install "$language" || exit 1
+      asdf install "$language" "$version" || exit 1
+    done
+  fi
 }
 
 # Install asdf if it doesn't exist.
 if [[ ! -e "$HOME/.asdf" ]]; then
   init_asdf
-fi
+else
+  # Ensure that we can use asdf in all steps
+  inject_bash_env
 
-# Ensure that we can use asdf in all steps
-inject_bash_env
-
-# Setup asdf for our current terminal session, future ones will
-# call BASH_ENV.
-# shellcheck disable=SC1090
-source "$BASH_ENV"
-
-# Install preloaded versions, usually used for docker executors
-# Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
-if [[ -n $PRELOAD_VERSIONS ]]; then
-  info "Preloading language versions"
-  # IDEA(jaredallard): We could probably JIT install the plugin here?
-  for preload in $PRELOAD_VERSIONS; do
-    # shellcheck disable=SC2016
-    language="$(awk -F '@' '{ print $1 }' <<<"$preload")"
-    # shellcheck disable=SC2016
-    version="$(awk -F '@' '{ print $2 }' <<<"$preload")"
-
-    info_sub "$preload"
-
-    # Ensure the plugin (language) exists and install the version
-    plugin_install "$language" || exit 1
-    asdf install "$language" "$version" || exit 1
-  done
+  # Setup asdf for our current terminal session, future ones will
+  # call BASH_ENV.
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
 fi
 
 readarray -t tool_versions < <(find . -name .tool-versions | grep -vE "./.bootstrap")
