@@ -5,6 +5,10 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 CI_DIR="$DIR/../ci"
 
+# Ensure that asdf is ready to be used
+echo "🔨 Setting up asdf"
+"$CI_DIR/env/asdf.sh"
+
 authn=(
   "npm"
   "ssh"
@@ -42,7 +46,3 @@ EOF
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >cache-version.txt
-
-# Ensure that asdf is ready to be used
-echo "🔨 Setting up asdf"
-"$CI_DIR/env/asdf.sh"
