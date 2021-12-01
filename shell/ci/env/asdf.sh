@@ -58,7 +58,7 @@ plugin_install() {
 # On every new shell creation ensure that our .tool-versions versions
 # have been installed.
 if [[ -e ".tool-versions" ]] && [[ -z \$SKIP_ASDF_INSTALL ]]; then
-  info "Installing languages/plugins from .tool-versions"
+  echo "🛠 Installing languages/plugins from .tool-versions"
   # Best effort install the plugins before doing anything else.
   plugins_from_tool_versions
   asdf install
