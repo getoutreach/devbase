@@ -1,6 +1,6 @@
 description: Save the node client's cache at a standard path
 steps:
   - save_cache:
-      key: node-client-cache-{{ checksum "cache-version.txt" }}-{{ checksum "api/clients/node/package.json" }}
+      key: v1-node-client-cache-{{ checksum "cache-version.txt" }}-{{ checksum "api/clients/node/package.json" }}
       paths:
         - api/clients/node/node_modules
