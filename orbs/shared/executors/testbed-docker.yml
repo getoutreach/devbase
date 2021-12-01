@@ -1,10 +1,11 @@
 description: Standard executor for Docker based runtimes
 parameters:
-  go_version:
+  docker_tag:
     type: string
-    default: unknown
+    # Note: This is no longer tied to go versions
+    default: 1.17.1
 docker:
-  - image: gcr.io/outreach-docker/bootstrap/ci:<< parameters.go_version >>
+  - image: gcr.io/outreach-docker/bootstrap/ci:<< parameters.docker_tag >>
     auth:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT

@@ -7,7 +7,6 @@ jobs:
   test:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
     steps:
       - shared/setup_environment:
           setup_remote_docker: true
@@ -20,7 +19,6 @@ jobs:
   release-dryrun:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
     steps:
       - shared/setup_environment:
           setup_remote_docker: true
@@ -35,7 +33,6 @@ jobs:
   release:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
     steps:
       - shared/setup_environment:
           setup_remote_docker: true
