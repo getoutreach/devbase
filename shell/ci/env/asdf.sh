@@ -21,7 +21,7 @@ fi
 
 # inject_bash_env injects asdf support into the value of BASH_ENV and sources it
 inject_bash_env() {
-  cat >"$BASH_ENV" <<EOF
+  cat >"$BASH_ENV" <<'EOF'
 
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
@@ -32,39 +32,38 @@ inject_bash_env() {
 plugins_from_tool_versions() {
   while read -r line; do
     # Skip comments
-    if grep -E "^#" <<<"\$line" >/dev/null; then
+    if grep -E "^#" <<<"$line" >/dev/null; then
       continue
     fi
 
-    name="\$(awk '{ print \$1 }' <<<'\$line')"
-    version="\$(awk '{ print \$2 }' <<<'\$line')"
-    plugin_install "\$name" || warn "Failed to install language '\$name', may fail to invoke things using that language"
+    name="$(awk '{ print $1 }' <<<'$line')"
+    version="$(awk '{ print $2 }' <<<'$line')"
+    plugin_install "$name" || warn "Failed to install language '$name', may fail to invoke things using that language"
   done <.tool-versions
 }
 
 # plugin_install installs an asdf plugin
 plugin_install() {
-  name="\$1"
+  name="$1"
 
   # NOOP if it already exists
-  if asdf plugin list | grep -E "^\$name\$" >/dev/null; then
+  if asdf plugin list | grep -E "^$name$" >/dev/null; then
     return
   fi
 
-  asdf plugin-add "\$name"
+  asdf plugin-add "$name"
 }
 
 
 # On every new shell creation ensure that our .tool-versions versions
 # have been installed.
-if [[ -e ".tool-versions" ]] && [[ -z \$SKIP_ASDF_INSTALL ]] && [[ -z \$RAN_ASDF_INSTALL ]]; then
+if [[ -e ".tool-versions" ]] && [[ -z $SKIP_ASDF_INSTALL ]]; then
   echo "🛠 Installing languages/plugins from .tool-versions"
   # Best effort install the plugins before doing anything else.
   plugins_from_tool_versions
   asdf install
   asdf reshim
 fi
-export RAN_ASDF_INSTALL=true
 
 EOF
 }
@@ -83,8 +82,11 @@ github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
 EOF
 
-  # shellcheck disable=SC1090,1091
-  . "$HOME/.asdf/asdf.sh"
+  inject_bash_env
+
+  # Setup asdf for our current terminal session
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
 
   # Install preloaded versions, usually used for docker executors
   # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
@@ -112,8 +114,8 @@ if [[ ! -e "$HOME/.asdf" ]]; then
 else
   # Ensure that steps are using asdf. init_asdf above calls this.
   inject_bash_env
-fi
 
-# Setup asdf for our current terminal session
-# shellcheck disable=SC1090
-source "$BASH_ENV"
+  # Setup asdf for our current terminal session
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
+fi
