@@ -39,8 +39,8 @@ plugins_from_tool_versions() {
       continue
     fi
 
-    name="$(awk '{ print $1 }' <<<'$line')"
-    version="$(awk '{ print $2 }' <<<'$line')"
+    name="$(awk '{ print $1 }' <<<"$line")"
+    version="$(awk '{ print $2 }' <<<"$line")"
     plugin_install "$name" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
   done <.tool-versions
 }
