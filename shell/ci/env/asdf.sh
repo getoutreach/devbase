@@ -63,7 +63,7 @@ init_asdf() {
 
   # langauage specifics
   echo -e "npm\nyarn" >"$HOME/.default-npm-packages"
-  echo -e "bundler\npackage_cloud" >"$HOME/.default-gems"
+  echo -e "bundler" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
@@ -110,7 +110,7 @@ fi
 
 readarray -t tool_versions < <(find . -name .tool-versions | grep -vE "./.bootstrap")
 if [[ -n ${tool_versions[*]} ]]; then
-  echo "🛠  Installing languages/plugins from .tool-versions"
+  echo "🛠 Installing languages/plugins from .tool-versions"
 
   for tool_version in "${tool_versions[@]}"; do
     dir="$(dirname "$tool_version")"
