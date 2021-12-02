@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED: Use Github Packages instead
 # Setup NPM authentication
 set -e
 
