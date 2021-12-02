@@ -8,7 +8,7 @@ usage:
       executor:
         name: shared/testbed-docker
       steps:
-        # Sets up all available auth baased on the context
+        # Sets up all available auth based on the context
         # checks out the repository and ensures that SSH keys
         # are available
         - shared/setup_environment

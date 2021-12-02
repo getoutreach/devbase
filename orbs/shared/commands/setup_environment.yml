@@ -6,16 +6,18 @@ parameters:
   setup_remote_docker:
     type: boolean
     default: false
-  go_version:
-    type: string
-    description: The go version to be installed, only applicable if machine is set to true.
-    default: "1.17.0"
+  checkout:
+    type: boolean
+    default: true
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
       steps:
         - use_docker
-  - checkout
+  - when:
+      condition: << parameters.checkout >>
+      steps:
+        - checkout
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   # When in machine mode we need to install some dependencies
@@ -24,24 +26,25 @@ steps:
       steps:
         - run:
             name: Install Dependencies
+            command: ./scripts/shell-wrapper.sh circleci/machine.sh
+  - when:
+      condition: << parameters.machine >>
+      steps:
+        - run:
+            name: Setup CACHE_VERSION
             command: |-
-              # yq
-              pip3 install yq
-
-              # Vault
-              curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-              sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-              sudo apt-get update
-              sudo apt-get install -y vault
-
-              # Go
-              REQUIRED_GO_VERSION=<< parameters.go_version >>
-              curl -sSL --fail --retry 3 --output /tmp/go.tar.gz "https://golang.org/dl/go$(echo $REQUIRED_GO_VERSION).linux-amd64.tar.gz"
-              sudo rm -rf /usr/local/go
-              sudo tar -C /usr/local -xzf /tmp/go.tar.gz
-              sudo rm -rf /tmp/go.tar.gz
-              echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
-              source ~/.profile
+              # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
+              echo "$CACHE_VERSION" > cache-version.txt
+        - restore_cache:
+            keys:
+              - v1-asdf-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
+  - when:
+      condition: << parameters.machine >>
+      steps:
+        - save_cache:
+            key: v1-asdf-cache-{{ checksum "cache-version.txt" }}
+            paths:
+              - "~/.asdf"
