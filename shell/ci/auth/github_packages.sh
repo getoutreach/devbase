@@ -38,7 +38,7 @@ fi
 if command -v npm >/dev/null 2>&1; then
   # Do not remove the empy newline, this ensures we never write to the same line
   # as something else.
-  cat >>"$HOME/.npmrc" <<"EOF"
+  cat >>"$HOME/.npmrc" <<EOF
 
 //npm.pkg.github.com/:_authToken=$GITHUB_TOKEN
 EOF
