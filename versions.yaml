@@ -9,7 +9,7 @@ delve: 1.6.0
 gotestsum: 1.7.0
 lintroller: 1.8.3
 codeowners-validator: 0.6.0
-clerkgenproto: 1.15.0
+clerkgenproto: 1.16.2
 
 # protoc plugins
 protoc-gen-go: 1.4.2
