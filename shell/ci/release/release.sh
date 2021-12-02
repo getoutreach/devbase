@@ -7,25 +7,38 @@ nodeClientDir="api/clients/node"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
+
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
 NPM_TOKEN='' GH_TOKEN=$GITHUB_TOKEN \
   yarn --frozen-lockfile semantic-release
 
-# Special logic to publish a node client to github packages while
-# we're dual writing. This will be removed soonish.
-if [[ -e $nodeClientDir ]]; then
-  info "Publishing node client to Github Packages"
+NEW_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
-  info_sub "pointing package.json to Github Packages"
-  pjson="$nodeClientDir/package.json"
-  originalName="$(jq -r '.name' "$pjson")"
-  newName="${originalName//@outreach/@getoutreach}"
+# Determine if we updated by checking the original version from git
+# vs the new version (potentially) after we ran semantic-release.
+UPDATED=false
+if [[ $ORIGINAL_VERSION != "$NEW_VERSION" ]]; then
+  UPDATED=true
+fi
 
-  newpjson="$(jq ". + {\"name\":\"$newName\",\"publishConfig\":{\"registry\":\"https://npm.pkg.github.com/\"}}" "$pjson")"
-  echo "$newpjson" >"$pjson"
+if [[ $UPDATED == "true" ]]; then
+  # Special logic to publish a node client to github packages while
+  # we're dual writing. This will be removed soonish.
+  if [[ -e $nodeClientDir ]]; then
+    info "Publishing node client to Github Packages"
 
-  pushd "$nodeClientDir" >/dev/null || exit 1
-  info_sub "pushing to github packages"
-  npm publish
-  popd >/dev/null || exit 1
+    info_sub "pointing package.json to Github Packages"
+    pjson="$nodeClientDir/package.json"
+    originalName="$(jq -r '.name' "$pjson")"
+    newName="${originalName//@outreach/@getoutreach}"
+
+    newpjson="$(jq ". + {\"name\":\"$newName\",\"publishConfig\":{\"registry\":\"https://npm.pkg.github.com/\"}}" "$pjson")"
+    echo "$newpjson" >"$pjson"
+
+    pushd "$nodeClientDir" >/dev/null || exit 1
+    info_sub "pushing to github packages"
+    npm publish
+    popd >/dev/null || exit 1
+  fi
 fi
