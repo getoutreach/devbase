@@ -66,17 +66,7 @@ jobs:
           save: true
       - run:
           name: Release
-          command: ./scripts/shell-wrapper.sh ci/release/release.sh
-
-  trigger_documentation:
-    executor:
-      name: shared/testbed-docker
-    steps:
-      - shared/setup_environment
-      - shared/with_go_cache
-      - run:
-          name: Trigger Documentation Update
-          command: ./scripts/shell-wrapper.sh ci/release/docs.sh
+          command: ./shell/ci/release/release.sh
 
 workflows:
   version: 2

@@ -10,7 +10,7 @@ source "${LIB_DIR}/bootstrap.sh"
 
 # Fetch the token from ghaccesstoken if not set.
 if [[ -z $GITHUB_TOKEN ]]; then
-  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" token)
+  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" --skip-update token)
 fi
 
 mkdir -p "$HOME/.outreach"
