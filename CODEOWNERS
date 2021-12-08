@@ -1,1 +1,5 @@
-* @getoutreach/cia-dev-tooling
+# See https://help.github.com/articles/about-codeowners/
+* @getoutreach/fnd-dtss
+
+###Block(customCodeowners)
+###EndBlock(customCodeowners)
