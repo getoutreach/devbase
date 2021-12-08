@@ -22,6 +22,7 @@ plugins:
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
+  ###Deviation(customRelease): We publish an orb
   ###Block(customRelease)
   - - "semantic-release-circleci-orb"
   - orbName: "getoutreach/shared"
