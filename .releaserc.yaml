@@ -25,6 +25,6 @@ plugins:
   ###Deviation(customRelease): We publish an orb
   ###Block(customRelease)
   - - "semantic-release-circleci-orb"
-  - orbName: "getoutreach/shared"
-    orbPath: "orb.yml"
+    - orbName: "getoutreach/shared"
+      orbPath: "orb.yml"
   ###EndBlock(customRelease)
