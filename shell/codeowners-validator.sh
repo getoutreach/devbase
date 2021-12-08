@@ -10,15 +10,13 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
-CODEOWNERS_CHECKS="syntax,files,duppatterns,owners"
-if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
-  GH_TOKEN="$OUTREACH_GITHUB_TOKEN"
-elif [[ -f "$HOME/.outreach/github.token" ]]; then
-  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
-else
-  warn "No GitHub token found, skipping owner checks"
-  CODEOWNERS_CHECKS="syntax,files,duppatterns"
+GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+if [[ -z $GH_TOKEN ]]; then
+  echo "Failed to read Github personal access token" >&2
+  exit 1
 fi
+
+CODEOWNERS_CHECKS="syntax,files,duppatterns,owners"
 
 # TODO: use org value instead of hardcoding
 OWNER_CHECKER_REPOSITORY="getoutreach/$(get_app_name)" \
