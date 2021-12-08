@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
-# Emulator for the bootstrap scripts/shell-wrapper.sh to use ourself.
+# shell wrapper runs a shell script inside of the
+# bootstrap-libs
+set -e
 
-command="$1"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+libDir="$DIR/../.bootstrap"
+
+"$DIR/bootstrap-lib.sh"
+
+script="$1"
+
 shift
-exec "shell/$command" "$@"
+
+exec "$libDir/shell/$script" "$@"

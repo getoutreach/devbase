@@ -1,5 +1,6 @@
 {
   "license": "UNLICENSED",
+  "///Deviation(customDeps)": "We need a orb publishing package",
   "devDependencies": {
     "//": "This version of prettier is only for non-js formatting",
     "@outreach/prettier-config": "^1.0.3",

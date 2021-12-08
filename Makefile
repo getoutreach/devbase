@@ -1,11 +1,11 @@
 APP := devbase
-ORG := getoutreach
 OSS := true
+_ := $(shell ./scripts/bootstrap-lib.sh) 
 
-include root/Makefile
+include .bootstrap/root/Makefile
 
-
-.PHONT: build-orb
+###Block(targets)
+.PHONY: build-orb
 build-orb:
 	circleci orb pack orbs/shared > orb.yml
 
@@ -16,3 +16,4 @@ validate-orb: build-orb
 .PHONY: publish-orb
 publish-orb: validate-orb
 	circleci orb publish orb.yml getoutreach/shared@dev:first
+###EndBlock(targets)
