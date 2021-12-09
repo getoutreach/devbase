@@ -2,6 +2,8 @@ preset: conventionalcommits
 branches:
   - name: master
   - name: main
+  - name: rc
+    prerelease: true
 plugins:
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
@@ -24,6 +26,9 @@ plugins:
   - "@semantic-release/github"
   ###Deviation(customRelease): We publish an orb
   ###Block(customRelease)
+  # Build the orb
+  - - "@semantic-release/exec"
+    - prepareCmd: make
   - - "semantic-release-circleci-orb"
     - orbName: "getoutreach/shared"
       orbPath: "orb.yml"

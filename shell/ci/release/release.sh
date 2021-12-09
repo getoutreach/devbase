@@ -4,13 +4,19 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 nodeClientDir="api/clients/node"
 
+# Read the GH_TOKEN from the file
+GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+if [[ -z $GH_TOKEN ]]; then
+  echo "Failed to read Github personal access token" >&2
+fi
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
 ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
-NPM_TOKEN='' GH_TOKEN=$GITHUB_TOKEN \
+NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
   yarn --frozen-lockfile semantic-release
 
 NEW_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)

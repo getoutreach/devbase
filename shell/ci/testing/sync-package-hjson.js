@@ -62,27 +62,33 @@ if (match === null) {
 
         console.log("Committing to git");
         const netrc = path.join(os.homedir(), ".netrc");
-        if (process.env.OUTREACH_GITHUB_TOKEN) {
-          execPassthru('git config user.name "Outreach CI"');
-          execPassthru(
-            "git config user.email outreach-ci@users.noreply.github.com"
-          );
-          execPassthru(`git add "${hjsonPath}"`);
-          execPassthru(
-            `git commit -m "chore: sync ${path.join(
-              relativeNodeClientPath,
-              "package.hjson"
-            )}"`
-          );
-          fs.writeFileSync(
-            netrc,
-            `machine github.com login outreach-ci password ${process.env.OUTREACH_GITHUB_TOKEN}`
-          );
-          fs.chmodSync(netrc, 0o600);
-        } else {
-          console.log("No GitHub token found");
+        const githubTokenPath = path.join(os.homedir(), '.outreach', 'github.token');
+
+        let githubToken;
+        try {
+          githubToken = readFileSync(githubTokenPath);
+        } catch (err) {
+          console.error("No GitHub token found:", err);
           process.exit();
         }
+
+        execPassthru('git config user.name "Outreach CI"');
+        execPassthru(
+          "git config user.email outreach-ci@users.noreply.github.com"
+        );
+        execPassthru(`git add "${hjsonPath}"`);
+        execPassthru(
+          `git commit -m "chore: sync ${path.join(
+            relativeNodeClientPath,
+            "package.hjson"
+          )}"`
+        );
+        fs.writeFileSync(
+          netrc,
+          `machine github.com login outreach-ci password ${githubToken}`
+        );
+        fs.chmodSync(netrc, 0o600);
+
         const branchName = process.env.CIRCLE_BRANCH;
         if (!branchName) {
           console.error(

@@ -45,4 +45,9 @@ git checkout "$CIRCLE_BRANCH"
 git merge --squash "$OLD_CIRCLE_BRANCH"
 git commit -m "$COMMIT_MESSAGE"
 
-GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release --dry-run
+GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+if [[ -z $GH_TOKEN ]]; then
+  echo "Failed to read Github personal access token" >&2
+fi
+
+GH_TOKEN=$GH_TOKEN yarn --frozen-lockfile semantic-release --dry-run

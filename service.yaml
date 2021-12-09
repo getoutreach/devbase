@@ -2,3 +2,5 @@ name: devbase
 oss: true
 library: true
 reportingTeam: fnd-dtss
+releaseOptions:
+  allowPrereleases: true

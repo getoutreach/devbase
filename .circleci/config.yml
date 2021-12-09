@@ -90,6 +90,7 @@ workflows:
           context:
             - docker-registry
             - npm-credentials
+            - ghaccesstoken
             - github-credentials
             - package-cloud-credentials
           requires:
@@ -101,10 +102,12 @@ workflows:
               only:
                 - master
                 - main
+                - rc
       - release-dryrun:
           context:
             - docker-registry
             - npm-credentials
+            - ghaccesstoken
             - github-credentials
             - package-cloud-credentials
           filters:
@@ -112,9 +115,11 @@ workflows:
               ignore:
                 - master
                 - main
+                - rc
       - test:
           context:
             - docker-registry
+            - ghaccesstoken
             - npm-credentials
       - trigger_documentation:
           context:

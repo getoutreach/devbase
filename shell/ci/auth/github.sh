@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-# DEPRECATED: Replaced with GITHUB_TOKEN in the github-credentials context
-# for Outreach.
-if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
-  GITHUB_TOKEN="$OUTREACH_GITHUB_TOKEN"
-fi
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SHELL_DIR="$DIR/../.."
+LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
+# Fetch the token from ghaccesstoken if not set.
 if [[ -z $GITHUB_TOKEN ]]; then
-  echo "Skipped: GITHUB_TOKEN is not set."
-  exit 0
+  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" --skip-update token)
 fi
 
 mkdir -p "$HOME/.outreach"
