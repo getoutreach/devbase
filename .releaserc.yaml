@@ -2,6 +2,8 @@ preset: conventionalcommits
 branches:
   - name: master
   - name: main
+  - name: rc
+    prerelease: true
 plugins:
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
