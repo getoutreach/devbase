@@ -18,6 +18,9 @@ steps:
       condition: << parameters.checkout >>
       steps:
         - checkout
+        - run:
+            name: Checkout Submodules
+            command: git submodule sync && git submodule update --init
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   # When in machine mode we need to install some dependencies
