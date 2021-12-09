@@ -66,7 +66,17 @@ jobs:
           save: true
       - run:
           name: Release
-          command: ./shell/ci/release/release.sh
+          command: ./scripts/shell-wrapper.sh ci/release/release.sh
+
+  trigger_documentation:
+    executor:
+      name: shared/testbed-docker
+    steps:
+      - shared/setup_environment
+      - shared/with_go_cache
+      - run:
+          name: Trigger Documentation Update
+          command: ./scripts/shell-wrapper.sh ci/release/docs.sh
 
 workflows:
   version: 2
@@ -79,8 +89,8 @@ workflows:
       - release:
           context:
             - docker-registry
-            - ghaccesstoken
             - npm-credentials
+            - ghaccesstoken
             - github-credentials
             - package-cloud-credentials
           requires:
@@ -95,8 +105,8 @@ workflows:
       - release-dryrun:
           context:
             - docker-registry
-            - ghaccesstoken
             - npm-credentials
+            - ghaccesstoken
             - github-credentials
             - package-cloud-credentials
           filters:
