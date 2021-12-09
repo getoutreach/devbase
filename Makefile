@@ -6,6 +6,9 @@ include .bootstrap/root/Makefile
 
 ###Block(targets)
 .PHONY: build-orb
+pre-build:: build-orb
+
+.PHONY: build-orb
 build-orb:
 	circleci orb pack orbs/shared > orb.yml
 
