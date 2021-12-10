@@ -12,7 +12,7 @@ asdf_plugins_from_tool_versions() {
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
     local name="$(awk '{ print $1 }' <<<"$line")"
-    plugin_install "$name" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
+    asdf_plugin_install "$name" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
   done <.tool-versions
 }
 
