@@ -8,5 +8,5 @@ LIB_DIR="${DIR}/../../lib"
 source "${LIB_DIR}/bootstrap.sh"
 
 if [[ -n $COVERALLS_TOKEN ]]; then
-  "$SHELL_DIR/gobin.sh" "github.com/mattn/goveralls@$(get_tool_version "goveralls")" -coverprofile=/tmp/coverage.out -service=circle-ci -repotoken="$COVERALLS_TOKEN"
+  "$SHELL_DIR/gobin.sh" "github.com/mattn/goveralls@v$(get_tool_version "goveralls")" -coverprofile=/tmp/coverage.out -service=circle-ci -repotoken="$COVERALLS_TOKEN"
 fi
