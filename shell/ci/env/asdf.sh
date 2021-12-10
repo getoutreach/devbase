@@ -10,6 +10,8 @@ LIB_DIR="${DIR}/../../lib"
 source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/asdf.sh"
 
 # Used in CircleCI, stub it in Docker. Note: Using this docker image
 # outside of a platform that has BASH_ENV as a way to carry over environment
@@ -27,32 +29,6 @@ inject_bash_env() {
 # ensures that we never append to an existing line.
 . "$HOME/.asdf/asdf.sh"
 EOF
-}
-
-# plugins_from_tool_versions installs all plugins from .tool-versions
-plugins_from_tool_versions() {
-  while read -r line; do
-    # Skip comments
-    if grep -E "^#" <<<"$line" >/dev/null; then
-      continue
-    fi
-
-    name="$(awk '{ print $1 }' <<<"$line")"
-    version="$(awk '{ print $2 }' <<<"$line")"
-    plugin_install "$name" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
-  done <.tool-versions
-}
-
-# plugin_install installs an asdf plugin
-plugin_install() {
-  name="$1"
-
-  # NOOP if it already exists
-  if asdf plugin list | grep -E "^$name$" >/dev/null; then
-    return
-  fi
-
-  asdf plugin-add "$name"
 }
 
 # init_asdf installs asdf and ensures it's usable, preloading versions
@@ -89,7 +65,7 @@ EOF
       info_sub "$preload"
 
       # Ensure the plugin (language) exists and install the version
-      plugin_install "$language" || exit 1
+      asdf_plugin_install "$language" || exit 1
       asdf install "$language" "$version" || exit 1
     done
   fi
@@ -108,16 +84,5 @@ else
   source "$BASH_ENV"
 fi
 
-readarray -t tool_versions < <(find . -name .tool-versions | grep -vE "./.bootstrap")
-if [[ -n ${tool_versions[*]} ]]; then
-  echo "🛠 Installing languages/plugins from .tool-versions"
-
-  for tool_version in "${tool_versions[@]}"; do
-    dir="$(dirname "$tool_version")"
-    pushd "$dir" >/dev/null || exit 1
-    plugins_from_tool_versions
-    asdf install
-    asdf reshim
-    popd >/dev/null || exit 1
-  done
-fi
+echo "🛠 Installing languages/plugins from all .tool-version files"
+asdf_install

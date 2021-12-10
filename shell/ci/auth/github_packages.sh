@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Sets up Github Packages for a variety of languages.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SHELL_DIR="$DIR/../.."
+LIB_DIR="${DIR}/../../lib"
 
-tokenFile="$HOME/.outreach/github.token"
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
 
-if [[ ! -e $tokenFile ]]; then
-  echo "Skipped: Github Auth not setup"
-fi
-
-GH_TOKEN="$(cat "$tokenFile")"
+GH_TOKEN=$("$SHELL_DIR/gobin.sh" \
+  "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" \
+  --skip-update token --env-prefix "GHACCESSTOKEN_PAT")
 
 # Allow setting for using static auth
 if [[ -z $GITHUB_USERNAME ]]; then
