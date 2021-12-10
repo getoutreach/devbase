@@ -25,11 +25,22 @@ asdf_install() {
       dir="$(dirname "$tool_version")"
       pushd "$dir" >/dev/null || exit 1
       asdf_plugins_from_tool_versions
-      asdf install
+      asdf install || asdf_install_retry
       asdf reshim
       popd >/dev/null || exit 1
     done
   fi
+}
+
+# asdf_install_retry attempts to retry on certain platforms
+asdf_install_retry() {
+  if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+    arch -x86_64 asdf install
+    return $?
+  fi
+
+  # Not a supported retry, so just try again once and pray.
+  asdf install
 }
 
 # asdf_plugin_install installs an asdf plugin
