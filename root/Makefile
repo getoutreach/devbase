@@ -69,7 +69,7 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 || true
 	@git tag "$(APP_VERSION)" >&2
-	@./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v0.180.3 release --skip-publish --rm-dist
+	@./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.1.0 release --skip-announce --skip-publish --skip-validate --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
