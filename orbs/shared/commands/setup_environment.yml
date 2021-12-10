@@ -14,6 +14,8 @@ steps:
       condition: << parameters.setup_remote_docker >>
       steps:
         - use_docker
+  # Adds a github org scoped SSH key to the project added by Wheatley
+  - add_ssh_keys
   - when:
       condition: << parameters.checkout >>
       steps:
@@ -21,8 +23,6 @@ steps:
         - run:
             name: Checkout Submodules
             command: git submodule sync && git submodule update --init
-  # Adds a github org scoped SSH key to the project added by Wheatley
-  - add_ssh_keys
   # When in machine mode we need to install some dependencies
   - when:
       condition: << parameters.machine >>
