@@ -7,7 +7,12 @@ if [[ ! -e $tokenFile ]]; then
   echo "Skipped: Github Auth not setup"
 fi
 
+# Allow overriding the token, e.g. for uploading packages
+# you need to use a PAT vs a Github App token.
 GH_TOKEN="$(cat "$tokenFile")"
+if [[ -n $GITHUB_PACKAGES_TOKEN ]]; then
+  GH_TOKEN=$GITHUB_PACKAGES_TOKEN
+fi
 
 # Allow setting for using static auth
 if [[ -z $GITHUB_USERNAME ]]; then
