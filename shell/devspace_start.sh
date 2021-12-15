@@ -8,8 +8,12 @@ source "$DIR/lib/bootstrap.sh"
 gh auth setup-git
 
 # IDEA: Maybe do this in the image build?
-if ! grep -q '. "$HOME/.asdf/asdf.sh"' $HOME/.bashrc; then
-  echo '. "$HOME/.asdf/asdf.sh"' >>$HOME/.bashrc
+# We actually don't want it to expand, we want it to be a literal string written to the file
+# shellcheck disable=SC2086
+if ! grep -q '. "$HOME/.asdf/asdf.sh"' "$HOME/.bashrc"; then
+  # We actually don't want it to expand, we want it to be a literal string written to the file
+  # shellcheck disable=SC2086
+  echo '. "$HOME/.asdf/asdf.sh"' >>"$HOME/.bashrc"
 fi
 
 COLOR_CYAN="\033[0;36m"
