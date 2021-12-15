@@ -54,6 +54,21 @@ kubecfg \
   --jurl http://k8s-clusters.outreach.cloud/ \
   --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
   -n "$namespace" \
+  --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$APPNAME/database.jsonnet" \
+  -V cluster="development.us-west-2" \
+  -V namespace="$namespace" \
+  -V environment="$environment" \
+  -V version="$version" \
+  -V bento="$bento" \
+  -V dev_email="${DEV_EMAIL:-$(git config user.email)}" \
+  -V host="bento1a.outreach-dev.com"
+
+kubectl wait -n "$namespace" "postgresqldatabaseclusters.databases.outreach.io/$APPNAME" --for=condition=Ready --timeout=1800s
+
+kubecfg \
+  --jurl http://k8s-clusters.outreach.cloud/ \
+  --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
+  -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$APPNAME/$APPNAME.jsonnet" \
   -V cluster="development.us-west-2" \
   -V namespace="$namespace" \
