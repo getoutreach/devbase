@@ -9,7 +9,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.22.0
+	github.com/rs/zerolog v1.26.1
 	github.com/sirupsen/logrus v1.8.1
 	google.golang.org/grpc v1.40.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -50,7 +50,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/zalando/go-keyring v0.1.1 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
+	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/net v0.0.0-20210913180222-943fd674d43e // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
