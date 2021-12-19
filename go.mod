@@ -43,7 +43,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.31.1 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect

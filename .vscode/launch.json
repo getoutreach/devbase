@@ -10,8 +10,11 @@
       "request": "launch",
       "mode": "debug",
       "envFile": "${workspaceRoot}/.vscode/private.env",
+      "go.testEnvFile": "${workspaceRoot}/.vscode/private.env",
       "program": "${workspaceRoot}/cmd/devbase/",
       "buildFlags": "-tags=or_dev"
     }
+    ///Block(vscodeLaunchConfigs)
+    ///EndBlock(vscodeLaunchConfigs)
   ]
 }
