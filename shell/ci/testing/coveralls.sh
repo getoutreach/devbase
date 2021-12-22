@@ -10,7 +10,7 @@ source "${LIB_DIR}/bootstrap.sh"
 flag_name="$1"
 coverage_file=/tmp/coverage.out
 
-if [[ -n $COVERALLS_TOKEN && -f "$coverage_file" ]]; then
+if [[ -n $COVERALLS_TOKEN && -f $coverage_file ]]; then
   extra_args=()
   if [[ -n $flag_name ]]; then
     extra_args+=("-parallel" "-flagname" "$flag_name")
