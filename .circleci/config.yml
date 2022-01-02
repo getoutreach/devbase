@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  shared: getoutreach/shared@1.37.1
+  shared: getoutreach/shared@1.40.1
 
 # DEPRECATED: Use the devbase orb instead:
 # https://github.com/getoutreach/devbase/tree/main/orbs/shared
@@ -42,9 +42,9 @@ jobs:
           command: make test | tee ${TEST_RESULTS}/go-test.out
       - run:
           name: Upload Code Coverage
-          command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh
+          command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh test
       - shared/save_go_cache # We save at the end because binaries are included with this
-      - shared/upload_test_results
+      - shared/upload_test_results # Uploads to CircleCI
 
   release-dryrun:
     executor:
