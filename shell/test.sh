@@ -9,6 +9,11 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
 
+# If you want to run tests under a debugger, use this ENV var to specify the
+# name of the package you wish to debug.  You can only debug one package at a
+# time.
+## PACKAGE_TO_DEBUG=
+
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 
@@ -134,18 +139,36 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   # Ensure this exists for tests results, just in case
   mkdir -p "bin"
 
-  # Why: We want these to split. For those wondering about "$@":
-  # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
-  # shellcheck disable=SC2086
-  "$DIR/gobin.sh" gotest.tools/gotestsum@v"$(get_application_version "gotestsum")" \
-    --junitfile "$(get_repo_directory)/bin/unit-tests.xml" --format "$format" -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
-    -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
-    "$@" ./...
+  if [[ -n $PACKAGE_TO_DEBUG ]]; then
+    TESTBIN=$(mktemp)
 
-  if [[ -n $CI ]]; then
-    # Move this to a temporary directoy so that we can control
-    # what gets uploaded via the store_test_results call
-    mkdir -p /tmp/test-results
-    mv "$(get_repo_directory)/bin/unit-tests.xml" /tmp/test-results/
+    # We build the binary ourselves, rather than doing it implicitly via the
+    # Delve command line, because the Delve command line doesn't handle our
+    # complex linker flags very well right now (v1.7.3).
+    #
+    # shellcheck disable=SC2086
+    go test -c -o "${TESTBIN}" \
+      $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
+      -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" "$PACKAGE_TO_DEBUG"
+
+    # We pass along command line args to the executable so you can specify
+    # `-test.run <regex>`, `-test.bench <regex>`, etc. if desired.  Try `-help`
+    # for more information.
+    "$DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" exec "${TESTBIN}" -- "$@"
+  else
+    # Why: We want these to split. For those wondering about "$@":
+    # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
+    # shellcheck disable=SC2086
+    "$DIR/gobin.sh" gotest.tools/gotestsum@v"$(get_application_version "gotestsum")" \
+      --junitfile "$(get_repo_directory)/bin/unit-tests.xml" --format "$format" -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
+      -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
+      "$@" ./...
+
+    if [[ -n $CI ]]; then
+      # Move this to a temporary directoy so that we can control
+      # what gets uploaded via the store_test_results call
+      mkdir -p /tmp/test-results
+      mv "$(get_repo_directory)/bin/unit-tests.xml" /tmp/test-results/
+    fi
   fi
 fi
