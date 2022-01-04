@@ -116,6 +116,8 @@ get_list() {
 }
 
 get_keys() {
+  local name="$1"
+
   if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
