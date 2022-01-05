@@ -66,10 +66,10 @@ if (match === null) {
 
         let githubToken;
         try {
-          githubToken = readFileSync(githubTokenPath);
+          githubToken = fs.readFileSync(githubTokenPath);
         } catch (err) {
           console.error("No GitHub token found:", err);
-          process.exit();
+          process.exit(1);
         }
 
         execPassthru('git config user.name "Outreach CI"');

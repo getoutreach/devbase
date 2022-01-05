@@ -59,6 +59,7 @@ pre-e2e::
 pre-benchmark::
 pre-gogenerate::
 pre-devserver::
+pre-dev::
 pre-debug::
 pre-docker-build::
 pre-fmt::
@@ -142,6 +143,11 @@ gobuild: check-deps
 grpcui:
 	@$(LOG) info "Launching gRPCUI"
 	./scripts/shell-wrapper.sh grpcui.sh localhost:5000
+## dev:       run the service
+.PHONY: dev
+dev:: pre-dev
+	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.27.8 -c $(CURDIR)/.air.toml
+
 ## devserver:       run the service
 .PHONY: devserver
 devserver:: pre-devserver build

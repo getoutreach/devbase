@@ -45,5 +45,5 @@ for resource in $wantedResources; do
     continue
   fi
 
-  dockerize -wait tcp://localhost:45"$port" -timeout 1m
+  dockerize -wait tcp://localhost:"$port" -timeout 1m
 done
