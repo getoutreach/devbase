@@ -318,6 +318,8 @@ func main() { //nolint:funlen,gocyclo
 			async.Sleep(ctx, time.Second*1)
 		}
 
+		// TODO(jaredallard): Move to insecure.NewCredentials()
+		//nolint:staticcheck // Why: See above
 		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
