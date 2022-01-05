@@ -268,6 +268,7 @@ func main() { //nolint:funlen,gocyclo
 		}
 	} else {
 		log.Info().
+			//nolint:lll // Why: Message to user
 			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
