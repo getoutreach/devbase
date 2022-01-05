@@ -136,6 +136,10 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     format="pkgname"
   fi
 
+  if [[ -n $BENCH_FLAGS ]]; then
+    format="dots-v2"
+  fi
+
   # Ensure this exists for tests results, just in case
   mkdir -p "bin"
 
