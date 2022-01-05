@@ -116,9 +116,9 @@ e2e:: pre-e2e
 ## benchmark:       run benchmarks
 .PHONY: benchmark
 benchmark:: pre-benchmark
-	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh | tee /tmp/benchmark.txt
+	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) SKIP_VALIDATE=true ./scripts/shell-wrapper.sh test.sh | tee /tmp/benchmark.txt
 	@$(LOG) info "Results of benchmarks: "
-	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat /tmp/benchmark.txt
+	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat@03971e38 /tmp/benchmark.txt
 
 ## dep:             download go dependencies
 .PHONY: dep
