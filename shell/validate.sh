@@ -63,7 +63,7 @@ fi
 # Only run golangci-lint if we find any go files
 if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info_sub "golangci-lint"
-  "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
+  "$LINTER" --build-tags "or_e2e,or_test,or_int" --timeout 10m run ./...
 fi
 
 if [[ $OSS == "false" ]]; then
