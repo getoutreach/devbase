@@ -8,5 +8,5 @@ if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
     jq .auth.client_token -r >~/.vault-token
 else
-  echo "Skipping, no VAULT_ROLE_ID or VAULT_SECRET_ID set"
+  echo "Skipped: VAULT_ROLE_ID or VAULT_SECRET_ID is not set."
 fi

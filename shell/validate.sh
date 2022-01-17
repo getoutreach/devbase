@@ -13,10 +13,10 @@ GOBIN="$DIR/gobin.sh"
 
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
-# shellcheck source=./lib/runtimes.sh
-source "$DIR/lib/runtimes.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./languages/nodejs.sh
+source "$DIR/languages/nodejs.sh"
 
 info "Running linters"
 
@@ -60,31 +60,32 @@ if ! git ls-files '*.proto' | xargs -n40 "$DIR/clang-format-validate.sh"; then
   exit 1
 fi
 
+# Only run golangci-lint/lintroller if we find any files
 if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info_sub "golangci-lint"
-  "$LINTER" --build-tags "$TEST_TAGS" --timeout 10m run ./...
-fi
+  "$LINTER" --build-tags "or_e2e,or_test,or_int" --timeout 10m run ./...
 
-if [[ $OSS == "false" ]]; then
-  info_sub "lintroller"
-  # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-  GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
-    -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
+  if [[ $OSS == "false" ]]; then
+    info_sub "lintroller"
+    # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
+    GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
+      -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
+  fi
 fi
 
 # GRPC client validation
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$(get_repo_directory)/api/clients"
+    nodeSourceDir="$(get_repo_directory)/api/clients/node"
 
-    nodeSourceDir="$CLIENTS_DIR/node"
-
-    run_node_command "$nodeSourceDir" yarn install --frozen-lockfile
+    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
+    yarn_install_if_needed
 
     info_sub "prettier (node)"
-    run_node_command "$nodeSourceDir" yarn pretty
+    yarn pretty
 
     info_sub "eslint (node)"
-    run_node_command "$nodeSourceDir" yarn lint
+    yarn lint
+    popd >/dev/null 2>&1 || exit 1
   fi
 fi

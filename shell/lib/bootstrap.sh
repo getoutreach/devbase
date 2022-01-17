@@ -2,7 +2,7 @@
 # Get bootstrap information
 
 REPODIR=""
-BOOTSTRAPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
+DEVBASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
 
 find_service_yaml() {
   local path="$1"
@@ -35,10 +35,17 @@ get_app_name() {
   yq -r '.name' <"$(get_service_yaml)"
 }
 
-get_application_version() {
+# get_tool_version reads a version from .bootstrap/versions.yaml
+# and returns it
+get_tool_version() {
   name="$1"
+  yq -r ".[\"$name\"]" <"$DEVBASE_DIR/versions.yaml"
+}
 
-  yq -r ".[\"$name\"]" <"$BOOTSTRAPDIR/versions.yaml"
+# get_application_version executes get_tool_version
+# Deprecated: use get_tool_version instead
+get_application_version() {
+  get_tool_version "$1"
 }
 
 # has_feature returns 0 if a value is true
@@ -109,6 +116,8 @@ get_list() {
 }
 
 get_keys() {
+  local name="$1"
+
   if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else

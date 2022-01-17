@@ -3,7 +3,7 @@
 # Run a golang binary using gobin
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-GOBIN_VERSION=1.4.0
+GOBIN_VERSION=1.7.0
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 

@@ -14,11 +14,11 @@ function exec(cmd) {
 
 const relativeNodeClientPath = path.join("api", "clients", "node");
 
-// repoRoot/.bootstrap/shell/circleci -> repoRoot/$relativeNodeClientPath
-const nodeClientPath = path.resolve(__dirname, "../../..", relativeNodeClientPath);
+// repoRoot/.bootstrap/shell/ci/testing -> repoRoot/$relativeNodeClientPath
+const nodeClientPath = path.resolve(__dirname, "../../../..", relativeNodeClientPath);
 
 if (!fs.existsSync(nodeClientPath)) {
-  console.log("No Node.js gRPC client found, exiting");
+  console.log(`No Node.js gRPC client found in "${nodeClientPath}", exiting`);
   process.exit(0);
 }
 
@@ -62,27 +62,33 @@ if (match === null) {
 
         console.log("Committing to git");
         const netrc = path.join(os.homedir(), ".netrc");
-        if (process.env.OUTREACH_GITHUB_TOKEN) {
-          execPassthru('git config user.name "Outreach CI"');
-          execPassthru(
-            "git config user.email outreach-ci@users.noreply.github.com"
-          );
-          execPassthru(`git add "${hjsonPath}"`);
-          execPassthru(
-            `git commit -m "chore: sync ${path.join(
-              relativeNodeClientPath,
-              "package.hjson"
-            )}"`
-          );
-          fs.writeFileSync(
-            netrc,
-            `machine github.com login outreach-ci password ${process.env.OUTREACH_GITHUB_TOKEN}`
-          );
-          fs.chmodSync(netrc, 0o600);
-        } else {
-          console.log("No GitHub token found");
-          process.exit();
+        const githubTokenPath = path.join(os.homedir(), '.outreach', 'github.token');
+
+        let githubToken;
+        try {
+          githubToken = fs.readFileSync(githubTokenPath);
+        } catch (err) {
+          console.error("No GitHub token found:", err);
+          process.exit(1);
         }
+
+        execPassthru('git config user.name "Outreach CI"');
+        execPassthru(
+          "git config user.email outreach-ci@users.noreply.github.com"
+        );
+        execPassthru(`git add "${hjsonPath}"`);
+        execPassthru(
+          `git commit -m "chore: sync ${path.join(
+            relativeNodeClientPath,
+            "package.hjson"
+          )}"`
+        );
+        fs.writeFileSync(
+          netrc,
+          `machine github.com login outreach-ci password ${githubToken}`
+        );
+        fs.chmodSync(netrc, 0o600);
+
         const branchName = process.env.CIRCLE_BRANCH;
         if (!branchName) {
           console.error(

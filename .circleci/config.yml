@@ -1,52 +1,86 @@
 version: 2.1
-
 orbs:
-  shared: getoutreach/shared@dev:first
+  shared: getoutreach/shared@1.41.2
+
+# DEPRECATED: Use the devbase orb instead:
+# https://github.com/getoutreach/devbase/tree/main/orbs/shared
+commands:
+  with_job_span:
+    parameters:
+      steps:
+        type: steps
+    steps:
+      - run:
+          name: DEPRECATION NOTICE
+          command: echo "with_job_span is deprecated and should be removed"
+      - steps: << parameters.steps >>
 
 jobs:
+  ###Block(circleJobs)
+  ###EndBlock(circleJobs)
+
   test:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
+    ###Block(circleTestOverride)
+    ###EndBlock(circleTestOverride)
+    docker:
+      - image: gcr.io/outreach-docker/bootstrap/ci:stable
+        auth:
+          username: _json_key
+          password: $GCLOUD_SERVICE_ACCOUNT
+    environment:
+      ###Block(testEnvVars)
+      ###EndBlock(testEnvVars)
     steps:
-      - shared/setup_environment:
-          setup_remote_docker: true
+      - shared/setup_environment
+      - run:
+          name: Wait for Infrastructure to be Ready
+          command: ./scripts/shell-wrapper.sh ci/testing/wait-for-infra.sh
       - shared/with_go_cache
       - run:
-          name: Run tests
-          command: make test
-      - shared/save_go_cache
+          name: Run unit tests
+          # Store the results of our tests in the $TEST_RESULTS directory
+          command: make test | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: Upload Code Coverage
+          command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh test
+      - shared/save_go_cache # We save at the end because binaries are included with this
+      - shared/upload_test_results # Uploads to CircleCI
 
   release-dryrun:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
+      docker_tag: stable
     steps:
-      - shared/setup_environment:
-          setup_remote_docker: true
+      - shared/setup_environment
       - shared/with_node_cache:
           save: true
       - run:
-          name: Build Orb
-          command: make build-orb
-      - run:
           name: Release (Dry-run)
-          command: ./shell/ci/release/dryrun.sh
+          command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
   release:
     executor:
       name: shared/testbed-docker
-      go_version: 1.17.1
+      docker_tag: stable
     steps:
-      - shared/setup_environment:
-          setup_remote_docker: true
+      - shared/setup_environment
       - shared/with_node_cache:
           save: true
       - run:
-          name: Build Orb
-          command: make build-orb
-      - run:
           name: Release
-          command: GH_TOKEN=$OUTREACH_GITHUB_TOKEN yarn --frozen-lockfile semantic-release
+          command: ./scripts/shell-wrapper.sh ci/release/release.sh
+
+  trigger_documentation:
+    executor:
+      name: shared/testbed-docker
+      docker_tag: stable
+    steps:
+      - shared/setup_environment
+      - shared/with_go_cache
+      - run:
+          name: Trigger Documentation Update
+          command: ./scripts/shell-wrapper.sh ci/release/docs.sh
 
 workflows:
   version: 2
@@ -60,28 +94,41 @@ workflows:
           context:
             - docker-registry
             - npm-credentials
+            - ghaccesstoken
+            - package-cloud-credentials
           requires:
             - test
+          ###Block(circleReleaseRequires)
+          ###EndBlock(circleReleaseRequires)
           filters:
             branches:
               only:
                 - master
                 - main
+                - rc
       - release-dryrun:
           context:
             - docker-registry
             - npm-credentials
+            - ghaccesstoken
+            - package-cloud-credentials
           filters:
             branches:
               ignore:
                 - master
                 - main
+                - rc
       - test:
           context:
+            - ghaccesstoken
             - docker-registry
             - npm-credentials
+      - trigger_documentation:
+          context:
+            - ghaccesstoken
+            - docker-registry
           filters:
-            # This enables running test when a tag is created.
-            # This still runs on each branch.
+            branches:
+              ignore: /.*/
             tags:
-              only: /v\d+(\.\d+)*(-.*)*/
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/

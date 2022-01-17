@@ -15,11 +15,8 @@ if [[ -n $CIRCLECI ]]; then
 fi
 
 # Get GH_TOKEN
-if [[ -n $OUTREACH_GITHUB_TOKEN ]]; then
-  GH_TOKEN="$OUTREACH_GITHUB_TOKEN"
-elif [[ -f "$HOME/.outreach/github.token" ]]; then
-  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
-else
+GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+if [[ -z $GH_TOKEN ]]; then
   echo "" >/dev/stderr
   echo "Unable to find Github personal access token. This is required by clerkgen" >/dev/stderr
   exit 1

@@ -268,6 +268,7 @@ func main() { //nolint:funlen,gocyclo
 		}
 	} else {
 		log.Info().
+			//nolint:lll // Why: Message to user
 			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
@@ -317,6 +318,8 @@ func main() { //nolint:funlen,gocyclo
 			async.Sleep(ctx, time.Second*1)
 		}
 
+		// TODO(jaredallard): Move to insecure.NewCredentials()
+		//nolint:staticcheck // Why: See above
 		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")

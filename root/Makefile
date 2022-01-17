@@ -59,6 +59,7 @@ pre-e2e::
 pre-benchmark::
 pre-gogenerate::
 pre-devserver::
+pre-dev::
 pre-debug::
 pre-docker-build::
 pre-fmt::
@@ -71,7 +72,7 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 || true
 	@git tag "$(APP_VERSION)" >&2
-	@./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v0.180.3 release --skip-publish --rm-dist
+	@./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.1.0 release --skip-announce --skip-publish --skip-validate --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
@@ -117,9 +118,9 @@ e2e:: pre-e2e
 ## benchmark:       run benchmarks
 .PHONY: benchmark
 benchmark:: pre-benchmark
-	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh | tee /tmp/benchmark.txt
+	BENCH_FLAGS=${BENCH_FLAGS} TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) SKIP_VALIDATE=true ./scripts/shell-wrapper.sh test.sh | tee /tmp/benchmark.txt
 	@$(LOG) info "Results of benchmarks: "
-	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat /tmp/benchmark.txt
+	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat@03971e38 /tmp/benchmark.txt
 
 ## dep:             download go dependencies
 .PHONY: dep
@@ -144,6 +145,11 @@ gobuild: check-deps
 grpcui:
 	@$(LOG) info "Launching gRPCUI"
 	./scripts/shell-wrapper.sh grpcui.sh localhost:5000
+## dev:       run the service
+.PHONY: dev
+dev:: pre-dev
+	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.27.8 -c $(CURDIR)/.air.toml
+
 ## devserver:       run the service
 .PHONY: devserver
 devserver:: pre-devserver build

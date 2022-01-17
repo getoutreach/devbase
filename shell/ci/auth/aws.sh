@@ -4,7 +4,7 @@ set -e
 
 # Only run if set
 if [[ -z $AWS_ACCESS_KEY_ID ]] || [[ -z $AWS_SECRET_ACCESS_KEY ]]; then
-  echo "Skipping, AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY not set"
+  echo "Skipped: AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is not set"
   exit 0
 fi
 

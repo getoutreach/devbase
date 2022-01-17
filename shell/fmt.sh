@@ -6,16 +6,16 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
+# shellcheck source=./languages/nodejs.sh
+source "$SCRIPTS_DIR/languages/nodejs.sh"
+# shellcheck source=./lib/logging.sh
+source "$SCRIPTS_DIR/lib/logging.sh"
 
 # Tools
 JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v"$(get_application_version "jsonnetfmt")")
 GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
+SHELLFMTPATH="$SCRIPTS_DIR/shfmt.sh"
 GOFMT="${GOFMT:-gofmt}"
-
-# shellcheck source=./lib/runtimes.sh
-source "$SCRIPTS_DIR/lib/runtimes.sh"
-# shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
 
 info "Running Formatters"
 
@@ -38,28 +38,24 @@ find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec
 
 info_sub "shfmt"
 find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
-  -prune -o -type f -name '*.sh' -exec "$SCRIPTS_DIR/shfmt.sh" -w -l {} +
+  -prune -o -type f -name '*.sh' -exec "$SHELLFMTPATH" -w -l {} +
 
 info_sub "prettier (yaml/json)"
-run_node_command "$(get_repo_directory)" yarn
-run_node_command "$(get_repo_directory)" yarn prettier --write "**/*.{yaml,yml,json}"
+yarn_install_if_needed
+yarn prettier --write "**/*.{yaml,yml,json}" >/dev/null
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
-    CLIENTS_DIR="$(pwd)/api/clients"
+    nodeSourceDir="$(pwd)/api/clients/node"
+    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
+    yarn_install_if_needed
 
-    nodeSourceDir="$CLIENTS_DIR/node"
+    info_sub "eslint (node)"
+    yarn lint-fix >/dev/null
 
-    run_node_command "$nodeSourceDir" yarn install
-
-    info_sub "eslint (Node.js)"
-
-    run_node_command "$nodeSourceDir" yarn lint-fix
-
-    info_sub "prettier (Node.js)"
-
-    # When files are modified this returns 1.
-    run_node_command "$nodeSourceDir" yarn pretty-fix
+    info_sub "prettier (node)"
+    yarn pretty-fix >/dev/null # When files are modified this returns 1.
+    popd >/dev/null 2>&1
   fi
 fi
 
