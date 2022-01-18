@@ -16,7 +16,6 @@ declare -A resources=(
   [redis]="6379"
   [kafka]="9092"
   [s3]="9000"
-  [temporal]="7233"
   [dyanmo_gte_0_11]="4566"
   [dyanmo_lt_0_11]="4569"
 )
