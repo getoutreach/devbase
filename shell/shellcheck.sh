@@ -32,7 +32,7 @@ if [[ -z $binPath ]]; then
     binPath=$(cached_binary_path "shellcheck" "$SHELLCHECK_VERSION")
     tmp_dir=$(mktemp -d)
 
-    # retry w/ 5s interval, 5 times
+    # retry w/ 5s interval, 5 tgimes
     retry 5 5 curl --fail --location --output "$tmp_dir/shellcheck.tar.xz" --silent \
       "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.$GOOS.$ARCH.tar.xz"
 

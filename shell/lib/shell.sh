@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Provides generic shell helper functions
 
-DEVBASE_CACHED_BINARY_STORAGE_PATH="$HOME/.outreach/.cache/devbase/"
+DEVBASE_CACHED_BINARY_STORAGE_PATH="$HOME/.outreach/.cache/devbase"
 
 # retry calls a given command (must be wrapped in quotes)
 # syntax: retry <interval> <maxRetries> <command> [args...]
@@ -37,7 +37,7 @@ retry() {
 }
 
 # cached_binary_path returns the raw path of a binary if it
-# were to be cached
+# were to be cached. It is not guaranteed to exist.
 cached_binary_path() {
   local name="$1"
   local version="$2"
@@ -53,6 +53,9 @@ get_cached_binary() {
 
   # shellcheck disable=SC2155 # Why: No return value
   local cachedPath=$(cached_binary_path "$name" "$version")
+
+  # Create the base path.
+  mkdir -p "$(dirname "$cachedPath")"
 
   if [[ ! -e $cachedPath ]]; then
     echo ""
