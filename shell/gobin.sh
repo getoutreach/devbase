@@ -29,6 +29,8 @@ fi
 GOBIN_PATH=$(get_cached_binary "gobin" "$GOBIN_VERSION")
 
 if [[ -z $GOBIN_PATH ]]; then
+  GOBIN_PATH=$(cached_binary_path "gobin" "$GOBIN_VERSION")
+
   tmp_dir=$(mktemp -d)
   # retry w/ 5s interval, 5 times
   retry 5 5 curl --location --output "$tmp_dir/gobin.tar.gz" --silent \

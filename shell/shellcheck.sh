@@ -29,6 +29,7 @@ binPath=$(get_cached_binary "shellcheck" "$SHELLCHECK_VERSION")
 
 if [[ -z $binPath ]]; then
   {
+    binPath=$(cached_binary_path "shellcheck" "$SHELLCHECK_VERSION")
     tmp_dir=$(mktemp -d)
 
     # retry w/ 5s interval, 5 times
