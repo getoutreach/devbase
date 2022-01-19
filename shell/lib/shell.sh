@@ -18,7 +18,7 @@ retry() {
 
   local exitCode=0
   for i in $(seq 1 "$maxRetries"); do
-    if [[ $1 -gt 1 ]]; then
+    if [[ $i -gt 1 ]]; then
       echo "RETRYING: $command ($i/$maxRetries)"
     fi
 

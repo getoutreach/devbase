@@ -26,7 +26,7 @@ if [[ -z $1 ]] || [[ $1 =~ ^(--help|-h) ]]; then
 fi
 
 # Clone the latest version of gobin
-GOBIN_PATH=$(get_cached_path "gobin" "$GOBIN_VERSION")
+GOBIN_PATH=$(get_cached_binary "gobin" "$GOBIN_VERSION")
 
 if [[ -z $GOBIN_PATH ]]; then
   tmp_dir=$(mktemp -d)
