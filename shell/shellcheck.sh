@@ -9,8 +9,9 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
+# shellcheck source=./lib/shell.sh
+source "$SCRIPTS_DIR/lib/shell.sh"
 
-BIN_DIR="$(get_repo_directory)/bin"
 SHELLCHECK_VERSION="$(get_application_version "shellcheck")"
 GOOS=$(go env GOOS)
 ARCH=$(uname -m)
@@ -21,21 +22,18 @@ if [[ $GOOS == "darwin" ]] && [[ $ARCH == "arm64" ]]; then
   ARCH="x86_64"
 fi
 
-binPath="$BIN_DIR/shellcheck-$SHELLCHECK_VERSION"
-
-# Ensure $BIN_DIR exists, since GOBIN makes it, but
-# we may run before it.
-mkdir -p "$BIN_DIR"
-
-tmp_dir=$(mktemp -d)
-
 # Always set the correct script directory.
 args=("-P" "SCRIPTDIR" "-x" "$@")
 
-if [[ ! -e $binPath ]]; then
+binPath=$(get_cached_binary "shellcheck" "$SHELLCHECK_VERSION")
+
+if [[ -z $binPath ]]; then
   {
-    # JIT download shellcheck
-    curl --location --output "$tmp_dir/shellcheck.tar.xz" --silent \
+    binPath=$(cached_binary_path "shellcheck" "$SHELLCHECK_VERSION")
+    tmp_dir=$(mktemp -d)
+
+    # retry w/ 5s interval, 5 tgimes
+    retry 5 5 curl --fail --location --output "$tmp_dir/shellcheck.tar.xz" --silent \
       "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.$GOOS.$ARCH.tar.xz"
 
     pushd "$tmp_dir" >/dev/null || exit 1

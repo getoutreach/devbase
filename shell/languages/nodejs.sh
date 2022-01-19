@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Helpers for node.js
+
+# shellcheck source=../lib/shell.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/../lib/shell.sh"
+
 yarn_install_if_needed() {
   local stateFile="node_modules/devbase.lock"
 
@@ -25,7 +29,8 @@ yarn_install_if_needed() {
 
 yarn_install() {
   local stateFile="$1"
-  yarn install
+  # retry w/ 5s delay, 5 times
+  retry 5 5 yarn install
   generate_state_file >"$stateFile"
 }
 
