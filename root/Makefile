@@ -49,7 +49,7 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt
+.PHONY: pre-release pre-build pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
 pre-test::
@@ -63,6 +63,8 @@ pre-dev::
 pre-debug::
 pre-docker-build::
 pre-fmt::
+pre-docs::
+pre-docs-publish::
 
 ## release:         tag a new release with goreleaser
 .PHONY: release
@@ -172,6 +174,16 @@ docker-build:: pre-docker-build
 .PHONY: fmt
 fmt:: pre-fmt
 	@./scripts/shell-wrapper.sh fmt.sh
+
+## docs:            build protobuf/TypeScript HTML docs
+.PHONY: docs
+docs:: pre-docs
+	@./.bootstrap/shell/docs-build.sh
+
+## docs-publish:    publish protobuf/TypeScript HTML docs to GitHub Pages
+.PHONY: docs-publish
+docs-publish:: pre-docs-publish
+	@./.bootstrap/shell/docs-publish.sh
 
 ## fly-login:       log into concourse
 .PHONY: fly-login

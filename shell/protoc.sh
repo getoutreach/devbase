@@ -14,9 +14,11 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
+PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
+
 if [[ -n $CIRCLECI ]]; then
   {
-    echo "warning: running protobuf generatation in CI is only supported for bootstrap and is DEPRECATED"
+    echo "warning: running protobuf generation in CI is only supported for bootstrap and is DEPRECATED"
     echo "         this will result in only Go protobuf artifacts being generated"
   } >&2
   exec protoc --go_out=plugins=grpc,paths=source_relative:. --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
@@ -69,7 +71,9 @@ info_sub "go"
 docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go \
   $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
   $(if has_feature "validation"; then echo "--with-validator --validator-source-relative"; fi) \
-  --go-source-relative -o ./
+  --go-source-relative -o ./ --with-docs html,index.html
+mkdir -p "$PROTO_DOCS_DIR"
+mv "$(get_repo_directory)"/api/doc/index.html "$PROTO_DOCS_DIR"
 
 if has_grpc_client "node"; then
   info_sub "node"
