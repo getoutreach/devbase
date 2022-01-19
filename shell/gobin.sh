@@ -11,10 +11,8 @@ GOARCH=$(go env GOARCH)
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
-
-BIN_DIR="$(get_repo_directory)/bin"
-GOBIN_PATH="$BIN_DIR/gobin-$GOBIN_VERSION"
-mkdir -p "$(dirname "$GOBIN_PATH")"
+# shellcheck source=./lib/shell.sh
+source "$SCRIPTS_DIR/lib/shell.sh"
 
 PRINT_PATH=false
 if [[ $1 == "-p" ]]; then
@@ -28,9 +26,12 @@ if [[ -z $1 ]] || [[ $1 =~ ^(--help|-h) ]]; then
 fi
 
 # Clone the latest version of gobin
-if [[ ! -e $GOBIN_PATH ]]; then
+GOBIN_PATH=$(get_cached_path "gobin" "$GOBIN_VERSION")
+
+if [[ -z $GOBIN_PATH ]]; then
   tmp_dir=$(mktemp -d)
-  curl --location --output "$tmp_dir/gobin.tar.gz" --silent \
+  # retry w/ 5s interval, 5 times
+  retry 5 5 curl --location --output "$tmp_dir/gobin.tar.gz" --silent \
     "https://github.com/getoutreach/gobin/releases/download/v$GOBIN_VERSION/gobin_${GOBIN_VERSION}_${GOOS}_${GOARCH}.tar.gz"
   # shellcheck disable=SC2181 # Why: Reads better this way
   if [[ $? -ne 0 ]]; then
@@ -44,7 +45,8 @@ if [[ ! -e $GOBIN_PATH ]]; then
   popd >/dev/null || exit 1
 fi
 
-BIN_PATH=$("$GOBIN_PATH" --skip-update -p "$1")
+# retry w/ 5s interval, 5 times
+BIN_PATH=$(retry 5 5 "$GOBIN_PATH" --skip-update -p "$1")
 if [[ -z $BIN_PATH ]]; then
   echo "Error: Failed to run $1" >&2
   exit 1
