@@ -12,7 +12,7 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/shell.sh
-source "$SCRIPTS_DIR/lib/shell.sh"
+source "$DIR/lib/shell.sh"
 
 PRINT_PATH=false
 if [[ $1 == "-p" ]]; then
