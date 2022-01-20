@@ -13,5 +13,14 @@ if [[ -z $GITHUB_TOKEN ]]; then
   GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" --skip-update token)
 fi
 
+# Configure the gh CLI, and tools that depend on it
+mkdir -p "$HOME/.config/gh"
+cat >"$HOME/.config/gh/hosts.yml" <<EOF
+github.com:
+  user: devbase
+  oauth_token: $GITHUB_TOKEN
+EOF
+
+# Configure the legacy path
 mkdir -p "$HOME/.outreach"
 echo "$GITHUB_TOKEN" >"$HOME/.outreach/github.token"
