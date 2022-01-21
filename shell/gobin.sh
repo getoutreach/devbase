@@ -33,7 +33,7 @@ if [[ -z $GOBIN_PATH ]]; then
 
   tmp_dir=$(mktemp -d)
   # retry w/ 5s interval, 5 times
-  retry 5 5 curl --location --output "$tmp_dir/gobin.tar.gz" --silent \
+  retry 5 5 curl --fail --location --output "$tmp_dir/gobin.tar.gz" --silent \
     "https://github.com/getoutreach/gobin/releases/download/v$GOBIN_VERSION/gobin_${GOBIN_VERSION}_${GOOS}_${GOARCH}.tar.gz"
   # shellcheck disable=SC2181 # Why: Reads better this way
   if [[ $? -ne 0 ]]; then
