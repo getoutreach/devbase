@@ -1,6 +1,22 @@
 name: devbase
-oss: true
-library: true
 reportingTeam: fnd-dtss
+description: ""
+oss: true
+slack: ""
+library: true
+releaseType: ""
 releaseOptions:
   allowPrereleases: true
+  allowMajorVersions: null
+deployTo:
+  environments: []
+arguments:
+  dependencies:
+    optional: []
+    required: []
+  description: ""
+  reportingTeam: fnd-dtss
+  type: []
+modules:
+  - url: https://github.com/getoutreach/stencil-base
+    version: ""
