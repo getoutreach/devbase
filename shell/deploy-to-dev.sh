@@ -12,9 +12,9 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 
 action=$1
 bento="bento1a"
-version="latest"
+version="${DEPLOY_TO_DEV_VERSION:-"latest"}"
 namespace="$APPNAME--$bento"
-environment=${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}
+environment="${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}"
 
 if ! command -v kubecfg >/dev/null; then
   info "Hint: brew install kubecfg"
@@ -41,7 +41,7 @@ fi
 if [[ $action != "show" ]]; then
   # Ensure the devenv is installed
   if ! command -v devenv >/dev/null 2>&1; then
-    fatal "devenv was not found in PATH, please install from https://github.com/getoutreach/dev-environment"
+    fatal "devenv was not found in PATH, please install from https://github.com/getoutreach/devenv"
   fi
 
   # Ensure the devenv is running
