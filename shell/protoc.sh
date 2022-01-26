@@ -32,18 +32,20 @@ if [[ -z $uid ]] || [[ -z $gid ]]; then
 fi
 
 get_import_basename() {
-  local module=$(echo $1 | jq -r .module)
+  # shellcheck disable=SC2155 # Why: splitting declartion is messier
+  local module="$(jq -r .module <<<"$1")"
   # sed removes the version off the module path if present
-  basename $(go list -f '{{ .Path }}' -m "$module" | sed 's|/v[0-9]||')
+  basename "$(go list -f '{{ .Path }}' -m "$module" | sed 's|/v[0-9]||')"
 }
 get_import_path() {
-  local module=$(echo $1 | jq -r .module)
+  # shellcheck disable=SC2155 # Why: splitting declartion is messier
+  local module="$(jq -r .module <<<"$1")"
   # sed removes the version off the module path if present
-  module_root=$(go list -f '{{ .Dir }}' -m "$module" | sed 's|/v[0-9]||')
-  echo "${module_root}$(jq -r .path <<< "$1")"
+  module_root="$(go list -f '{{ .Dir }}' -m "$module" | sed 's|/v[0-9]||')"
+  echo "${module_root}$(jq -r .path <<<"$1")"
 }
 for import in $(get_list "go-protoc-imports"); do
-  module=$(jq -r .module <<< "$import")
+  module=$(jq -r .module <<<"$import")
   currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
   requiredver="1.16.0"
   if [ ! "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
