@@ -40,10 +40,10 @@ get_import_path() {
   local module=$(echo $1 | jq -r .module)
   # sed removes the version off the module path if present
   module_root=$(go list -f '{{ .Dir }}' -m "$module" | sed 's|/v[0-9]||')
-  echo "${module_root}$(echo $1 | jq -r .path)"
+  echo "${module_root}$(jq -r .path <<< "$1")"
 }
 for import in $(get_list "go-protoc-imports"); do
-  module=$(echo $import | jq -r .module)
+  module=$(jq -r .module <<< "$import")
   currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
   requiredver="1.16.0"
   if [ ! "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
