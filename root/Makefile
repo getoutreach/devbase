@@ -14,7 +14,7 @@ LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(A
 GOFLAGS             :=
 GOPRIVATE           := github.com/$(ORG)/*
 GOPROXY             := https://proxy.golang.org
-GO_EXTRA_FLAGS      := -v -tags=or_dev
+GO_EXTRA_FLAGS      := -v $(shell [[ ! -z "$KUBERNETES_SERVICE_HOST" ]] && printf "-tags=or_dev")
 TAGS                :=
 BINDIR              := $(CURDIR)/bin
 BIN_NAME            := $(APP)
