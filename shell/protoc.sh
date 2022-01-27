@@ -32,22 +32,31 @@ if [[ -z $uid ]] || [[ -z $gid ]]; then
 fi
 
 get_import_basename() {
-  basename "$(go list -f '{{ .Path }}' -m "$1" | sed 's|/v[0-9]||') " # sed removes the version off the module path if present
+  # shellcheck disable=SC2155 # Why: splitting declartion is messier
+  local module="$(jq -r .module <<<"$1")"
+  # sed removes the version off the module path if present
+  basename "$(go list -f '{{ .Path }}' -m "$module" | sed 's|/v[0-9]||')"
+}
+get_import_path() {
+  # shellcheck disable=SC2155 # Why: splitting declartion is messier
+  local module="$(jq -r .module <<<"$1")"
+  # sed removes the version off the module path if present
+  module_root="$(go list -f '{{ .Dir }}' -m "$module" | sed 's|/v[0-9]||')"
+  echo "${module_root}$(jq -r .path <<<"$1")"
 }
 for import in $(get_list "go-protoc-imports"); do
+  module=$(jq -r .module <<<"$import")
   currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
   requiredver="1.16.0"
   if [ ! "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
     echo "Go version must be greater than ${requiredver} to use 'go-protoc-imports' feature"
     exit 1
   fi
-
-  go install "$import"
+  go install "$module"
   # check exit for this instead of the install itself, as the install can
   # return non-zero, but still retrieve the dependency. As long as we can
   # retrieve the dep with go list, we can import the files for protoc
-  go list -f '{{ .Dir }}' -m "$import"
-
+  go list -f '{{ .Dir }}' -m "$module"
   exit_code=$?
   if [[ $exit_code != "0" ]]; then
     exit $exit_code
@@ -57,7 +66,7 @@ done
 info "Generating GRPC Clients"
 # shellcheck disable=SC2046 # Why: We want it to split
 CONTAINER_ID=$(docker run --rm -v "$(get_repo_directory)/api:/defs" \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-v $(go list -f '{{ .Dir }}' -m "$import"):/mod/$(get_import_basename "$import")"; done) \
+  $(for import in $(get_list "go-protoc-imports"); do echo "-v $(get_import_path "$import"):/mod/$(get_import_basename "$import")"; done) \
   --entrypoint bash -d "$IMAGE" -c 'exec tail -f /dev/null')
 
 trap 'docker stop -t0 $CONTAINER_ID >/dev/null' EXIT
