@@ -108,10 +108,10 @@ has_grpc_client() {
 get_list() {
   local name="$1"
 
-  if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -rc ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -r ".\"$name\"[]" <"$(get_service_yaml)"
+    yq -rc ".\"$name\"[]" <"$(get_service_yaml)"
   fi
 }
 
