@@ -65,12 +65,10 @@ if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info_sub "golangci-lint"
   "$LINTER" --build-tags "or_e2e,or_test,or_int" --timeout 10m run ./...
 
-  if [[ $OSS == "false" ]]; then
-    info_sub "lintroller"
-    # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-    GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
-      -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
-  fi
+  info_sub "lintroller"
+  # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
+  GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
+    -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
 fi
 
 # GRPC client validation
