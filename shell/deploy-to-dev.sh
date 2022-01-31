@@ -11,10 +11,13 @@ APPNAME="$(get_app_name)"
 source "$SCRIPTS_DIR/lib/logging.sh"
 
 action=$1
-bento="bento1a"
-version="${DEPLOY_TO_DEV_VERSION:-"latest"}"
-namespace="$APPNAME--$bento"
-environment="${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}"
+
+export DEVENV_DEPLOY_BENTO="bento1a"
+export DEVENV_DEPLOY_VERSION="${DEPLOY_TO_DEV_VERSION:-"latest"}"
+export DEVENV_DEPLOY_NAMESPACE="$APPNAME--$DEVENV_DEPLOY_BENTO"
+export DEVENV_DEPLOY_ENVIRONMENT="${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}"
+export DEVENV_DEPLOY_DEV_EMAIL="${DEV_EMAIL:-$(git config user.email)}"
+export DEVENV_DEPLOY_HOST="bento1a.outreach-dev.com"
 
 if ! command -v kubecfg >/dev/null; then
   info "Hint: brew install kubecfg"
@@ -50,15 +53,4 @@ if [[ $action != "show" ]]; then
   fi
 fi
 
-kubecfg \
-  --jurl http://k8s-clusters.outreach.cloud/ \
-  --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
-  -n "$namespace" \
-  --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$APPNAME/$APPNAME.jsonnet" \
-  -V cluster="development.us-west-2" \
-  -V namespace="$namespace" \
-  -V environment="$environment" \
-  -V version="$version" \
-  -V bento="$bento" \
-  -V dev_email="${DEV_EMAIL:-$(git config user.email)}" \
-  -V host="bento1a.outreach-dev.com"
+./build-jsonnet.sh "$action"
