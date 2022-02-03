@@ -75,11 +75,11 @@ for file in $(eval "${findCmd}"); do
     cd "$filedirname" || exit
 
     # Render
-    "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/getoutreach/markdowntools/cmd/visualizemd@v0.0.24 -umlusername internal_access_user -umlpassword "$UML_PASSWORD" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -f "$filebasename" >"$updatedname"
+    "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/getoutreach/markdowntools/cmd/visualizemd@$(get_application_version "getoutreach/markdowntools/visualizemd") -umlusername internal_access_user -umlpassword "$UML_PASSWORD" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -f "$filebasename" >"$updatedname"
     cat "$updatedname"
 
     # Push to confluence
-    retry 10 "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/kovetskiy/mark@6.5 --minor-edit -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -b https://outreach-io.atlassian.net/wiki -f "$updatedname" --debug
+    retry 10 "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/kovetskiy/mark@$(get_application_version "kovetskiy/mark") --minor-edit -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -b https://outreach-io.atlassian.net/wiki -f "$updatedname" --debug
 
     # Return to source directory.
     cd "$srcPath" || exit

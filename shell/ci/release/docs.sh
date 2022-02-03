@@ -24,5 +24,5 @@ URL="https://engdocs.outreach.cloud/fetch/$MODULE_PATH@$TAG"
 info "updating engdocs"
 curl -X POST "$URL"
 
-info "publishing elligible markdown documents to confluence"
+info "publishing eligible markdown documents to confluence"
 "$DIR/confluence-publish.sh"
