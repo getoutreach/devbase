@@ -41,12 +41,6 @@ for file in $(eval "${findCmd}"); do
     info_sub "found space directive in ${file}:"
     info_sub "$(grep -E '^\s*<!--\s*Space:\s*.+\s*-->\s*$' "${file}")" # Re-output this w/o quiet flag for debugging purposes.
 
-    {
-      echo ""
-      echo "_________________"
-      echo "Do not edit! File is auto-generated from [github](https://github.com/getoutreach/$(get_app_name)/blob/${defaultBranch}/${file})."
-    } >>"$file"
-
     fullName="${srcPath}/${file}"
     fileDirName=$(dirname "$fullName")
     fileBaseName=$(basename "$fullName")
@@ -62,12 +56,24 @@ for file in $(eval "${findCmd}"); do
     # Render
     "$GOBIN" "github.com/getoutreach/markdowntools/cmd/visualizemd@$(get_application_version "getoutreach/markdowntools/visualizemd")" \
       -umlusername internal_access_user -umlpassword "${UML_PASSWORD}" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml \
-      -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -f "${fileBaseName}" >"${updatedName}"
+      -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -no-add-parent -f "${fileBaseName}" >"${updatedName}"
+
+    # Add caveat to the end of the updated file.
+    {
+      echo ""
+      echo "_________________"
+      echo "Do not edit! File is auto-generated from [github](https://github.com/getoutreach/$(get_app_name)/blob/${defaultBranch}/${file})."
+    } >>"$updatedName"
 
     # Push to confluence
     retry 5 5 "$GOBIN" "github.com/kovetskiy/mark@$(get_application_version "kovetskiy/mark")" \
       --minor-edit -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -b https://outreach-io.atlassian.net/wiki \
       -f "${updatedName}"
+
+    # Delete generated file.
+    if [[ -e $updatedName ]]; then
+      rm "$updatedName" >/dev/null 2>&1 || true
+    fi
 
     # Return to source directory.
     popd >/dev/null || exit 1
