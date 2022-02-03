@@ -16,8 +16,11 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
+# shellcheck source=../../lib/shell.sh
+source "${LIB_DIR}/shell.sh"
 
 srcPath=$DIR
 info "srcPath: ${DIR}"
@@ -30,24 +33,6 @@ info "findCmd: ${findCmd}"
 defaultBranch="$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
 
 info "defaultBranch: ${defaultBranch}"
-
-retry() {
-  max_attempts="$1"
-  shift
-  attempt_num=1
-  until "$@"; do
-    info "retry attempt ${attempt_num}"
-
-    if [ "$((attempt_num))" -eq "$((max_attempts))" ]; then
-      info_sub "Attempt $attempt_num failed and there are no more attempts left!"
-      exit 1
-    else
-      info_sub "Attempt $attempt_num failed! Trying again in $attempt_num seconds..."
-      attempt_num=$((attempt_num + 1))
-      sleep "$(attempt_num)"
-    fi
-  done
-}
 
 for file in $(eval "${findCmd}"); do
   info "inspecting found markdown file: ${file}"
@@ -72,16 +57,16 @@ for file in $(eval "${findCmd}"); do
     info_sub "updatedname: ${updatedname}"
 
     # Enter the directory of the md file to run command since the generated plots are relative path
-    cd "$filedirname" || exit
+    pushd "$filedirname" || exit
 
     # Render
-    "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/getoutreach/markdowntools/cmd/visualizemd@$(get_application_version "getoutreach/markdowntools/visualizemd") -umlusername internal_access_user -umlpassword "$UML_PASSWORD" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -f "$filebasename" >"$updatedname"
+    "${srcPath}/scripts/shell-wrapper.sh gobin.sh github.com/getoutreach/markdowntools/cmd/visualizemd@"$(get_application_version "getoutreach/markdowntools/visualizemd")" -umlusername internal_access_user -umlpassword "${UML_PASSWORD}" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -f "${filebasename}" >"${updatedname}""
     cat "$updatedname"
 
     # Push to confluence
-    retry 10 "$srcPath"/scripts/shell-wrapper.sh gobin.sh github.com/kovetskiy/mark@$(get_application_version "kovetskiy/mark") --minor-edit -u "$CONFLUENCE_USERNAME" -p "$CONFLUENCE_API_TOKEN" -b https://outreach-io.atlassian.net/wiki -f "$updatedname" --debug
+    retry 5 5 "${srcPath}/scripts/shell-wrapper.sh gobin.sh github.com/kovetskiy/mark@"$(get_application_version "kovetskiy/mark")" --minor-edit -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -b https://outreach-io.atlassian.net/wiki -f "${updatedname}" --debug"
 
     # Return to source directory.
-    cd "$srcPath" || exit
+    popd
   fi
 done
