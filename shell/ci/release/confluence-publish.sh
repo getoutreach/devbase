@@ -57,22 +57,20 @@ for file in $(eval "${findCmd}"); do
     info_sub "updatedName: ${updatedName}"
 
     # Enter the directory of the md file to run command since the generated plots are relative path
-    pushd "$fileDirName" || exit
+    pushd "$fileDirName" >/dev/null || exit 1
 
     # Render
     "$GOBIN" "github.com/getoutreach/markdowntools/cmd/visualizemd@$(get_application_version "getoutreach/markdowntools/visualizemd")" \
       -umlusername internal_access_user -umlpassword "${UML_PASSWORD}" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml \
       -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -f "${fileBaseName}" >"${updatedName}"
 
-    cat "$updatedName"
-
     # Push to confluence
     retry 5 5 "$GOBIN" "github.com/kovetskiy/mark@$(get_application_version "kovetskiy/mark")" \
-      --minor-edit -k -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -b https://outreach-io.atlassian.net/wiki \
+      --minor-edit -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -b https://outreach-io.atlassian.net/wiki \
       -f "${updatedName}"
 
     # Return to source directory.
-    popd
+    popd >/dev/null || exit 1
   else
     info_sub "no space directive found, skipping ${file}"
   fi
