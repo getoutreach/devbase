@@ -62,8 +62,8 @@ for file in $(eval "${findCmd}"); do
     {
       echo ""
       echo "_________________"
-      echo "Do not edit! This page is generated from a [markdown file in github](https://github.com/getoutreach/$(get_app_name)/blob/${defaultBranch}/${file})."
-    } >> "$updatedName"
+      echo ":box:warning:Do not edit!:This page is generated from a [markdown file in github](https://github.com/getoutreach/$(get_app_name)/blob/${defaultBranch}/${file}). Inline comments on this page are NOT preserved.:"
+    } >>"$updatedName"
 
     # Push to confluence
     retry 5 5 "$GOBIN" "github.com/kovetskiy/mark@$(get_application_version "kovetskiy/mark")" \
