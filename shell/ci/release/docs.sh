@@ -2,6 +2,12 @@
 # Trigger a private pkg.go.dev instance
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 TAG="$CIRCLE_TAG"
 if [[ -z $TAG ]]; then
   # Calculate the psuedo-semver tag, this is used for non-v2 services
@@ -15,4 +21,8 @@ MODULE_PATH="$(go list -f '{{ .Path }}' -m)"
 # TODO(jaredallard): Move this into box configuration?
 URL="https://engdocs.outreach.cloud/fetch/$MODULE_PATH@$TAG"
 
+info "updating engdocs"
 curl -X POST "$URL"
+
+info "publishing eligible markdown documents to confluence"
+"$DIR/confluence-publish.sh"
