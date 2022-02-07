@@ -26,7 +26,7 @@ source "${LIB_DIR}/shell.sh"
 srcPath=$(get_repo_directory)
 info "srcPath: ${srcPath}"
 
-tag=$(eval "git describe --tags --abbrev=0")
+tag=$(eval "git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`")
 findCmd="git diff-tree --no-commit-id --name-status -r ${tag} HEAD | grep -e '^[A|M].*\.md$' | cut -f2"
 
 info "findCmd: ${findCmd}"
