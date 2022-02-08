@@ -53,4 +53,4 @@ if [[ $action != "show" ]]; then
   fi
 fi
 
-./build-jsonnet.sh "$action"
+exec "$SCRIPTS_DIR/build-jsonnet.sh" "$action"
