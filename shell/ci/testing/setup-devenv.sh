@@ -55,7 +55,7 @@ if [[ -n $CI ]]; then
     if [[ "$(yq -r '.name' service.yaml)" == "devenv" ]]; then
       info_sub "Using local devenv build"
       make
-      info_sub "built binary: $(./bin/devenv version)"
+      info_sub "built binary: $(./bin/devenv --version)"
       sudo cp ./bin/devenv /usr/local/bin/devenv
     else
       tempDir=$(mktemp -d)
