@@ -18,7 +18,7 @@ fi
 
 # CI sets up dependencies in CI and other small adjustments.
 # These are not required on local machines.
-if [[ -z $CI ]]; then
+if [[ -n $CI ]]; then
   if ! command -v kubectl >/dev/null; then
     info "Installing kubectl"
     sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
