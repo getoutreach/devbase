@@ -62,10 +62,15 @@ if [[ -n $CI ]]; then
 fi
 
 if [[ $PROVISION == "true" ]]; then
+  info "Checking for existing devenv ..."
   if devenv --skip-update status >/dev/null; then
     info "Using already provisioned developer environment"
     exit 0
   fi
+
+  # Use the CI vault instance.
+  # TODO(jaredallard): Refactor when using box is available to CI.
+  export VAULT_ADDR="https://vault-dev.outreach.cloud"
 
   info "Provisioning developer environment"
   exec devenv --skip-update provision
