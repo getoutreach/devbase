@@ -16,6 +16,13 @@ if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   PROVISION="false"
 fi
 
+if [[ -z $VAULT_ROLE_ID ]]; then
+  echo "Hint: Outreach CircleCI must be configured to have"
+  echo "  vault-dev be added to the list of contexts for this"
+  echo "  CircleCI workflow"
+  fatal "Vault must be configured to setup a devenv"
+fi
+
 # CI sets up dependencies in CI and other small adjustments.
 # These are not required on local machines.
 if [[ -n $CI ]]; then
@@ -41,6 +48,7 @@ if [[ -n $CI ]]; then
     cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
     pushd "$tempDir" >/dev/null || exit 1
     gh release -R getoutreach/devenv download --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
+    echo "" # Fixes issues with output being corrupted in CI
     tar xf devenv**.tar.gz
     sudo mv devenv /usr/local/bin/devenv
     sudo chown circleci:circleci /usr/local/bin/devenv
@@ -54,8 +62,13 @@ if [[ -n $CI ]]; then
 fi
 
 if [[ $PROVISION == "true" ]]; then
+  if devenv --skip-update status >/dev/null; then
+    info "Using already provisioned developer environment"
+    exit 0
+  fi
+
   info "Provisioning developer environment"
-  exec devenv provision
+  exec devenv --skip-update provision
 fi
 
 if [[ $E2E == "true" ]]; then
