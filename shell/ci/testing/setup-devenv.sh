@@ -29,8 +29,9 @@ if [[ -n $CI ]]; then
 
   if ! command -v kubecfg >/dev/null; then
     info "Installing kubecfg"
-    curl -fsSL https://github.com/getoutreach/kubecfg/releases/download/v0.17.0/kubecfg-linux-amd64 >"/usr/local/bin/kubecfg"
-    chmod +x /usr/local/bin/kubecfg
+    curl -fsSL https://github.com/getoutreach/kubecfg/releases/download/v0.17.0/kubecfg-linux-amd64 >kubecfg
+    chmod +x kubecfg
+    sudo mv kubecfg /usr/local/bin/kubecfg
   fi
 
   if ! command -v devenv >/dev/null; then
