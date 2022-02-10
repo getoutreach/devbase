@@ -54,7 +54,10 @@ if [[ -n $CI ]]; then
     # If we're in the devenv repo, use a local build.
     if [[ "$(yq -r '.name' service.yaml)" == "devenv" ]]; then
       info_sub "Using local devenv build"
-      make
+      warn "Note: snapshot downloader is currently unable to be tested"
+      set -x
+      make "APP_VERSION=$(git describe --tags --abbrev=0)"
+      set +x
       info_sub "built binary: $(./bin/devenv --version)"
       sudo cp ./bin/devenv /usr/local/bin/devenv
     else
