@@ -9,6 +9,7 @@ source "$DIR/../../lib/logging.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
+PROVISION_ARGS="${PROVISION_ARGS:-""}"
 E2E="${E2E:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
@@ -91,7 +92,8 @@ if [[ $PROVISION == "true" ]]; then
   export VAULT_ADDR="https://vault-dev.outreach.cloud"
 
   info "Provisioning developer environment"
-  exec devenv --skip-update provision
+  # shellcheck disable=SC2086 # Why: Not an array, have to split.
+  exec devenv --skip-update provision $PROVISION_ARGS
 fi
 
 if [[ $E2E == "true" ]]; then
