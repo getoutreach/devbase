@@ -38,6 +38,7 @@ if [[ -n $CI ]]; then
     info "Setting up devenv"
 
     tempDir=$(mktemp -d)
+    cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
     pushd "$tempDir" >/dev/null || exit 1
     gh release -R getoutreach/devenv download --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
     tar xf devenv**.tar.gz
