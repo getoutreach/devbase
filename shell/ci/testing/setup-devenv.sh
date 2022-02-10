@@ -23,7 +23,7 @@ if [[ -z $VAULT_ROLE_ID ]]; then
   fatal "Vault must be configured to setup a devenv"
 fi
 
-if [[ -z $AWS_ACCESS_KEY ]]; then
+if [[ -z $AWS_ACCESS_KEY_ID ]]; then
   echo "Hint: Outreach CircleCI must be configured to have"
   echo "  aws-credentials be added to the list of contexts for this"
   echo "  CircleCI workflow"
