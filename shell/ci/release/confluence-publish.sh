@@ -37,9 +37,9 @@ info "defaultBranch: ${defaultBranch}"
 
 for file in $(eval "${findCmd}"); do
   info "inspecting found markdown file: ${file}"
-  if grep -Eq '^\s*<!--\s*Space:\s*.+\s*-->\s*$' "${file}"; then
+  if grep -Eq '^\s*<!--\s*Space:\s*\w+\s*-->\s*$' "${file}"; then
     info_sub "found space directive in ${file}:"
-    info_sub "$(grep -E '^\s*<!--\s*Space:\s*.+\s*-->\s*$' "${file}")" # Re-output this w/o quiet flag for debugging purposes.
+    info_sub "$(grep -E '^\s*<!--\s*Space:\s*\w+\s*-->\s*$' "${file}")" # Re-output this w/o quiet flag for debugging purposes.
 
     fullName="${srcPath}/${file}"
     fileDirName=$(dirname "$fullName")
