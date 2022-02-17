@@ -24,7 +24,6 @@ if [[ -z $VAULT_ROLE_ID ]]; then
   fatal "Vault must be configured to setup a devenv"
 fi
 
-
 # CI sets up dependencies in CI and other small adjustments.
 # These are not required on local machines.
 if [[ -n $CI ]]; then
@@ -46,27 +45,16 @@ if [[ -n $CI ]]; then
   if ! command -v devenv >/dev/null; then
     info "Setting up devenv"
 
-    # If we're in the devenv repo, use a local build.
-    if [[ "$(yq -r '.name' service.yaml)" == "devenv" ]]; then
-      info_sub "Using local devenv build"
-      warn "Note: snapshot downloader is currently unable to be tested"
-      set -x
-      make "APP_VERSION=$(git describe --tags --abbrev=0)"
-      set +x
-      info_sub "built binary: $(./bin/devenv --version)"
-      sudo cp ./bin/devenv /usr/local/bin/devenv
-    else
-      tempDir=$(mktemp -d)
-      cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
-      pushd "$tempDir" >/dev/null || exit 1
-      gh release -R getoutreach/devenv download --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
-      echo "" # Fixes issues with output being corrupted in CI
-      tar xf devenv**.tar.gz
-      sudo mv devenv /usr/local/bin/devenv
-      sudo chown circleci:circleci /usr/local/bin/devenv
-      rm -rf "$tempDir"
-      popd >/dev/null || exit
-    fi
+    tempDir=$(mktemp -d)
+    cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
+    pushd "$tempDir" >/dev/null || exit 1
+    gh release -R getoutreach/devenv download --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
+    echo "" # Fixes issues with output being corrupted in CI
+    tar xf devenv**.tar.gz
+    sudo mv devenv /usr/local/bin/devenv
+    sudo chown circleci:circleci /usr/local/bin/devenv
+    rm -rf "$tempDir"
+    popd >/dev/null || exit
   fi
 
   info "Setting up Git"
