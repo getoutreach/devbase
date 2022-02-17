@@ -1,0 +1,16 @@
+description: CI job with a devenv
+usage:
+  version: 2.1
+  orbs:
+    shared: getoutreach/shared@1.2.3
+  jobs:
+    test:
+      executor:
+        name: shared/testbed-docker
+      steps:
+        - shared/setup_environment
+        - shared/setup_devenv
+  workflows:
+    test:
+      jobs:
+        - test

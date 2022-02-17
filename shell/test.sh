@@ -140,6 +140,10 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     format="pkgname"
   fi
 
+  if [[ -n $TEST_OUTPUT_FORMAT ]]; then
+    format="$TEST_OUTPUT_FORMAT"
+  fi
+
   if [[ -n $BENCH_FLAGS ]]; then
     format="dots-v2"
   fi
@@ -164,13 +168,14 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # for more information.
     "$DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" exec "${TESTBIN}" -- "$@"
   else
+    exitCode=0
     # Why: We want these to split. For those wondering about "$@":
     # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
     # shellcheck disable=SC2086
     "$DIR/gobin.sh" gotest.tools/gotestsum@v"$(get_application_version "gotestsum")" \
       --junitfile "$(get_repo_directory)/bin/unit-tests.xml" --format "$format" -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
       -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
-      "$@" ./...
+      "$@" ./... || exitCode=$?
 
     if [[ -n $CI ]]; then
       # Move this to a temporary directoy so that we can control
@@ -178,5 +183,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
       mkdir -p /tmp/test-results
       mv "$(get_repo_directory)/bin/unit-tests.xml" /tmp/test-results/
     fi
+
+    exit $exitCode
   fi
 fi

@@ -1,0 +1,20 @@
+description: Sets up a devenv for use with E2E testing
+parameters:
+  provision:
+    description: Provision a default developer environment
+    type: boolean
+    default: true
+  e2e:
+    description: Run E2E tests on the current repository
+    type: boolean
+    default: false
+  provision_args:
+    description: Arguments for provision, optional
+    type: string
+    default: ""
+steps:
+  - run:
+      name: Setting up devenv
+      command: |-
+        PROVISION="<< parameters.provision >>" E2E="<< parameters.e2e >>" PROVISION_ARGS="<< parameters.provision_args >>" \
+          ./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh

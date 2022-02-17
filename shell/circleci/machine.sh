@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
-# Sets up a machine in CircleCI
+# Install dependencies that are required in a machine environment.
+# These are usually already installed in a CircleCI docker image.
 
 # Install Python and pip
 if ! command -v pip3 >/dev/null; then
+  echo "Installing pip3"
   sudo apt-get update -y
   sudo apt-get install --no-install-recommends -y python3-pip
   sudo apt-get clean -y
+fi
+
+if ! command -v gh >/dev/null; then
+  echo "Installing gh"
+  wget -O gh.deb https://github.com/cli/cli/releases/download/v2.5.0/gh_2.5.0_linux_amd64.deb
+  sudo apt install -yf ./gh.deb
+  rm gh.deb
 fi
 
 echo "Installing yq"

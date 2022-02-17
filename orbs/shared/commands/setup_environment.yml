@@ -9,6 +9,10 @@ parameters:
   checkout:
     type: boolean
     default: true
+  setup_devenv:
+    description: Setup a fully provisioned devenv. Do not use for E2E, use setup_devenv with e2e instead.
+    type: boolean
+    default: false
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
@@ -44,6 +48,10 @@ steps:
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
+  - when:
+      condition: << parameters.setup_devenv >>
+      steps:
+        - setup_devenv
   - when:
       condition: << parameters.machine >>
       steps:

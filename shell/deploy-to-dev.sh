@@ -19,11 +19,6 @@ export DEVENV_DEPLOY_ENVIRONMENT="${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}"
 export DEVENV_DEPLOY_DEV_EMAIL="${DEV_EMAIL:-$(git config user.email)}"
 export DEVENV_DEPLOY_HOST="bento1a.outreach-dev.com"
 
-if ! command -v kubecfg >/dev/null; then
-  info "Hint: brew install kubecfg"
-  fatal "kubecfg must be installed"
-fi
-
 showHelp() {
   echo "usage: deploy-to-dev.sh <action>"
   echo ""
@@ -38,19 +33,6 @@ fi
 if [[ -z $action ]]; then
   showHelp
   exit 1
-fi
-
-# Only run devenv checks when we're now showing manifests
-if [[ $action != "show" ]]; then
-  # Ensure the devenv is installed
-  if ! command -v devenv >/dev/null 2>&1; then
-    fatal "devenv was not found in PATH, please install from https://github.com/getoutreach/devenv"
-  fi
-
-  # Ensure the devenv is running
-  if ! devenv status --quiet; then
-    fatal "devenv doesn't appear to be in a running state, run 'devenv status' for more information"
-  fi
 fi
 
 exec "$SCRIPTS_DIR/build-jsonnet.sh" "$action"
