@@ -19,4 +19,9 @@ args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-
 # trade memory for CPU when running the linters
 export GOGC=20
 
-exec "$GOBIN" "github.com/jaredallard/golangci-lint/cmd/golangci-lint@v$(get_application_version "golangci-lint")" "${args[@]}"
+version="$(get_application_version "golangci-lint")"
+if grep "^\d" <<<"$version"; then
+  version="v$version"
+fi
+
+exec "$GOBIN" "github.com/jaredallard/golangci-lint/cmd/golangci-lint@$version" "${args[@]}"
