@@ -2,7 +2,8 @@ terraform: 0.13.5
 shfmt: 3.4.2
 shellcheck: 0.8.0
 grpcui: 1.0.0
-golangci-lint: 1.44.1
+# Remove once https://github.com/golangci/golangci-lint/pull/2595 merges.
+golangci-lint: jaredallard/feat/severity-extensions
 jsonnetfmt: 0.18.0
 goimports: 0.1.9
 delve: 1.7.3
