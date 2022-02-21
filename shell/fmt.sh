@@ -40,9 +40,9 @@ info_sub "shfmt"
 find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
   -prune -o -type f -name '*.sh' -exec "$SHELLFMTPATH" -w -l {} +
 
-info_sub "prettier (yaml/json)"
+info_sub "prettier (yaml/json/md)"
 yarn_install_if_needed
-yarn prettier --write "**/*.{yaml,yml,json}" >/dev/null
+yarn prettier --write "**/*.{yaml,yml,json,md}" >/dev/null
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
