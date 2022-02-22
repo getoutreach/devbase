@@ -17,16 +17,16 @@ if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   PROVISION="false"
 fi
 
-if [[ -z $VAULT_ROLE_ID ]]; then
-  echo "Hint: Outreach CircleCI must be configured to have"
-  echo "  vault-dev be added to the list of contexts for this"
-  echo "  CircleCI workflow"
-  fatal "Vault must be configured to setup a devenv"
-fi
-
 # CI sets up dependencies in CI and other small adjustments.
 # These are not required on local machines.
 if [[ -n $CI ]]; then
+  if [[ -z $VAULT_ROLE_ID ]]; then
+    echo "Hint: Outreach CircleCI must be configured to have"
+    echo "  vault-dev be added to the list of contexts for this"
+    echo "  CircleCI workflow"
+    fatal "Vault must be configured to setup a devenv"
+  fi
+
   if ! command -v kubectl >/dev/null; then
     info "Installing kubectl"
     sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
@@ -64,14 +64,16 @@ fi
 
 if [[ $PROVISION == "true" ]]; then
   info "Checking for existing devenv ..."
-  if devenv --skip-update status >/dev/null; then
+  if devenv --skip-update status >/dev/null 2>&1; then
     info "Using already provisioned developer environment"
     exit 0
   fi
 
-  # Use the CI vault instance.
-  # TODO(jaredallard): Refactor when using box is available to CI.
-  export VAULT_ADDR="https://vault-dev.outreach.cloud"
+  if [[ -n $CI ]]; then
+    # Use the CI vault instance.
+    # TODO(jaredallard): Refactor when using box is available to CI.
+    export VAULT_ADDR="https://vault-dev.outreach.cloud"
+  fi
 
   info "Provisioning developer environment"
   # shellcheck disable=SC2086 # Why: Not an array, have to split.
