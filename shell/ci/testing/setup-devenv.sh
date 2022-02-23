@@ -82,5 +82,5 @@ fi
 
 if [[ $E2E == "true" ]]; then
   info "Starting E2E test runner"
-  exec "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../../../.version")")"
+  exec TEST_TAGS=or_test,or_e2e "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/e2e@$(cat "$DIR/../../../.version")")"
 fi
