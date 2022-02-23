@@ -26,16 +26,10 @@ source "${LIB_DIR}/shell.sh"
 srcPath=$(get_repo_directory)
 info "srcPath: ${srcPath}"
 
-tag=$(eval "git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1)")
-findCmd="git diff-tree --no-commit-id --name-status -r ${tag} HEAD | grep -e '^[A|M].*\.md$' | cut -f2"
-
-info "findCmd: ${findCmd}"
-
 defaultBranch="$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
-
 info "defaultBranch: ${defaultBranch}"
 
-for file in $(eval "${findCmd}"); do
+while read -r file; do
   info "inspecting found markdown file: ${file}"
   if grep -Eq '^\s*<!--\s*Space:\s*\w+\s*-->\s*$' "${file}"; then
     info_sub "found space directive in ${file}:"
@@ -80,4 +74,4 @@ for file in $(eval "${findCmd}"); do
   else
     info_sub "no space directive found, skipping ${file}"
   fi
-done
+done < <(git diff --name-only HEAD HEAD~1 -- '*.md')
