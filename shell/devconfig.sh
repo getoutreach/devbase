@@ -37,7 +37,7 @@ ensure_logged_into_vault() {
       vaultMajorVersion="$(cut -d. -f1 <<<"$vaultVersion")"
       vaultMinorVersion="$(cut -d. -f2 <<<"$vaultVersion")"
       if [[ $vaultMajorVersion -lt 1 || ($vaultMajorVersion -eq 1 && $vaultMinorVersion -lt 1) ]]; then
-        fatal "Please upgrade the Vault CLI. Try running 'outreach k8s install_deps'"
+        fatal "Please upgrade the Vault CLI. Try running 'orc setup'"
       fi
       info "Logging user into vault"
       vault login -method=oidc
