@@ -19,5 +19,5 @@ protoc-gen-go: 1.4.2
 protoc-gen-doc: 1.5.0
 
 # confluence publishing tools
-getoutreach/markdowntools/visualizemd: v0.0.27
+getoutreach/markdowntools/visualizemd: v0.0.28
 kovetskiy/mark: 6.5
