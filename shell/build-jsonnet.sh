@@ -31,4 +31,4 @@ kubecfg \
   -V bento="$bento" \
   -V dev_email="$email" \
   -V host="$host" \
-  -A appImageRegistry="$appImageRegistry" 
+  -A appImageRegistry="$appImageRegistry"
