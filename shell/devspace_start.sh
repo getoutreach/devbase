@@ -7,6 +7,24 @@ source "$DIR/lib/bootstrap.sh"
 
 gh auth setup-git
 
+if [[ -n $NPM_TOKEN ]]; then
+  # We actually don't want it to expand, we want it to be a literal string written to the file
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
+  echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >"$HOME/.npmrc"
+fi
+
+if [[ -n $GH_TOKEN ]]; then
+  # We actually don't want it to expand, we want it to be a literal string written to the file
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
+  echo '//npm.pkg.github.com/:_authToken=${GH_TOKEN}' >>"$HOME/.npmrc"
+
+  # We need bundler to be a thing so source ASDF
+  . "$HOME/.asdf/asdf.sh"
+  bundle config set --global rubygems.pkg.github.com x-access-token:$GH_TOKEN
+fi
+
 # IDEA: Maybe do this in the image build?
 # We actually don't want it to expand, we want it to be a literal string written to the file
 # shellcheck disable=SC2016
