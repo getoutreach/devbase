@@ -8,7 +8,7 @@ jsonnetfmt: 0.18.0
 goimports: 0.1.9
 delve: 1.7.3
 gotestsum: 1.7.0
-lintroller: 1.13.0
+lintroller: 1.13.1
 codeowners-validator: 0.7.1
 clerkgenproto: 1.17.0
 goveralls: 0.0.11
