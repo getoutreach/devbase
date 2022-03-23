@@ -21,7 +21,13 @@ if [[ -n $GH_TOKEN ]]; then
   echo '//npm.pkg.github.com/:_authToken=${GH_TOKEN}' >>"$HOME/.npmrc"
 
   # We need bundler to be a thing so source ASDF
+  # shellcheck disable=SC1090
+  # shellcheck disable=SC1091
   . "$HOME/.asdf/asdf.sh"
+
+  # Bundler requires an expanded $GH_TOKENV so we use the variable directly here
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
   bundle config set --global rubygems.pkg.github.com x-access-token:$GH_TOKEN
 fi
 
