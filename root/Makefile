@@ -10,7 +10,8 @@ SHELL               := /usr/bin/env bash
 GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
 PKG                 := $(GO) mod download -x
-LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(shell cat ~/.outreach/$(APP)/honeycomb/apiKey)
+HONEYCOMB_API_KEY 	?= $(shell if [[ -f /run/secrets/outreach.io/honeycomb/apiKey ]]; then cat /run/secrets/outreach.io/honeycomb/apiKey; else cat ~/.outreach/$(APP)/honeycomb/apiKey; fi )
+LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(HONEYCOMB_API_KEY)
 GOFLAGS             :=
 GOPRIVATE           := github.com/$(ORG)/*
 GOPROXY             := https://proxy.golang.org
