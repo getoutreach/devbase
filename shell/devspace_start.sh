@@ -5,7 +5,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
-GH_NO_UPDATE_NOTIFIER=disabled gh auth setup-git
+GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 if [[ -n $NPM_TOKEN ]]; then
   # We actually don't want it to expand, we want it to be a literal string written to the file
