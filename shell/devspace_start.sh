@@ -66,7 +66,7 @@ This is how you can work with it:
 "
 
 if [[ -z $DEV_CONTAINER_LOGFILE ]] || [[ $DEVENV_DEV_TERMINAL == "true" ]]; then
-  echo "$BANNER"
+  echo -e "$BANNER"
   bash
 else
   make dev | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
