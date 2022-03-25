@@ -1,7 +1,7 @@
 # application information
 APP                 ?= unset
 ORG                 ?= getoutreach
-APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
+APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD 2>/dev/null)
 
 # go options
 GO                  ?= go
@@ -159,9 +159,9 @@ devserver:: pre-devserver build
 
 ## debug:           run the service via delve
 .PHONY: debug
-debug:: pre-debug build
+debug:: pre-debug
 	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
-	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh
+	if [[ -n $$DLV_PORT ]]; then ./scripts/shell-wrapper.sh debug.sh; else OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
