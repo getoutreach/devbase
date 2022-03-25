@@ -1,7 +1,7 @@
 # application information
 APP                 ?= unset
 ORG                 ?= getoutreach
-APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
+APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD 2>/dev/null || echo "0.0.0-dev")
 
 # go options
 GO                  ?= go
@@ -11,7 +11,7 @@ GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
 PKG                 := $(GO) mod download -x
 HONEYCOMB_API_KEY 	?= $(shell if [[ -f /run/secrets/outreach.io/honeycomb/apiKey ]]; then cat /run/secrets/outreach.io/honeycomb/apiKey; else cat ~/.outreach/$(APP)/honeycomb/apiKey; fi )
-LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(HONEYCOMB_API_KEY)
+LDFLAGS             ?= $(shell if [[ -z $$DLV_PORT ]]; then printf -- "-w -s"; fi) -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(HONEYCOMB_API_KEY)
 GOFLAGS             :=
 GOPRIVATE           := github.com/$(ORG)/*
 GOPROXY             := https://proxy.golang.org
@@ -161,7 +161,8 @@ devserver:: pre-devserver build
 .PHONY: debug
 debug:: pre-debug build
 	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
-	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh
+	if [[ -n $$DLV_PORT ]]; then ./scripts/shell-wrapper.sh debug.sh; fi
+	if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
