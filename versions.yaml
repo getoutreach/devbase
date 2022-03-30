@@ -13,6 +13,7 @@ codeowners-validator: 0.7.1
 clerkgenproto: 1.17.0
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
+air: 1.29.0
 
 # protoc plugins
 protoc-gen-go: 1.4.2
