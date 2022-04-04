@@ -20,7 +20,7 @@ GOFMT="${GOFMT:-gofmt}"
 info "Running Formatters"
 
 info_sub "goimports"
-find . -path ./vendor -prune -o -type f -name '*.go' \
+find . -path ./vendor -prune -o -path .snapshots -prune -o -type f -name '*.go' \
   -exec "$GOIMPORTS" -w {} +
 
 info_sub "gofmt"
