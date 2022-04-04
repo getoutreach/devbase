@@ -33,13 +33,13 @@ for_all_files() {
     "./vendor"
 
     # Skip gRPC clients
-    "$(get_repo_directory)/api/clients"
+    "./api/clients"
 
     # Skip devbase, when it's embedded
     "./.bootstrap"
 
     # Skip node modules
-    "node_modules"
+    "*node_modules*"
   )
   local glob="$1"
   shift
@@ -50,8 +50,11 @@ for_all_files() {
   for dir in "${skip_directories[@]}"; do
     find_args+=(-path "$dir" -prune -o)
   done
+
   # only include files, exec the command
   find_args+=(-type f -name "$glob" -exec "${command[@]}" {} +)
+
+  find . "${find_args[@]}"
 }
 
 info_sub "goimports"
@@ -64,7 +67,9 @@ info_sub "go mod tidy"
 go mod tidy
 
 info_sub "jsonnetfmt"
-for_all_files '*.(jsonnet|libsonnet)' "$JSONNETFMT" -i
+for ext in "jsonnet" "libsonnet"; do
+  for_all_files '*.'${ext} "$JSONNETFMT" -i
+done
 
 info_sub "clang-format"
 for_all_files '*.proto' "$SCRIPTS_DIR/clang-format.sh" -style=file -i
@@ -74,7 +79,9 @@ for_all_files '*.sh' "$SHELLFMTPATH" -w -l
 
 info_sub "prettier (yaml/json/md)"
 yarn_install_if_needed
-yarn prettier --write "**/*.{yaml,yml,json,md}" >/dev/null
+for ext in "yaml" "yml" "json" "md"; do
+  for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
+done
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
