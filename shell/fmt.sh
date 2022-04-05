@@ -46,7 +46,7 @@ for_all_files() {
   local command=("$@")
 
   # create arguments for each directory we're skipping
-  find_args=()
+  local find_args=()
   for dir in "${skip_directories[@]}"; do
     find_args+=(-path "$dir" -prune -o)
   done
