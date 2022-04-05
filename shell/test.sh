@@ -37,7 +37,7 @@ if [[ -n $GO_TEST_TIMEOUT ]]; then
 fi
 
 if [[ -n $WITH_COVERAGE || -n $CI ]]; then
-  COVER_FLAGS=${COVER_FLAGS:- -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
+  COVER_FLAGS=${COVER_FLAGS:- -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
 
 # Only run when not doing e2e tests
