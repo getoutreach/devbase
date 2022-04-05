@@ -19,30 +19,69 @@ GOFMT="${GOFMT:-gofmt}"
 
 info "Running Formatters"
 
+# for_all_files runs the provided command against all files that
+# match the provided glob. This is powered by find, and thus the glob
+# must match whatever `-name` supports matching against. Directories
+# provided to `skip_directories` are automatically skipped.
+for_all_files() {
+  local skip_directories=(
+    # Snapshot testing for templates
+    '*.snapshots*'
+
+    # Go vendoring, unsupported by attempt to skip it anyways.
+    # Also used by ruby.
+    "./vendor"
+
+    # Skip gRPC clients
+    "./api/clients"
+
+    # Skip devbase, when it's embedded
+    "./.bootstrap"
+
+    # Skip node modules
+    "*node_modules*"
+  )
+  local glob="$1"
+  shift
+  local command=("$@")
+
+  # create arguments for each directory we're skipping
+  local find_args=()
+  for dir in "${skip_directories[@]}"; do
+    find_args+=(-path "$dir" -prune -o)
+  done
+
+  # only include files, exec the command
+  find_args+=(-type f -name "$glob" -exec "${command[@]}" {} +)
+
+  find . "${find_args[@]}"
+}
+
 info_sub "goimports"
-find . -path ./vendor -prune -o -type f -name '*.go' \
-  -exec "$GOIMPORTS" -w {} +
+for_all_files '*.go' "$GOIMPORTS" -w
 
 info_sub "gofmt"
-find . -path ./vendor -prune -o -type f -name '*.go' \
-  -exec gofmt -w -s {} +
+for_all_files '*.go' gofmt -w -s
 
 info_sub "go mod tidy"
 go mod tidy
 
 info_sub "jsonnetfmt"
-find . -name '*.jsonnet' -exec "$JSONNETFMT" -i {} +
+for ext in "jsonnet" "libsonnet"; do
+  for_all_files '*.'${ext} "$JSONNETFMT" -i
+done
 
 info_sub "clang-format"
-find . -path "$(get_repo_directory)/api/clients" -prune -o -name '*.proto' -exec "$SCRIPTS_DIR/clang-format.sh" -style=file -i {} \;
+for_all_files '*.proto' "$SCRIPTS_DIR/clang-format.sh" -style=file -i
 
 info_sub "shfmt"
-find . -path ./vendor -prune -o -path ./.bootstrap -prune -o -name node_modules -type d \
-  -prune -o -type f -name '*.sh' -exec "$SHELLFMTPATH" -w -l {} +
+for_all_files '*.sh' "$SHELLFMTPATH" -w -l
 
 info_sub "prettier (yaml/json/md)"
 yarn_install_if_needed
-yarn prettier --write "**/*.{yaml,yml,json,md}" >/dev/null
+for ext in "yaml" "yml" "json" "md"; do
+  for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
+done
 
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
