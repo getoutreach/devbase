@@ -28,7 +28,7 @@ parameters:
     description: Kafka version to run
     type: string
   minio_version:
-    default: RELEASE.2020-03-31T00-00-00Z
+    default: bootstrap
     description: Minio version to run
     type: string
   localstack_version:
