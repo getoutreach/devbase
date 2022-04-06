@@ -1,0 +1,13 @@
+description: Uploads coverage to Coveralls
+executor:
+  name: testbed-docker
+docker:
+  - image: gcr.io/outreach-docker/bootstrap/ci:stable
+    auth:
+      username: _json_key
+      password: $GCLOUD_SERVICE_ACCOUNT
+steps:
+  - setup_environment
+  - run:
+      name: Finish Coveralls upload
+      command: ./scripts/shell-wrapper.sh ci/testing/coveralls-finish.sh
