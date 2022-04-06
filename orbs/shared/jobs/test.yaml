@@ -1,5 +1,8 @@
 description: Run tests on the current commit
 parameters:
+  app_name:
+    description: Name of the application
+    type: string
   docker_username:
     default: _json_key
     description: Username to use when fetching images from a registry
@@ -9,19 +12,19 @@ parameters:
     description: Environment variable to read docker password from
     type: string
   postgres_version:
-    default: 13
+    default: "13.3"
     description: Postgres version to run
     type: string
   mysql_version:
-    default: 5.4
+    default: "8.0"
     description: MySQL version to run
     type: string
   redis_version:
-    default: 3.2
+    default: "6.0"
     description: Redis version to run
     type: string
   kafka_version:
-    default: 2.1.0
+    default: "2.3"
     description: Kafka version to run
     type: string
   minio_version:
@@ -29,7 +32,7 @@ parameters:
     description: Minio version to run
     type: string
   localstack_version:
-    default: 0.12.0
+    default: "0.12.11"
     description: Localstack version to run
     type: string
   localstack_services:
@@ -49,7 +52,7 @@ docker:
       username: << parameters.docker_username >>
       password: << parameters.docker_password >>
     environment:
-      POSTGRES_DB: { { .appName } }
+      POSTGRES_DB: << parameters.app_name >>
       POSTGRES_HOST_AUTH_METHOD: trust
   - image: gcr.io/outreach-docker/mysql:<< parameters.mysql_version >>
     auth:
@@ -57,7 +60,7 @@ docker:
       password: << parameters.docker_password >>
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: { { .appName } }
+      MYSQL_DATABASE: << parameters.app_name >>
   - image: gcr.io/outreach-docker/redis:<< parameters.redis_version >>
     auth:
       username: << parameters.docker_username >>
@@ -84,7 +87,7 @@ docker:
       DATA_DIR: /tmp/localstack/data
 
 steps:
-  - shared/setup_environment
+  - setup_environment
   - run:
       name: Wait for Infrastructure to be Ready
       command: ./scripts/shell-wrapper.sh ci/testing/wait-for-infra.sh
