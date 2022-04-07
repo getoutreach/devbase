@@ -8,10 +8,15 @@ parameters:
     description: Don't actually release, just dryrun the release flow
     type: boolean
     default: true
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
 executor:
   name: testbed-docker
 steps:
-  - setup_environment
+  - setup_environment:
+      machine: << parameters.machine >>
   - when:
       condition: << parameters.node_client >>
       steps:
