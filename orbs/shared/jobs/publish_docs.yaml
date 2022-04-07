@@ -1,0 +1,9 @@
+description: Informs a pkg.go.dev instance about our new version
+executor:
+  name: testbed-docker
+steps:
+  - setup_environment
+  - with_go_cache
+  - run:
+      name: Publish Documentation
+      command: ./scripts/shell-wrapper.sh ci/release/docs.sh

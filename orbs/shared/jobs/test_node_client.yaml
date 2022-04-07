@@ -1,0 +1,15 @@
+description: Tests a node gRPC client
+parameters:
+  steps:
+    type: steps
+executor:
+  name: testbed-docker
+steps:
+  - setup_environment
+  - with_node_client_cache:
+      save: true
+  - steps: << parameters.steps >>
+  - run:
+      name: Test Node gRPC client
+      working_directory: api/clients/node/
+      command: cd *-client; yarn --frozen-lockfile test-ci

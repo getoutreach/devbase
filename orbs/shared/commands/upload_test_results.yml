@@ -1,10 +1,4 @@
 description: Upload test results to CircleCI using standard paths
 steps:
-  - store_artifacts: # Upload test coverage for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-      path: /tmp/coverage.out
-      destination: raw-coverage-profile
-  - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-      path: /tmp/test-results
-      destination: raw-test-output
   - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
       path: /tmp/test-results

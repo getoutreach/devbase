@@ -1,0 +1,15 @@
+description: Build and (optionally push) a Docker image. Pushes only on release (or default) branches
+executor:
+  name: testbed-machine
+resource_class: xlarge
+steps:
+  - setup_environment:
+      machine: true
+  - build_docker_image
+
+  # IDEA(jaredallard): We'll need to move this out in the future
+  - store_artifacts:
+      path: /tmp/test-results/image_scan.json
+  - run:
+      name: Upload Stats to OpsLevel
+      command: ./scripts/shell-wrapper.sh opslevel/upload.sh

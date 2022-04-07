@@ -2,8 +2,7 @@ description: Standard executor for Docker based runtimes
 parameters:
   docker_tag:
     type: string
-    # Note: This is no longer tied to go versions
-    default: 1.17.1
+    default: stable
 docker:
   - image: gcr.io/outreach-docker/bootstrap/ci:<< parameters.docker_tag >>
     auth:

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Release some code
+set -e
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 nodeClientDir="api/clients/node"

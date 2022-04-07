@@ -1,0 +1,23 @@
+description: Run E2E tests in a Kubernetes cluster
+parameters:
+  vault_address:
+    description: Vault Instance to use
+    type: string
+    default: ""
+executor:
+  name: testbed-machine
+environment:
+  VAULT_ADDR: << parameters.vault_address >>
+resource_class: large
+steps:
+  - setup_environment:
+      machine: true
+  - with_go_cache
+  - run:
+      name: Run E2E Tests
+      command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
+  - run:
+      name: Upload Code Coverage
+      command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh e2e
+  - save_go_cache # We save at the end because binaries are included with this
+  - upload_test_results # Uploads to CircleCI
