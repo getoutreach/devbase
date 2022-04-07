@@ -39,6 +39,12 @@ parameters:
     default: dynamodb
     description: Services to run on localstack, comma separated
     type: string
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    default: "large"
+
+resource_class: << parameters.resource_class >>
 
 # DEPRECATED: This will be removed in a future release. e2e should be used
 # for integration+e2e tests, NOT in CircleCI.

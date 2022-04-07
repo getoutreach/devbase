@@ -12,8 +12,16 @@ parameters:
     description: Denotes that we're using a machine executor. Will need to set executor manually
     type: boolean
     default: false
-executor:
-  name: testbed-docker
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    default: "large"
+  executor:
+    description: The executor to use for the release
+    type: executor
+    default: "testbed-docker"
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
 steps:
   - setup_environment:
       machine: << parameters.machine >>
