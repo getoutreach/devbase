@@ -7,9 +7,14 @@ docker:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT
 parameters:
-  branch:
+  head:
     type: string
-    default: main
+  base:
+    type: string
+  push:
+    description: Whether to push the to the remote the results of the merge
+    type: boolean
+    default: true
 steps:
   - setup_environment
   - run:
@@ -20,4 +25,7 @@ steps:
         git checkout origin/<< parameters.head >>
   - merge:
       branch: << parameters.base >>
-  - push
+  - when:
+      condition: << parameters.push >>
+      steps:
+        - push
