@@ -1,0 +1,23 @@
+description: Merges the base (to merge into) branch into the head (current) branch and pushes the result
+executor:
+  name: testbed-docker
+docker:
+  - image: gcr.io/outreach-docker/bootstrap/ci:stable
+    auth:
+      username: _json_key
+      password: $GCLOUD_SERVICE_ACCOUNT
+parameters:
+  branch:
+    type: string
+    default: main
+steps:
+  - setup_environment
+  - run:
+      name: Checkout the << parameters.head >> branch
+      command: |-
+        set -e
+        git fetch origin/<< parameters.head >>
+        git checkout origin/<< parameters.head >>
+  - merge:
+      branch: << parameters.base >>
+  - push
