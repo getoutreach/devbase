@@ -5,7 +5,7 @@ parameters:
     type: string
     default: ""
   devenv_pre_release:
-    description: Provision the devenv using pre-release version
+    description: Use devenv release candidate to provision the test cluster.
     type: boolean
     default: false
 executor:
