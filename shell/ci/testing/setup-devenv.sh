@@ -56,6 +56,7 @@ if [[ -n $CI ]]; then
       echo "Using devenv pre-release version"
       TAG=$(gh release -R "$REPO" list | grep Pre-release | head -n1 | awk '{ print $1 }')
     else
+      echo "Using devenv latest version"
       TAG=$(gh release -R "$REPO" list | grep Latest | awk '{ print $1 }')
     fi
     gh release -R "$REPO" download "$TAG" --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
