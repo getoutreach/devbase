@@ -11,7 +11,6 @@ source "$DIR/../../lib/logging.sh"
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
 E2E="${E2E:-"false"}"
-DEVENV_PRE_RELEASE="${DEVENV_PRE_RELEASE:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   info "e2e was set, ignoring provision"
