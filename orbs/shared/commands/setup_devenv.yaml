@@ -12,9 +12,13 @@ parameters:
     description: Arguments for provision, optional
     type: string
     default: ""
+  devenv_pre_release:
+    description: Provision the devenv using pre-release version
+    type: boolean
+    default: false
 steps:
   - run:
       name: Setting up devenv
       command: |-
-        PROVISION="<< parameters.provision >>" E2E="<< parameters.e2e >>" PROVISION_ARGS="<< parameters.provision_args >>" \
+        PROVISION="<< parameters.provision >>" E2E="<< parameters.e2e >>" PROVISION_ARGS="<< parameters.provision_args >>" DEVENV_PRE_RELEASE="<< parameters.devenv_pre_release >>" \
           ./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
