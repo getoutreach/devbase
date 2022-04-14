@@ -48,7 +48,17 @@ if [[ -n $CI ]]; then
     tempDir=$(mktemp -d)
     cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
     pushd "$tempDir" >/dev/null || exit 1
-    gh release -R getoutreach/devenv download --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
+
+    # download the pre-release/latest version
+    REPO=getoutreach/devenv
+    if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
+      TAG=$(gh release -R "$REPO" list | grep Pre-release | head -n1 | awk '{ print $1 }')
+    else
+      TAG=$(gh release -R "$REPO" list | grep Latest | awk '{ print $1 }')
+    fi
+    info "Using devenv version: ($TAG)"
+    gh release -R "$REPO" download "$TAG" --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
+
     echo "" # Fixes issues with output being corrupted in CI
     tar xf devenv**.tar.gz
     sudo mv devenv /usr/local/bin/devenv

@@ -4,10 +4,15 @@ parameters:
     description: Vault Instance to use
     type: string
     default: ""
+  devenv_pre_release:
+    description: Use devenv release candidate to provision the test cluster.
+    type: boolean
+    default: false
 executor:
   name: testbed-machine
 environment:
   VAULT_ADDR: << parameters.vault_address >>
+  DEVENV_PRE_RELEASE: << parameters.devenv_pre_release >>
 resource_class: large
 steps:
   - setup_environment:
