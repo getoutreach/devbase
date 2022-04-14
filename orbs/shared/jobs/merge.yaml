@@ -8,8 +8,10 @@ docker:
       password: $GCLOUD_SERVICE_ACCOUNT
 parameters:
   head:
+    description: The current branch, this will have base merged into it. This is only supplied to ensure we're on the correct branch when merging.
     type: string
   base:
+    description: The branch to merge into head
     type: string
   push:
     description: Whether to push the to the remote the results of the merge
