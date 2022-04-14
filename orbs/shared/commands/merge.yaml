@@ -1,4 +1,4 @@
-description: Merges the current branch into a branch
+description: Merges a branch into the current branch
 parameters:
   branch:
     type: string

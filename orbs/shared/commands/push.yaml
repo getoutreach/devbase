@@ -1,0 +1,5 @@
+description: Pushes the current branch to the remote
+steps:
+  - run:
+      name: Pushing to remote
+      command: set -e; git push
