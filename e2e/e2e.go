@@ -173,7 +173,7 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
-		cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", d)
+		cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
@@ -273,7 +273,7 @@ func main() { //nolint:funlen,gocyclo
 	}
 
 	log.Info().Msg("Deploying current application into cluster")
-	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "deploy-app", ".")
+	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
