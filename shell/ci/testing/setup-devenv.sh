@@ -52,12 +52,11 @@ if [[ -n $CI ]]; then
     # download the pre-release/latest version
     REPO=getoutreach/devenv
     if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
-      echo "Runing pre-release"
       TAG=$(gh release -R "$REPO" list | grep Pre-release | head -n1 | awk '{ print $1 }')
     else
-      echo "Runing latest"
       TAG=$(gh release -R "$REPO" list | grep Latest | awk '{ print $1 }')
     fi
+    info "Using devenv version: ($TAG)"
     gh release -R "$REPO" download "$TAG" --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
 
     echo "" # Fixes issues with output being corrupted in CI
