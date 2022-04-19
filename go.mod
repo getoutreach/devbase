@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/getoutreach/gobox v1.32.0
-	github.com/getoutreach/localizer v1.14.2
+	github.com/getoutreach/localizer v1.14.3
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/klauspost/compress v1.13.6 // indirect
