@@ -1,0 +1,46 @@
+description: Releases a new version of the application
+parameters:
+  node_client:
+    description: Build and release a Node.JS gRPC client
+    type: boolean
+    default: false
+  dryrun:
+    description: Don't actually release, just dryrun the release flow
+    type: boolean
+    default: true
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    default: "large"
+  executor:
+    description: The executor to use for the release
+    type: executor
+    default: "testbed-docker"
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - when:
+      condition: << parameters.node_client >>
+      steps:
+        - with_node_client_cache:
+            build: true
+  - with_node_cache:
+      save: true
+  - when:
+      condition: << parameters.dryrun >>
+      steps:
+        - run:
+            name: Release (Dry-run)
+            command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
+  - unless:
+      condition: << parameters.dryrun >>
+      steps:
+        - run:
+            name: Release
+            command: ./scripts/shell-wrapper.sh ci/release/release.sh

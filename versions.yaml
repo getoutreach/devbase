@@ -8,9 +8,9 @@ jsonnetfmt: 0.18.0
 goimports: 0.1.9
 delve: 1.7.3
 gotestsum: 1.7.0
-lintroller: 1.13.0
+lintroller: 1.13.1
 codeowners-validator: 0.7.1
-clerkgenproto: 1.17.0
+clerkgenproto: 1.18.0
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
 
@@ -19,5 +19,5 @@ protoc-gen-go: 1.4.2
 protoc-gen-doc: 1.5.0
 
 # confluence publishing tools
-getoutreach/markdowntools/visualizemd: v0.0.28
+getoutreach/markdowntools/visualizemd: v0.0.29
 kovetskiy/mark: 6.5

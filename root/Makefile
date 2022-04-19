@@ -1,7 +1,7 @@
 # application information
 APP                 ?= unset
 ORG                 ?= getoutreach
-APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
+APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD 2>/dev/null || echo "0.0.0-dev")
 
 # go options
 GO                  ?= go
@@ -10,7 +10,8 @@ SHELL               := /usr/bin/env bash
 GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
 PKG                 := $(GO) mod download -x
-LDFLAGS             ?= -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(shell cat ~/.outreach/$(APP)/honeycomb/apiKey)
+HONEYCOMB_API_KEY 	?= $(shell if [[ -f /run/secrets/outreach.io/honeycomb/apiKey ]]; then cat /run/secrets/outreach.io/honeycomb/apiKey; else cat ~/.outreach/$(APP)/honeycomb/apiKey; fi )
+LDFLAGS             ?= $(shell if [[ -z $$DLV_PORT ]]; then printf -- "-w -s"; fi) -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(HONEYCOMB_API_KEY)
 GOFLAGS             :=
 GOPRIVATE           := github.com/$(ORG)/*
 GOPROXY             := https://proxy.golang.org
@@ -148,19 +149,20 @@ grpcui:
 ## dev:       run the service
 .PHONY: dev
 dev:: pre-dev
-	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.27.8 -c $(CURDIR)/.air.toml
+	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
 ## devserver:       run the service
 .PHONY: devserver
 devserver:: pre-devserver build
 	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
-	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) $(BINDIR)/$(BIN_NAME)
+	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) $(BINDIR)/$(BIN_NAME)
 
 ## debug:           run the service via delve
 .PHONY: debug
 debug:: pre-debug build
 	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
-	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh
+	if [[ -n $$DLV_PORT ]]; then ./scripts/shell-wrapper.sh debug.sh; fi
+	if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build

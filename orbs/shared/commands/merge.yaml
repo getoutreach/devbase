@@ -1,0 +1,21 @@
+description: Merges a branch into the current branch
+parameters:
+  branch:
+    type: string
+    default: main
+steps:
+  - run:
+      name: Merge into <<parameters.branch>>
+      command: |
+        git fetch origin <<parameters.branch>>
+
+        # required to prevent "fatal: empty ident name" error
+        git config --global user.name "Devbase CI"
+        git config --global user.email "devbase@outreach.io"
+
+        git merge origin/<<parameters.branch>> --no-edit
+
+        if [[ $? -ne 0 ]]; then
+          echo "Failed to merge branch"
+          exit 1
+        fi

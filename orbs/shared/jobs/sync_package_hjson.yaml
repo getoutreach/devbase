@@ -1,0 +1,9 @@
+description: Syncs a package.hjson into package.json
+executor:
+  name: testbed-docker
+steps:
+  - setup_environment
+  - with_node_cache
+  - run:
+      name: Update node client package.hjson
+      command: node .bootstrap/shell/ci/testing/sync-package-hjson.js

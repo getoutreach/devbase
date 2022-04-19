@@ -50,6 +50,7 @@ while read -r file; do
     # Render
     "$GOBIN" "github.com/getoutreach/markdowntools/cmd/visualizemd@$(get_application_version "getoutreach/markdowntools/visualizemd")" \
       -umlusername internal_access_user -umlpassword "${UML_PASSWORD}" -umlserver https://rolling.mi.outreach-dev.com/api/internal/plantuml \
+      -mermaidusername internal_access_user -mermaidpassword "${UML_PASSWORD}" -mermaidserver https://rolling.mi.outreach-dev.com/api/internal/mermaid \
       -u "${CONFLUENCE_USERNAME}" -p "${CONFLUENCE_API_TOKEN}" -no-add-parent -f "${fileBaseName}" >"${updatedName}"
 
     # Add caveat to the end of the updated file.

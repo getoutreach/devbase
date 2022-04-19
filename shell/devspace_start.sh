@@ -5,7 +5,31 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
-gh auth setup-git
+GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
+
+if [[ -n $NPM_TOKEN ]]; then
+  # We actually don't want it to expand, we want it to be a literal string written to the file
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
+  echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >"$HOME/.npmrc"
+fi
+
+if [[ -n $GH_TOKEN ]]; then
+  # We actually don't want it to expand, we want it to be a literal string written to the file
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
+  echo '//npm.pkg.github.com/:_authToken=${GH_TOKEN}' >>"$HOME/.npmrc"
+
+  # We need bundler to be a thing so source ASDF
+  # shellcheck disable=SC1090
+  # shellcheck disable=SC1091
+  . "$HOME/.asdf/asdf.sh"
+
+  # Bundler requires an expanded $GH_TOKEN so we use the variable directly here
+  # shellcheck disable=SC2016
+  # shellcheck disable=SC2086
+  bundle config set --global rubygems.pkg.github.com x-access-token:$GH_TOKEN
+fi
 
 # IDEA: Maybe do this in the image build?
 # We actually don't want it to expand, we want it to be a literal string written to the file
@@ -23,8 +47,8 @@ COLOR_RESET="\033[0m"
 
 APPNAME="$(get_app_name)"
 
-echo -e "${COLOR_CYAN}
-   ____              ____
+BANNER="${COLOR_CYAN}
+  ____              ____
   |  _ \  _____   __/ ___| _ __   __ _  ___ ___
   | | | |/ _ \ \ / /\___ \| '_ \ / _\` |/ __/ _ \\
   | |_| |  __/\ V /  ___) | |_) | (_| | (_|  __/
@@ -41,4 +65,9 @@ This is how you can work with it:
 - Some ports will be forwarded.
 "
 
-bash
+if [[ -z $DEV_CONTAINER_LOGFILE ]] || [[ $DEVENV_DEV_TERMINAL == "true" ]]; then
+  echo -e "$BANNER"
+  bash
+else
+  make dev | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+fi
