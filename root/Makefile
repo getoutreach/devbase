@@ -149,7 +149,7 @@ grpcui:
 ## dev:       run the service
 .PHONY: dev
 dev:: pre-dev
-	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.27.8 -c $(CURDIR)/.air.toml
+	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
 ## devserver:       run the service
 .PHONY: devserver
