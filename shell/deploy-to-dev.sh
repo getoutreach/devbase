@@ -35,4 +35,8 @@ if [[ -z $action ]]; then
   exit 1
 fi
 
+DEVENV_BIN="${DEVENV_BIN:-devenv}"
+
+"$DEVENV_BIN" --skip-update k --namespace "$DEVENV_DEPLOY_NAMESPACE" delete jobs --all
+
 exec "$SCRIPTS_DIR/build-jsonnet.sh" "$action"
