@@ -5,7 +5,7 @@ grpcui: 1.0.0
 # Remove once https://github.com/golangci/golangci-lint/pull/2595 merges.
 golangci-lint: jaredallard/feat/severity-extensions
 jsonnetfmt: 0.18.0
-goimports: 0.1.9
+goimports: 0.1.10
 delve: 1.7.3
 gotestsum: 1.7.0
 lintroller: 1.13.1
