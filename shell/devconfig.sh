@@ -109,6 +109,9 @@ DEVENV_VERSION="xyz" "$DIR/deploy-to-dev.sh" show | yq -r 'select(.kind == "Vaul
 info_sub "fetching secret 'dev/devenv/honeycomb'"
 get_vault_secrets "dev/devenv/honeycomb" "$configDir"
 
+info_sub "fetching secret 'deploy/telefork/production/api-keys'"
+get_vault_secrets "deploy/telefork/production/api-keys" "$configDir/telefork"
+
 # We add logfmt.yaml directly here because this is only needed for local development.
 # This is not meant to be used in any kubernetes setup
 info "Configuring logfmt"
