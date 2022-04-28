@@ -75,5 +75,5 @@ while read -r file; do
   else
     info_sub "no space directive found, skipping ${file}"
   fi
-  readarray -t releaseCommits < <(git log --pretty=format:'%H' -n 2 --grep='^chore' --invert-grep)
-done < <(git diff --name-only "${releaseCommits[@]}" -- '*.md')
+  previousTag=$(git describe --abbrev=0 --tags "$(git rev-list --tags --skip=1 --max-count=1)" || git rev-list --max-parents=0 HEAD)
+done < <(git diff --name-only HEAD.."$previousTag" -- '*.md')
