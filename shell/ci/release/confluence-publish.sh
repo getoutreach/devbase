@@ -75,5 +75,5 @@ while read -r file; do
   else
     info_sub "no space directive found, skipping ${file}"
   fi
-releaseCommits=($(git log --pretty=format:'%H' -n 2 --grep='^chore' --invert-grep))
-done < <(git diff --name-only ${releaseCommits[@]} -- '*.md')
+  readarray -t releaseCommits < <(git log --pretty=format:'%H' -n 2 --grep='^chore' --invert-grep)
+done < <(git diff --name-only "${releaseCommits[@]}" -- '*.md')
