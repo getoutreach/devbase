@@ -75,4 +75,5 @@ while read -r file; do
   else
     info_sub "no space directive found, skipping ${file}"
   fi
-done < <(git diff --name-only HEAD HEAD~1 -- '*.md')
+  previousTag=$(git describe --abbrev=0 --tags "$(git rev-list --tags --skip=1 --max-count=1)" || printf '' | git hash-object -t tree --stdin)
+done < <(git diff --name-only HEAD.."$previousTag" -- '*.md')
