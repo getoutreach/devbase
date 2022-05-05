@@ -36,6 +36,13 @@ if [[ -n $GO_TEST_TIMEOUT ]]; then
   TEST_FLAGS=${TEST_FLAGS:--timeout "$GO_TEST_TIMEOUT"}
 fi
 
+# Catches test dependencies by shuffling tests if the installed Go version supports it
+currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
+requiredver="1.17.0"
+if [[ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" == "$requiredver" ]]; then
+  TEST_FLAGS="$TEST_FLAGS -shuffle=on"
+fi
+
 if [[ -n $WITH_COVERAGE || -n $CI ]]; then
   COVER_FLAGS=${COVER_FLAGS:- -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
