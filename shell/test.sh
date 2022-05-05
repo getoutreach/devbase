@@ -44,7 +44,7 @@ if [[ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" == "$
 fi
 
 # Although we highly encourage all projects to run test with a check for race coditions, projects should
-# only dispable this option temporarily
+# only disable this option temporarily
 if [[ $RACE != "disabled" ]]; then
   TEST_FLAGS="$TEST_FLAGS -race"
 fi
