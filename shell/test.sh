@@ -43,6 +43,12 @@ if [[ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" == "$
   TEST_FLAGS="$TEST_FLAGS -shuffle=on"
 fi
 
+# Although we highly encourage all projects to run test with a check for race coditions, projects should
+# only dispable this option temporarily
+if [[ $RACE != "disabled" ]]; then
+  TEST_FLAGS="$TEST_FLAGS -race"
+fi
+
 if [[ -n $WITH_COVERAGE || -n $CI ]]; then
   COVER_FLAGS=${COVER_FLAGS:- -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out -cover}
 fi
