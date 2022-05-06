@@ -26,7 +26,7 @@ TOOL_DEPS           := ${GO}
 
 # formatters / misc
 CLANG_FORMAT        ?= ./scripts/shell-wrapper.sh clang-format.sh
-JSONNETFMT          ?= ./scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnetfmt@v0.16.0
+JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.18.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
 FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
 
@@ -198,7 +198,7 @@ fly-login:
 update-pipeline: fly-login
 	@echo " ===> updating concourse pipeline <==="
 	@if [[ ! -e "concourse/jsonnet-libs" ]]; then git clone https://github.com/getoutreach/jsonnet-libs concourse/jsonnet-libs; else cd concourse/jsonnet-libs && git reset --hard origin/master && git pull; fi
-	cd concourse; rm -f /tmp/pipeline.yml; jsonnet -J ./jsonnet-libs -y pipeline.jsonnet > /tmp/pipeline.yml && ${FLY} -t devs sp -c /tmp/pipeline.yml -p $(APP)
+	cd concourse; rm -f /tmp/pipeline.yml; $(JSONNET) -J ./jsonnet-libs -y pipeline.jsonnet > /tmp/pipeline.yml && ${FLY} -t devs sp -c /tmp/pipeline.yml -p $(APP)
 
 .PHONY: version
 version:
