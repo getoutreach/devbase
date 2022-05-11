@@ -7,9 +7,6 @@ library: true
 circleAPIKey: ""
 lintroller: bronze
 releaseType: ""
-releaseOptions:
-  allowPrereleases: true
-  allowMajorVersions: null
 deployTo:
   environments: []
 arguments:
@@ -31,7 +28,7 @@ arguments:
   oss: true
   releaseOptions:
     allowMajorVersions: null
-    enablePrereleases: true
+    enablePrereleases: false
   reportingTeam: fnd-dtss
   service: false
   tutorial: false
@@ -41,12 +38,12 @@ arguments:
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
+  - name: github.com/getoutreach/stencil-base
+    version: v0.3.0-rc.2
   - name: github.com/getoutreach/stencil-golang
     version: v0.3.0-rc.4
   - name: github.com/getoutreach/stencil-opslevel
     version: v0.0.2-rc.5
-  - name: github.com/getoutreach/stencil-base
-    version: v0.3.0-rc.2
 opsLevel:
   serviceTier: 0
   lifecycle: ""
