@@ -40,6 +40,7 @@ var virtualDeps = map[string][]string{
 // Service is a mock of the service.yaml in bootstrap, which isn't currently
 // open-sourced, yet!
 type Service struct {
+	Library      bool `yaml:"library,omitempty"`
 	Dependencies struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
 		Optional []string `yaml:"optional"`
@@ -64,13 +65,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 	auth := sshhelper.NewExistingSSHAgentCallback(a)
 
-	f, err := os.Open("service.yaml")
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read service.yaml")
-	}
-
-	var s *Service
-	err = yaml.NewDecoder(f).Decode(&s)
+	s, err := parseServiceYaml(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse service.yaml")
 	}
@@ -150,6 +145,22 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 	}
 
 	return nil
+}
+
+func parseServiceYaml(_ context.Context) (*Service, error) {
+	f, err := os.Open("service.yaml")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read service.yaml")
+	}
+	defer f.Close()
+
+	var s *Service
+	err = yaml.NewDecoder(f).Decode(&s)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse service.yaml")
+	}
+
+	return s, nil
 }
 
 //nolint:unparam // Why: keeping in the interface for now
@@ -272,24 +283,33 @@ func main() { //nolint:funlen,gocyclo
 			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
-	log.Info().Msg("Deploying current application into cluster")
-	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
+	s, err := parseServiceYaml(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
 	}
 
-	log.Info().Msg("Running devconfig")
-	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
+	var cmd *exec.Cmd
+	// if it's a library we don't need to deploy the application.
+	if !s.Library {
+		log.Info().Msg("Deploying current application into cluster")
+		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		}
+
+		log.Info().Msg("Running devconfig")
+		cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to run devconfig")
+		}
 	}
 
 	if !localizer.IsRunning() {
