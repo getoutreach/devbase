@@ -1,12 +1,22 @@
 # devbase
 
-This repo contains files needed for a Outreach repository. This is currently used as a library by bootstrap for shell scripts and other configuration.
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/devbase)
+[![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
+[![Coverage Status](https://coveralls.io/repos/github/getoutreach/devbase/badge.svg?branch=main)](https://coveralls.io/github//getoutreach/devbase?branch=main)
 
-The goal of this is to have one place for all scripts / etc needed to run outreach services and that this gets pulled in as needed.
+A collection of scripts and ci configuration
+
+## Contributing
+
+Please read the [CONTRIBUTING.md](CONTRIBUTING.md) document for guidelines on developing and contributing changes.
+
+## High-level Overview
+
+<!--- Block(overview) -->
 
 ## How to use a custom build of `devbase`
 
-### Bootstrap 
+### Bootstrap / Stencil
 
 To test a custom build of `devbase` with bootstrap, simply modify `bootstrap.lock` to point to your branch / version. 
 
@@ -23,3 +33,4 @@ versions:
 
 CI will now use that branch, to use it locally re-run any `make` command. **Note**: This will not automatically update locally when the remote branch is changed, in order to do that you will need to `rm -rf .bootstrap` and re-run a `make` command. If you are testing changes to `make e2e`, you must also run
 `rm -rf ~/.outreach/.cache/gobin/binaries/$(go version | awk '{ print $3 }' | tr -d 'go')/github.com/getoutreach/devbase` before re-running a make command, in addition to `rm -rf .bootstrap`.
+<!--- EndBlock(overview) -->

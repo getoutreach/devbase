@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  shared: getoutreach/shared@1.41.2
+  shared: getoutreach/shared@1.62.2
 
 # DEPRECATED: Use the devbase orb instead:
 # https://github.com/getoutreach/devbase/tree/main/orbs/shared
@@ -29,6 +29,8 @@ jobs:
         auth:
           username: _json_key
           password: $GCLOUD_SERVICE_ACCOUNT
+    ###Block(customContainers)
+    ###EndBlock(customContainers)
     environment:
       ###Block(testEnvVars)
       ###EndBlock(testEnvVars)
@@ -48,10 +50,26 @@ jobs:
       - shared/save_go_cache # We save at the end because binaries are included with this
       - shared/upload_test_results # Uploads to CircleCI
 
+  finalize-coverage:
+    executor:
+      name: shared/testbed-docker
+    docker:
+      - image: gcr.io/outreach-docker/bootstrap/ci:stable
+        auth:
+          username: _json_key
+          password: $GCLOUD_SERVICE_ACCOUNT
+    steps:
+      - shared/setup_environment
+      - run:
+          name: Finish Coveralls upload
+          command: ./scripts/shell-wrapper.sh ci/testing/coveralls-finish.sh
+
   release-dryrun:
     executor:
       name: shared/testbed-docker
       docker_tag: stable
+    ###Block(releaseDryRun)
+    ###EndBlock(releaseDryRun)
     steps:
       - shared/setup_environment
       - shared/with_node_cache:
@@ -63,6 +81,8 @@ jobs:
     executor:
       name: shared/testbed-docker
       docker_tag: stable
+    ###Block(release)
+    ###EndBlock(release)
     steps:
       - shared/setup_environment
       - shared/with_node_cache:
@@ -71,7 +91,7 @@ jobs:
           name: Release
           command: ./scripts/shell-wrapper.sh ci/release/release.sh
 
-  trigger_documentation:
+  publish_docs:
     executor:
       name: shared/testbed-docker
       docker_tag: stable
@@ -79,7 +99,7 @@ jobs:
       - shared/setup_environment
       - shared/with_go_cache
       - run:
-          name: Trigger Documentation Update
+          name: Publish Documentation
           command: ./scripts/shell-wrapper.sh ci/release/docs.sh
 
 workflows:
@@ -105,7 +125,6 @@ workflows:
               only:
                 - master
                 - main
-                - rc
       - release-dryrun:
           context:
             - docker-registry
@@ -117,18 +136,26 @@ workflows:
               ignore:
                 - master
                 - main
-                - rc
       - test:
           context:
             - ghaccesstoken
             - docker-registry
             - npm-credentials
-      - trigger_documentation:
+            ###Block(circleTestContext)
+            ###EndBlock(circleTestContext)
+      - publish_docs:
           context:
             - ghaccesstoken
             - docker-registry
+            - confluence
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+      - finalize-coverage:
+          context:
+            - docker-registry
+            - ghaccesstoken
+          requires:
+            - test

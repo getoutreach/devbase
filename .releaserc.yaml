@@ -1,9 +1,6 @@
 preset: conventionalcommits
 branches:
-  - name: master
   - name: main
-  - name: rc
-    prerelease: true
 plugins:
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
@@ -13,8 +10,7 @@ plugins:
           release: patch
   # Block major version upgrades due to us not supporting them that well. This can
   # be disabled by setting releaseOptions.allowMajorVersions, but be warned this
-  # is not well supported for services. Please talk to #dev-tooling-support before
-  # doing this to save yourself from issues.
+  # is not well supported for services.
   - - "@semantic-release/exec"
     # We use generateNotesCmd instead of verifyConditionsCmd because it has access
     # to last/nextRelease due to when the step runs.
@@ -24,12 +20,3 @@ plugins:
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
-  ###Deviation(customRelease): We publish an orb
-  ###Block(customRelease)
-  # Build the orb
-  - - "@semantic-release/exec"
-    - prepareCmd: make
-  - - "semantic-release-circleci-orb"
-    - orbName: "getoutreach/shared"
-      orbPath: "orb.yml"
-  ###EndBlock(customRelease)
