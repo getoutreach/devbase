@@ -300,16 +300,16 @@ func main() { //nolint:funlen,gocyclo
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
+	}
 
-		log.Info().Msg("Running devconfig")
-		cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Run()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to run devconfig")
-		}
+	log.Info().Msg("Running devconfig")
+	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
 	if !localizer.IsRunning() {
