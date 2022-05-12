@@ -1,0 +1,34 @@
+name: Create Bootstrap PR
+on:
+  release:
+    types: [published]
+
+jobs:
+  create-bootstrap-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: getoutreach/bootstrap
+          ref: "main"
+      - name: Bump devbase
+        run: |-
+          sed -E 's/devbase: (.+)/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
+      - name: weekly-issue-closure
+        uses: bdougie/close-issues-based-on-label@v1.2
+        env:
+          LABEL: devbase
+          GITHUB_TOKEN: ${{ secrets.PAT_OUTREACH_CI }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.PAT_OUTREACH_CI }}
+          commit-message: "fix: Update devbase to ${{ github.event.release.tag_name }}"
+          title: "fix: Update devbase to ${{ github.event.release.tag_name }}"
+          labels: "devbase"
+          branch: generated/devbase-${{ github.event.release.tag_name }}
+          delete-branch: true
+          body: |-
+            Automatically generated PR to update devbase to ${{ github.event.release.tag_name }}.
+
+            For release information, see: [${{ github.event.release.tag_name }}](https://github.com/getoutreach/devbase/releases/${{ github.event.release.tag_name }})
