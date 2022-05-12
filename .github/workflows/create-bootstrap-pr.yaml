@@ -13,7 +13,7 @@ jobs:
           ref: "main"
       - name: Bump devbase
         run: |-
-          sed 's/devbase: 1.63.2/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
+          sed -E 's/devbase: (.+)/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
       - name: weekly-issue-closure
         uses: bdougie/close-issues-based-on-label@v1.2
         env:
