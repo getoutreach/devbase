@@ -15,11 +15,6 @@ jobs:
       - name: Bump devbase
         run: |-
           sed -E 's/devbase: (.+)/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
-      - name: weekly-issue-closure
-        uses: bdougie/close-issues-based-on-label@v1.2
-        env:
-          LABEL: devbase
-          GITHUB_TOKEN: ${{ secrets.PAT_OUTREACH_CI }}
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
