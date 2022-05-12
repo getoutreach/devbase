@@ -65,7 +65,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 	auth := sshhelper.NewExistingSSHAgentCallback(a)
 
-	s, err := parseServiceYaml(ctx)
+	s, err := parseServiceYaml()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse service.yaml")
 	}
@@ -147,20 +147,19 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 	return nil
 }
 
-func parseServiceYaml(_ context.Context) (*Service, error) {
+func parseServiceYaml() (*Service, error) {
 	f, err := os.Open("service.yaml")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read service.yaml")
 	}
 	defer f.Close()
 
-	var s *Service
-	err = yaml.NewDecoder(f).Decode(&s)
-	if err != nil {
+	var s Service
+	if err = yaml.NewDecoder(f).Decode(&s); err != nil {
 		return nil, errors.Wrapf(err, "failed to parse service.yaml")
 	}
 
-	return s, nil
+	return &s, nil
 }
 
 //nolint:unparam // Why: keeping in the interface for now
@@ -283,7 +282,7 @@ func main() { //nolint:funlen,gocyclo
 			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
-	s, err := parseServiceYaml(ctx)
+	s, err := parseServiceYaml()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
 	}
