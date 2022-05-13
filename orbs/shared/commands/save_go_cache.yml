@@ -6,7 +6,7 @@ steps:
       paths:
         - "~/go/pkg/mod"
         - "~/.cache/go-build"
-        - "~/.cache/golangci-lint"
+        - "~/.outreach/.cache/.golangci-lint"
         - "~/.outreach/.cache/gobin/binaries"
   - run:
       name: Cleanup Go Version Detection
