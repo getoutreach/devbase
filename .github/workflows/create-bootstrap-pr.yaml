@@ -14,7 +14,7 @@ jobs:
           ref: "main"
       - name: Bump devbase
         run: |-
-          sed -E 's/devbase: (.+)/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
+          sed -i -E 's/devbase: (.+)/devbase: ${{ github.event.release.tag_name }}/' versions.yaml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
