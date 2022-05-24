@@ -16,14 +16,6 @@ source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
 PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
 
-if [[ -n $CIRCLECI ]]; then
-  {
-    echo "warning: running protobuf generation in CI is only supported for bootstrap and is DEPRECATED"
-    echo "         this will result in only Go protobuf artifacts being generated"
-  } >&2
-  exec protoc --go_out=plugins=grpc,paths=source_relative:. --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
-fi
-
 # Fallback if uid/gid is somehow empty
 if [[ -z $uid ]] || [[ -z $gid ]]; then
   echo "Error: Failed to determine the uid/gid of the current user. Defaulting to standard 1000." >&2
@@ -62,25 +54,39 @@ for import in $(get_list "go-protoc-imports"); do
     exit $exit_code
   fi
 done
-# Create the protoc container.
+
+# This is where the plugins will be installed, the path could definitely change
+# since we're using asdf to manage go versions.
+goenvbin="$(go env GOPATH)/bin"
+
+info "Ensuring protoc plugins are installed"
+
+info_sub "protoc-gen-validate"
+go get -d github.com/envoyproxy/protoc-gen-validate@v0.6.7
+go install github.com/envoyproxy/protoc-gen-validate@v0.6.7
+
+info_sub "protoc-gen-go"
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+
+info_sub "protoc-gen-go-grpc"
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+
+info_sub "protoc-gen-doc"
+go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+
 info "Generating GRPC Clients"
-# shellcheck disable=SC2046 # Why: We want it to split
-CONTAINER_ID=$(docker run --rm -v "$(get_repo_directory)/api:/defs" \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-v $(get_import_path "$import"):/mod/$(get_import_basename "$import")"; done) \
-  --entrypoint bash -d "$IMAGE" -c 'exec tail -f /dev/null')
-
-trap 'docker stop -t0 $CONTAINER_ID >/dev/null' EXIT
-
-# Create a localuser matching our gid and uid to prevent issues with file permissions.
-docker exec "$CONTAINER_ID" sh -c "groupadd -f --gid $gid localuser && useradd --uid $uid --gid $gid localuser"
 
 # Create the language specific clients
 info_sub "go"
-# shellcheck disable=SC2046 # Why: We want it to split
-docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l go \
-  $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
-  $(if has_feature "validation"; then echo "--with-validator --validator-source-relative"; fi) \
-  --go-source-relative -o ./ --with-docs html,index.html
+exec protoc \
+  --plugin=protoc-gen-go=$goenvbin/protoc-gen-go --plugin=protoc-gen-go-grpc=$goenvbin/protoc-gen-go-grpc \
+  --go_out=. --go_opt=paths=source_relative \
+  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+  $(for import in $(get_list "go-protoc-imports"); do echo "--proto_path=/mod/$(get_import_basename "$import")"; done) \
+  $(if has_feature "validation"; then echo "--proto_path=$(go env GOPATH)/src/github.com/envoyproxy/protoc-gen-validate --plugin=protoc-gen-validate=$goenvbin/protoc-gen-validate --validate_out=lang=go:$(get_repo_directory)/api"; fi) \
+  --plugin=protoc-gen-doc=$goenvbin/protoc-gen-doc --doc_out="$(get_repo_directory)/api/doc" --doc_opt=html,index.html \
+  --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
+
 mkdir -p "$PROTO_DOCS_DIR"
 mv "$(get_repo_directory)"/api/doc/index.html "$PROTO_DOCS_DIR"
 
