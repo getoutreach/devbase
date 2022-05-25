@@ -63,8 +63,8 @@ info "Generating Go gRPC client"
 info_sub "Ensuring Go protoc plugins are installed"
 
 protoc_gen_validate=$("$GOBIN" -p github.com/envoyproxy/protoc-gen-validate@v"$(get_application_version "protoc-gen-validate")")
-protoc_gen_go=$("$GOBIN" -p google.golang.org/protobuf/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
-protoc_gen_go_grpc=$("$GOBIN" -p google.golang.org/grpc/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
+protoc_gen_go=$("$GOBIN" -p github.com/protocolbuffers/protobuf-go/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
+protoc_gen_go_grpc=$("$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
 protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
 
 info_sub "Running Go protobuf generation"
