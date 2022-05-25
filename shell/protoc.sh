@@ -58,24 +58,15 @@ for import in "$imports"; do
   git clone --depth 1 --branch "$version" "$module" "$import_path"
 done
 
-info "Ensuring protoc plugins are installed"
+info "Generating Go gRPC client"
+info_sub "Ensuring Go protoc plugins are installed"
 
-info_sub "protoc-gen-validate"
 protoc_gen_validate="$($GOBIN -p github.com/envoyproxy/protoc-gen-validate@v0.6.7)"
-
-info_sub "protoc-gen-go"
 protoc_gen_go="$($GOBIN -p google.golang.org/protobuf/cmd/protoc-gen-go@v1.28)"
-
-info_sub "protoc-gen-go-grpc"
 protoc_gen_go_grpc="$($GOBIN -p google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2)"
-
-info_sub "protoc-gen-doc"
 protoc_gen_doc="$($GOBIN -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1)"
 
-info "Generating GRPC Clients"
-
-# Create the language specific clients
-info_sub "go"
+info_sub "Running Go protobuf generation"
 exec protoc \
   --plugin=protoc-gen-go="$protoc_gen_go" --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc" \
   --go_out=. --go_opt=paths=source_relative \
@@ -88,21 +79,47 @@ exec protoc \
 mkdir -p "$PROTO_DOCS_DIR"
 mv "$(get_repo_directory)"/api/doc/index.html "$PROTO_DOCS_DIR"
 
-# Legacy below this, need to deal with.
-IMAGE="gcr.io/outreach-docker/protoc:1.37_2"
-
 if has_grpc_client "node"; then
-  info_sub "node"
-  # shellcheck disable=SC2046 # Why: We want it to split
-  docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l node \
-    $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
-    --with-typescript -o "./clients/node/src/grpc/"
+  info "Generating Node gRPC client"
+  info_sub "Ensuring Node protoc plugins are installed"
+
+  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/1.11.2"
+  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
+
+  # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
+  # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
+  npm install -g \
+    $(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64" ; fi) \
+    --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" \
+    grpc-tools@1.11.2
+
+  grpc_tools_node_bin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc"
+  grpc_tools_node_plugin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc_plugin"
+
+  info_sub "Running Node protobuf generation"
+  exec "$grpc_tools_ruby_bin" \
+    --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin" \
+    --js_out="$(get_repo_directory)/api/clients/node/src/grpc" \ 
+    --grpc_out="$(get_repo_directory)/api/clients/node/src/grpc" \
+    $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
+    --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
 
 if has_grpc_client "ruby"; then
-  info_sub "ruby"
-  # shellcheck disable=SC2046 # Why: We want it to split
-  docker exec --user localuser "$CONTAINER_ID" entrypoint.sh -f './*.proto' -l ruby \
-    $(for import in $(get_list "go-protoc-imports"); do echo "-i /mod/$(get_import_basename "$import")"; done) \
-    -o "./clients/ruby/lib/$(get_app_name)_client"
+  info "Generating Ruby gRPC client"
+  info_sub "Ensuring Ruby protoc plugins are installed"
+
+  gem install grpc -v 1.46.3
+  gem install grpc-tools -v 1.46.3
+
+  grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-1.46.3/bin/grpc_tools_ruby_protoc"
+  grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-1.46.3/bin/grpc_tools_ruby_protoc_plugin"
+
+  info_sub "Running Ruby protobuf generation"
+  exec "$grpc_tools_ruby_bin" \
+    --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin" \
+    --ruby_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client" \ 
+    --grpc_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client" \
+    $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
+    --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
