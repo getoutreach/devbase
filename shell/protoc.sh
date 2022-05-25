@@ -99,8 +99,8 @@ if has_grpc_client "node"; then
   info_sub "Running Node protobuf generation"
   exec "$grpc_tools_ruby_bin" \
     --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin" \
-    --js_out="$(get_repo_directory)/api/clients/node/src/grpc" \ 
-    --grpc_out="$(get_repo_directory)/api/clients/node/src/grpc" \
+    --js_out=import_style=commonjs,binary:"$(get_repo_directory)/api/clients/node/src/grpc" \ 
+    --grpc_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc" \
     $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
     --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
