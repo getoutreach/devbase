@@ -10,6 +10,7 @@ LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
 SHELLFMTPATH="$DIR/shfmt.sh"
 SHELLCHECKPATH="$DIR/shellcheck.sh"
 GOBIN="$DIR/gobin.sh"
+PROTOFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
 
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
@@ -54,9 +55,9 @@ if ! has_feature "library"; then
   fi
 fi
 
-info_sub "clang-format"
-if ! git ls-files '*.proto' | xargs -n40 "$DIR/clang-format-validate.sh"; then
-  error "clang-format failed on some files. Run 'make fmt' to fix."
+info_sub "protobuf"
+if ! "$PROTOFMT" format --exit-code >/dev/null 2>&1; then
+  error "protobuf format (buf format) failed on some files. Run 'make fmt' to fix."
   exit 1
 fi
 

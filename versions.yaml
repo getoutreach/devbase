@@ -14,9 +14,14 @@ clerkgenproto: 1.23.0
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
 
-# protoc plugins
-protoc-gen-go: 1.4.2
-protoc-gen-doc: 1.5.0
+# protobuf formatters/plugins/tools/etc
+buf: 1.4.0 # formatter
+protoc-gen-validate: 0.6.7
+protoc-gen-go: 1.28
+protoc-gen-go-grpc: 1.2
+protoc-gen-doc: 1.5.1
+node-grpc-tools: 1.11.2
+ruby-grpc-tools: 1.46.3
 
 # confluence publishing tools
 getoutreach/markdowntools/visualizemd: v0.0.29

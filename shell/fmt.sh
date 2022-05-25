@@ -16,6 +16,7 @@ JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnet
 GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
 SHELLFMTPATH="$SCRIPTS_DIR/shfmt.sh"
 GOFMT="${GOFMT:-gofmt}"
+PROTOFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
 
 info "Running Formatters"
 
@@ -71,8 +72,8 @@ for ext in "jsonnet" "libsonnet"; do
   for_all_files '*.'${ext} "$JSONNETFMT" -i
 done
 
-info_sub "clang-format"
-for_all_files '*.proto' "$SCRIPTS_DIR/clang-format.sh" -style=file -i
+info_sub "protobuf"
+"$PROTOFMT" format -w
 
 info_sub "shfmt"
 for_all_files '*.sh' "$SHELLFMTPATH" -w -l

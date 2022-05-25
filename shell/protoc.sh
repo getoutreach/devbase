@@ -19,25 +19,26 @@ info "Ensuring protoc imports are avaliable locally"
 imports="$(get_list "go-protoc-imports")"
 
 # Add default imports so they can get dealt with in the following loop just like custom imports.
-if [[ has_feature "validation" ]]; then
-  imports="${imports}{\"module\":\"github.com/envoyproxy/protoc-gen-validate@v0.6.7\",\"path\":\"\"}$'\n'"
+if has_feature "validation"; then
+  imports="${imports}{\"module\":\"github.com/envoyproxy/protoc-gen-validate@v$(get_application_version "protoc-gen-validate")\",\"path\":\"\"}$'\n'"
 fi
 
 protoc_imports=()
-for import in "$imports"; do
+for import in $imports; do
   module_version_str=$(jq -r .module <<<"$import")
   info_sub "$module_version_str"
 
+  # shellcheck disable=SC2206
   module_version_arr=(${module_version_str//@/ })
-  module=${module_version_arr[0]}
+  module="${module_version_arr[0]}"
   version="latest"
 
   if [[ ${#module_version_arr[@]} -eq 2 ]]; then
-    version=${module_version_arr[1]}
+    version="${module_version_arr[1]}"
   fi
 
   if [[ $version == "latest" ]]; then
-    version="$(gh release -R $module list -L 1 | awk '{print $1}')"
+    version="$(gh release -R "$module" list -L 1 | awk '{print $1}')"
   fi
 
   import_path="$PROTOC_IMPORTS_BASE_PATH/$module/$version"
@@ -46,10 +47,10 @@ for import in "$imports"; do
 
   # Add import to list
   protoc_imports+=("$import_path/$path")
-  
+
   # Check to see if we already have this version locally and skip cloning
   # if we already do.
-  if [[ -d "$import_path" ]]; then
+  if [[ -d $import_path ]]; then
     continue
   fi
 
@@ -61,47 +62,47 @@ done
 info "Generating Go gRPC client"
 info_sub "Ensuring Go protoc plugins are installed"
 
-protoc_gen_validate="$($GOBIN -p github.com/envoyproxy/protoc-gen-validate@v0.6.7)"
-protoc_gen_go="$($GOBIN -p google.golang.org/protobuf/cmd/protoc-gen-go@v1.28)"
-protoc_gen_go_grpc="$($GOBIN -p google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2)"
-protoc_gen_doc="$($GOBIN -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1)"
+protoc_gen_validate=$("$GOBIN" -p github.com/envoyproxy/protoc-gen-validate@v"$(get_application_version "protoc-gen-validate")")
+protoc_gen_go=$("$GOBIN" -p google.golang.org/protobuf/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
+protoc_gen_go_grpc=$("$GOBIN" -p google.golang.org/grpc/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
+protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
 
 info_sub "Running Go protobuf generation"
-exec protoc \
+protoc \
   --plugin=protoc-gen-go="$protoc_gen_go" --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc" \
   --go_out=. --go_opt=paths=source_relative \
   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
-  $(if has_feature "validation"; then echo "--plugin=protoc-gen-validate=$protoc_gen_validate --validate_out=lang=go:$(get_repo_directory)/api"; fi) \
+  "$(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done)" \
+  "$(if has_feature "validation"; then echo "--plugin=protoc-gen-validate=$protoc_gen_validate --validate_out=lang=go:$(get_repo_directory)/api"; fi)" \
   --plugin=protoc-gen-doc="$protoc_gen_doc" --doc_out="$(get_repo_directory)/api/doc" --doc_opt=html,index.html \
   --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 
 mkdir -p "$PROTO_DOCS_DIR"
-mv "$(get_repo_directory)"/api/doc/index.html "$PROTO_DOCS_DIR"
+mv "$(get_repo_directory)/api/doc/index.html" "$PROTO_DOCS_DIR"
 
 if has_grpc_client "node"; then
   info "Generating Node gRPC client"
   info_sub "Ensuring Node protoc plugins are installed"
 
-  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/1.11.2"
+  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$(get_application_version "node-grpc-tools")"
   mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
 
   # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
   # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
   npm install -g \
-    $(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64" ; fi) \
+    "$(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64"; fi)" \
     --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" \
-    grpc-tools@1.11.2
+    grpc-tools@"$(get_application_version "node-grpc-tools")"
 
   grpc_tools_node_bin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc"
   grpc_tools_node_plugin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc_plugin"
 
   info_sub "Running Node protobuf generation"
-  exec "$grpc_tools_ruby_bin" \
-    --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin" \
-    --js_out=import_style=commonjs,binary:"$(get_repo_directory)/api/clients/node/src/grpc" \ 
+  "$grpc_tools_node_bin" \
+    --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_node_plugin" \
+    --js_out=import_style=commonjs,binary:"$(get_repo_directory)/api/clients/node/src/grpc" \
     --grpc_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc" \
-    $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
+    "$(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done)" \
     --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
 
@@ -109,17 +110,17 @@ if has_grpc_client "ruby"; then
   info "Generating Ruby gRPC client"
   info_sub "Ensuring Ruby protoc plugins are installed"
 
-  gem install grpc -v 1.46.3
-  gem install grpc-tools -v 1.46.3
+  gem install grpc -v "$(get_application_version "ruby-grpc-tools")"
+  gem install grpc-tools -v "$(get_application_version "ruby-grpc-tools")"
 
-  grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-1.46.3/bin/grpc_tools_ruby_protoc"
-  grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-1.46.3/bin/grpc_tools_ruby_protoc_plugin"
+  grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$(get_application_version "ruby-grpc-tools")/bin/grpc_tools_ruby_protoc"
+  grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$(get_application_version "ruby-grpc-tools")/bin/grpc_tools_ruby_protoc_plugin"
 
   info_sub "Running Ruby protobuf generation"
-  exec "$grpc_tools_ruby_bin" \
+  "$grpc_tools_ruby_bin" \
     --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin" \
-    --ruby_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client" \ 
+    --ruby_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client" \
     --grpc_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client" \
-    $(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done) \
+    "$(for i in "${protoc_imports[@]}"; do echo "--proto_path=$i"; done)" \
     --proto_path "$(get_repo_directory)/api" "$(get_repo_directory)/api/"*.proto
 fi
