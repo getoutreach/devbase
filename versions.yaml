@@ -18,7 +18,7 @@ getoutreach/ci: v1.3.0
 buf: 1.4.0 # formatter
 protoc-gen-validate: 0.6.7
 protoc-gen-go: 1.28.0
-protoc-gen-go-grpc: 1.28.0
+protoc-gen-go-grpc: 1.46.0
 protoc-gen-doc: 1.5.1
 node-grpc-tools: 1.11.2
 ruby-grpc-tools: 1.46.3
