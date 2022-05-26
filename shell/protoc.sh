@@ -62,20 +62,28 @@ done
 info "Generating Go gRPC client"
 info_sub "Ensuring Go protoc plugins are installed"
 
-protoc_gen_go=$("$GOBIN" -p github.com/protocolbuffers/protobuf-go/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
-protoc_gen_go_grpc=$(BUILD_DIR=cmd/go-gen-go-grpc BUILD_PATH=. "$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
+protoc_gen_go=$("$GOBIN" -p github.com/golang/protobuf/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
 protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
+
+# Whenever we go to the non-deprecated version of golang protobuf generation
+# these should be uncommented as well as the lines in the go_args array. Keep
+# in mind whenever this is done we will need to remove the duplicate protoc_gen_go
+# above and uncomment the versions commented out in versions.yaml.
+# ---
+# protoc_gen_go=$("$GOBIN" -p github.com/protocolbuffers/protobuf-go/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
+# protoc_gen_go_grpc=$(BUILD_DIR=cmd/protoc-gen-go-grpc BUILD_PATH=. "$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
 
 info_sub "Running Go protobuf generation"
 
 go_args=("${default_args[@]}")
 go_args+=(
   --plugin=protoc-gen-go="$protoc_gen_go"
-  --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
-  --go_out=.
+  # --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
+  # --go_out=.
+  --go_out=plugins=grpc:. # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
   --go_opt=paths=source_relative
-  --go-grpc_out=.
-  --go-grpc_opt=paths=source_relative
+  # --go-grpc_out=.
+  # --go-grpc_opt=paths=source_relative
   --plugin=protoc-gen-doc="$protoc_gen_doc"
   --doc_out="$(get_repo_directory)/api/doc"
   "--doc_opt=html,index.html"
