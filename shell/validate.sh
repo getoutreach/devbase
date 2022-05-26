@@ -6,11 +6,6 @@ set -e -o pipefail
 # faster at little cost with:
 # `LINTER=/bin/true make test``
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
-SHELLFMTPATH="$DIR/shfmt.sh"
-SHELLCHECKPATH="$DIR/shellcheck.sh"
-GOBIN="$DIR/gobin.sh"
-PROTOFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
 
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
@@ -18,6 +13,12 @@ source "$DIR/lib/logging.sh"
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./languages/nodejs.sh
 source "$DIR/languages/nodejs.sh"
+
+LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
+SHELLFMTPATH="$DIR/shfmt.sh"
+SHELLCHECKPATH="$DIR/shellcheck.sh"
+GOBIN="$DIR/gobin.sh"
+PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
 
 info "Running linters"
 
