@@ -21,7 +21,7 @@ if [[ $1 == "-p" ]]; then
 fi
 
 if [[ -z $1 ]] || [[ $1 =~ ^(--help|-h) ]]; then
-  echo "Usage: $0 [-p|-h|--help] <package> [args]" >&2
+  echo "Usage: [BUILD_DIR=...|BUILD_PATH=...] $0 [-p|-h|--help] <package> [args]" >&2
   exit 1
 fi
 
@@ -47,8 +47,25 @@ if [[ -z $GOBIN_PATH ]]; then
   popd >/dev/null || exit 1
 fi
 
+gobin_args=(
+  --skip-update
+  -p
+)
+
+if [[ -n $BUILD_DIR ]]; then
+  gobin_args+=(
+    --build-dir "$BUILD_DIR"
+  )
+fi
+
+if [[ -n $BUILD_PATH ]]; then
+  gobin_args+=(
+    --build-path "$BUILD_PATH"
+  )
+fi
+
 # retry w/ 5s interval, 5 times
-BIN_PATH=$(retry 5 5 "$GOBIN_PATH" --skip-update -p "$1")
+BIN_PATH=$(retry 5 5 "$GOBIN_PATH" "${gobin_args[@]}" "$1")
 if [[ -z $BIN_PATH ]]; then
   echo "Error: Failed to run $1" >&2
   exit 1

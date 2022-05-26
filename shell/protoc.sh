@@ -62,9 +62,8 @@ done
 info "Generating Go gRPC client"
 info_sub "Ensuring Go protoc plugins are installed"
 
-protoc_gen_validate=$("$GOBIN" -p github.com/envoyproxy/protoc-gen-validate@v"$(get_application_version "protoc-gen-validate")")
 protoc_gen_go=$("$GOBIN" -p github.com/protocolbuffers/protobuf-go/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
-protoc_gen_go_grpc=$("$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
+protoc_gen_go_grpc=$(BUILD_DIR=cmd/go-gen-go-grpc BUILD_PATH=. "$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
 protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
 
 info_sub "Running Go protobuf generation"
@@ -79,11 +78,13 @@ go_args+=(
   --go-grpc_opt=paths=source_relative
   --plugin=protoc-gen-doc="$protoc_gen_doc"
   --doc_out="$(get_repo_directory)/api/doc"
-  --doc_opt=html,index.html
+  "--doc_opt=html,index.html"
   --proto_path="$(get_repo_directory)/api"
 )
 
 if has_feature "validation"; then
+  protoc_gen_validate=$("$GOBIN" -p github.com/envoyproxy/protoc-gen-validate@v"$(get_application_version "protoc-gen-validate")")
+
   go_args+=(
     --plugin=protoc-gen-validate="$protoc_gen_validate"
     --validate_out=lang=go:"$(get_repo_directory)/api"
@@ -99,15 +100,21 @@ if has_grpc_client "node"; then
   info "Generating Node gRPC client"
   info_sub "Ensuring Node protoc plugins are installed"
 
-  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$(get_application_version "node-grpc-tools")"
-  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
+  node_tools_version="$(get_application_version "node-grpc-tools")"
 
-  # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
-  # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
-  npm install -g \
-    "$(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64"; fi)" \
-    --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" \
-    grpc-tools@"$(get_application_version "node-grpc-tools")"
+  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$node_tools_version"
+
+  if ! npm list -g --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" | grep grpc-tools@"$node_tools_version" >/dev/null 2>&1; then
+    # the version of grpc-tools for node we need is not installed.
+    mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
+
+    # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
+    # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
+    npm install -g \
+      "$(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64"; fi)" \
+      --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" \
+      grpc-tools@"$node_tools_version"
+  fi
 
   grpc_tools_node_bin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc"
   grpc_tools_node_plugin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc_plugin"
@@ -117,7 +124,7 @@ if has_grpc_client "node"; then
   node_args=("${default_args[@]}")
   node_args+=(
     --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_node_plugin"
-    --js_out=import_style=commonjs,binary:"$(get_repo_directory)/api/clients/node/src/grpc"
+    "--js_out=import_style=commonjs,binary:$(get_repo_directory)/api/clients/node/src/grpc"
     --grpc_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
     --proto_path "$(get_repo_directory)/api"
   )
@@ -129,11 +136,21 @@ if has_grpc_client "ruby"; then
   info "Generating Ruby gRPC client"
   info_sub "Ensuring Ruby protoc plugins are installed"
 
-  gem install grpc -v "$(get_application_version "ruby-grpc-tools")"
-  gem install grpc-tools -v "$(get_application_version "ruby-grpc-tools")"
+  ruby_grpc_tools_version="$(get_application_version "ruby-grpc-tools")"
 
-  grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$(get_application_version "ruby-grpc-tools")/bin/grpc_tools_ruby_protoc"
-  grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$(get_application_version "ruby-grpc-tools")/bin/grpc_tools_ruby_protoc_plugin"
+  # Escape the periods in the version string so it can be used in a regular expression.
+  ruby_grpc_tools_version_escaped="${ruby_grpc_tools_version//\./\\.}"
+
+  if ! gem list | grep -E "^grpc\s+\($ruby_grpc_tools_version_escaped.*?\)$" >/dev/null 2>&1; then
+    gem install grpc -v "$ruby_grpc_tools_version"
+  fi
+
+  if ! gem list | grep -E "^grpc-tools\s+\($ruby_grpc_tools_version_escaped.*?\)$" >/dev/null 2>&1; then
+    gem install grpc-tools -v "$ruby_grpc_tools_version"
+  fi
+
+  grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$ruby_grpc_tools_version/bin/grpc_tools_ruby_protoc"
+  grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$ruby_grpc_tools_version/bin/grpc_tools_ruby_protoc_plugin"
 
   info_sub "Running Ruby protobuf generation"
 
