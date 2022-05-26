@@ -151,14 +151,11 @@ if has_grpc_client "ruby"; then
 
   ruby_grpc_tools_version="$(get_application_version "ruby-grpc-tools")"
 
-  # Escape the periods in the version string so it can be used in a regular expression.
-  ruby_grpc_tools_version_escaped="${ruby_grpc_tools_version//\./\\.}"
-
-  if ! gem list | grep -E "^grpc\s+\($ruby_grpc_tools_version_escaped.*?\)$" >/dev/null 2>&1; then
+  if ! gem list | grep "grpc (" | grep "$ruby_grpc_tools_version" >/dev/null 2>&1; then
     gem install grpc -v "$ruby_grpc_tools_version"
   fi
 
-  if ! gem list | grep -E "^grpc-tools\s+\($ruby_grpc_tools_version_escaped.*?\)$" >/dev/null 2>&1; then
+  if ! gem list | grep "grpc-tools (" | grep "$ruby_grpc_tools_version" >/dev/null 2>&1; then
     gem install grpc-tools -v "$ruby_grpc_tools_version"
   fi
 
