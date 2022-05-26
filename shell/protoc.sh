@@ -46,17 +46,17 @@ for import in $imports; do
   path=${path#"/"} # Trim / prefix if it exists.
 
   # Add import to list
-  default_args+=("--proto-path=$import_path/$path")
+  default_args+=("--proto_path=$import_path/$path")
 
   # Check to see if we already have this version locally and skip cloning
   # if we already do.
-  if [[ -d $import_path ]]; then
+  if [[ -d "$import_path" && -d "$import_path/.git" ]]; then
     continue
   fi
 
   # Clone import into the import path since we don't have it already
   mkdir -p "$import_path"
-  git clone --depth 1 --branch "$version" "$module" "$import_path"
+  git clone --depth 1 --branch "$version" https://"$module" "$import_path"
 done
 
 info "Generating Go gRPC client"
@@ -99,8 +99,13 @@ if has_feature "validation"; then
   )
 fi
 
+# Make docs output directory if it doesn't exist.
+mkdir -p "$(get_repo_directory)/api/doc"
+
+# Run protoc for Go.
 protoc "${go_args[@]}" "$(get_repo_directory)/api/"*.proto
 
+# Move docs into the actual docs directory. 
 mkdir -p "$PROTO_DOCS_DIR"
 mv "$(get_repo_directory)/api/doc/index.html" "$PROTO_DOCS_DIR"
 
