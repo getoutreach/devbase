@@ -116,10 +116,10 @@ if has_grpc_client "node"; then
   node_tools_version="$(get_application_version "node-grpc-tools")"
 
   NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$node_tools_version"
+  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
 
   if ! npm list -g --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" | grep grpc-tools@"$node_tools_version" >/dev/null 2>&1; then
     # the version of grpc-tools for node we need is not installed.
-    mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
 
     # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
     # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
