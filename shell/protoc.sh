@@ -50,7 +50,7 @@ for import in $imports; do
 
   # Check to see if we already have this version locally and skip cloning
   # if we already do.
-  if [[ -d "$import_path" && -d "$import_path/.git" ]]; then
+  if [[ -d $import_path && -d "$import_path/.git" ]]; then
     continue
   fi
 
@@ -105,7 +105,7 @@ mkdir -p "$(get_repo_directory)/api/doc"
 # Run protoc for Go.
 protoc "${go_args[@]}" "$(get_repo_directory)/api/"*.proto
 
-# Move docs into the actual docs directory. 
+# Move docs into the actual docs directory.
 mkdir -p "$PROTO_DOCS_DIR"
 mv "$(get_repo_directory)/api/doc/index.html" "$PROTO_DOCS_DIR"
 

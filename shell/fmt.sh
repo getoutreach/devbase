@@ -58,27 +58,27 @@ for_all_files() {
   find . "${find_args[@]}"
 }
 
-info_sub "goimports"
+info_sub "goimports (.go)"
 for_all_files '*.go' "$GOIMPORTS" -w
 
-info_sub "gofmt"
+info_sub "gofmt (.go)"
 for_all_files '*.go' gofmt -w -s
 
 info_sub "go mod tidy"
 go mod tidy
 
-info_sub "jsonnetfmt"
+info_sub "jsonnetfmt (.jsonnet/.libsonnet)"
 for ext in "jsonnet" "libsonnet"; do
   for_all_files '*.'${ext} "$JSONNETFMT" -i
 done
 
-info_sub "protobuf"
+info_sub "buf (.proto)"
 "$PROTOFMT" format -w
 
-info_sub "shfmt"
+info_sub "shfmt (.sh)"
 for_all_files '*.sh' "$SHELLFMTPATH" -w -l
 
-info_sub "prettier (yaml/json/md)"
+info_sub "prettier (.yaml/.yml/.json/.md)"
 yarn_install_if_needed
 for ext in "yaml" "yml" "json" "md"; do
   for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
