@@ -24,7 +24,16 @@ while read -r line; do
   version=$(awk '{ print $2 }' <<< "$line")
 
   export "ASDF_${tool}_VERSION"="${version}"
-done < <(grep -v '^#' "${TOOLVERSIONS}")
+
+  # Strip comments just like `asdf` does:
+  # https://github.com/asdf-vm/asdf/blob/711ad991043a1980fa264098f29e78f2ecafd610/lib/utils.bash#L653
+  #
+  # Reverse the file because asdf (buggily? intentionally?)
+  # picks the first version it sees if there are duplicates.
+  #
+  # Uses the `sed` reverse mechanism described here for portability:
+  # https://stackoverflow.com/a/744093
+done < <(sed '/^[[:blank:]]*#/d;s/#.*//;s/[[:blank:]]*$//' "${TOOLVERSIONS}" | sed '1!G;h;$!d')
 
 asdf exec "$@"
 
