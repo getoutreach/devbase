@@ -20,8 +20,8 @@ source "$SCRIPTS_DIR/lib/bootstrap.sh"
 TOOLVERSIONS="$(get_repo_directory)/.tool-versions"
 
 while read -r line; do
-  tool=$(awk '{ print $1 }' <<< "$line" | tr '[:lower:]-' '[:upper:]_')
-  version=$(awk '{ print $2 }' <<< "$line")
+  tool=$(awk '{ print $1 }' <<<"$line" | tr '[:lower:]-' '[:upper:]_')
+  version=$(awk '{ print $2 }' <<<"$line")
 
   export "ASDF_${tool}_VERSION"="${version}"
 
@@ -36,4 +36,3 @@ while read -r line; do
 done < <(sed '/^[[:blank:]]*#/d;s/#.*//;s/[[:blank:]]*$//' "${TOOLVERSIONS}" | sed '1!G;h;$!d')
 
 asdf exec "$@"
-
