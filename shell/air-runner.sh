@@ -13,26 +13,26 @@ DEV_CONTAINER_EXECUTABLE="${DEV_CONTAINER_EXECUTABLE:-$APPNAME}"
 
 if [[ -z $KUBERNETES_SERVICE_HOST ]]; then
   exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@"
-else
-  if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
-    exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
-  else
-    logfmt=(
-      $"$DIR/gobin.sh"
-
-      "github.com/getoutreach/eng/cmd/logfmt@$(get_tool_version "getoutreach/eng")"
-    )
-
-    if [[ -n $LOGFMT_FORMAT ]]; then
-      logfmt+=(--format "$LOGFMT_FORMAT")
-    fi
-
-    if [[ -n $LOGFMT_FILTER ]]; then
-      logfmt+=(--filter "$LOGFMT_FILTER")
-    fi
-
-    exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" |
-      tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
-      "${logfmt[@]}"
-  fi
 fi
+
+if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
+  exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+fi
+
+logfmt=(
+  $"$DIR/gobin.sh"
+
+  "github.com/getoutreach/eng/cmd/logfmt@$(get_tool_version "getoutreach/eng")"
+)
+
+if [[ -n $LOGFMT_FORMAT ]]; then
+  logfmt+=(--format "$LOGFMT_FORMAT")
+fi
+
+if [[ -n $LOGFMT_FILTER ]]; then
+  logfmt+=(--filter "$LOGFMT_FILTER")
+fi
+
+exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" |
+  tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
+  "${logfmt[@]}"

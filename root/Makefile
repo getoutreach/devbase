@@ -34,7 +34,7 @@ FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test,or_int
 SKIP_VALIDATE       ?=
-LOGFMT			    ?=
+LOGFMT				?=
 
 # Outreach stuff, will be moved out... one day.
 OUTREACH_DOMAIN     ?= outreach-dev.com

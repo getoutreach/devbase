@@ -12,39 +12,38 @@ export CGO_ENABLED=1
 
 set -ex
 
-if [[ -n ${DLV_PORT} ]] && [[ -n $KUBERNETES_SERVICE_HOST ]]; then
-  delve=(
-    "$DIR/gobin.sh"
-    github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")"
-    exec
-    "$(get_repo_directory)/bin/${DEV_CONTAINER_EXECUTABLE:-$(get_app_name)}"
-    --headless
-    --listen=":${DLV_PORT}"
-  )
-
-  if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
-    exec "${delve[@]}" |
-      tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
-  else
-    logfmt=(
-      $"$DIR/gobin.sh"
-
-      "github.com/getoutreach/eng/cmd/logfmt@$(get_tool_version "getoutreach/eng")"
-    )
-
-    if [[ -n $LOGFMT_FORMAT ]]; then
-      logfmt+=(--format "$LOGFMT_FORMAT")
-    fi
-
-    if [[ -n $LOGFMT_FILTER ]]; then
-      logfmt+=(--filter "$LOGFMT_FILTER")
-    fi
-
-    exec "${delve[@]}" |
-      tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
-      "${logfmt[@]}"
-  fi
-
-else
+if [[ -z ${DLV_PORT} ]] && [[ -z $KUBERNETES_SERVICE_HOST ]]; then
   exec "$SCRIPTS_DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" debug --build-flags="-tags=or_dev" "$(get_repo_directory)/cmd/$(get_app_name)"
 fi
+
+delve=(
+  "$DIR/gobin.sh"
+  github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")"
+  exec
+  "$(get_repo_directory)/bin/${DEV_CONTAINER_EXECUTABLE:-$(get_app_name)}"
+  --headless
+  --listen=":${DLV_PORT}"
+)
+
+if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
+  exec "${delve[@]}" |
+    tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+fi
+
+logfmt=(
+  $"$DIR/gobin.sh"
+
+  "github.com/getoutreach/eng/cmd/logfmt@$(get_tool_version "getoutreach/eng")"
+)
+
+if [[ -n $LOGFMT_FORMAT ]]; then
+  logfmt+=(--format "$LOGFMT_FORMAT")
+fi
+
+if [[ -n $LOGFMT_FILTER ]]; then
+  logfmt+=(--filter "$LOGFMT_FILTER")
+fi
+
+exec "${delve[@]}" |
+  tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
+  "${logfmt[@]}"
