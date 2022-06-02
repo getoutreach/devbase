@@ -35,4 +35,4 @@ while read -r line; do
   # https://stackoverflow.com/a/744093
 done < <(sed '/^[[:blank:]]*#/d;s/#.*//;s/[[:blank:]]*$//' "${TOOLVERSIONS}" | sed '1!G;h;$!d')
 
-asdf exec "$@"
+exec asdf exec "$@"
