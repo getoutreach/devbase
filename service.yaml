@@ -1,0 +1,55 @@
+name: devbase
+reportingTeam: fnd-dtss
+description: A collection of scripts and ci configuration
+oss: true
+slack: ""
+library: true
+circleAPIKey: ""
+lintroller: bronze
+releaseType: ""
+deployTo:
+  environments: []
+arguments:
+  circleAPIKey: ""
+  commands: []
+  dependencies:
+    optional: []
+    required: []
+  description: A collection of scripts and ci configuration
+  grpcClients: []
+  kubernetes:
+    groups: []
+  lintroller: bronze
+  opslevel:
+    confluenceSpaceKey: ""
+    datadogDashboards:
+      mainLink: ""
+    designDocumentLink: ""
+  oss: true
+  releaseOptions:
+    allowMajorVersions: null
+    enablePrereleases: false
+  reportingTeam: fnd-dtss
+  service: false
+  tutorial: false
+  vaultSecrets:
+    - deploy/honeycomb_new/%(environment)s/honeycomb
+    - deploy/launchdarkly/%(environment)s/launchdarkly
+    - deploy/mint/%(environment)s/validation/mint-validator-payload
+    - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
+modules:
+  - name: github.com/getoutreach/stencil-base
+    version: v0.3.0-rc.2
+  - name: github.com/getoutreach/stencil-golang
+    version: v0.3.0-rc.4
+  - name: github.com/getoutreach/stencil-opslevel
+    version: v0.0.2-rc.5
+opsLevel:
+  serviceTier: 0
+  lifecycle: ""
+  confluenceSpaceKey: ""
+  pagerDutyLink: ""
+  datadogDashboards:
+    mainLink: ""
+    custom: []
+  designDocumentLink: ""
