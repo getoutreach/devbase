@@ -27,7 +27,7 @@ delve=(
 if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
   exec "${delve[@]}" |
     tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
-  
+
   exit
 fi
 
