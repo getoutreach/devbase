@@ -45,8 +45,6 @@ fi
 COLOR_CYAN="\033[0;36m"
 COLOR_RESET="\033[0m"
 
-APPNAME="$(get_app_name)"
-
 BANNER="${COLOR_CYAN}
    ____              ____
   |  _ \  _____   __/ ___| _ __   __ _  ___ ___
