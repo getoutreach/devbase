@@ -31,8 +31,8 @@ else
       logfmt+=(--filter "$LOGFMT_FILTER")
     fi
 
-    exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" | 
-      tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" | 
+    exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" |
+      tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
       "${logfmt[@]}"
   fi
 fi
