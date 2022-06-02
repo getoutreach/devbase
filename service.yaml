@@ -7,6 +7,9 @@ library: true
 circleAPIKey: ""
 lintroller: bronze
 releaseType: ""
+releaseOptions:
+  allowPrereleases: true
+  allowMajorVersions: true
 deployTo:
   environments: []
 arguments:
@@ -27,8 +30,8 @@ arguments:
     designDocumentLink: ""
   oss: true
   releaseOptions:
-    allowMajorVersions: null
-    enablePrereleases: false
+    allowMajorVersions: true
+    enablePrereleases: true
   reportingTeam: fnd-dtss
   service: false
   tutorial: false

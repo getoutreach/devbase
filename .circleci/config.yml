@@ -144,6 +144,7 @@ workflows:
               only:
                 - master
                 - main
+                - rc
       - release-dryrun:
           context:
             - docker-registry
@@ -155,6 +156,7 @@ workflows:
               ignore:
                 - master
                 - main
+                - rc
       - test:
           context:
             - ghaccesstoken
