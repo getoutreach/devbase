@@ -45,6 +45,7 @@ modules:
   - name: github.com/getoutreach/stencil-golang
   - name: github.com/getoutreach/stencil-opslevel
   - name: github.com/getoutreach/stencil-outreach
+  - name: github.com/getoutreach/stencil-circleci
 opsLevel:
   serviceTier: 0
   lifecycle: ""

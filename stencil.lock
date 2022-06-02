@@ -1,9 +1,9 @@
 version: v1.15.0
-generated: 2022-06-02T21:44:05.66285Z
+generated: 2022-06-02T22:34:03.157233Z
 modules:
-- name: github.com/getoutreach/stencil-outreach
-  url: https://github.com/getoutreach/stencil-outreach
-  version: v0.2.0
+- name: github.com/getoutreach/stencil-circleci
+  url: https://github.com/getoutreach/stencil-circleci
+  version: v0.1.6
 - name: github.com/getoutreach/stencil-base
   url: https://github.com/getoutreach/stencil-base
   version: v0.3.1
@@ -16,13 +16,16 @@ modules:
 - name: github.com/getoutreach/stencil-discovery
   url: https://github.com/getoutreach/stencil-discovery
   version: v1.0.0
+- name: github.com/getoutreach/stencil-outreach
+  url: https://github.com/getoutreach/stencil-outreach
+  version: v0.2.0
 files:
-- name: .vscode/outreach.code-snippets
-  template: .vscode/outreach.code-snippets.tpl
-  module: github.com/getoutreach/stencil-outreach
-- name: .vscode/private.env
-  template: .vscode/private.env.tpl
-  module: github.com/getoutreach/stencil-outreach
+- name: .circleci/config.yml
+  template: .circleci/config.yml.tpl
+  module: github.com/getoutreach/stencil-circleci
+- name: _helpers
+  template: _helpers.tpl
+  module: github.com/getoutreach/stencil-circleci
 - name: .editorconfig
   template: .editorconfig.tpl
   module: github.com/getoutreach/stencil-base
@@ -299,3 +302,9 @@ files:
 - name: opslevel.yml
   template: opslevel.yml.tpl
   module: github.com/getoutreach/stencil-opslevel
+- name: .vscode/outreach.code-snippets
+  template: .vscode/outreach.code-snippets.tpl
+  module: github.com/getoutreach/stencil-outreach
+- name: .vscode/private.env
+  template: .vscode/private.env.tpl
+  module: github.com/getoutreach/stencil-outreach
