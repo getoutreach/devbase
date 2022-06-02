@@ -10,10 +10,9 @@ export GOPROXY=https://proxy.golang.org
 export GOPRIVATE="github.com/getoutreach/*"
 export CGO_ENABLED=1
 
-set -ex
-
 if [[ -z ${DLV_PORT} ]] && [[ -z $KUBERNETES_SERVICE_HOST ]]; then
   exec "$SCRIPTS_DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" debug --build-flags="-tags=or_dev" "$(get_repo_directory)/cmd/$(get_app_name)"
+  exit
 fi
 
 delve=(
@@ -28,6 +27,8 @@ delve=(
 if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
   exec "${delve[@]}" |
     tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+  
+  exit
 fi
 
 logfmt=(

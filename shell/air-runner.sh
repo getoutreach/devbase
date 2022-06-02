@@ -13,10 +13,12 @@ DEV_CONTAINER_EXECUTABLE="${DEV_CONTAINER_EXECUTABLE:-$APPNAME}"
 
 if [[ -z $KUBERNETES_SERVICE_HOST ]]; then
   exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@"
+  exit
 fi
 
 if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
   exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+  exit
 fi
 
 logfmt=(
