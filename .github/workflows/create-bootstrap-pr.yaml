@@ -5,6 +5,7 @@ on:
 
 jobs:
   create-bootstrap-pr:
+    if: "!github.event.release.prerelease"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
