@@ -17,6 +17,6 @@ plugins:
     # Build the orb
   - - "@semantic-release/exec"
     - prepareCmd: make
-  - - "semantic-release-circleci-orb"
+  - - "@outreach/semantic-release-circleci-orb"
     - orbName: "getoutreach/shared"
       orbPath: "orb.yml"
