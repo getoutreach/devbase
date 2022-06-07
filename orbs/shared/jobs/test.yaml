@@ -11,34 +11,6 @@ parameters:
     default: $GCLOUD_SERVICE_ACCOUNT
     description: Environment variable to read docker password from
     type: string
-  postgres_version:
-    default: "13.3"
-    description: Postgres version to run
-    type: string
-  mysql_version:
-    default: "8.0"
-    description: MySQL version to run
-    type: string
-  redis_version:
-    default: "6.0"
-    description: Redis version to run
-    type: string
-  kafka_version:
-    default: "2.3"
-    description: Kafka version to run
-    type: string
-  minio_version:
-    default: bootstrap
-    description: Minio version to run
-    type: string
-  localstack_version:
-    default: "0.12.11"
-    description: Localstack version to run
-    type: string
-  localstack_services:
-    default: dynamodb
-    description: Services to run on localstack, comma separated
-    type: string
   resource_class:
     description: The resource class to use for the release
     type: string
@@ -46,51 +18,8 @@ parameters:
 
 resource_class: << parameters.resource_class >>
 
-# DEPRECATED: This will be removed in a future release. e2e should be used
-# for integration+e2e tests, NOT in CircleCI.
-docker:
-  - image: gcr.io/outreach-docker/bootstrap/ci:stable
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-  - image: gcr.io/outreach-docker/postgres:<< parameters.postgres_version >>
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-    environment:
-      POSTGRES_DB: << parameters.app_name >>
-      POSTGRES_HOST_AUTH_METHOD: trust
-  - image: gcr.io/outreach-docker/mysql:<< parameters.mysql_version >>
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: << parameters.app_name >>
-  - image: gcr.io/outreach-docker/redis:<< parameters.redis_version >>
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-  - image: gcr.io/outreach-docker/kafka:<< parameters.kafka_version >>
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-    environment:
-      ADVERTISED_PORT: 9092
-      ADVERTISED_HOST: localhost
-      RUNTESTS: 0 # Disable smoke-tests, uses CPU
-  - image: gcr.io/outreach-docker/minio:<< parameters.minio_version >>
-    auth:
-      username: << parameters.docker_username >>
-      password: << parameters.docker_password >>
-    command: ["server", "/data"]
-    environment:
-      MINIO_ACCESS_KEY: fake_key
-      MINIO_SECRET_KEY: fake_secret
-  - image: localstack/localstack:<< parameters.localstack_version >>
-    environment:
-      SERVICES: << parameters.localstack_services >>
-      DATA_DIR: /tmp/localstack/data
+executor:
+  name: testbed-docker
 
 steps:
   - setup_environment
