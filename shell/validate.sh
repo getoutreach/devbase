@@ -35,12 +35,6 @@ if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
   exit 1
 fi
 
-# TODO(chrisprobinson)[DTSS-975] - Hitting github rate limiting, disabled for now.
-# info_sub "codeowners-validator"
-# if ! "$DIR"/codeowners-validator.sh; then
-#  fatal "GitHub CODEOWNERS file failed to validate"
-# fi
-
 # Validators to run when not using a library
 if ! has_feature "library"; then
   if [[ -e deployments ]] && [[ -e monitoring ]]; then
@@ -63,11 +57,11 @@ fi
 # Only run golangci-lint/lintroller if we find any files
 if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info_sub "golangci-lint"
-  "$LINTER" --build-tags "or_e2e,or_test,or_int" --timeout 10m run ./...
+  "$LINTER" --build-tags "or_e2e,or_test" --timeout 10m run ./...
 
   info_sub "lintroller"
   # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-  GOFLAGS=-tags=or_e2e,or_test,or_int "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
+  GOFLAGS=-tags=or_e2e,or_test "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
     -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
 fi
 
