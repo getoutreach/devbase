@@ -31,7 +31,7 @@ FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
-TEST_TAGS           ?= or_test,or_int
+TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
 
 # Outreach stuff, will be moved out... one day.
