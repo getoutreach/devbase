@@ -12,7 +12,7 @@ source "$SCRIPTS_DIR/languages/nodejs.sh"
 source "$SCRIPTS_DIR/lib/logging.sh"
 
 # Tools
-JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v"$(get_application_version "jsonnetfmt")")
+JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@"$(get_application_version "jsonnetfmt")")
 GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
 SHELLFMTPATH="$SCRIPTS_DIR/shfmt.sh"
 GOFMT="${GOFMT:-gofmt}"

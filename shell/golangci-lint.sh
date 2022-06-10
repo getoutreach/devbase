@@ -19,15 +19,10 @@ args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-
 # trade memory for CPU when running the linters
 export GOGC=20
 
-version="$(get_application_version "golangci-lint")"
-if grep "^\d" <<<"$version"; then
-  version="v$version"
-fi
-
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
 export GOLANGCI_LINT_CACHE
 
-exec "$GOBIN" "github.com/jaredallard/golangci-lint/cmd/golangci-lint@$version" "${args[@]}"
+exec "$GOBIN" "github.com/golangci/golangci-lint/cmd/golangci-lint@v$(get_application_version "golangci-lint")" "${args[@]}"
