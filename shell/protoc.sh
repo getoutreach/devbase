@@ -36,12 +36,13 @@ for import in $imports; do
   # shellcheck disable=SC2206
   module_version_arr=(${module_version_str//@/ })
   module="${module_version_arr[0]}"
-  version=""
 
   if [[ ${#module_version_arr[@]} -eq 1 ]]; then
     echo "$module needs a specified version (append @<tag> to the module path)" >&2
     exit 1
   fi
+
+  version="${module_version_arr[1]}"
 
   if [[ $version == "latest" ]]; then
     echo " -> $module is using @latest, please consider pinning a version for a more reproducible build" >&2
