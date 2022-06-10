@@ -16,12 +16,17 @@ mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
 
 info "Ensuring protoc imports are avaliable locally"
 
-imports="$(get_list "go-protoc-imports")"
-
-# Add default imports so they can get dealt with in the following loop just like custom imports.
-if has_feature "validation"; then
-  imports="${imports}{\"module\":\"github.com/envoyproxy/protoc-gen-validate@v$(get_application_version "protoc-gen-validate")\",\"path\":\"\"}$'\n'"
-fi
+imports = $(
+  get_list "go-protoc-imports"
+  if has_feature "validation"; then
+    cat <<EOF
+        {
+           "module":  "github.com/envoyproxy/protoc-gen-validate@v$(get_application_version "protoc-gen-validate")",
+           "path": ""
+        }
+EOF
+  fi
+)
 
 default_args=()
 for import in $imports; do
@@ -31,14 +36,17 @@ for import in $imports; do
   # shellcheck disable=SC2206
   module_version_arr=(${module_version_str//@/ })
   module="${module_version_arr[0]}"
-  version="latest"
+  version=""
 
-  if [[ ${#module_version_arr[@]} -eq 2 ]]; then
-    version="${module_version_arr[1]}"
+  if [[ ${#module_version_arr[@]} -eq 1 ]]; then
+    echo "$module needs a specified version (append @<tag> to the module path)" >&2
+    exit 1
   fi
 
   if [[ $version == "latest" ]]; then
+    echo " -> $module is using @latest, please consider pinning a version for a more reproducible build" >&2
     version="$(gh release -R "$module" list -L 1 | awk '{print $1}')"
+    echo " -> discovered $version for $module using @latest"
   fi
 
   import_path="$PROTOC_IMPORTS_BASE_PATH/$module/$version"
