@@ -16,7 +16,7 @@ mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
 
 info "Ensuring protoc imports are avaliable locally"
 
-imports = $(
+imports=$(
   get_list "go-protoc-imports"
   if has_feature "validation"; then
     cat <<EOF
