@@ -148,15 +148,19 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 }
 
 func parseServiceYaml() (*Service, error) {
-	f, err := os.Open("service.yaml")
+	f, err := os.Open("devenv.yaml")
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		f, err = os.Open("service.yaml")
+	}
+
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read service.yaml")
+		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
 	}
 	defer f.Close()
 
 	var s Service
 	if err = yaml.NewDecoder(f).Decode(&s); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse service.yaml")
+		return nil, errors.Wrapf(err, "failed to parse devenv.yaml or service.yaml")
 	}
 
 	return &s, nil
