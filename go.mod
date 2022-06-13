@@ -1,4 +1,4 @@
-module github.com/getoutreach/devbase
+module github.com/getoutreach/devbase/v2
 
 go 1.17
 
