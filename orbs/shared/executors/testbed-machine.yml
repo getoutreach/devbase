@@ -1,6 +1,6 @@
 description: Standard executor for machine runtimes
 machine:
-  image: ubuntu-2004:202107-02
+  image: ubuntu-2204:2022.04.1
   docker_layer_caching: true
 environment:
   TEST_RESULTS: /tmp/test-results
