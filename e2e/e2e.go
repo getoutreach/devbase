@@ -216,8 +216,12 @@ func main() { //nolint:funlen,gocyclo
 	}
 
 	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
-		log.Info().Str("vault-addr", conf.DeveloperEnvironmentConfig.VaultConfig.Address).Msg("Set Vault Address")
-		os.Setenv("VAULT_ADDR", conf.DeveloperEnvironmentConfig.VaultConfig.Address)
+		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
+		if os.Getenv("CI") == "true" {
+			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
+		}
+		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
+		os.Setenv("VAULT_ADDR", vaultAddr)
 	}
 
 	// runEndToEndTests is a flag that denotes whether or not this needs to actually
