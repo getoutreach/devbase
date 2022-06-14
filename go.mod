@@ -3,7 +3,7 @@ module github.com/getoutreach/devbase/v2
 go 1.17
 
 require (
-	github.com/getoutreach/gobox v1.38.0
+	github.com/getoutreach/gobox v1.41.3
 	github.com/getoutreach/localizer v1.14.4
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
@@ -61,4 +61,5 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
