@@ -323,8 +323,8 @@ github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSy
 github.com/getoutreach/gobox v1.38.0/go.mod h1:RFDbnlBXTRo88WMpFUeac1jZGF7FTyrSNiUYHNqKus0=
 github.com/getoutreach/gobox v1.41.3 h1:LoEnOfPQop08S2VQOf1gIeEkTzkWZDEwoYMAHejIEAM=
 github.com/getoutreach/gobox v1.41.3/go.mod h1:oZMyUGM7StL/JIyqFh27n4T6GxG2BsbaHq0w18B5nv0=
-github.com/getoutreach/localizer v1.14.4 h1:6Fufrgh/1m3BflhUFQ19948aBRi5V7MTYbxhTjx7fHc=
-github.com/getoutreach/localizer v1.14.4/go.mod h1:RYehUJ57SYT/Btb4v6VGs6cVlJ4Q0qfoAZNItJzWluE=
+github.com/getoutreach/localizer v1.14.5 h1:YrVCdQ+mmFjLB8FR/rAIPKUjP4Vu/J40meVT1PjxpsQ=
+github.com/getoutreach/localizer v1.14.5/go.mod h1:hDN4ku3XiaDCED9sLxzg3Fagw4MySdmbRtrHQDHGZSg=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
