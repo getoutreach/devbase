@@ -211,7 +211,7 @@ func main() { //nolint:funlen,gocyclo
 
 	conf, err := box.LoadBox()
 	if err != nil {
-		//nolint:exitAfterDefer // Why: We're OK with this.
+		//nolint:gocritic // Why: We're OK with this.
 		log.Fatal().Err(err).Msg("Failed to load box config")
 	}
 
