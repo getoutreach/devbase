@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/getoutreach/gobox/pkg/async"
+	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	localizerapi "github.com/getoutreach/localizer/api"
 	"github.com/getoutreach/localizer/pkg/localizer"
@@ -22,12 +23,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v2"
 )
 
 var virtualDeps = map[string][]string{
 	// TODO(jaredallard): [DT-510] Store flagship dependencies in the outreach repository
-	"flagship": {
+	// This will be removed once reactor is dead.
+	"outreach": {
 		"outreach-templating-service",
 		"olis",
 		"mint",
@@ -206,14 +209,25 @@ func main() { //nolint:funlen,gocyclo
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
+	conf, err := box.LoadBox()
+	if err != nil {
+		//nolint:gocritic // Why: We're OK with this.
+		log.Fatal().Err(err).Msg("Failed to load box config")
+	}
+
+	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
+		log.Info().Str("vault-addr", conf.DeveloperEnvironmentConfig.VaultConfig.Address).Msg("Set Vault Address")
+		os.Setenv("VAULT_ADDR", conf.DeveloperEnvironmentConfig.VaultConfig.Address)
+	}
+
 	// runEndToEndTests is a flag that denotes whether or not this needs to actually
 	// run or not based off of the filepath.Walk function immediately proceeding.
 	var runEndToEndTests bool
 
-	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if runEndToEndTests {
 			// No need to keep walking through files if we've already found one file
-			// that requries e2e tests.
+			// that requires e2e tests.
 			return nil
 		}
 
@@ -268,7 +282,13 @@ func main() { //nolint:funlen,gocyclo
 	// TODO(jaredallard): outreach specific code
 	target := "base"
 	for _, d := range deps {
+		// Error on flagship dependency. This can be removed later as this was a breaking change
+		// and is just a nice to have.
 		if d == "flagship" {
+			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
+		}
+
+		if d == "outreach" {
 			target = "flagship"
 			break
 		}
@@ -316,7 +336,7 @@ func main() { //nolint:funlen,gocyclo
 	}
 
 	if !localizer.IsRunning() {
-		// Preemptively ask for sudo to prevent input mangaling with o.LocalApps
+		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
 		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
 		cmd = exec.CommandContext(ctx, "sudo", "true")
 		cmd.Stderr = os.Stderr
@@ -341,9 +361,7 @@ func main() { //nolint:funlen,gocyclo
 			async.Sleep(ctx, time.Second*1)
 		}
 
-		// TODO(jaredallard): Move to insecure.NewCredentials()
-		//nolint:staticcheck // Why: See above
-		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithInsecure())
+		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
 		}
@@ -378,8 +396,7 @@ func main() { //nolint:funlen,gocyclo
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
 }
