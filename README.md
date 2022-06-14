@@ -14,7 +14,7 @@ Please read the [CONTRIBUTING.md](CONTRIBUTING.md) document for guidelines on de
 
 <!--- Block(overview) -->
 
-## How to use a custom build of `devbase`
+## How to use a Custom Build of `devbase`
 
 ### Bootstrap / Stencil
 
