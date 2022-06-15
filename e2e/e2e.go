@@ -27,6 +27,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// flagship is the name of the flagship
+const flagship = "flagship"
+
 var virtualDeps = map[string][]string{
 	// TODO(jaredallard): [DT-510] Store flagship dependencies in the outreach repository
 	// This will be removed once reactor is dead.
@@ -77,7 +80,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 		// Error on flagship dependency. This can be removed later as this was a breaking change
 		// and is just a nice to have. We only error only on our top-level dependencies. Later on
 		// we map flagship -> outreach for sub-level deps.
-		if d == "flagship" {
+		if d == flagship {
 			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
 		}
 
@@ -102,7 +105,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 func grabDependencies(ctx context.Context, deps map[string]bool, name string, auth *sshhelper.ExistingSSHAgentCallback) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
-	if name == "flagship" {
+	if name == flagship {
 		name = "outreach"
 	}
 
@@ -299,7 +302,7 @@ func main() { //nolint:funlen,gocyclo
 	target := "base"
 	for _, d := range deps {
 		if d == "outreach" {
-			target = "flagship"
+			target = flagship
 			break
 		}
 	}
