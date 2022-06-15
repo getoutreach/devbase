@@ -23,9 +23,6 @@ executor:
 
 steps:
   - setup_environment
-  - run:
-      name: Wait for Infrastructure to be Ready
-      command: ./scripts/shell-wrapper.sh ci/testing/wait-for-infra.sh
   - with_go_cache
   - run:
       name: Run tests
