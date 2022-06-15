@@ -20,6 +20,9 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# This comes from the Makefile. This makes the linter aware of it.
+export TEST_TAGS=$TEST_TAGS
+
 if [[ -n $CI ]]; then
   export GOFLAGS="${GOFLAGS} -mod=readonly"
 fi
