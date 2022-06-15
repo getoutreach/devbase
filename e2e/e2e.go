@@ -224,7 +224,7 @@ func main() { //nolint:funlen,gocyclo
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	conf, err := box.LoadBox()
+	conf, err := box.EnsureBoxWithOptions(ctx)
 	if err != nil {
 		//nolint:gocritic // Why: We're OK with this.
 		log.Fatal().Err(err).Msg("Failed to load box config")
