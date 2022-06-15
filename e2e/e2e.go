@@ -74,6 +74,13 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	}
 
 	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
+		// Error on flagship dependency. This can be removed later as this was a breaking change
+		// and is just a nice to have. We only error only on our top-level dependencies. Later on
+		// we map flagship -> outreach for sub-level deps.
+		if d == "flagship" {
+			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
+		}
+
 		err := grabDependencies(ctx, deps, d, auth)
 		if err != nil {
 			return nil, err
@@ -93,6 +100,12 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
 func grabDependencies(ctx context.Context, deps map[string]bool, name string, auth *sshhelper.ExistingSSHAgentCallback) error {
+	// We special case this here to ensure we don't fail on deps that haven't updated
+	// their dependency yet.
+	if name == "flagship" {
+		name = "outreach"
+	}
+
 	fs := memfs.New()
 
 	// Skip if we've already been downloaded
@@ -124,8 +137,7 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 		}
 
 		var s *Service
-		err = yaml.NewDecoder(f).Decode(&s)
-		if err != nil {
+		if err := yaml.NewDecoder(f).Decode(&s); err != nil {
 			return errors.Wrapf(err, "failed to parse service.yaml in dependency %s", name)
 		}
 
@@ -286,12 +298,6 @@ func main() { //nolint:funlen,gocyclo
 	// TODO(jaredallard): outreach specific code
 	target := "base"
 	for _, d := range deps {
-		// Error on flagship dependency. This can be removed later as this was a breaking change
-		// and is just a nice to have.
-		if d == "flagship" {
-			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
-		}
-
 		if d == "outreach" {
 			target = "flagship"
 			break
