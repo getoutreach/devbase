@@ -39,7 +39,7 @@ OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
 
 # E2E
-BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} OSS=$(OSS)
+BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} OSS=$(OSS) TEST_TAGS=$(TEST_TAGS)
 E2E_NAMESPACE       ?= $(APP)--bento1a
 E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 E2E_CLUSTER         ?= development.us-west-2
@@ -107,14 +107,12 @@ coverage:: pre-coverage
 	 WITH_COVERAGE=true GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) ./scripts/shell-wrapper.sh test.sh
 	 go tool cover --html=/tmp/coverage.out
 
-## integration:     run integration tests
-.PHONY: integration
-integration:: pre-integration
-	TEST_TAGS=${TEST_TAGS} $(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
-
 .PHONY: e2e
 e2e:: pre-e2e
-	E2E=true OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
+	$(BASE_TEST_ENV) E2E=true OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) \
+	MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) \
+	MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) \
+	./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
 
 ## benchmark:       run benchmarks
 .PHONY: benchmark
@@ -140,7 +138,8 @@ gogenerate:: pre-gogenerate check-deps
 gobuild: check-deps
 	@$(LOG) info "Building binaries into ./bin/"
 	mkdir -p $(BINDIR)
-	GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -o $(BINDIR)/ -ldflags "$(LDFLAGS)" $(GO_EXTRA_FLAGS) $(PKGDIR)/...
+	GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) $(GO) build -o $(BINDIR)/ -ldflags "$(LDFLAGS)" $(GO_EXTRA_FLAGS) $(PKGDIR)/...
 ## grpcui:          run grpcui for an already locally running service
 .PHONY: grpcui
 grpcui:

@@ -20,15 +20,15 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# This comes from the Makefile. This makes the linter aware of it.
+export TEST_TAGS=$TEST_TAGS
+
 if [[ -n $CI ]]; then
   export GOFLAGS="${GOFLAGS} -mod=readonly"
-else
-  TEST_TAGS=${TEST_TAGS:-or_test}
 fi
-export TEST_TAGS
 
 if [[ -n $GO_TEST_TIMEOUT ]]; then
-  TEST_FLAGS=${TEST_FLAGS:--timeout "$GO_TEST_TIMEOUT"}
+  export TEST_FLAGS=${TEST_FLAGS:--timeout "$GO_TEST_TIMEOUT"}
 fi
 
 # Catches test dependencies by shuffling tests if the installed Go version supports it
