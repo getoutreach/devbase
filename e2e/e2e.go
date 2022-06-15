@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"go/build"
 	"os"
 	"os/exec"
@@ -184,6 +185,31 @@ func parseServiceYaml() (*Service, error) {
 	return &s, nil
 }
 
+// appAlreadyDeployed checks if an application is already deployed, if it is
+// it returns true, otherwise false.
+func appAlreadyDeployed(ctx context.Context, app string) bool {
+	var deployedApps []struct {
+		Name string `json:"name"`
+	}
+
+	b, err := exec.CommandContext(ctx, "devenv", "apps", "list", "--output", "json").Output()
+	if err != nil {
+		return false
+	}
+
+	if err := json.Unmarshal(b, &deployedApps); err != nil {
+		return false
+	}
+
+	for _, a := range deployedApps {
+		if a.Name == app {
+			return true
+		}
+	}
+
+	return false
+}
+
 //nolint:unparam // Why: keeping in the interface for now
 func provisionNew(ctx context.Context, deps []string, target string) error {
 	//nolint:errcheck // Why: Best effort remove existing cluster
@@ -193,14 +219,15 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
 	for _, d := range deps {
-		// Skip dep with same name as our target
-		if d == target {
+		// Skip applications that are already deployed, this is usually when
+		// they're in a snapshot we just provisioned from.
+		if appAlreadyDeployed(ctx, d) {
+			log.Info().Msgf("App %s already deployed, skipping", d)
 			continue
 		}
 
@@ -209,8 +236,7 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
-		err = cmd.Run()
-		if err != nil {
+		if err := cmd.Run(); err != nil {
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
 	}
