@@ -39,12 +39,8 @@ fi
 
 pushd "$clientDir" >/dev/null || exit 1
 info "Pushing package to Github Packages"
-# TODO: Read the org from box when this is in CI.
+# TODO(jaredallard): Read the org from box when this is in CI.
 gem push --key github \
   --host https://rubygems.pkg.github.com/getoutreach \
   "$gemFile"
-
-warn "DEPRECATED: Pushing to packagecloud, if this is being used please migrate to Github Packages"
-gem install package_cloud
-package_cloud push outreach/rubygems "$gemFile"
 popd >/dev/null || exit 1
