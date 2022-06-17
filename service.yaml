@@ -15,6 +15,7 @@ deployTo:
 arguments:
   circleAPIKey: ""
   commands: []
+  commitGuard: false
   dependencies:
     optional: []
     required: []
@@ -33,6 +34,7 @@ arguments:
     allowMajorVersions: true
     enablePrereleases: true
   reportingTeam: fnd-dtss
+  resources: {}
   service: false
   tutorial: false
   vaultSecrets:
@@ -46,6 +48,7 @@ modules:
   - name: github.com/getoutreach/stencil-opslevel
   - name: github.com/getoutreach/stencil-outreach
   - name: github.com/getoutreach/stencil-circleci
+  - name: github.com/getoutreach/stencil-actions
 opsLevel:
   serviceTier: 0
   lifecycle: ""

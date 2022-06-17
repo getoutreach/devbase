@@ -15,7 +15,7 @@
     "golangci-lint": "${workspaceFolder}/.bootstrap/shell/golangci-lint.sh"
   },
   "go.buildTags": "or_dev",
-  "go.testTags": "or_test,or_e2e",
+  "go.testTags": "or_test,or_int,or_e2e",
   // This prevents 99% of issues with linters :)
   "editor.formatOnSave": true,
   "shellcheck.customArgs": ["-P", "SCRIPTDIR", "-x"],
@@ -30,7 +30,7 @@
     "editor.defaultFormatter": "redhat.vscode-yaml"
   },
   "gopls": {
-    "build.buildFlags": ["-tags=or_test,or_dev,or_e2e"]
+    "build.buildFlags": ["-tags=or_test,or_dev,or_e2e,or_int"]
   },
   "[terraform]": {
     "editor.defaultFormatter": "hashicorp.terraform"
