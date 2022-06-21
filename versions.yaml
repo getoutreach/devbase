@@ -10,7 +10,7 @@ delve: 1.7.3
 gotestsum: 1.7.0
 lintroller: 1.13.1
 codeowners-validator: 0.7.1
-clerkgenproto: 1.23.1
+clerkgenproto: 1.24.0
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
 
