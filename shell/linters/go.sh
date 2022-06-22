@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Linters for Golang
 GOBIN="$DIR/gobin.sh"
+LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034

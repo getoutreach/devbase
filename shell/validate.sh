@@ -14,28 +14,7 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./languages/nodejs.sh
 source "$DIR/languages/nodejs.sh"
 
-LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
-SHELLFMTPATH="$DIR/shfmt.sh"
-SHELLCHECKPATH="$DIR/shellcheck.sh"
-GOBIN="$DIR/gobin.sh"
-PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
-
 info "Running linters"
-
-# Run shellcheck on shell-scripts, only if installed.
-info_sub "shellcheck"
-# Make sure to ignore the monitoring/.terraform directory
-# shellcheck disable=SC2038
-if ! git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR; then
-  error "shellcheck failed on some files. Run 'make fmt' to fix."
-  exit 1
-fi
-
-info_sub "shfmt"
-if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
-  error "shfmt failed on some files. Run 'make fmt' to fix."
-  exit 1
-fi
 
 # Validators to run when not using a library
 if ! has_feature "library"; then
@@ -48,12 +27,6 @@ if ! has_feature "library"; then
       fi
     done
   fi
-fi
-
-info_sub "protobuf"
-if ! "$PROTOFMT" format --exit-code >/dev/null 2>&1; then
-  error "protobuf format (buf format) failed on some files. Run 'make fmt' to fix."
-  exit 1
 fi
 
 # GRPC client validation
