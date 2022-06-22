@@ -14,38 +14,6 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./languages/nodejs.sh
 source "$DIR/languages/nodejs.sh"
 
-info "Running linters"
-
-# Validators to run when not using a library
-if ! has_feature "library"; then
-  if [[ -e deployments ]] && [[ -e monitoring ]]; then
-    info_sub "terraform"
-    for tfdir in deployments monitoring; do
-      if ! "$DIR"/terraform.sh fmt -diff -check "$tfdir"; then
-        error "terraform fmt $tfdir failed on some files. Run 'make fmt' to fix."
-        exit 1
-      fi
-    done
-  fi
-fi
-
-# GRPC client validation
-if has_feature "grpc"; then
-  if has_grpc_client "node"; then
-    nodeSourceDir="$(get_repo_directory)/api/clients/node"
-
-    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
-    yarn_install_if_needed
-
-    info_sub "prettier (node)"
-    yarn pretty
-
-    info_sub "eslint (node)"
-    yarn lint
-    popd >/dev/null 2>&1 || exit 1
-  fi
-fi
-
 # get_time_ms returns the current time in milliseconds
 # we use perl because we can't use the date command %N on macOS
 get_time_ms() {
@@ -62,7 +30,7 @@ run_linter() {
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
   local started_at="$(get_time_ms)"
-  info_sub "  $linter_name"
+  info_sub "$linter_name"
   "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
@@ -70,10 +38,11 @@ run_linter() {
   local finished_at="$(get_time_ms)"
   local duration="$((finished_at - started_at))"
   if [[ $exit_code -ne 0 ]]; then
-    error "  $linter_name failed with exit code $exit_code"
+    error "$linter_name failed with exit code $exit_code"
     exit 1
   fi
-  info_sub "    $linter_name finished in $(format_diff $duration) seconds"
+  tput cuu1
+  info_sub "$linter_name ($(format_diff $duration))"
 }
 
 format_diff() {
@@ -83,12 +52,12 @@ format_diff() {
   printf "%d.%02ds" "$seconds" "$ms"
 }
 
+info "Running linters"
+
 started_at="$(get_time_ms)"
 for language in "$DIR/linters"/*.sh; do
   language="$(basename "$language")"
   language="${language%.sh}"
-
-  info_sub "$language"
 
   # We use a sub-shell to prevent inheriting
   # the changes to functions/variables to the parent
