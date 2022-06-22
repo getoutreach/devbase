@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Linters for Golang
-GOBIN="$DIR/../gobin.sh"
+GOBIN="$DIR/gobin.sh"
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
-extensions=(go)
+extensions=("go")
 
 lintroller() {
   # The sed is used to strip the pwd from lintroller output,

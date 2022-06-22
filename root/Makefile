@@ -98,9 +98,8 @@ build:: pre-build gobuild
 
 ## lint:            run code linters
 .PHONY: lint
-lint::
+lint:: pre-test
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh validate.sh
-
 
 ## test:            run unit tests
 .PHONY: test

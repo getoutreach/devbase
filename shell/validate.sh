@@ -73,29 +73,44 @@ if has_feature "grpc"; then
   fi
 fi
 
+# get_time_ms returns the current time in milliseconds
+# we use perl because we can't use the date command %N on macOS
+get_time_ms() {
+  perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+}
+
 run_linter() {
-  local linter="$1"
+  local linter_name="$1"
+  shift
+  local linter_bin="$1"
   shift
   local linter_args=("$@")
 
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
-  local started_at="$(date +%s)"
-  info_sub "  $linter"
-  "$linter" "${linter_args[@]}"
+  local started_at="$(get_time_ms)"
+  info_sub "  $linter_name"
+  "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
-  local ended_at="$(date +%s)"
-  local duration="$((ended_at - started_at))"
+  local finished_at="$(get_time_ms)"
+  local duration="$((finished_at - started_at))"
   if [[ $exit_code -ne 0 ]]; then
-    error "  $linter failed with exit code $exit_code"
+    error "  $linter_name failed with exit code $exit_code"
     exit 1
   fi
-  info "  $linter finished in $duration seconds"
+  info_sub "    $linter_name finished in $(format_diff $duration) seconds"
 }
 
-started_at="$(date +%s)"
+format_diff() {
+  local diff="$1"
+  local seconds=$((diff / 1000))
+  local ms=$((diff % 1000))
+  printf "%d.%02ds" "$seconds" "$ms"
+}
+
+started_at="$(get_time_ms)"
 for language in "$DIR/linters"/*.sh; do
   language="$(basename "$language")"
   language="${language%.sh}"
@@ -107,7 +122,7 @@ for language in "$DIR/linters"/*.sh; do
   # (this) script
   (
     # Modified by the language file
-    declare -A extensions
+    extensions=()
 
     # Why: Dynamic
     # shellcheck disable=SC1090
@@ -122,12 +137,13 @@ for language in "$DIR/linters"/*.sh; do
       matched=true
     done
     if [[ "$matched" == "false" ]]; then
-      return 0
+      exit 0
     fi
 
     # Set by the language file
     linter
   )
 done
-finished_at="$(date +%s)"
-info "Linters took $(($finished_at - $started_at))s"
+finished_at="$(get_time_ms)"
+duration="$((finished_at - started_at))"
+info "Linters took $(format_diff $duration)s"
