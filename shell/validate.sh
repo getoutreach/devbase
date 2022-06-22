@@ -111,7 +111,7 @@ for language in "$DIR/linters"/*.sh; do
 
     # Why: Dynamic
     # shellcheck disable=SC1090
-    source "$language.sh"
+    source "$DIR/linters/$language.sh"
 
     matched=false
     for extension in "${extensions[@]}"; do

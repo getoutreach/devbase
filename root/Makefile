@@ -96,9 +96,15 @@ pre-commit: fmt
 .PHONY: build
 build:: pre-build gobuild
 
+## lint:            run code linters
+.PHONY: lint
+lint::
+	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh validate.sh
+
+
 ## test:            run unit tests
 .PHONY: test
-test:: pre-test
+test:: pre-test lint
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
 
 ## coverage:        generate code coverage
