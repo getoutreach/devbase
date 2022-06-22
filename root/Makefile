@@ -50,9 +50,10 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
+.PHONY: pre-release pre-build pre-test pre-lint pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
+pre-lint::
 pre-test::
 pre-coverage::
 pre-integration::
@@ -98,7 +99,8 @@ build:: pre-build gobuild
 
 ## lint:            run code linters
 .PHONY: lint
-lint:: pre-test
+# Note: We run pre-test for compat. Remove on the next breaking change.
+lint:: pre-test pre-lint
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh validate.sh
 
 ## test:            run unit tests
