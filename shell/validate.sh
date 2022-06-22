@@ -56,17 +56,6 @@ if ! "$PROTOFMT" format --exit-code >/dev/null 2>&1; then
   exit 1
 fi
 
-# Only run golangci-lint/lintroller if we find any files
-if [[ "$(git ls-files '*.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
-  info_sub "golangci-lint"
-  "$LINTER" --build-tags "or_e2e,or_test" --timeout 10m run ./...
-
-  info_sub "lintroller"
-  # The sed is used to strip the pwd from lintroller output, which is currently prefixed with it.
-  GOFLAGS=-tags=or_e2e,or_test "$GOBIN" "github.com/getoutreach/lintroller/cmd/lintroller@v$(get_application_version "lintroller")" \
-    -config scripts/golangci.yml ./... 2>&1 | sed "s#^$(pwd)/##"
-fi
-
 # GRPC client validation
 if has_feature "grpc"; then
   if has_grpc_client "node"; then
@@ -83,3 +72,62 @@ if has_feature "grpc"; then
     popd >/dev/null 2>&1 || exit 1
   fi
 fi
+
+run_linter() {
+  local linter="$1"
+  shift
+  local linter_args=("$@")
+
+  # Why: We're OK with declaring and assigning.
+  # shellcheck disable=SC2155
+  local started_at="$(date +%s)"
+  info_sub "  $linter"
+  "$linter" "${linter_args[@]}"
+  exit_code=$?
+  # Why: We're OK with declaring and assigning.
+  # shellcheck disable=SC2155
+  local ended_at="$(date +%s)"
+  local duration="$((ended_at - started_at))"
+  if [[ $exit_code -ne 0 ]]; then
+    error "  $linter failed with exit code $exit_code"
+    exit 1
+  fi
+  info "  $linter finished in $duration seconds"
+}
+
+started_at="$(date +%s)"
+for language in "$DIR/linters"/*.sh; do
+  language="$(basename "$language")"
+  language="${language%.sh}"
+
+  info_sub "$language"
+
+  # We use a sub-shell to prevent inheriting
+  # the changes to functions/variables to the parent
+  # (this) script
+  (
+    # Modified by the language file
+    declare -A extensions
+
+    # Why: Dynamic
+    # shellcheck disable=SC1090
+    source "$language.sh"
+
+    matched=false
+    for extension in "${extensions[@]}"; do
+      # If we don't find any files with the extension, skip the run.
+      if [[ "$(git ls-files "*.$extension" | wc -l | tr -d ' ')" -le 0 ]]; then
+        continue
+      fi
+      matched=true
+    done
+    if [[ "$matched" == "false" ]]; then
+      return 0
+    fi
+
+    # Set by the language file
+    linter
+  )
+done
+finished_at="$(date +%s)"
+info "Linters took $(($finished_at - $started_at))s"
