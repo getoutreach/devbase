@@ -13,6 +13,11 @@ source "${LIB_DIR}/bootstrap.sh"
 
 appName="$(get_app_name)"
 remote_image_name="gcr.io/outreach-docker/${appName}"
+dockerfile="deployments/${appName}/Dockerfile"
+if [[ ! -e ${dockerfile} ]]; then
+  echo "No dockerfile found at path: ${dockerfile}. Skipping."
+  exit 0
+fi
 
 # shellcheck source=../../lib/buildx.sh
 source "${LIB_DIR}/buildx.sh"
@@ -26,7 +31,7 @@ secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
 
 args=(
   "--ssh" "default"
-  "--progress=plain" "--file" "deployments/${appName}/Dockerfile"
+  "--progress=plain" "--file" "$dockerfile"
   "--build-arg" "VERSION=${VERSION}"
   # cache disabled for now, wasn't working
   # "--cache-from" "type=local,mode=max,src=${cache_dir}"

@@ -78,8 +78,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	deps := make(map[string]bool)
 
 	a := sshhelper.GetSSHAgent()
-	_, err := sshhelper.LoadDefaultKey("github.com", a, logrus.StandardLogger())
-	if err != nil {
+	if _, err := sshhelper.LoadDefaultKey("github.com", a, logrus.StandardLogger()); err != nil {
 		return nil, err
 	}
 
@@ -98,8 +97,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
 		}
 
-		err := grabDependencies(ctx, deps, d, auth)
-		if err != nil {
+		if err := grabDependencies(ctx, deps, d, auth); err != nil {
 			return nil, err
 		}
 	}
@@ -306,32 +304,12 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 	}, nil
 }
 
-func main() { //nolint:funlen,gocyclo
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	conf, err := box.EnsureBoxWithOptions(ctx)
-	if err != nil {
-		//nolint:gocritic // Why: We're OK with this.
-		log.Fatal().Err(err).Msg("Failed to load box config")
-	}
-
-	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
-		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if os.Getenv("CI") == "true" {
-			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
-		}
-		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
-		os.Setenv("VAULT_ADDR", vaultAddr)
-	}
-
-	// runEndToEndTests is a flag that denotes whether or not this needs to actually
-	// run or not based off of the filepath.Walk function immediately proceeding.
+// shouldRunE2ETests denotes whether or not this needs to actually
+// run
+func shouldRunE2ETests() (bool, error) {
 	var runEndToEndTests bool
 
-	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if runEndToEndTests {
 			// No need to keep walking through files if we've already found one file
 			// that requires e2e tests.
@@ -363,14 +341,36 @@ func main() { //nolint:funlen,gocyclo
 
 		return nil
 	})
+	return runEndToEndTests, err
+}
 
+func main() { //nolint:funlen,gocyclo
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	conf, err := box.EnsureBoxWithOptions(ctx)
 	if err != nil {
-		// This err shouldn't fail the e2e tests, just warn on it.
-		log.Warn().Err(err).Msg("Failed to walk repository to determine whether or not e2e tests needed to be ran")
+		//nolint:gocritic // Why: We're OK with this.
+		log.Fatal().Err(err).Msg("Failed to load box config")
+	}
+
+	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
+		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
+		if os.Getenv("CI") == "true" {
+			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
+		}
+		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
+		os.Setenv("VAULT_ADDR", vaultAddr)
 	}
 
 	// No or_e2e build tags were found.
-	if !runEndToEndTests {
+	runE2ETests, err := shouldRunE2ETests()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to determine if e2e tests should be run")
+	}
+	if !runE2ETests {
 		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
 		return
 	}
@@ -395,15 +395,21 @@ func main() { //nolint:funlen,gocyclo
 		}
 	}
 
-	if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
-		if err := provisionNew(ctx, deps, target); err != nil {
-			//nolint:gocritic // Why: need to get exit code >0
-			log.Fatal().Err(err).Msg("Failed to create cluster")
+	// Provision a devenv if it doesn't already exist. If it does exist,
+	// warn the user their test is no longer potentially reproducible.
+	// Allow skipping provision, this is generally only useful for the devenv
+	// which uses this framework -- but provisions itself.
+	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
+		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+			if err := provisionNew(ctx, deps, target); err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to create cluster")
+			}
+		} else {
+			log.Info().
+				//nolint:lll // Why: Message to user
+				Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 		}
-	} else {
-		log.Info().
-			//nolint:lll // Why: Message to user
-			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
 	s, err := parseServiceYaml()
@@ -434,6 +440,7 @@ func main() { //nolint:funlen,gocyclo
 	}
 
 	log.Info().Msg("Running e2e tests")
+	os.Setenv("TEST_TAGS", "or_test,or_e2e")
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
