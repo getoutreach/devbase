@@ -145,7 +145,7 @@ if has_grpc_client "node"; then
 
   node_args=("${default_args[@]}")
   node_args+=(
-    --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_node_plugin"
+    --plugin=protoc-gen-grpc="$grpc_tools_node_plugin"
     "--js_out=import_style=commonjs,binary:$(get_repo_directory)/api/clients/node/src/grpc"
     --grpc_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
     --proto_path "$(get_repo_directory)/api"
