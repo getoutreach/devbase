@@ -152,6 +152,19 @@ if has_grpc_client "node"; then
   )
 
   "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)/api/"*.proto
+
+  npm install -g grpc_tools_node_protoc_ts
+
+  info_sub "Running TS protobuf generation"
+
+  ts_args=("${default_args[@]}")
+  ts_args+=(
+    --plugin=protoc-gen-ts=$(which protoc-gen-ts)
+    --ts_out=$(get_repo_directory)/api/clients/node/src/grpc
+    --proto_path "$(get_repo_directory)/api"
+  )
+
+  "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)/api/"*.proto
 fi
 
 if has_grpc_client "ruby"; then
