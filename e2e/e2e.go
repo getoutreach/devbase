@@ -47,7 +47,12 @@ var virtualDeps = map[string][]string{
 // Service is a mock of the service.yaml in bootstrap, which isn't currently
 // open-sourced, yet!
 type Service struct {
-	Library      bool `yaml:"library,omitempty"`
+	// Arguments is an object of stencil arguments
+	Arguments struct {
+		// Service denotes if this repository is a service.
+		Service bool `yaml:"service"`
+	}
+
 	Dependencies struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
 		Optional []string `yaml:"optional"`
@@ -55,6 +60,14 @@ type Service struct {
 		// Required is a list of services that this service cannot function without
 		Required []string `yaml:"required"`
 	} `yaml:"dependencies"`
+}
+
+// osStdinOut is a helper function to use the os stdin/out/err
+func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c
 }
 
 // BuildDependenciesList builds a list of dependencies by cloning them
@@ -65,8 +78,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	deps := make(map[string]bool)
 
 	a := sshhelper.GetSSHAgent()
-	_, err := sshhelper.LoadDefaultKey("github.com", a, logrus.StandardLogger())
-	if err != nil {
+	if _, err := sshhelper.LoadDefaultKey("github.com", a, logrus.StandardLogger()); err != nil {
 		return nil, err
 	}
 
@@ -85,8 +97,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
 		}
 
-		err := grabDependencies(ctx, deps, d, auth)
-		if err != nil {
+		if err := grabDependencies(ctx, deps, d, auth); err != nil {
 			return nil, err
 		}
 	}
@@ -215,11 +226,8 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
-	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "provision", "--snapshot-target", target)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update",
+		"provision", "--snapshot-target", target)).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
@@ -232,11 +240,7 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
-		cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		if err := cmd.Run(); err != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
 	}
@@ -244,32 +248,68 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	return nil
 }
 
-func main() { //nolint:funlen,gocyclo
-	ctx, cancel := context.WithCancel(context.Background())
+func runLocalizer(ctx context.Context) (cleanup func(), err error) {
+	if !localizer.IsRunning() {
+		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
+		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "sudo", "true")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to get root permissions")
+		}
+
+		log.Info().Msg("Starting devenv tunnel")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")).Start(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+		}
+
+		// Wait until localizer is running, max 1m
+		//nolint:govet // Why: done on purpose
+		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(1*time.Minute))
+		defer cancel()
+
+		for ctx.Err() == nil && !localizer.IsRunning() {
+			async.Sleep(ctx, time.Second*1)
+		}
+	}
+
+	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to connect to localizer")
+	}
+	defer closer()
+
+	log.Info().Msg("Waiting for devenv tunnel to be finished creating tunnels")
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
 	defer cancel()
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	conf, err := box.EnsureBoxWithOptions(ctx)
-	if err != nil {
-		//nolint:gocritic // Why: We're OK with this.
-		log.Fatal().Err(err).Msg("Failed to load box config")
-	}
-
-	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
-		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if os.Getenv("CI") == "true" {
-			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
+	for ctx.Err() == nil {
+		resp, err := client.Stable(ctx, &localizerapi.Empty{})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to check if localizer is running")
 		}
-		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
-		os.Setenv("VAULT_ADDR", vaultAddr)
+
+		if resp.Stable {
+			break
+		}
+
+		async.Sleep(ctx, time.Second*2)
 	}
 
-	// runEndToEndTests is a flag that denotes whether or not this needs to actually
-	// run or not based off of the filepath.Walk function immediately proceeding.
+	return func() {
+		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
+
+		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+			log.Warn().Err(err).Msg("failed to kill running localizer server")
+		}
+	}, nil
+}
+
+// shouldRunE2ETests denotes whether or not this needs to actually
+// run
+func shouldRunE2ETests() (bool, error) {
 	var runEndToEndTests bool
 
-	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if runEndToEndTests {
 			// No need to keep walking through files if we've already found one file
 			// that requires e2e tests.
@@ -301,14 +341,36 @@ func main() { //nolint:funlen,gocyclo
 
 		return nil
 	})
+	return runEndToEndTests, err
+}
 
+func main() { //nolint:funlen,gocyclo
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	conf, err := box.EnsureBoxWithOptions(ctx)
 	if err != nil {
-		// This err shouldn't fail the e2e tests, just warn on it.
-		log.Warn().Err(err).Msg("Failed to walk repository to determine whether or not e2e tests needed to be ran")
+		//nolint:gocritic // Why: We're OK with this.
+		log.Fatal().Err(err).Msg("Failed to load box config")
+	}
+
+	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
+		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
+		if os.Getenv("CI") == "true" { //nolint:goconst // Why: true == true
+			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
+		}
+		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
+		os.Setenv("VAULT_ADDR", vaultAddr)
 	}
 
 	// No or_e2e build tags were found.
-	if !runEndToEndTests {
+	runE2ETests, err := shouldRunE2ETests()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to determine if e2e tests should be run")
+	}
+	if !runE2ETests {
 		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
 		return
 	}
@@ -333,16 +395,21 @@ func main() { //nolint:funlen,gocyclo
 		}
 	}
 
-	if err := exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run(); err != nil {
-		err = provisionNew(ctx, deps, target)
-		if err != nil {
-			//nolint:gocritic // Why: need to get exit code >0
-			log.Fatal().Err(err).Msg("Failed to create cluster")
+	// Provision a devenv if it doesn't already exist. If it does exist,
+	// warn the user their test is no longer potentially reproducible.
+	// Allow skipping provision, this is generally only useful for the devenv
+	// which uses this framework -- but provisions itself.
+	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
+		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+			if err := provisionNew(ctx, deps, target); err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to create cluster")
+			}
+		} else {
+			log.Info().
+				//nolint:lll // Why: Message to user
+				Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 		}
-	} else {
-		log.Info().
-			//nolint:lll // Why: Message to user
-			Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
 	}
 
 	s, err := parseServiceYaml()
@@ -350,92 +417,31 @@ func main() { //nolint:funlen,gocyclo
 		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
 	}
 
-	var cmd *exec.Cmd
 	// if it's a library we don't need to deploy the application.
-	if !s.Library {
+	if s.Arguments.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Run()
-		if err != nil {
+		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
 
 	log.Info().Msg("Running devconfig")
-	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	if !localizer.IsRunning() {
-		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
-		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
-		cmd = exec.CommandContext(ctx, "sudo", "true")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Run()
+	// Allow users to opt out of running localizer
+	if os.Getenv("SKIP_LOCALIZER") != "true" {
+		closer, err := runLocalizer(ctx)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to get root permissions")
-		}
-
-		log.Info().Msg("Starting devenv tunnel")
-		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Start()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
-		}
-
-		for ctx.Err() == nil && !localizer.IsRunning() {
-			async.Sleep(ctx, time.Second*1)
-		}
-
-		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
+			log.Fatal().Err(err).Msg("Failed to run localizer")
 		}
 		defer closer()
-
-		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
-		for ctx.Err() == nil {
-			resp, err := client.Stable(ctx, &localizerapi.Empty{})
-			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
-			}
-
-			if resp.Stable {
-				break
-			}
-
-			async.Sleep(ctx, time.Second*2)
-		}
-
-		// Defer the killing of the localizer server that was spawned.
-		defer func() {
-			log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-
-			if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
-				log.Warn().Err(err).Msg("failed to kill running localizer server")
-			}
-		}()
 	}
 
 	log.Info().Msg("Running e2e tests")
-	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	os.Setenv("TEST_TAGS", "or_test,or_e2e")
+	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
 }
