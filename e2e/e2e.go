@@ -47,7 +47,12 @@ var virtualDeps = map[string][]string{
 // Service is a mock of the service.yaml in bootstrap, which isn't currently
 // open-sourced, yet!
 type Service struct {
-	Library      bool `yaml:"library,omitempty"`
+	// Arguments is an object of stencil arguments
+	Arguments struct {
+		// Service denotes if this repository is a service.
+		Service bool `yaml:"service"`
+	}
+
 	Dependencies struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
 		Optional []string `yaml:"optional"`
@@ -55,6 +60,14 @@ type Service struct {
 		// Required is a list of services that this service cannot function without
 		Required []string `yaml:"required"`
 	} `yaml:"dependencies"`
+}
+
+// osStdinOut is a helper function to use the os stdin/out/err
+func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c
 }
 
 // BuildDependenciesList builds a list of dependencies by cloning them
@@ -215,11 +228,8 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
-	cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "provision", "--snapshot-target", target)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update",
+		"provision", "--snapshot-target", target)).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
@@ -232,16 +242,68 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
-		cmd := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		if err := cmd.Run(); err != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
 	}
 
 	return nil
+}
+
+func runLocalizer(ctx context.Context) (cleanup func(), err error) {
+	if !localizer.IsRunning() {
+		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
+		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "sudo", "true")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to get root permissions")
+		}
+
+		log.Info().Msg("Starting devenv tunnel")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
+		}
+
+		// Wait until localizer is running, max 1m
+		//nolint:govet // Why: done on purpose
+		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(1*time.Minute))
+		defer cancel()
+
+		for ctx.Err() == nil && !localizer.IsRunning() {
+			async.Sleep(ctx, time.Second*1)
+		}
+	}
+
+	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to connect to localizer")
+	}
+	defer closer()
+
+	log.Info().Msg("Waiting for devenv tunnel to be finished creating tunnels")
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
+	defer cancel()
+
+	for ctx.Err() == nil {
+		resp, err := client.Stable(ctx, &localizerapi.Empty{})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to check if localizer is running")
+		}
+
+		if resp.Stable {
+			break
+		}
+
+		async.Sleep(ctx, time.Second*2)
+	}
+
+	return func() {
+		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
+
+		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
+			log.Warn().Err(err).Msg("failed to kill running localizer server")
+		}
+	}, nil
 }
 
 func main() { //nolint:funlen,gocyclo
@@ -333,9 +395,8 @@ func main() { //nolint:funlen,gocyclo
 		}
 	}
 
-	if err := exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run(); err != nil {
-		err = provisionNew(ctx, deps, target)
-		if err != nil {
+	if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+		if err := provisionNew(ctx, deps, target); err != nil {
 			//nolint:gocritic // Why: need to get exit code >0
 			log.Fatal().Err(err).Msg("Failed to create cluster")
 		}
@@ -350,92 +411,27 @@ func main() { //nolint:funlen,gocyclo
 		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
 	}
 
-	var cmd *exec.Cmd
 	// if it's a library we don't need to deploy the application.
-	if !s.Library {
+	if s.Arguments.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Run()
-		if err != nil {
+		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
 
 	log.Info().Msg("Running devconfig")
-	cmd = exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	if !localizer.IsRunning() {
-		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
-		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
-		cmd = exec.CommandContext(ctx, "sudo", "true")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Run()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to get root permissions")
-		}
-
-		log.Info().Msg("Starting devenv tunnel")
-		cmd = exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		err = cmd.Start()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
-		}
-
-		for ctx.Err() == nil && !localizer.IsRunning() {
-			async.Sleep(ctx, time.Second*1)
-		}
-
-		client, closer, err := localizer.Connect(ctx, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to connect to localizer server to kill running instance")
-		}
-		defer closer()
-
-		log.Info().Msg("Waiting for localizer (spawned by devenv tunnel) to be stable")
-		for ctx.Err() == nil {
-			resp, err := client.Stable(ctx, &localizerapi.Empty{})
-			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to determine if localizer was stable")
-			}
-
-			if resp.Stable {
-				break
-			}
-
-			async.Sleep(ctx, time.Second*2)
-		}
-
-		// Defer the killing of the localizer server that was spawned.
-		defer func() {
-			log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-
-			if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
-				log.Warn().Err(err).Msg("failed to kill running localizer server")
-			}
-		}()
+	closer, err := runLocalizer(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to run localizer")
 	}
+	defer closer()
 
 	log.Info().Msg("Running e2e tests")
-	cmd = exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
 }
