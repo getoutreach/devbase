@@ -424,11 +424,14 @@ func main() { //nolint:funlen,gocyclo
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
-	closer, err := runLocalizer(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to run localizer")
+	// Allow users to opt out of running localizer
+	if os.Getenv("SKIP_LOCALIZER") != "true" {
+		closer, err := runLocalizer(ctx)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to run localizer")
+		}
+		defer closer()
 	}
-	defer closer()
 
 	log.Info().Msg("Running e2e tests")
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
