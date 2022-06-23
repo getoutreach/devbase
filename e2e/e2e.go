@@ -358,7 +358,7 @@ func main() { //nolint:funlen,gocyclo
 
 	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
 		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if os.Getenv("CI") == "true" {
+		if os.Getenv("CI") == "true" { //nolint:goconst // Why: true == true
 			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
 		}
 		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
