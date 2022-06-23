@@ -142,8 +142,8 @@ if has_grpc_client "node"; then
   grpc_tools_node_plugin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc_plugin"
 
   # pruning the directory from deprecated files
-  rm -r $(get_repo_directory)/api/clients/node/src/grpc
-  mkdir -p $(get_repo_directory)/api/clients/node/src/grpc
+  rm -r "$(get_repo_directory)/api/clients/node/src/grpc"
+  mkdir -p "$(get_repo_directory)/api/clients/node/src/grpc"
 
   info_sub "Running Node protobuf generation"
 
@@ -163,8 +163,8 @@ if has_grpc_client "node"; then
 
   ts_args=("${default_args[@]}")
   ts_args+=(
-    --plugin=protoc-gen-ts=$(which protoc-gen-ts)
-    --ts_out=$(get_repo_directory)/api/clients/node/src/grpc
+    --plugin=protoc-gen-ts="$(which protoc-gen-ts)"
+    --ts_out="$(get_repo_directory)/api/clients/node/src/grpc"
     --proto_path "$(get_repo_directory)/api"
   )
 
