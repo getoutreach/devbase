@@ -44,14 +44,11 @@ var virtualDeps = map[string][]string{
 	},
 }
 
-// Service is a mock of the service.yaml in bootstrap, which isn't currently
-// open-sourced, yet!
-type Service struct {
-	// Arguments is an object of stencil arguments
-	Arguments struct {
-		// Service denotes if this repository is a service.
-		Service bool `yaml:"service"`
-	} `yaml:"arguments"`
+// DevenvConfig is a struct that contains the devenv configuration
+// which is usually called "devenv.yaml"
+type DevenvConfig struct {
+	// Service denotes if this repository is a service.
+	Service bool `yaml:"service"`
 
 	Dependencies struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
@@ -84,7 +81,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 	auth := sshhelper.NewExistingSSHAgentCallback(a)
 
-	s, err := parseServiceYaml()
+	s, err := parseDevenvConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse service.yaml")
 	}
@@ -151,13 +148,13 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 			return nil
 		}
 
-		var s *Service
-		if err := yaml.NewDecoder(f).Decode(&s); err != nil {
+		var dc *DevenvConfig
+		if err := yaml.NewDecoder(f).Decode(&dc); err != nil {
 			return errors.Wrapf(err, "failed to parse service.yaml in dependency %s", name)
 		}
 
 		//nolint:gocritic // Why: done on purpose
-		foundDeps = append(s.Dependencies.Required, s.Dependencies.Optional...)
+		foundDeps = append(dc.Dependencies.Required, dc.Dependencies.Optional...)
 	} else {
 		log.Info().Msgf("Using baked-in dependency list")
 		foundDeps = virtualDeps[name]
@@ -177,23 +174,20 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 	return nil
 }
 
-func parseServiceYaml() (*Service, error) {
+// parseDevenvConfig parses the devenv.yaml file and returns a struct
+func parseDevenvConfig() (*DevenvConfig, error) {
 	f, err := os.Open("devenv.yaml")
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		f, err = os.Open("service.yaml")
-	}
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
 	}
 	defer f.Close()
 
-	var s Service
-	if err = yaml.NewDecoder(f).Decode(&s); err != nil {
+	var dc DevenvConfig
+	if err = yaml.NewDecoder(f).Decode(&dc); err != nil {
 		return nil, errors.Wrapf(err, "failed to parse devenv.yaml or service.yaml")
 	}
 
-	return &s, nil
+	return &dc, nil
 }
 
 // appAlreadyDeployed checks if an application is already deployed, if it is
@@ -412,13 +406,13 @@ func main() { //nolint:funlen,gocyclo
 		}
 	}
 
-	s, err := parseServiceYaml()
+	dc, err := parseDevenvConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
 	}
 
 	// if it's a library we don't need to deploy the application.
-	if s.Arguments.Service {
+	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
 		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
