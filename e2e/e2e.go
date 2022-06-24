@@ -51,7 +51,7 @@ type Service struct {
 	Arguments struct {
 		// Service denotes if this repository is a service.
 		Service bool `yaml:"service"`
-	}
+	} `yaml:"arguments"`
 
 	Dependencies struct {
 		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
