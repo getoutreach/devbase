@@ -21,6 +21,7 @@ protoc-gen-go: 1.5.2
 protoc-gen-doc: 1.5.1
 node-grpc-tools: 1.11.2
 ruby-grpc-tools: 1.46.3
+node-ts-grpc-tools: 5.3.2
 
 # Whenever we go to the non-deprecated version of golang protobuf generation
 # these should be uncommented as well as all of the commented out code in
