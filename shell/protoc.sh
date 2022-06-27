@@ -164,7 +164,7 @@ if has_grpc_client "node"; then
   ts_args=("${default_args[@]}")
   ts_args+=(
     --plugin=protoc-gen-ts="$(which protoc-gen-ts)"
-    --ts_out="$(get_repo_directory)/api/clients/node/src/grpc"
+    --ts_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
     --proto_path "$(get_repo_directory)/api"
   )
 
