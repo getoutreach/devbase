@@ -124,8 +124,12 @@ if has_grpc_client "node"; then
 
   node_tools_version="$(get_application_version "node-grpc-tools")"
 
+  # Use a specific npm prefix for a "gobin" like experience that ensures
+  # we use the correct versions
   NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$node_tools_version"
-  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
+
+  # Pre-create the prefix and bin,lib directories to avoid npm install errors.
+  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR" "$NODE_GRPC_TOOLS_CACHE_DIR/"{bin,lib}
 
   if ! npm list -g --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" | grep grpc-tools@"$node_tools_version" >/dev/null 2>&1; then
     # the version of grpc-tools for node we need is not installed.
