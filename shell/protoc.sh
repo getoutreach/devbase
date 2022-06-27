@@ -36,13 +36,15 @@ install_npm_package() {
   # Check and see if the package is already installed, if it's not
   # then install it.
   if ! npm list -g --prefix "$prefix_dir" | grep -q "$package_name@$package_version" 2>/dev/null; then
-    # The reason there is an arm64 architecture check for macOS systems is because grpc-tools
-    # does not ship with an arm64 version at the moment.
-    # We have to use qemu to emulate the x64 version.
-    npm install -g \
-      "$(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64"; fi)" \
-      --prefix "$prefix_dir" \
-      "$package_name@$package_version"
+    local npm_args=("--prefix" "$prefix_dir" "$package_name@$package_version")
+
+    # grpc-tools does not ship with an arm64 version at the moment.
+    # So, we use the x64 version instead.
+    if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" && $package_name == "grpc-tools" ]]; then
+      npm_args=("--target_arch=x64" "${npm_args[@]}")
+    fi
+
+    npm install -g "${npm_args[@]}"
   fi
 }
 
