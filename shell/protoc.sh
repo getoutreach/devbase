@@ -1,18 +1,52 @@
 #!/usr/bin/env bash
-
+# Generates proto types and clients from proto filess
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$SCRIPTS_DIR/gobin.sh"
 
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
-
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
 PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
-
 PROTOC_IMPORTS_BASE_PATH="$HOME/.outreach/.protoc-imports"
 mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
+
+get_package_prefix() {
+  local package_name="$1"
+  local package_version="$2"
+  local prefix_dir="$HOME/.outreach/.node-cache/$package_name/$package_version"
+  echo "$prefix_dir"
+}
+
+# install_npm_package installs a specific version of an npm package
+# globally
+install_npm_package() {
+  local package_name="$1"
+  local package_version="$2"
+
+  # Use a specific npm prefix for a "gobin" like experience that ensures
+  # we use the correct versions
+  # shellcheck disable=SC2155
+  local prefix_dir="$(get_package_prefix "$package_name" "$package_version")"
+
+  # Pre-create the prefix and bin,lib directories to avoid npm install errors.
+  mkdir -p "$prefix_dir" "$prefix_dir/"{bin,lib}
+
+  # Check and see if the package is already installed, if it's not
+  # then install it.
+  if ! npm list -g --prefix "$prefix_dir" | grep -q "$package_name@$package_version" 2>/dev/null; then
+    local npm_args=("--prefix" "$prefix_dir" "$package_name@$package_version")
+
+    # grpc-tools does not ship with an arm64 version at the moment.
+    # So, we use the x64 version instead.
+    if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" && $package_name == "grpc-tools" ]]; then
+      npm_args=("--target_arch=x64" "${npm_args[@]}")
+    fi
+
+    npm install -g "${npm_args[@]}"
+  fi
+}
 
 info "Ensuring protoc imports are avaliable locally"
 
@@ -124,22 +158,9 @@ if has_grpc_client "node"; then
 
   node_tools_version="$(get_application_version "node-grpc-tools")"
 
-  NODE_GRPC_TOOLS_CACHE_DIR="$HOME/.outreach/.node-cache/grpc-tools/$node_tools_version"
-  mkdir -p "$NODE_GRPC_TOOLS_CACHE_DIR"
-
-  if ! npm list -g --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" | grep grpc-tools@"$node_tools_version" >/dev/null 2>&1; then
-    # the version of grpc-tools for node we need is not installed.
-
-    # The reason there is an arm64 architecture check for OSX systems is because grpc-tools
-    # does not ship with an arm64 version. We have to use qemu to emulate the x64 version.
-    npm install -g \
-      "$(if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then echo "--target_arch=x64"; fi)" \
-      --prefix "$NODE_GRPC_TOOLS_CACHE_DIR" \
-      grpc-tools@"$node_tools_version"
-  fi
-
-  grpc_tools_node_bin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc"
-  grpc_tools_node_plugin="$NODE_GRPC_TOOLS_CACHE_DIR/bin/grpc_tools_node_protoc_plugin"
+  install_npm_package "grpc-tools" "$node_tools_version"
+  grpc_tools_node_bin="$(get_package_prefix "grpc-tools" "$node_tools_version")/bin/grpc_tools_node_protoc"
+  grpc_tools_node_plugin="$(get_package_prefix "grpc-tools" "$node_tools_version")/bin/grpc_tools_node_protoc_plugin"
 
   # pruning the directory from deprecated files
   rm -r "$(get_repo_directory)/api/clients/node/src/grpc"
@@ -157,13 +178,15 @@ if has_grpc_client "node"; then
 
   "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)/api/"*.proto
 
-  npm install -g grpc_tools_node_protoc_ts
-
   info_sub "Running TS protobuf generation"
+
+  ts_protoc_version="$(get_application_version "node-ts-grpc-tools")"
+  install_npm_package "grpc_tools_node_protoc_ts" "$ts_protoc_version"
+  ts_protoc_bin="$(get_package_prefix "grpc_tools_node_protoc_ts" "$ts_protoc_version")/bin/protoc-gen-ts"
 
   ts_args=("${default_args[@]}")
   ts_args+=(
-    --plugin=protoc-gen-ts="$(which protoc-gen-ts)"
+    --plugin=protoc-gen-ts="$ts_protoc_bin"
     --ts_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
     --proto_path "$(get_repo_directory)/api"
   )
