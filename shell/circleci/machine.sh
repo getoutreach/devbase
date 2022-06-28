@@ -12,7 +12,7 @@ fi
 
 if ! command -v gh >/dev/null; then
   echo "Installing gh"
-  wget -O gh.deb https://github.com/cli/cli/releases/download/v2.5.0/gh_2.5.0_linux_amd64.deb
+  wget -O gh.deb https://github.com/cli/cli/releases/download/v2.12.1/gh_2.12.1_linux_amd64.deb
   sudo apt install -yf ./gh.deb
   rm gh.deb
 fi
@@ -25,8 +25,8 @@ sudo pip3 install yq
 # Vault
 if ! command -v vault >/dev/null; then
   echo "Installing Vault"
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-  sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
   sudo apt-get update
   sudo apt-get install -y vault
 fi
