@@ -34,7 +34,7 @@ fi
 logfmt=(
   $"$DIR/gobin.sh"
 
-  "github.com/getoutreach/eng/cmd/logfmt@$(get_tool_version "getoutreach/eng")"
+  "github.com/getoutreach/logfmt/cmd/logfmt@$(get_tool_version "getoutreach/logfmt")"
 )
 
 if [[ -n $LOGFMT_FORMAT ]]; then
