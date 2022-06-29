@@ -15,7 +15,7 @@ shift
 repo="$1"
 shift
 
-info="$(curl -X GET https://codecov.io/api/gh/"$owner"/"$repo" -H 'Authorization: $CODECOV_API_KEY')"
+info="$(curl -X GET https://codecov.io/api/gh/"$owner"/"$repo" -H "Authorization: $CODECOV_API_KEY")"
 
 if [[ $? -ne 1 ]]; then
   echo "Non-zero exit code returned from curl to codecov to get repository information: $info" >&2
@@ -30,9 +30,9 @@ fi
 #   1 | 0 ||     1
 #   0 | 1 ||     0
 #   1 | 1 ||     0
-if [[ $(cat "$info" | jq '.repo.private and (.repo.active | not)') == "false" ]]; then
+if [[ $(jq '.repo.private and (.repo.active | not)' <"$info") == "false" ]]; then
   echo "Repository either already activated or not a private repository, exiting gracefully."
   exit 0
 fi
 
-curl -X POST https://codecov.io/api/pub/gh/"$owner"/"$repo"/settings -d 'action=activate' -H 'Authorization: $CODECOV_API_KEY'
+curl -X POST https://codecov.io/api/pub/gh/"$owner"/"$repo"/settings -d 'action=activate' -H "Authorization: $CODECOV_API_KEY"

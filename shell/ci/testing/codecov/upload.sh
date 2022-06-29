@@ -16,15 +16,13 @@ if [[ ! -x "$(command -v codecov)" ]]; then
     os="macos"
   fi
 
-  pushd /usr/local/bin >/dev/null 2>&1
+  pushd /usr/local/bin >/dev/null 2>&1 || exit 1
   curl -Os https://uploader.codecov.io/latest/"$os"/codecov
   chmod +x codecov
-  popd
+  popd >/dev/null 2>&1 || exit 1
 fi
 
-codecov "${args[@]}"
-
-if [[ $? -eq 0 ]]; then
+if codecov "${args[@]}"; then
   echo "Succesfully uploaded codecov report."
   exit 0
 fi
@@ -36,18 +34,15 @@ fi
 
 echo "codecov uploader returned a non-zero exit code. Attempting to activate repository based off of CIRCLECI environment variables for owner and repository name."
 
-local owner="${CIRCLE_PROJECT_USERNAME}"
-local repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
-./activate-repo.sh "$owner" "$repo"
+owner="${CIRCLE_PROJECT_USERNAME}"
+repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
 
-if [[ $? -ne 0 ]]; then
+if ! ./activate-repo.sh "$owner" "$repo"; then
   echo "Activating the repository failed." >&2
   exit 1
 fi
 
-codecov "${args[@]}"
-
-if [[ $? -eq 0 ]]; then
+if codecov "${args[@]}"; then
   echo "Succesfully uploaded codecov report."
   exit 0
 fi
