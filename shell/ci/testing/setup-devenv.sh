@@ -48,7 +48,9 @@ if [[ -n $CI ]]; then
     tempDir=$(mktemp -d)
     cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
     pushd "$tempDir" >/dev/null || exit 1
-
+    # Ensure the versions we need are available
+    asdf install
+    
     # download the pre-release/latest version
     REPO=getoutreach/devenv
     if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
