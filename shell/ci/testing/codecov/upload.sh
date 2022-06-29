@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 args=()
-if [[ -z "$CODECOV_UPLOAD_TOKEN" ]]; then
+if [[ -z $CODECOV_UPLOAD_TOKEN ]]; then
   args+=("-t $CODECOV_UPLOAD_TOKEN")
 fi
 
-if [[ -gt $# 1 ]]; then
+if [[ $# -gt 0 ]]; then
   args=("${args[@]}" "$@")
 fi
 
@@ -24,12 +24,12 @@ fi
 
 codecov "${args[@]}"
 
-if [[ -eq $? 0 ]]; then
+if [[ $? -eq 0 ]]; then
   echo "Succesfully uploaded codecov report."
   exit 0
 fi
 
-if [[ "$CIRCLECI" != "true" ]]; then
+if [[ $CIRCLECI != "true" ]]; then
   echo "codecov uploader returned a non-zero exit code. Repository may not be activated, run ./activate-repo.sh <owner> <repo> and try again." >&2
   exit 1
 fi
@@ -40,14 +40,14 @@ local owner="${CIRCLE_PROJECT_USERNAME}"
 local repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
 ./activate-repo.sh "$owner" "$repo"
 
-if [[ -ne $? 0 ]]; then
+if [[ $? -ne 0 ]]; then
   echo "Activating the repository failed." >&2
   exit 1
 fi
 
 codecov "${args[@]}"
 
-if [[ -eq $? 0 ]]; then
+if [[ $? -eq 0 ]]; then
   echo "Succesfully uploaded codecov report."
   exit 0
 fi

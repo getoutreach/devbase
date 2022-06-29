@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 
-if [[ -z "$CODECOV_API_KEY" ]]; then
+if [[ -z $CODECOV_API_KEY ]]; then
   echo "CODECOV_API_KEY environment variable is empty." >&2
   exit 1
 fi
 
-if [[ -ne $# 2 ]]; then
+if [[ $# -ne 2 ]]; then
   echo "Script expects the owner/organization and name of repository passed to it as parameters." >&2
   exit 1
 fi
 
-owner="$1"; shift
-repo="$1"; shift
+owner="$1"
+shift
+repo="$1"
+shift
 
 info="$(curl -X GET https://codecov.io/api/gh/"$owner"/"$repo" -H 'Authorization: $CODECOV_API_KEY')"
 
-if [[ -ne $? 1 ]]; then
+if [[ $? -ne 1 ]]; then
   echo "Non-zero exit code returned from curl to codecov to get repository information: $info" >&2
   exit 1
 fi
