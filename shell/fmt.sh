@@ -78,9 +78,9 @@ info_sub "buf (.proto)"
 info_sub "shfmt (.sh)"
 for_all_files '*.sh' "$SHELLFMTPATH" -w -l
 
-info_sub "prettier (.yaml/.yml/.json/.md)"
+info_sub "prettier (.yaml/.yml/.json)"
 yarn_install_if_needed
-for ext in "yaml" "yml" "json" "md"; do
+for ext in "yaml" "yml" "json"; do
   for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
 done
 
