@@ -11,11 +11,9 @@ if [[ $# -ne 2 ]]; then
 fi
 
 owner="$1"
-shift
-repo="$1"
-shift
+repo="$2"
 
-info="$(curl -X GET https://codecov.io/api/gh/"$owner"/"$repo" -H "Authorization: $CODECOV_API_KEY")"
+info="$(curl -X GET "https://codecov.io/api/gh/$owner/$repo" -H "Authorization: $CODECOV_API_KEY")"
 
 if [[ $? -ne 1 ]]; then
   echo "Non-zero exit code returned from curl to codecov to get repository information: $info" >&2
@@ -35,4 +33,4 @@ if [[ $(jq '.repo.private and (.repo.active | not)' <"$info") == "false" ]]; the
   exit 0
 fi
 
-curl -X POST https://codecov.io/api/pub/gh/"$owner"/"$repo"/settings -d 'action=activate' -H "Authorization: $CODECOV_API_KEY"
+curl -X POST "https://codecov.io/api/pub/gh/$owner/$repo/settings" -d 'action=activate' -H "Authorization: $CODECOV_API_KEY"

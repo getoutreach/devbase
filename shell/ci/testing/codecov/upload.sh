@@ -2,7 +2,7 @@
 
 args=()
 if [[ -z $CODECOV_UPLOAD_TOKEN ]]; then
-  args+=("-t $CODECOV_UPLOAD_TOKEN")
+  args+=("-t" "$CODECOV_UPLOAD_TOKEN")
 fi
 
 if [[ $# -gt 0 ]]; then
@@ -17,7 +17,7 @@ if [[ ! -x "$(command -v codecov)" ]]; then
   fi
 
   pushd /usr/local/bin >/dev/null 2>&1 || exit 1
-  curl -Os https://uploader.codecov.io/latest/"$os"/codecov
+  curl -Os "https://uploader.codecov.io/latest/$os/codecov"
   chmod +x codecov
   popd >/dev/null 2>&1 || exit 1
 fi
