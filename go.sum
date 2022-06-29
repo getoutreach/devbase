@@ -321,8 +321,8 @@ github.com/function61/gokit v0.0.0-20210402130425-341c2c9ecfd0/go.mod h1:zoPwlTF
 github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSyhcnluiMv+Xg=
 github.com/getoutreach/gobox v1.38.0/go.mod h1:RFDbnlBXTRo88WMpFUeac1jZGF7FTyrSNiUYHNqKus0=
-github.com/getoutreach/gobox v1.41.4 h1:DCUFL+4vnK7CIwhaQ5ftUg5eHBoJJB5q20WbZoZ0am4=
-github.com/getoutreach/gobox v1.41.4/go.mod h1:oZMyUGM7StL/JIyqFh27n4T6GxG2BsbaHq0w18B5nv0=
+github.com/getoutreach/gobox v1.41.5 h1:d0B1LK2uwut9PQg+y9zR7Gw0KTm2nCUS/LLMFCQU2Ls=
+github.com/getoutreach/gobox v1.41.5/go.mod h1:oZMyUGM7StL/JIyqFh27n4T6GxG2BsbaHq0w18B5nv0=
 github.com/getoutreach/localizer v1.14.5 h1:YrVCdQ+mmFjLB8FR/rAIPKUjP4Vu/J40meVT1PjxpsQ=
 github.com/getoutreach/localizer v1.14.5/go.mod h1:hDN4ku3XiaDCED9sLxzg3Fagw4MySdmbRtrHQDHGZSg=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
