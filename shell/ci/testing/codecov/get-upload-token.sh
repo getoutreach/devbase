@@ -32,4 +32,4 @@ if [[ $upload_token == "null" ]]; then
   upload_token=""
 fi
 
-echo "$upload_token"
+echo -n "$upload_token"

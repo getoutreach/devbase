@@ -17,8 +17,8 @@ else
   fi
 
   owner="$1"
+  repo="$2"
   shift
-  repo="$1"
   shift
 fi
 

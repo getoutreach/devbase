@@ -27,6 +27,6 @@ steps:
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
   - run:
       name: Upload Code Coverage
-      command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh e2e
+      command: ./scripts/shell-wrapper.sh ci/testing/codecov/upload-coverage.sh -f /tmp/coverage.out -c -F e2e
   - save_go_cache # We save at the end because binaries are included with this
   - upload_test_results # Uploads to CircleCI
