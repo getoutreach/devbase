@@ -17,7 +17,7 @@ else
   shift
 fi
 
-upload_token="$($DIR/get-upload-token.sh $owner $repo)"
+upload_token="$("$DIR"/get-upload-token.sh "$owner" "$repo")"
 
 args=("-t" "$upload_token")
 if [[ $# -gt 0 ]]; then
