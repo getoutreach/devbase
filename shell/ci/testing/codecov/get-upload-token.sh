@@ -15,7 +15,7 @@ repo="$2"
 
 info="$(curl -X GET "https://codecov.io/api/gh/$owner/$repo" -H "Authorization: $CODECOV_API_KEY")"
 
-if [[ $? -ne 1 ]]; then
+if [[ $? -ne 0 ]]; then
   echo "Non-zero exit code returned from curl to codecov to get repository information: $info" >&2
   exit 1
 fi
@@ -37,7 +37,7 @@ if [[ $(jq '.repo.private and (.repo.active | not)' <"$info") == "true" ]]; then
   # Re-do the request to get information, upload token should exist now.
   info="$(curl -X GET "https://codecov.io/api/gh/$owner/$repo" -H "Authorization: $CODECOV_API_KEY")"
 
-  if [[ $? -ne 1 ]]; then
+  if [[ $? -ne 0 ]]; then
     echo "Non-zero exit code returned from curl to codecov to get repository information: $info" >&2
     exit 1
   fi
