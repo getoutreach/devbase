@@ -24,6 +24,7 @@ fi
 
 upload_token="$("$DIR"/get-upload-token.sh "$owner" "$repo")"
 
+# shellcheck disable=SC2181
 if [[ $? -ne 0 ]]; then
   echo "Failed to get upload token from codecov API." >&2
   exit 1
@@ -41,10 +42,9 @@ if [[ ! -x "$(command -v codecov)" ]]; then
     os="macos"
   fi
 
-  pushd /usr/local/bin >/dev/null 2>&1 || exit 1
-  curl -Os "https://uploader.codecov.io/latest/$os/codecov"
+  curl -OsS "https://uploader.codecov.io/latest/$os/codecov"
   chmod +x codecov
-  popd >/dev/null 2>&1 || exit 1
+  sudo mv codecov /usr/local/bin
 fi
 
 if ! codecov "${args[@]}"; then
