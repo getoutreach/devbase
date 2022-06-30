@@ -9,5 +9,5 @@ docker:
 steps:
   - setup_environment
   - run:
-      name: Finish Coveralls upload
-      command: ./scripts/shell-wrapper.sh ci/testing/coveralls-finish.sh
+      name: Deprecated
+      command: echo "this step has been deprecated and is now a no-op"
