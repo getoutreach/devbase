@@ -2,6 +2,11 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+if [[ -z $CODECOV_API_KEY ]]; then
+  echo "CODECOV_API_KEY environment variable is empty." >&2
+  exit 1
+fi
+
 if [[ $CIRCLECI == "true" ]]; then
   owner="${CIRCLE_PROJECT_USERNAME}"
   repo="${CIRCLE_PR_REPONAME:-$CIRCLE_PROJECT_REPONAME}"
@@ -18,6 +23,11 @@ else
 fi
 
 upload_token="$("$DIR"/get-upload-token.sh "$owner" "$repo")"
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to get upload token from codecov API." >&2
+  exit 1
+fi
 
 args=("-t" "$upload_token")
 if [[ $# -gt 0 ]]; then
