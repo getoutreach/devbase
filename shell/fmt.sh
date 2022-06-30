@@ -41,6 +41,9 @@ for_all_files() {
 
     # Skip node modules
     "*node_modules*"
+
+    # Skip git internals
+    "./.git"
   )
   local glob="$1"
   shift
