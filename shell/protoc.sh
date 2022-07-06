@@ -138,7 +138,7 @@ if has_feature "validation"; then
 
   go_args+=(
     --plugin=protoc-gen-validate="$protoc_gen_validate"
-    --validate_out=lang=go,paths=source_relative:"$(get_repo_directory)/api"
+    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)/api"
   )
 fi
 
