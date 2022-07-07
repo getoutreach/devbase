@@ -15,15 +15,11 @@ parameters:
     description: The resource class to use for the release
     type: string
     default: "large"
-  executor:
-    description: The name of custom executor to use
-    type: executor
-    default: testbed-docker
 
 resource_class: << parameters.resource_class >>
 
 executor:
-  name: << parameters.executor >>
+  name: testbed-docker
 
 steps:
   - setup_environment
