@@ -15,11 +15,21 @@ parameters:
     description: The resource class to use for the release
     type: string
     default: "large"
+  docker_image:
+    description: The docker image to use for running the test
+    type: string
+    default: gcr.io/outreach-docker/bootstrap/ci
+  docker_tag:
+    description: The docker image tag to use for running the test
+    type: string
+    default: stable
 
 resource_class: << parameters.resource_class >>
 
 executor:
   name: testbed-docker
+  docker_image: << parameters.docker_image >>
+  docker_tag: << parameters.docker_tag >>
 
 steps:
   - setup_environment
