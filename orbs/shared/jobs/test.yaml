@@ -50,3 +50,7 @@ steps:
             command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh test || true
         - save_go_cache # We save at the end because binaries are included with this
         - upload_test_results # Uploads to CircleCI
+  - when:
+      condition: << parameters.skip >>
+      steps:
+        - run: echo "skip parameter in CI config was set to true, skipping"
