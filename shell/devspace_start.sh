@@ -67,9 +67,9 @@ This is how you can work with it:
 if [[ -z $DEV_CONTAINER_LOGFILE ]] || [[ $DEVENV_DEV_TERMINAL == "true" ]]; then
   echo -e "$BANNER"
   bash
-elif [[ -z $E2E ]]; then
+elif [[ -n $E2E ]]; then
   git init >/dev/null 2>&1
-  TEST_TAGS=or_test,or_e2e make test | tee -a "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+  TEST_TAGS=or_test,or_e2e make test | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
   exit "${PIPESTATUS[0]}"
 else
   make dev
