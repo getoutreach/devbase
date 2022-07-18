@@ -52,14 +52,6 @@ info "Ensuring protoc imports are avaliable locally"
 
 imports=$(
   get_list "go-protoc-imports"
-  if has_feature "validation"; then
-    cat <<EOF
-        {
-           "module":  "github.com/envoyproxy/protoc-gen-validate@v$(get_application_version "protoc-gen-validate")",
-           "path": ""
-        }
-EOF
-  fi
 )
 
 default_args=()
@@ -138,7 +130,7 @@ if has_feature "validation"; then
 
   go_args+=(
     --plugin=protoc-gen-validate="$protoc_gen_validate"
-    --validate_out=lang=go:"$(get_repo_directory)/api"
+    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)/api"
   )
 fi
 
