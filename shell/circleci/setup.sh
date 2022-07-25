@@ -4,6 +4,7 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 CI_DIR="$DIR/../ci"
+LIB_DIR="$DIR/../lib"
 
 # Ensure that asdf is ready to be used
 echo "🔨 Setting up asdf"
@@ -43,6 +44,8 @@ config:
     snapshots: {}
 storageURL: git@github.com:getoutreach/box
 EOF
+
+"$LIB_DIR/download-box.sh"
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >cache-version.txt
