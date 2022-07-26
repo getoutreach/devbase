@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -316,13 +315,9 @@ func shouldRunE2ETests() (bool, error) {
 		}
 
 		if info.IsDir() && path != "." {
-			fmt.Println("is dir", path)
-
 			// Skip submodule directories.
-			if hasGitFolder, err := os.Stat(filepath.Join(path, ".git")); err == nil {
-				if hasGitFolder.IsDir() {
-					return filepath.SkipDir
-				}
+			if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
+				return filepath.SkipDir
 			}
 		}
 
