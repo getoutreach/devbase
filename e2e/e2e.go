@@ -314,6 +314,15 @@ func shouldRunE2ETests() (bool, error) {
 			return err
 		}
 
+		if info.IsDir() && info.Name() != "." {
+			// Skip submodule directories.
+			if hasGitFolder, err := os.Stat(filepath.Join(info.Name(), ".git")); err == nil {
+				if hasGitFolder.IsDir() {
+					return filepath.SkipDir
+				}
+			}
+		}
+
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			// Skip symlinks.
 			return nil
