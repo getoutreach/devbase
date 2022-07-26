@@ -314,9 +314,9 @@ func shouldRunE2ETests() (bool, error) {
 			return err
 		}
 
-		if info.IsDir() && info.Name() != "." {
+		if info.IsDir() && path != "." {
 			// Skip submodule directories.
-			if hasGitFolder, err := os.Stat(filepath.Join(info.Name(), ".git")); err == nil {
+			if hasGitFolder, err := os.Stat(filepath.Join(path, ".git")); err == nil {
 				if hasGitFolder.IsDir() {
 					return filepath.SkipDir
 				}
