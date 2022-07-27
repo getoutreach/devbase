@@ -27,6 +27,7 @@ run_linter() {
   shift
   local linter_args=("$@")
 
+  # Note: extensions is set by the linter.
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155,SC2001
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
@@ -45,7 +46,8 @@ run_linter() {
     error "$linter_name failed with exit code $exit_code"
     exit 1
   fi
-  tput cuu1
+  # Move the cursor back up, but ignore failure when we don't have a terminal
+  tput cuu1 || true
   info_sub "$linter_name ($extensions) ($(format_diff $duration))"
 }
 
