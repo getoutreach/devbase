@@ -51,10 +51,11 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
+.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
 pre-run::
+pre-lint::
 pre-test::
 pre-coverage::
 pre-integration::

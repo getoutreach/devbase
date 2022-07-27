@@ -50,11 +50,11 @@ image_name:
   # extra secrets to expose to the builder, defaults to NPM_TOKEN being exposed
   # See: https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
   secrets:
-  - id=mySecret,env=MY_SECRET_ENV_VARIABLE
+    - id=mySecret,env=MY_SECRET_ENV_VARIABLE
   # Platforms to build this image for, defaults to linux/amd64,linux/arm64
   # See: https://github.com/docker/buildx#building-multi-platform-images
   platforms:
-  - linux/amd64
+    - linux/amd64
 ```
 
 <!--- EndBlock(overview) -->

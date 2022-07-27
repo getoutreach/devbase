@@ -7,7 +7,7 @@ extensions=(tf tfvars)
 
 tflint() {
   for tfdir in deployments monitoring; do
-    if [[ ! -e "$tfdir" ]]; then
+    if [[ ! -e $tfdir ]]; then
       continue
     fi
 

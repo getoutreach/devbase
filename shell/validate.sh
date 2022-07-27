@@ -78,7 +78,7 @@ for language in "$DIR/linters"/*.sh; do
       fi
       matched=true
     done
-    if [[ "$matched" == "false" ]]; then
+    if [[ $matched == "false" ]]; then
       exit 0
     fi
 
