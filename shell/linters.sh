@@ -88,4 +88,4 @@ for language in "$DIR/linters"/*.sh; do
 done
 finished_at="$(get_time_ms)"
 duration="$((finished_at - started_at))"
-info "Linters took $(format_diff $duration)s"
+info "Linters took $(format_diff $duration)"

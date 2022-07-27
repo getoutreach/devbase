@@ -103,7 +103,7 @@ build:: pre-build gobuild
 .PHONY: lint
 # Note: We run pre-test for compat. Remove on the next breaking change.
 lint:: pre-test pre-lint
-	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh validate.sh
+	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
 .PHONY: test
