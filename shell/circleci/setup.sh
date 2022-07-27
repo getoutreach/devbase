@@ -45,7 +45,11 @@ config:
 storageURL: git@github.com:getoutreach/box
 EOF
 
-"$LIB_DIR/download-box.sh"
+# shellcheck source=../lib/box.sh
+source "${LIB_DIR}/box.sh"
+
+# Ensure we have the latest box config
+download_box
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >cache-version.txt
