@@ -11,5 +11,30 @@ APPNAME="$(get_app_name)"
 # DEV_CONTAINER_EXECUTABLE is the executable to run in the dev container.
 DEV_CONTAINER_EXECUTABLE="${DEV_CONTAINER_EXECUTABLE:-$APPNAME}"
 
-echo "Running $DEV_CONTAINER_EXECUTABLE"
-exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@"
+if [[ -z $KUBERNETES_SERVICE_HOST ]]; then
+  exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@"
+  exit
+fi
+
+if [[ -z $DEVBOX_LOGFMT ]] && [[ -z $LOGFMT_FORMAT ]] && [[ -z $LOGFMT_FILTER ]]; then
+  exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
+  exit
+fi
+
+logfmt=(
+  $"$DIR/gobin.sh"
+
+  "github.com/getoutreach/logfmt/cmd/logfmt@$(get_tool_version "getoutreach/logfmt")"
+)
+
+if [[ -n $LOGFMT_FORMAT ]]; then
+  logfmt+=(--format "$LOGFMT_FORMAT")
+fi
+
+if [[ -n $LOGFMT_FILTER ]]; then
+  logfmt+=(--filter "$LOGFMT_FILTER")
+fi
+
+exec "$(get_repo_directory)/bin/$DEV_CONTAINER_EXECUTABLE" "$@" |
+  tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}" |
+  "${logfmt[@]}"

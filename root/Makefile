@@ -33,6 +33,7 @@ FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
+LOGFMT				?=
 
 # Outreach stuff, will be moved out... one day.
 OUTREACH_DOMAIN     ?= outreach-dev.com
@@ -50,10 +51,10 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-test pre-lint pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
+.PHONY: pre-release pre-build pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
-pre-lint::
+pre-run::
 pre-test::
 pre-coverage::
 pre-integration::
@@ -152,10 +153,16 @@ gobuild: check-deps
 grpcui:
 	@$(LOG) info "Launching gRPCUI"
 	./scripts/shell-wrapper.sh grpcui.sh localhost:5000
+
+## run:           run the service - the right binary, with opt-in logfmt
+.PHONY: run
+run:: pre-run build
+	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh air-runner.sh
+
 ## dev:       run the service
 .PHONY: dev
 dev:: pre-dev
-	@./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
+	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
 ## devserver:       run the service
 .PHONY: devserver
@@ -166,9 +173,9 @@ devserver:: pre-devserver build
 ## debug:           run the service via delve
 .PHONY: debug
 debug:: pre-debug build
-	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
-	if [[ -n $$DLV_PORT ]]; then ./scripts/shell-wrapper.sh debug.sh; fi
-	if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
+	@if [[ -z $$SKIP_DEVCONFIG ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh devconfig.sh; fi
+	@if [[ -n $$DLV_PORT ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh debug.sh; fi
+	@if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build

@@ -3,8 +3,11 @@ parameters:
   docker_tag:
     type: string
     default: stable
+  docker_image:
+    type: string
+    default: gcr.io/outreach-docker/bootstrap/ci
 docker:
-  - image: gcr.io/outreach-docker/bootstrap/ci:<< parameters.docker_tag >>
+  - image: << parameters.docker_image >>:<< parameters.docker_tag >>
     auth:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT
