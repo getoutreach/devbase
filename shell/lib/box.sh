@@ -9,10 +9,10 @@ download_box() {
   # otherwise fall back to the stub that's created in circleci/setup.sh. Eventually, we'll
   # want to only support the environment variable path.
   local boxGitRepo="$BOX_REPOSITORY_URL"
-  if [[ -z "$boxGitRepo" ]] && [[ ! -e "$BOXPATH" ]]; then
+  if [[ -z $boxGitRepo ]] && [[ ! -e $BOXPATH ]]; then
     echo "No box repository URL provided, and no box configuration stub found at $BOXPATH to infer it from" >&2
     return 1
-  elif [[ -z "$boxGitRepo" ]]; then
+  elif [[ -z $boxGitRepo ]]; then
     boxGitRepo="$(yq -r '.storageURL' "$BOXPATH")"
   fi
 
@@ -28,7 +28,7 @@ download_box() {
 
 # get_box_yaml returns the box configuration as a yaml string
 get_box_yaml() {
-  if [[ ! -e "${BOXPATH}" ]]; then
+  if [[ ! -e ${BOXPATH} ]]; then
     download_box >&2
   fi
   cat "$HOME/.outreach/.config/box/box.yaml"
@@ -40,5 +40,5 @@ get_box_yaml() {
 # a dot. Example: .devenv.imageRegistry
 get_box_field() {
   local field="$1"
-  yq -r ".config$field" <"$(get_box_yaml)"
+  yq -r ".config$field" <<<"$(get_box_yaml)"
 }
