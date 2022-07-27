@@ -22,6 +22,9 @@ download_box() {
   trap 'rm -rf "${TMPDIR}"' EXIT
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
+
+  # Why: OK with assigning without checking exit code.
+  # shellcheck disable=SC2155
   local newBox=$(yq . "${BOXPATH}" |
     jq --slurpfile boxconf \
       <(yq -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
