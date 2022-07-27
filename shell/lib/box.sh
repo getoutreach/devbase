@@ -22,10 +22,11 @@ download_box() {
   trap 'rm -rf "${TMPDIR}"' EXIT
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
-  yq . "${BOXPATH}" |
+  local newBox=$(yq . "${BOXPATH}" |
     jq --slurpfile boxconf \
       <(yq -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
-    yq . --yaml-output >"${BOXPATH}"
+    yq . --yaml-output)
+  echo "${newBox}" >"${BOXPATH}"
 }
 
 # get_box_yaml returns the box configuration as a yaml string
