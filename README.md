@@ -34,4 +34,27 @@ versions:
 CI will now use that branch, to use it locally re-run any `make` command. **Note**: This will not automatically update locally when the remote branch is changed, in order to do that you will need to `rm -rf .bootstrap` and re-run a `make` command. If you are testing changes to `make e2e`, you must also run
 `rm -rf ~/.outreach/.cache/gobin/binaries/$(go version | awk '{ print $3 }' | tr -d 'go')/github.com/getoutreach/devbase` before re-running a make command, in addition to `rm -rf .bootstrap`.
 
+## Building Docker Images
+
+Docker images can be built by creating a `docker.yaml` file in the `deployments/` directory of a repository. The format of this file is as follows:
+
+```yaml
+# Corresponds to the directory in `deployments/` and is used, by default, as the image name (see special case below).
+# If this is equal to "appName" then the build context/image name is changed. See docs.
+image_name:
+  # Override the build context for the image. Defaults to '.' if image_name == appName, otherwise ./deployments/<image_name>
+  buildContext: .
+  # pushTo is a different image registry to push to, defaults to:
+  # (box: .devenv.imageRegistry)/$image (or, if not == appName, $appname/$image)
+  pushTo: docker.com/stable/athens
+  # extra secrets to expose to the builder, defaults to NPM_TOKEN being exposed
+  # See: https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
+  secrets:
+  - id=mySecret,env=MY_SECRET_ENV_VARIABLE
+  # Platforms to build this image for, defaults to linux/amd64,linux/arm64
+  # See: https://github.com/docker/buildx#building-multi-platform-images
+  platforms:
+  - linux/amd64
+```
+
 <!--- EndBlock(overview) -->
