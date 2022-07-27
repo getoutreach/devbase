@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2128,SC2155
 # Builds a docker image, and pushes it if it's in CircleCI
 set -e
 
@@ -41,7 +42,7 @@ build_and_push_image() {
   #
   # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
   mapfile -t platforms < <(get_image_field '.platforms')
-  if [[ -z $platforms ]]; then
+  if [[ -z $platforms ]] || [[ $platforms == "null" ]]; then
     platforms=("linux/arm64" "linux/amd64")
   fi
 
@@ -53,7 +54,7 @@ build_and_push_image() {
   # See docker docs:
   # https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
   mapfile -t secrets < <(get_image_field '.secrets')
-  if [[ -z $secrets ]]; then
+  if [[ -z $secrets ]] || [[ $secrets == "null" ]]; then
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
 
@@ -66,12 +67,12 @@ build_and_push_image() {
   # append the appName to the repository to keep the images isolated
   # to this repository.
   local remote_image_name=$(get_image_field '.pushTo')
-  if [[ -z $remote_image_name ]]; then
+  if [[ -z $remote_image_name ]] || [[ $remote_image_name == "null" ]]; then
     local remote_image_name="$imageRegistry/$image"
 
     # If we're not the main image, then we should prefix the image name with the
     # app name, so that we can easily identify the image's source.
-    if [[ "$image" != "$APPNAME" ]]; then
+    if [[ $image != "$APPNAME" ]]; then
       remote_image_name="$imageRegistry/$APPNAME/$image"
     fi
   fi
@@ -101,13 +102,23 @@ build_and_push_image() {
     platformArgumentString+="$platform"
   done
 
+  # If we're not the main image, the build context should be
+  # the image directory instead.
+  buildContext="$(get_image_field '.buildContext')"
+  if [[ -z $buildContext ]] || [[ $buildContext == "null" ]]; then
+    buildContext="."
+    if [[ $APPNAME != "$image" ]]; then
+      buildContext="$(get_repo_directory)/deployments/$image"
+    fi
+  fi
+
   # Build a quick native image and load it into docker cache for security scanning
   # Scan reports for release images are also uploaded to OpsLevel
   # (test image reports only available on PR runs as artifacts).
   info "Building Docker Image (for scanning)"
   (
     set -x
-    docker buildx build "${args[@]}" -t "$image" --load .
+    docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
   )
 
   info "🔐 Scanning docker image for vulnerabilities"
@@ -118,7 +129,8 @@ build_and_push_image() {
     (
       set -x
       docker buildx build "${args[@]}" --platform "$platformArgumentString" \
-        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push .
+        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push \
+        "$buildContext"
     )
   fi
 }

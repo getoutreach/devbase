@@ -45,7 +45,7 @@ config:
 storageURL: git@github.com:getoutreach/box
 EOF
 
-# shellcheck source=../../lib/box.sh
+# shellcheck source=../lib/box.sh
 source "${LIB_DIR}/box.sh"
 
 # Ensure we have the latest box config

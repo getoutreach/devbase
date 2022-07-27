@@ -16,6 +16,8 @@ download_box() {
     boxGitRepo="$(yq -r '.storageURL' "$BOXPATH")"
   fi
 
+  # Why: OK with assigning without checking exit code.
+  # shellcheck disable=SC2155
   local tempDir="$(mktemp -d)"
   trap 'rm -rf "${TMPDIR}"' EXIT
 
