@@ -6,18 +6,16 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 SEC_DIR="${DIR}/../../security"
 TWIST_SCAN_DIR="${SEC_DIR}/prismaci"
-VERSION="$(make version)"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
-appName="$(get_app_name)"
-remote_image_name="gcr.io/outreach-docker/${appName}"
-dockerfile="deployments/${appName}/Dockerfile"
-if [[ ! -e ${dockerfile} ]]; then
-  echo "No dockerfile found at path: ${dockerfile}. Skipping."
-  exit 0
-fi
+# shellcheck source=../../lib/box.sh
+source "${LIB_DIR}/box.sh"
+
+APPNAME="$(get_app_name)"
+VERSION="$(make version)"
+MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 # shellcheck source=../../lib/buildx.sh
 source "${LIB_DIR}/buildx.sh"
@@ -25,35 +23,107 @@ source "${LIB_DIR}/buildx.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-# cache_dir="$HOME/.cache/docker-layers"
+# get_image_field returns a field from the manifest of the image
+get_image_field() {
+  local field="$1"
+  yq -r ".[\"$name\"]$field" "$MANIFEST"
+}
 
-secrets=("--secret" "id=npmtoken,env=NPM_TOKEN")
+# build_and_push_image builds and pushes a docker image to
+# the configured registry
+build_and_push_image() {
+  local image="$1"
 
-args=(
-  "--ssh" "default"
-  "--progress=plain" "--file" "$dockerfile"
-  "--build-arg" "VERSION=${VERSION}"
-  # cache disabled for now, wasn't working
-  # "--cache-from" "type=local,mode=max,src=${cache_dir}"
-  # "--cache-to" "type=local,mode=max,dest=${cache_dir}"
-)
+  # Platforms to build this image for, expected format (in YAML):
+  # platforms:
+  #   - linux/arm64
+  #   - linux/amd64
+  #
+  # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
+  mapfile -t platforms < <(get_image_field '.platforms')
+  if [[ -z $platforms ]]; then
+    platforms=("linux/arm64" "linux/amd64")
+  fi
 
-# Build a quick native image and load it into docker cache for security scanning
-# Scan reports for release images are also uploaded to OpsLevel (test image reports only available on PR runs as artifacts).
-info "Building Docker Image (for scanning)"
-(
-  set -x
-  docker buildx build "${args[@]}" "${secrets[@]}" -t "${appName}" --load .
-)
+  # Expose secrets to a docker container, expected format (in YAML):
+  #
+  # secrets:
+  #   - id=secretID,env=ENV_VAR
+  #
+  # See docker docs:
+  # https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
+  mapfile -t secrets < <(get_image_field '.secrets')
+  if [[ -z $secrets ]]; then
+    secrets=("id=npmtoken,env=NPM_TOKEN")
+  fi
 
-info "🔐 Scanning docker image for vulnerabilities"
-"${TWIST_SCAN_DIR}/twist-scan.sh" "${appName}" || echo "Warning: Failed to scan image"
+  local imageRegistry="$(get_box_field '.devenv.imageRegistry')"
 
-if [[ -n $CIRCLE_TAG ]]; then
-  echo "🔨 Building and Pushing Docker Image (production)"
+  # Where to push the image. This can be overridden in the manifest
+  # with the field .pushTo. If not set, we'll use the imageRegistry
+  # from the box configuration and the name of the image in devenv.yaml
+  # as the repository. If this is not the main image (appName), we'll
+  # append the appName to the repository to keep the images isolated
+  # to this repository.
+  local remote_image_name=$(get_image_field '.pushTo')
+  if [[ -z $remote_image_name ]]; then
+    local remote_image_name="$imageRegistry/$image"
+
+    # If we're not the main image, then we should prefix the image name with the
+    # app name, so that we can easily identify the image's source.
+    if [[ "$image" != "$APPNAME" ]]; then
+      remote_image_name="$imageRegistry/$APPNAME/$image"
+    fi
+  fi
+
+  local dockerfile="deployments/$image/Dockerfile"
+  if [[ ! -e $dockerfile ]]; then
+    echo "No dockerfile found at path: $dockerfile. Skipping."
+    return
+  fi
+
+  args=(
+    "--ssh" "default"
+    "--progress=plain" "--file" "$dockerfile"
+    "--build-arg" "VERSION=${VERSION}"
+  )
+
+  for secret in "${secrets[@]}"; do
+    args+=("--secret" "$secret")
+  done
+
+  # Argument format: os/arch,os/arch
+  platformArgumentString=""
+  for platform in "${platforms[@]}"; do
+    if [[ -n $platformArgumentString ]]; then
+      platformArgumentString+=","
+    fi
+    platformArgumentString+="$platform"
+  done
+
+  # Build a quick native image and load it into docker cache for security scanning
+  # Scan reports for release images are also uploaded to OpsLevel
+  # (test image reports only available on PR runs as artifacts).
+  info "Building Docker Image (for scanning)"
   (
     set -x
-    docker buildx build "${args[@]}" "${secrets[@]}" --platform linux/arm64,linux/amd64 \
-      -t "${remote_image_name}:${VERSION}" -t "$remote_image_name:latest" --push .
+    docker buildx build "${args[@]}" -t "$image" --load .
   )
-fi
+
+  info "🔐 Scanning docker image for vulnerabilities"
+  "${TWIST_SCAN_DIR}/twist-scan.sh" "$image" || echo "Warning: Failed to scan image" >&2
+
+  if [[ -n $CIRCLE_TAG ]]; then
+    echo "🔨 Building and Pushing Docker Image (production)"
+    (
+      set -x
+      docker buildx build "${args[@]}" --platform "$platformArgumentString" \
+        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push .
+    )
+  fi
+}
+
+mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
+for image in "${images[@]}"; do
+  build_and_push_image "$image"
+done
