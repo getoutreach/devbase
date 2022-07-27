@@ -28,9 +28,13 @@ run_linter() {
   local linter_args=("$@")
 
   # Why: We're OK with declaring and assigning.
+  # shellcheck disable=SC2155,SC2001
+  local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
+
+  # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
   local started_at="$(get_time_ms)"
-  info_sub "$linter_name (${extensions[*]})"
+  info_sub "$linter_name ($extensions)"
   "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
@@ -42,7 +46,7 @@ run_linter() {
     exit 1
   fi
   tput cuu1
-  info_sub "$linter_name (${extensions[*]}) ($(format_diff $duration))"
+  info_sub "$linter_name ($extensions) ($(format_diff $duration))"
 }
 
 format_diff() {
