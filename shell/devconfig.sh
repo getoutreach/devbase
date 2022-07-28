@@ -17,7 +17,7 @@ volumeDir="${TMPDIR:-/tmp}/$APPNAME"
 source "$DIR/lib/logging.sh"
 
 # shellcheck source=./lib/box.sh
-source "${LIB_DIR}/box.sh"
+source "$DIR/lib/box.sh"
 
 mkdir -p "$configDir"
 
