@@ -16,13 +16,15 @@ volumeDir="${TMPDIR:-/tmp}/$APPNAME"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 
+# shellcheck source=./lib/box.sh
+source "${LIB_DIR}/box.sh"
+
 mkdir -p "$configDir"
 
-VAULT_ADDR=https://vault.outreach.cloud
-if [[ -n $CI ]]; then
-  VAULT_ADDR=https://vault-dev.outreach.cloud
+if [[ -z $VAULT_ADDR ]]; then
+  VAULT_ADDR="$(get_box_field .devenv.vault.address)"
+  export VAULT_ADDR
 fi
-export VAULT_ADDR
 
 ensure_logged_into_vault() {
 
