@@ -23,6 +23,10 @@ source "$DIR/lib/bootstrap.sh"
 # This comes from the Makefile. This makes the linter aware of it.
 export TEST_TAGS=$TEST_TAGS
 
+if [[ -z $TEST_PACKAGES ]]; then
+  TEST_PACKAGES="./..."
+fi
+
 if [[ -n $CI ]]; then
   export GOFLAGS="${GOFLAGS} -mod=readonly"
 fi
@@ -98,7 +102,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     "$DIR/gobin.sh" gotest.tools/gotestsum@v"$(get_application_version "gotestsum")" \
       --junitfile "$(get_repo_directory)/bin/unit-tests.xml" --format "$format" -- $BENCH_FLAGS $COVER_FLAGS $TEST_FLAGS \
       -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
-      "$@" ./... || exitCode=$?
+      "$@" $TEST_PACKAGES || exitCode=$?
 
     if [[ -n $CI ]]; then
       # Move this to a temporary directoy so that we can control
