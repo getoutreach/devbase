@@ -14,9 +14,7 @@ plugins:
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
-    # Build the orb
-  - - "@semantic-release/exec"
-    - prepareCmd: make
-  - - "@outreach/semantic-release-circleci-orb"
-    - orbName: "getoutreach/shared"
-      orbPath: "orb.yml"
+
+  ### Block(customReleasePlugins)
+
+  ### EndBlock(customReleasePlugins)

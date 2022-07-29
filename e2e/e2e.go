@@ -314,6 +314,13 @@ func shouldRunE2ETests() (bool, error) {
 			return err
 		}
 
+		if info.IsDir() && path != "." {
+			// Skip submodule directories.
+			if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
+				return filepath.SkipDir
+			}
+		}
+
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			// Skip symlinks.
 			return nil
@@ -324,8 +331,13 @@ func shouldRunE2ETests() (bool, error) {
 			return nil
 		}
 
-		pkg, err := build.Default.Import(path, filepath.Base(path), build.ImportComment)
+		pkg, err := build.Import(path, filepath.Base(path), build.ImportComment)
 		if err != nil {
+			// Skip files that are not compatible with current build tags like or_int
+			var noGoErr *build.NoGoError
+			if errors.As(err, &noGoErr) {
+				return nil
+			}
 			return errors.Wrap(err, "import")
 		}
 
