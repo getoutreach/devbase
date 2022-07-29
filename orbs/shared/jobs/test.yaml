@@ -23,6 +23,10 @@ parameters:
     description: The docker image tag to use for running the test
     type: string
     default: stable
+  aws_region:
+    description: AWS_REGION environment variable to set
+    type: string
+    default: ""
   skip:
     description: If this is set to true all steps in this job will be skipped
     type: boolean
@@ -34,6 +38,9 @@ executor:
   name: testbed-docker
   docker_image: << parameters.docker_image >>
   docker_tag: << parameters.docker_tag >>
+
+environment:
+  AWS_REGION: << parameters.aws_region >>
 
 steps:
   - when:
