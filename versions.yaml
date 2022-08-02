@@ -1,4 +1,4 @@
-terraform: 0.13.5
+terraform: 1.2.6
 shfmt: 3.4.2
 shellcheck: 0.8.0
 grpcui: 1.0.0
