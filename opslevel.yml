@@ -9,7 +9,7 @@ version: 1
 service:
   name: devbase
   product: Outreach
-  owner: fnd_dtss
+  owner: fnd_dt
   language: Golang
   framework: stencil
   description: >
@@ -28,7 +28,7 @@ service:
     - key: repo
       value: "https://github.com/getoutreach/devbase"
     - key: reporting_team
-      value: "fnd-dtss"
+      value: "fnd-dt"
     - key: app
       value: "devbase"
     - key: name
