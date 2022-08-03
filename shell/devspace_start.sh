@@ -68,7 +68,9 @@ if [[ -z $DEV_CONTAINER_LOGFILE ]] || [[ $DEVENV_DEV_TERMINAL == "true" ]]; then
   echo -e "$BANNER"
   bash
 elif [[ -n $E2E ]]; then
+  # We need to have a git repo test files added so that make test can see them
   git init >/dev/null 2>&1
+  git add -A >/dev/null 2>&1
   TEST_TAGS=or_test,or_e2e make test | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
   exit "${PIPESTATUS[0]}"
 else
