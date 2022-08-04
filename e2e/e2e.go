@@ -303,6 +303,8 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 func shouldRunE2ETests() (bool, error) {
 	var runEndToEndTests bool
 
+	build.Default.BuildTags = []string{"or_test", "or_e2e"}
+
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if runEndToEndTests {
 			// No need to keep walking through files if we've already found one file
