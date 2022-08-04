@@ -58,6 +58,11 @@ format_diff() {
   printf "%d.%02ds" "$seconds" "$ms"
 }
 
+if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
+  info "Skipping linters"
+  exit 0
+fi
+
 info "Running linters"
 
 started_at="$(get_time_ms)"
