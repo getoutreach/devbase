@@ -155,7 +155,6 @@ if has_grpc_client "node"; then
   grpc_tools_node_plugin="$(get_package_prefix "grpc-tools" "$node_tools_version")/bin/grpc_tools_node_protoc_plugin"
 
   # pruning the directory from deprecated files
-  rm -r "$(get_repo_directory)/api/clients/node/src/grpc"
   mkdir -p "$(get_repo_directory)/api/clients/node/src/grpc"
 
   info_sub "Running Node protobuf generation"
