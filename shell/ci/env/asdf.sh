@@ -67,6 +67,7 @@ EOF
       # Ensure the plugin (language) exists and install the version
       asdf_plugin_install "$language" || exit 1
       asdf install "$language" "$version" || exit 1
+      asdf reshim
     done
   fi
 }
