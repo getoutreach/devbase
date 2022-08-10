@@ -11,7 +11,7 @@ metrics: datadog
 releaseType: ""
 releaseOptions:
   allowPrereleases: true
-  prereleasesBranch: ""
+  prereleasesBranch: rc
   allowMajorVersions: true
 deployTo:
   environments: []
@@ -37,7 +37,7 @@ arguments:
   releaseOptions:
     allowMajorVersions: true
     enablePrereleases: true
-    prereleasesBranch: ""
+    prereleasesBranch: rc
   reportingTeam: fnd-dt
   resources: {}
   service: false
@@ -79,11 +79,11 @@ arguments:
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
+  - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
   - name: github.com/getoutreach/stencil-outreach
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-actions
-  - name: github.com/getoutreach/stencil-base
 opsLevel:
   serviceTier: 0
   lifecycle: ""
