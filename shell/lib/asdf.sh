@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
+# Deprecated: Use asdf_install instead.
 # asdf_plugins_from_tool_versions installs all plugins from .tool-versions
 asdf_plugins_from_tool_versions() {
   while read -r line; do
@@ -19,28 +20,40 @@ asdf_plugins_from_tool_versions() {
 # asdf_install installs a plugins/version required from a top-level
 # .tool-versions and all subdirectories
 asdf_install() {
-  readarray -t tool_versions < <(find . -name .tool-versions | grep -vE "./.bootstrap" | grep -vE "./node_modules" | grep -vE "./vendor")
-  if [[ -n ${tool_versions[*]} ]]; then
-    for tool_version in "${tool_versions[@]}"; do
-      dir="$(dirname "$tool_version")"
-      pushd "$dir" >/dev/null || exit 1
-      asdf_plugins_from_tool_versions
-      asdf install || asdf_install_retry
-      asdf reshim
-      popd >/dev/null || exit 1
-    done
-  fi
+  # Combine all .tool-versions found in this directory and the child directories
+  # minus node_modules and vendor. Then strip the comments and run uniq.
+  readarray -t asdf_entries < <(find . -name .tool-versions | grep -vE "./node_modules" | grep -vE "./vendor" | xargs cat | grep -Ev "^#" | sort | uniq)
+  for entry in "${asdf_entries[@]}"; do
+    # Why: We're OK not declaring separately here.
+    # shellcheck disable=SC2155
+    local plugin="$(awk '{ print $1 }' <<<"$entry")"
+    # Why: We're OK not declaring separately here.
+    # shellcheck disable=SC2155
+    local version="$(awk '{ print $2 }' <<<"$entry")"
+
+    # Install the plugin first, so we can install the version
+    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
+
+    # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
+    asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
+  done
+
+  echo "Reshimming asdf (this may take awhile ...)"
+  asdf reshim
 }
 
 # asdf_install_retry attempts to retry on certain platforms
 asdf_install_retry() {
+  local plugin="$1"
+  local version="$2"
+
   if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
-    arch -x86_64 asdf install
+    arch -x86_64 asdf install "$plugin" "$version"
     return $?
   fi
 
   # Not a supported retry, so just try again once and pray.
-  asdf install
+  asdf install "$plugin" "$version"
 }
 
 # asdf_plugin_install installs an asdf plugin
