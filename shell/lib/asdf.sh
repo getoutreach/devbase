@@ -36,6 +36,8 @@ asdf_install() {
 
     # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
     asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
+
+    asdf reshim
   done
 }
 
