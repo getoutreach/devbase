@@ -112,7 +112,7 @@ func main() {
 	configText, err := os.ReadFile("stork.yaml")
 	if err != nil {
 		// This is a repo without a stork config so just ignore it
-		log.Info().Msg("unable to read manifest.yaml files, assuming there is not one")
+		log.Info().Msg("unable to read stork.yaml file, assuming there is not one")
 		configText = []byte{}
 	}
 
