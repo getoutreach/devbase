@@ -226,3 +226,9 @@ benchmarker-gen:
 .PHONY: benchmarker-run
 benchmarker-run:
 	benchmarker --input benchmarker-grpc.json --output benchmarker-output.json --format json --verbose
+
+## check-config:    make sure that stork.yaml and manifest.yaml will not cause erros
+.PHONY: check-config
+check-config:
+	$(BASE_TEST_ENV) CHECK_CONFIG=true
+	./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
