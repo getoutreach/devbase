@@ -51,7 +51,7 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish pre-check-config
+.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
 pre-run::
@@ -69,7 +69,6 @@ pre-docker-build::
 pre-fmt::
 pre-docs::
 pre-docs-publish::
-pre-check-config::
 
 ## release:         tag a new release with goreleaser
 .PHONY: release
@@ -230,6 +229,6 @@ benchmarker-run:
 
 ## check-config:    make sure that stork.yaml and manifest.yaml will not cause erros
 .PHONY: check-config
-check-config:: pre-check-config
-	$(BASE_TEST_ENV) CHECK_CONFIG=true
+check-config:
+	$(BASE_TEST_ENV) CHECK_CONFIG=true \
 	./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
