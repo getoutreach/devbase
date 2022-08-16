@@ -105,12 +105,15 @@ func main() {
 	manifestText, err := os.ReadFile("manifest.yaml")
 	if err != nil {
 		// This is a repo without a manifest file so just ignore it
+		log.Info().Msg("unable to read manifest.yaml file, assuming there is not one, skipping test")
 		return
 	}
 
 	configText, err := os.ReadFile("stork.yaml")
 	if err != nil {
 		// This is a repo without a stork config so just ignore it
+		log.Info().Msg("unable to read manifest.yaml files, assuming there is not one")
+		configText = []byte{}
 		return
 	}
 
@@ -121,18 +124,27 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to parse manifest.yaml file")
 	}
 
-	var config map[string]ConfigArgument
+	config := make(map[string]ConfigArgument)
 
-	err = yaml.Unmarshal(configText, &config)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse stork.yaml file")
+	if len(configText) != 0 {
+		err = yaml.Unmarshal(configText, &config)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to parse stork.yaml file")
+		}
+	} else {
+		log.Info().Msg("stork.yaml is empty or does not exist")
 	}
 
+	log.Info().Msg("checking stork.yaml keys")
 	if msg := checkKeys(manifest, config); msg != "" {
 		log.Fatal().Msg(msg)
 	}
+	log.Info().Msg("stork.yaml keys only reference existent keys")
 
+	log.Info().Msg("checking stork.yaml and manifest.yaml imports")
 	if msg := checkModules(manifest, config); msg != "" {
 		log.Fatal().Msg(msg)
 	}
+	log.Info().Msg("all stork.yaml and manifest.yaml imports and declared in the modules field")
+	log.Info().Msg("all tests passed")
 }
