@@ -104,12 +104,14 @@ func main() {
 
 	manifestText, err := os.ReadFile("manifest.yaml")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get manifest.yaml file")
+		// This is a repo without a manifest file so just ignore it
+		return
 	}
 
 	configText, err := os.ReadFile("stork.yaml")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get stork.yaml file")
+		// This is a repo without a stork config so just ignore it
+		return
 	}
 
 	var manifest Manifest

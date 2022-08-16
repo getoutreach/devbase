@@ -11,6 +11,7 @@ source "$DIR/../../lib/logging.sh"
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
 E2E="${E2E:-"false"}"
+CHECK_CONFIG="${CHECK_CONFIG:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   info "e2e was set, ignoring provision"
@@ -95,4 +96,9 @@ fi
 if [[ $E2E == "true" ]]; then
   info "Starting E2E test runner"
   TEST_TAGS=or_test,or_e2e exec "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/v2/e2e@$(cat "$DIR/../../../.version")")"
+fi
+
+if [[ $CHECK_CONFIG == "true" ]]; then
+  info "Checking stork.yaml and manifest.yaml files"
+  TEST_TAGS=or_test,or_e2e exec "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/v2/stork_config@$(cat "$DIR/../../../.version")")"
 fi
