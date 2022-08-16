@@ -114,7 +114,6 @@ func main() {
 		// This is a repo without a stork config so just ignore it
 		log.Info().Msg("unable to read manifest.yaml files, assuming there is not one")
 		configText = []byte{}
-		return
 	}
 
 	var manifest Manifest
