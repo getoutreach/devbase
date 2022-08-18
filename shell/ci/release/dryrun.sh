@@ -51,3 +51,7 @@ if [[ -z $GH_TOKEN ]]; then
 fi
 
 GH_TOKEN=$GH_TOKEN yarn --frozen-lockfile semantic-release --dry-run
+
+# Handle unstable releasing for CLIs, pre-conditions for this exist
+# in the script.
+"$DIR/unstable-release.sh"
