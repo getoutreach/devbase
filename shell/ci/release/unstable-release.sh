@@ -21,7 +21,7 @@ if [[ $commandsLen -eq 0 ]]; then
 fi
 
 # If we don't have pre-releasing enabled, skip this.
-if ! has_feature "arguments.releaseOptions.enablePrereleases"; then
+if [[ "$(yq -r ".arguments.releaseOptions.enablePrereleases" 2>/dev/null <"$(get_service_yaml)")" != "true" ]]; then
   exit 0
 fi
 
@@ -33,7 +33,10 @@ if [[ -z $prereleasesBranch ]] || [[ $prereleasesBranch == "$defaultBranch" ]]; 
   exit 0
 fi
 
-make release APP_VERSION="unstable-$(git rev-parse --short HEAD)"
+app_version="unstable-$(git rev-parse --short HEAD)"
+echo "Creating unstable release ($app_version)"
+
+make release APP_VERSION="$app_version"
 
 # If we're not on the prereleases branch or dryRun, skip uploading.
 currentBranch="$(git rev-parse --abbrev-ref HEAD)"
