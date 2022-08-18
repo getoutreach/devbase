@@ -38,9 +38,7 @@ echo "Creating unstable release ($app_version)"
 
 make release APP_VERSION="$app_version"
 
-# If we're not on the prereleases branch or dryRun, skip uploading.
-currentBranch="$(git rev-parse --abbrev-ref HEAD)"
-if [[ $currentBranch != "$prereleasesBranch" ]] || [[ $dryRun == "true" ]]; then
+if [[ $dryRun == "true" ]]; then
   exit 0
 fi
 
