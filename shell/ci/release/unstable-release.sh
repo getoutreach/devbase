@@ -8,6 +8,11 @@ set -e
 # shellcheck source=./../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
 
+dryRun=false
+if [[ $1 == "--dry-run" ]]; then
+  dryRun=true
+fi
+
 # If we don't have any commands, skip this
 commandsLen=$(yq -r '.arguments.commands | length' <"$(get_service_yaml)")
 if [[ $commandsLen -eq 0 ]]; then
@@ -29,9 +34,9 @@ fi
 
 make release APP_VERSION="unstable-$(git rev-parse --short HEAD)"
 
-# If we're not on the prereleases branch, skip uploading.
+# If we're not on the prereleases branch or dryRun, skip uploading.
 currentBranch="$(git rev-parse --abbrev-ref HEAD)"
-if [[ $currentBranch != "$prereleasesBranch" ]]; then
+if [[ $currentBranch != "$prereleasesBranch" ]] || [[ $dryRun == "true" ]]; then
   return 0
 fi
 

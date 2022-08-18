@@ -2,6 +2,8 @@
 # This script attempts to dry-run a release in CI to fake semantic-release.
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
 # Setup git commands
 git config --global user.name "Devbase CI"
 git config --global user.email "devbase@outreach.io"
@@ -16,17 +18,7 @@ unset CI_PULL_REQUESTS
 
 # Store what branch we are really on
 OLD_CIRCLE_BRANCH="$CIRCLE_BRANCH"
-
-# Determine what our head branch is, with the default assumption
-# being that it's main.
-CIRCLE_BRANCH=""
-if git rev-parse main >/dev/null 2>&1; then
-  CIRCLE_BRANCH="main"
-elif git rev-parse master >/dev/null 2>&1; then
-  CIRCLE_BRANCH="master"
-else
-  echo "Error: Failed to determine HEAD (default) branch" >&2
-fi
+CIRCLE_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD)"
 
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
@@ -50,8 +42,8 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
-GH_TOKEN=$GH_TOKEN yarn --frozen-lockfile semantic-release --dry-run
+GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
 
 # Handle unstable releasing for CLIs, pre-conditions for this exist
 # in the script.
-"$DIR/unstable-release.sh"
+"$DIR/unstable-release.sh" --dry-run
