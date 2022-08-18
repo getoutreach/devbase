@@ -18,7 +18,7 @@ unset CI_PULL_REQUESTS
 
 # Store what branch we are really on
 OLD_CIRCLE_BRANCH="$CIRCLE_BRANCH"
-CIRCLE_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD)"
+CIRCLE_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH

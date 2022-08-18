@@ -27,7 +27,7 @@ fi
 # If our prereleasesBranch is empty, or equal to the default branch
 # skip this.
 prereleasesBranch="$(yq -r '.arguments.releaseOptions.prereleasesBranch' <"$(get_service_yaml)")"
-defaultBranch="$(git rev-parse --abbrev-ref origin/HEAD)"
+defaultBranch="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 if [[ -z $prereleasesBranch ]] || [[ $prereleasesBranch == "$defaultBranch" ]]; then
   return 0
 fi
