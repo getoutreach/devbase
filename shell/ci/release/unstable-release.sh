@@ -33,7 +33,7 @@ if [[ -z $prereleasesBranch ]] || [[ $prereleasesBranch == "$defaultBranch" ]]; 
   exit 0
 fi
 
-app_version="unstable-$(git rev-parse --short HEAD)"
+app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
 echo "Creating unstable release ($app_version)"
 
 make release APP_VERSION="$app_version"
