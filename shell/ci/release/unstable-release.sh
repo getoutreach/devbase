@@ -4,6 +4,7 @@
 # that have also opted to enablePrereleases _and_
 # not release from the default branch (e.g. main).
 set -e
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
