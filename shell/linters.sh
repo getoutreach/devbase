@@ -33,7 +33,7 @@ run_linter() {
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
   local files=$(sed 's/ /,/' <<<"${files[*]}")
   local show=$extensions
-  if [[ "$extensions" == "." ]]; then
+  if [[ $extensions == "." ]]; then
     show=$files
   fi
 
