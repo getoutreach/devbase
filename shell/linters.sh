@@ -31,11 +31,17 @@ run_linter() {
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155,SC2001
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
+  # shellcheck disable=SC2155,SC2001
+  local files=$(sed 's/ /,/' <<<"${files[*]}")
+  local show=$extensions
+  if [[ $extensions == "." ]]; then
+    show=$files
+  fi
 
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
   local started_at="$(get_time_ms)"
-  info_sub "$linter_name ($extensions)"
+  info_sub "$linter_name ($show)"
   "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
@@ -48,7 +54,7 @@ run_linter() {
   fi
   # Move the cursor back up, but ignore failure when we don't have a terminal
   tput cuu1 || true
-  info_sub "$linter_name ($extensions) ($(format_diff $duration))"
+  info_sub "$linter_name ($show) ($(format_diff $duration))"
 }
 
 format_diff() {
@@ -76,6 +82,7 @@ for language in "$DIR/linters"/*.sh; do
   (
     # Modified by the language file
     extensions=()
+    files=()
 
     # Why: Dynamic
     # shellcheck disable=SC1090
@@ -85,6 +92,13 @@ for language in "$DIR/linters"/*.sh; do
     for extension in "${extensions[@]}"; do
       # If we don't find any files with the extension, skip the run.
       if [[ "$(git ls-files "*.$extension" | wc -l | tr -d ' ')" -le 0 ]]; then
+        continue
+      fi
+      matched=true
+    done
+    for file in "${files[@]}"; do
+      # If there are no matching files, skip the run.
+      if [[ "$(git ls-files "$file" | wc -l | tr -d ' ')" -le 0 ]]; then
         continue
       fi
       matched=true
