@@ -43,7 +43,7 @@ if [[ $dryRun == "true" ]]; then
 fi
 
 # delete unstable release/tag if it exists
-gh release delete unstable || true
+gh release delete unstable -y || true
 
 # create unstable release and upload assets to it
 gh release create unstable --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
