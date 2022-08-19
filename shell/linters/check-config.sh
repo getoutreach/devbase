@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Linters for protobuf
-CHECK_CONFIG=$("$DIR/gobin.sh" -p github.com/getoutreach/stork/cmd/check_config@v"$(get_application_version "check_config")")
+# Linters for stork.yaml and manifest.yaml
+CHECK_CONFIG=$("$DIR/gobin.sh" -p github.com/getoutreach/stork/cmd/check_config@v"$(get_tool_version "check_config")")
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
@@ -14,7 +14,7 @@ check_cfg() {
 }
 
 linter() {
-  if [ -f "manifest.yaml" ]; then
+  if [ -f "$(get_repo_directory)/manifest.yaml" ]; then
     run_linter "check_config" check_cfg
   fi
 }
