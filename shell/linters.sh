@@ -76,6 +76,7 @@ for language in "$DIR/linters"/*.sh; do
   (
     # Modified by the language file
     extensions=()
+    files=()
 
     # Why: Dynamic
     # shellcheck disable=SC1090
@@ -89,6 +90,13 @@ for language in "$DIR/linters"/*.sh; do
       fi
       matched=true
     done
+    for file in "${files[@]}"; do
+      # If there are no matching files, skip the run.
+      if [[ "$(git ls-files "$file" | wc -l | tr -d ' ')" -le 0 ]]; then
+        continue
+      fi
+      matched=true
+    fi
     if [[ $matched == "false" ]]; then
       exit 0
     fi
