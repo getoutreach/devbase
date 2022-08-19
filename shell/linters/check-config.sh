@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Linters for protobuf
+CHECK_CONFIG=$("$DIR/gobin.sh" -p github.com/getoutreach/stork/cmd/check_config@v"$(get_application_version "check_config")")
+
+# Why: Used by the script that calls us
+# shellcheck disable=SC2034
+extensions=(check-config)
+
+check_cfg() {
+  if ! "$CHECK_CONFIG" format --exit-code >/dev/null 2>&1; then
+    error "check_config encountered problems with the stork.yaml and manifest.yaml files which make them incompatible with the Stork API."
+    exit 1
+  fi
+}
+
+linter() {
+  if [ -f "manifest.yaml" ]; then
+    run_linter "check_config" check_cfg
+  fi
+}
