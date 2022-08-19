@@ -8,7 +8,7 @@ extensions=(yaml)
 
 check_cfg() {
   if ! "$CHECK_CONFIG" format --exit-code >/dev/null 2>&1; then
-    error "check_config encountered problems with the stork.yaml and manifest.yaml files which make them incompatible with the Stork API."
+    error "check_config encountered problems with the stork.yaml and manifest.yaml files which make them incompatible with the Stork API. Run check_config for more info."
     exit 1
   fi
 }
