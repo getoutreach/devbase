@@ -48,4 +48,4 @@ git tag --delete unstable || true
 git push --delete origin unstable || true
 
 # create unstable release and upload assets to it
-gh release create unstable --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+gh release create unstable --prerelease --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
