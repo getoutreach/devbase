@@ -32,15 +32,15 @@ run_linter() {
   # shellcheck disable=SC2155,SC2001
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
   local files=$(sed 's/ /,/' <<<"${files[*]}")
+  local show=$extensions
+  if [[ "$extensions" == "." ]]; then
+    show=$files
+  fi
 
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
   local started_at="$(get_time_ms)"
-  if [[ "$extensions" != "." ]]; then
-    info_sub "$linter_name ($extensions)"
-  else 
-    info_sub "$linter_name ($files)"
-  fi
+  info_sub "$linter_name ($show)"
   "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
@@ -53,7 +53,7 @@ run_linter() {
   fi
   # Move the cursor back up, but ignore failure when we don't have a terminal
   tput cuu1 || true
-  info_sub "$linter_name ($extensions) ($(format_diff $duration))"
+  info_sub "$linter_name ($show) ($(format_diff $duration))"
 }
 
 format_diff() {
