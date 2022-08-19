@@ -31,11 +31,16 @@ run_linter() {
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155,SC2001
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
+  local files=$(sed 's/ /,/' <<<"${files[*]}")
 
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155
   local started_at="$(get_time_ms)"
-  info_sub "$linter_name ($extensions)"
+  if [$extensions = "."]; then
+    info_sub "$linter_name ($extensions)"
+  else 
+    info_sub "$linter_name ($files)"
+  fi
   "$linter_bin" "${linter_args[@]}"
   exit_code=$?
   # Why: We're OK with declaring and assigning.
