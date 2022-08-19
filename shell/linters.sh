@@ -31,6 +31,7 @@ run_linter() {
   # Why: We're OK with declaring and assigning.
   # shellcheck disable=SC2155,SC2001
   local extensions=$(sed 's/ /,./' <<<"${extensions[*]}" | sed 's/^/./')
+  # shellcheck disable=SC2155,SC2001
   local files=$(sed 's/ /,/' <<<"${files[*]}")
   local show=$extensions
   if [[ $extensions == "." ]]; then
