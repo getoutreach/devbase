@@ -57,7 +57,7 @@ require (
 	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
+	google.golang.org/genproto v0.0.0-20220111164026-67b88f271998 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
