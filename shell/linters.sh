@@ -96,7 +96,7 @@ for language in "$DIR/linters"/*.sh; do
         continue
       fi
       matched=true
-    fi
+    done
     if [[ $matched == "false" ]]; then
       exit 0
     fi
