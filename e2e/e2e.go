@@ -264,7 +264,7 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 
 	// not responding to pings, or failed to connect, remove the socket
 	//nolint:gosec // Why: We're OK with this. It's a constant.
-	return osStdInOutErr(exec.CommandContext(ctx, "sudo", "rm", "-f", localizer.Socket)).Run()
+	return osStdInOutErr(exec.Command("sudo", "rm", "-f", localizer.Socket)).Run()
 }
 
 func runLocalizer(ctx context.Context) (cleanup func(), err error) {
