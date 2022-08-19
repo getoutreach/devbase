@@ -4,7 +4,7 @@ CHECK_CONFIG=$("$DIR/gobin.sh" -p github.com/getoutreach/stork/cmd/check_config@
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
-extensions=(check-config)
+extensions=(yaml)
 
 check_cfg() {
   if ! "$CHECK_CONFIG" format --exit-code >/dev/null 2>&1; then
