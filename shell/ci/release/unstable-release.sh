@@ -44,6 +44,7 @@ fi
 
 # delete unstable release+tag if it exists
 gh release delete unstable -y || true
+git tag --delete unstable || true
 git push --delete origin unstable || true
 
 # create unstable release and upload assets to it
