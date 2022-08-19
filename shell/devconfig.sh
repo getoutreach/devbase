@@ -80,7 +80,7 @@ info "Generating local config/secrets in '$configDir'"
 envsubst="$("$DIR/gobin.sh" -p github.com/a8m/envsubst/cmd/envsubst@v1.2.0)"
 
 info "Fetching Configuration File(s)"
-DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/deploy-to-dev.sh" show | yq -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
+DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
   while IFS=$'\t' read -r configFile configData; do
 
     saveFile="$configDir/$configFile"
@@ -101,9 +101,7 @@ DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/deploy-to-dev.sh" show | yq -r
 # /run/secrets/outreach.io/<basename vaultKey>/<vault subKey>
 info "Fetching Secret(s) from Vault"
 
-# DEVENV_VERSION is set to get around the deprecation for now. The script is deprecated for normal users
-# but is still needed for rendering manifests.
-DEVENV_VERSION="xyz" "$DIR/deploy-to-dev.sh" show | yq -r 'select(.kind == "VaultSecret") | .spec.path' |
+"$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "VaultSecret") | .spec.path' |
   while IFS=$'\n' read -r vaultKey; do
     info_sub "$vaultKey"
     get_vault_secrets "$vaultKey" "$HOME/.outreach/$APPNAME"

@@ -16,6 +16,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	localizerapi "github.com/getoutreach/localizer/api"
 	"github.com/getoutreach/localizer/pkg/localizer"
+	"github.com/getoutreach/orgapi/api"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -242,7 +243,37 @@ func provisionNew(ctx context.Context, deps []string, target string) error {
 	return nil
 }
 
+// ensureRunningLocalizerWorks check if a localizer is already running, and if it is
+// ensure it's working properly (responding to pings). If it's not, remove the socket.
+func ensureRunningLocalizerWorks(ctx context.Context) error {
+	log.Info().Msg("Ensuring existing localizer is actually running")
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	// Made connection, ping it
+	if err == nil {
+		defer closer()
+
+		// Responding to pings, return nil
+		if _, err := client.Ping(ctx, &api.PingRequest{}); err == nil {
+			return nil
+		}
+	}
+
+	// not responding to pings, or failed to connect, remove the socket
+	return osStdInOutErr(exec.CommandContext(ctx, "sudo", "rm", "-f", localizer.Socket)).Run()
+}
+
 func runLocalizer(ctx context.Context) (cleanup func(), err error) {
+	if localizer.IsRunning() {
+		if err := ensureRunningLocalizerWorks(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	if !localizer.IsRunning() {
 		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
 		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
