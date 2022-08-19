@@ -16,7 +16,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	localizerapi "github.com/getoutreach/localizer/api"
 	"github.com/getoutreach/localizer/pkg/localizer"
-	"github.com/getoutreach/orgapi/api"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -258,7 +257,7 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 		defer closer()
 
 		// Responding to pings, return nil
-		if _, err := client.Ping(ctx, &api.PingRequest{}); err == nil {
+		if _, err := client.Ping(ctx, &localizerapi.PingRequest{}); err == nil {
 			return nil
 		}
 	}
