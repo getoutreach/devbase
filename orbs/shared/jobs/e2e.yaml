@@ -12,6 +12,10 @@ parameters:
     description: The resource class to use for the e2e tests
     type: string
     default: "large"
+  no_output_timeout:
+    description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
+    type: string
+    default: 10m
 executor:
   name: testbed-machine
 environment:
@@ -25,6 +29,7 @@ steps:
   - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
+      no_output_timeout: << parameters.no_output_timeout >>
   - run:
       name: Upload Code Coverage
       command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh e2e
