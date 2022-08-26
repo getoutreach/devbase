@@ -104,8 +104,9 @@ fi
 
 if ! has_feature "library"; then
   if [[ -e deployments ]] && [[ -e monitoring ]]; then
+    info_sub "terraform fmt (.tf/.tfvars)"
     for tfdir in deployments monitoring; do
-      "$SCRIPTS_DIR/terraform.sh" fmt "$tfdir"
+      terraform fmt "$tfdir"
     done
   fi
 fi
