@@ -1,10 +1,9 @@
-terraform: 0.13.5
 shfmt: 3.4.2
 shellcheck: 0.8.0
 grpcui: 1.0.0
 # Remove once https://github.com/golangci/golangci-lint/pull/2595 merges.
 golangci-lint: 1.46.2
-jsonnetfmt: 32b292c9cbb3411414ea7f6f11875c1a8927283c # use a tagged version whenever they release past v0.18.0 (https://github.com/google/go-jsonnet)
+jsonnetfmt: 4906958414ed9617e3fe5acac5752f6f8426551c # use a tagged version whenever they release past v0.18.0 (https://github.com/google/go-jsonnet)
 goimports: 0.1.10
 delve: 1.7.3
 gotestsum: 1.7.0
