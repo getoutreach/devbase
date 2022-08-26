@@ -1,5 +1,4 @@
-version: v1.21.1
-generated: 2022-08-10T21:32:02.560396Z
+version: v1.25.1
 modules:
     - name: github.com/getoutreach/stencil-actions
       url: https://github.com/getoutreach/stencil-actions
@@ -9,29 +8,20 @@ modules:
       version: v0.6.0-rc.4
     - name: github.com/getoutreach/stencil-circleci
       url: https://github.com/getoutreach/stencil-circleci
-      version: v1.2.2-rc.1
+      version: v1.3.0-rc.2
     - name: github.com/getoutreach/stencil-discovery
       url: https://github.com/getoutreach/stencil-discovery
       version: v1.2.0
     - name: github.com/getoutreach/stencil-golang
       url: https://github.com/getoutreach/stencil-golang
-      version: v1.3.0-rc.17
+      version: v1.3.0-rc.18
     - name: github.com/getoutreach/stencil-outreach
       url: https://github.com/getoutreach/stencil-outreach
-      version: v0.3.0-rc.9
+      version: v0.3.0-rc.11
 files:
-    - name: .air.toml
-      template: .air.toml.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: .circleci/config.yml
-      template: .circleci/config.yml.tpl
-      module: github.com/getoutreach/stencil-outreach
     - name: .circleci/config.yml
       template: .circleci/config.yml.tpl
       module: github.com/getoutreach/stencil-circleci
-    - name: .dockerignore
-      template: .dockerignore.tpl
-      module: github.com/getoutreach/stencil-golang
     - name: .editorconfig
       template: .editorconfig.tpl
       module: github.com/getoutreach/stencil-base
@@ -44,18 +34,12 @@ files:
     - name: .github/pull_request_template.md
       template: .github/pull_request_template.md.tpl
       module: github.com/getoutreach/stencil-base
-    - name: .github/workflows/create-shared-actions.yaml
-      template: .github/workflows/create-shared-actions.yaml.tpl
-      module: github.com/getoutreach/stencil-actions
     - name: .github/workflows/pull_request-shared-actions.yaml
       template: .github/workflows/pull_request-shared-actions.yaml.tpl
       module: github.com/getoutreach/stencil-actions
     - name: .gitignore
       template: .gitignore.tpl
       module: github.com/getoutreach/stencil-base
-    - name: .goreleaser.yml
-      template: .goreleaser.yml.tpl
-      module: github.com/getoutreach/stencil-golang
     - name: .prettierignore
       template: .prettierignore.tpl
       module: github.com/getoutreach/stencil-golang
@@ -80,9 +64,6 @@ files:
     - name: .vscode/private.env
       template: .vscode/private.env.tpl
       module: github.com/getoutreach/stencil-golang
-    - name: .vscode/private.env
-      template: .vscode/private.env.tpl
-      module: github.com/getoutreach/stencil-outreach
     - name: .vscode/settings.json
       template: .vscode/settings.json.tpl
       module: github.com/getoutreach/stencil-golang
@@ -98,287 +79,14 @@ files:
     - name: README.md
       template: README.md.tpl
       module: github.com/getoutreach/stencil-base
-    - name: _helpers
-      template: _helpers.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: _helpers
-      template: _helpers.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: _helpers
-      template: _helpers.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: _helpers
-      template: _helpers.tpl
-      module: github.com/getoutreach/stencil-circleci
-    - name: api/clients/node/.eslintrc.js
-      template: api/clients/node/.eslintrc.js.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/.gitignore
-      template: api/clients/node/.gitignore.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/.npmignore
-      template: api/clients/node/.npmignore.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/.nvmrc
-      template: api/clients/node/.nvmrc.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/.prettierignore
-      template: api/clients/node/.prettierignore.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/.tool-versions
-      template: api/clients/node/.tool-versions.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/README.md
-      template: api/clients/node/README.md.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/bootstrap.js
-      template: api/clients/node/bootstrap.js.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/doc.go
-      template: api/clients/node/doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/generate.go
-      template: api/clients/node/generate.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/jest.config.js
-      template: api/clients/node/jest.config.js.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/package.hjson
-      template: api/clients/node/package.hjson.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/scripts/copy-definitions.js
-      template: api/clients/node/scripts/copy-definitions.js.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/src/client-helpers.spec.ts
-      template: api/clients/node/src/client-helpers.spec.ts.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/src/client-helpers.ts
-      template: api/clients/node/src/client-helpers.ts.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/src/index.ts
-      template: api/clients/node/src/index.ts.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/tsconfig.json
-      template: api/clients/node/tsconfig.json.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/node/tsconfig.production.json
-      template: api/clients/node/tsconfig.production.json.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/.tool-versions
-      template: api/clients/ruby/.tool-versions.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/Gemfile
-      template: api/clients/ruby/Gemfile.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/Gemfile.lock
-      template: api/clients/ruby/Gemfile.lock.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/Rakefile
-      template: api/clients/ruby/Rakefile.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/client.gemspec
-      template: api/clients/ruby/client.gemspec.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/lib/devbase_client.rb
-      template: api/clients/ruby/lib/client.rb.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/lib/devbase_client/client.rb
-      template: api/clients/ruby/lib/client/client.rb.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/clients/ruby/lib/devbase_client/version.rb
-      template: api/clients/ruby/lib/client/version.rb.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/devbase.go
-      template: api/api.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/devbase.proto
-      template: api/api.proto.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/devbase/doc.go
-      template: api/rpc/doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/doc.go
-      template: api/doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/kubernetes/groupversion_info.go
-      template: api/kubernetes/groupversion_info.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/kubernetes/type.go
-      template: api/kubernetes/type.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/kubernetes/version.go
-      template: api/kubernetes/version.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: api/rpc_helpers.go
-      template: api/rpc_helpers.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: atlantis.yaml
-      template: atlantis.yaml.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: cmd/main.go
-      template: cmd/main.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: cmd/main_cli.go
-      template: cmd/main_cli.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: concourse/pipeline.jsonnet
-      template: concourse/pipeline.jsonnet.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: concourse/segments.libsonnet
-      template: concourse/segments.libsonnet.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: deployments/devbase/Dockerfile.dev
-      template: deployments/appname/Dockerfile.dev.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: deployments/devbase/devbase.jsonnet
-      template: deployments/appname/app.jsonnet.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: deployments/devbase/mixins/accounts.jsonnet
-      template: deployments/app/mixins/accounts.jsonnet.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: deployments/devbase/mixins/mint.jsonnet
-      template: deployments/app/mixins/mint.jsonnet.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: deployments/devbase/mixins/tollgate.jsonnet
-      template: deployments/app/mixins/tollgate.jsonnet.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: deployments/devbase/resources.libsonnet
-      template: deployments/appname/resources.libsonnet.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: deployments/docker.yaml
-      template: deployments/docker.yaml.tpl
-      module: github.com/getoutreach/stencil-golang
     - name: devenv.yaml
       template: devenv.yaml.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: devspace.yaml
-      template: devspace.yaml.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: documentation/README.md
-      template: documentation/README.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/SLOs.md
-      template: documentation/SLOs.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/deployments.md
-      template: documentation/deployments.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/disaster-recovery.md
-      template: documentation/disaster-recovery.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/rollout-plan.md
-      template: documentation/rollout-plan.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbook.md
-      template: documentation/runbook.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/available-pods-low.md
-      template: documentation/runbooks/available-pods-low.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/grpc-latency-high.md
-      template: documentation/runbooks/grpc-latency-high.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/grpc-success-rate-low.md
-      template: documentation/runbooks/grpc-success-rate-low.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/http-latency-high.md
-      template: documentation/runbooks/http-latency-high.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/http-success-rate-low.md
-      template: documentation/runbooks/http-success-rate-low.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/pod-cpu.md
-      template: documentation/runbooks/pod-cpu.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/pod-memory.md
-      template: documentation/runbooks/pod-memory.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/pod-restarts.md
-      template: documentation/runbooks/pod-restarts.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: documentation/runbooks/service-panics.md
-      template: documentation/runbooks/service-panics.md.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: go.mod
-      template: go.mod.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/appName/k8s/_helpers
-      template: internal/appName/k8s/_helpers.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/appName/k8s/controller.go
-      template: internal/appName/k8s/controller.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/appName/k8s/type_doc.go
-      template: internal/appName/k8s/type_doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/appName/k8s/webhook.go
-      template: internal/appName/k8s/webhook.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/appName/kafka/kafka_test.go
-      template: internal/appName/kafka/kafka_test.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/all_test.go
-      template: internal/appName/all_test.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/config.go
-      template: internal/appName/config.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/consumer.go
-      template: internal/appName/kafka/consumer.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/doc.go
-      template: internal/appName/doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/handler.go
-      template: internal/appName/http/handler.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/handler_test.go
-      template: internal/appName/http/handler_test.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/httpservice.go
-      template: internal/appName/http/httpservice.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/kubernetes.go
-      template: internal/appName/k8s/activity.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/server.go
-      template: internal/appName/rpc/server.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/devbase/shutdown.go
-      template: internal/appName/shutdown.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/k8s/doc.go
-      template: internal/appName/k8s/doc.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: internal/k8s/resource.go
-      template: internal/appName/k8s/resource.go.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: monitoring/dashboard.tf
-      template: monitoring/dashboard.tf.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: monitoring/datadog.tf
-      template: monitoring/datadog.tf.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: monitoring/main.tf
-      template: monitoring/main.tf.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: monitoring/terraform.tfvars
-      template: monitoring/terraform.tfvars.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: monitoring/versions.tf
-      template: monitoring/versions.tf.tpl
       module: github.com/getoutreach/stencil-golang
     - name: opslevel.yml
       template: opslevel.yml.tpl
       module: github.com/getoutreach/stencil-outreach
     - name: package.json
       template: package.json.tpl
-      module: github.com/getoutreach/stencil-base
-    - name: pipeline.yaml
-      template: pipeline.yaml.tpl
-      module: github.com/getoutreach/stencil-outreach
-    - name: scripts/bootstrap-lib.sh
-      template: scripts/bootstrap-lib.sh.tpl
       module: github.com/getoutreach/stencil-base
     - name: scripts/devbase.sh
       template: scripts/devbase.sh.tpl
