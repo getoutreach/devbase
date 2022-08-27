@@ -8,4 +8,5 @@ protoc 3.19.1
 # CAREFUL with this. If you override a standard version you are
 # reducing compatibility guarantees.
 ###Block(toolver)
+mage 1.13.0
 ###EndBlock(toolver)
