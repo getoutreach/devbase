@@ -1,22 +1,19 @@
+SHELL               := /usr/bin/env bash
+
 # application information
 APP                 ?= unset
 ORG                 ?= getoutreach
-APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD 2>/dev/null || echo "0.0.0-dev")
+
+# Transition
+MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(CURDIR)/.bootstrap/.tool-versions" | grep mage | awk '{ print $$2 }') mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
+APP_VERSION         := $(shell $(MAGE_CMD) version)
 
 # go options
 GO                  ?= go
-GOFMT               ?= gofmt
-SHELL               := /usr/bin/env bash
 GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
-PKG                 := $(GO) mod download -x
-HONEYCOMB_API_KEY 	?= $(shell if [[ -f /run/secrets/outreach.io/honeycomb/apiKey ]]; then cat /run/secrets/outreach.io/honeycomb/apiKey; else cat ~/.outreach/$(APP)/honeycomb/apiKey; fi )
-TELEFORK_API_KEY 	?= $(shell if [[ -f /run/secrets/outreach.io/telefork/api-keys/default ]]; then cat /run/secrets/outreach.io/telefork/api-keys/default; else cat ~/.outreach/$(APP)/telefork/api-keys/default; fi )
-LDFLAGS             ?= $(shell if [[ -z $$DLV_PORT ]]; then printf -- "-w -s"; fi) -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(HONEYCOMB_API_KEY) -X main.TeleforkAPIKey=$(TELEFORK_API_KEY)
 GOFLAGS             :=
 GOPRIVATE           := github.com/$(ORG)/*
-GOPROXY             := https://proxy.golang.org
-GO_EXTRA_FLAGS      := -v $(shell if [[ -z $$KUBERNETES_SERVICE_HOST ]]; then printf -- "-tags=or_dev"; fi)
 TAGS                :=
 BINDIR              := $(CURDIR)/bin
 BIN_NAME            := $(APP)
@@ -33,7 +30,7 @@ FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
-LOGFMT				?=
+LOGFMT				      ?=
 
 # Outreach stuff, will be moved out... one day.
 OUTREACH_DOMAIN     ?= outreach-dev.com
@@ -74,22 +71,20 @@ pre-docs-publish::
 .PHONY: release
 release:: pre-release
 	@# Create a tag for our version
-	@git tag -d "$(APP_VERSION)" >&2 || true
+	@git tag -d "$(APP_VERSION)" >&2 >/dev/null || true
 	@git tag "$(APP_VERSION)" >&2
-	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.4.1 release --skip-announce --skip-publish --skip-validate --rm-dist
+	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.6.2 release --skip-announce --skip-publish --skip-validate --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
 ## help             show this help
-.PHONY : help
+.PHONY: help
 help: Makefile
 	@printf "\n[running make with no target runs make build]\n\n"
 	@sed -n 's/^##[^#]//p' .bootstrap/root/Makefile Makefile
-
-## check-deps:      check for required dependencies
-.PHONY: check-deps
-check-deps:
-	@[[ ! -z "${SKIP_CHECK_DEPS}" ]] || ./scripts/shell-wrapper.sh check_deps.sh ${TOOL_DEPS}
+	@printf "\n"
+	@echo "Mage (make <target>) targets"
+	@mage -d root -l
 
 ## pre-commit:      run housekeeping utilities before creating a commit
 .PHONY: pre-commit
@@ -130,25 +125,17 @@ benchmark:: pre-benchmark
 	@$(LOG) info "Results of benchmarks: "
 	./scripts/shell-wrapper.sh gobin.sh golang.org/x/perf/cmd/benchstat@03971e38 /tmp/benchmark.txt
 
-## dep:             download go dependencies
-.PHONY: dep
-dep:
-	@$(LOG) info "Installing dependencies via '$(PKG)'"
-	GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) $(PKG)
-
 ## gogenerate:      run go codegen
 .PHONY: gogenerate
-gogenerate:: pre-gogenerate check-deps
+gogenerate:: pre-gogenerate
 	@$(LOG) info "Running gogenerate"
 	@GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) $(GO) generate ./...
 
 ## gobuild:         build application binary
 .PHONY: gobuild
-gobuild: check-deps
-	@$(LOG) info "Building binaries into ./bin/"
-	mkdir -p $(BINDIR)
-	GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) \
-	GOARCH=$(GOARCH) $(GO) build -o $(BINDIR)/ -ldflags "$(LDFLAGS)" $(GO_EXTRA_FLAGS) $(PKGDIR)/...
+gobuild:
+	@$(MAGE_CMD) gobuild
+
 ## grpcui:          run grpcui for an already locally running service
 .PHONY: grpcui
 grpcui:
@@ -213,10 +200,6 @@ update-pipeline: fly-login
 	@if [[ ! -e "concourse/jsonnet-libs" ]]; then git clone https://github.com/getoutreach/jsonnet-libs concourse/jsonnet-libs; else cd concourse/jsonnet-libs && git reset --hard origin/master && git pull; fi
 	cd concourse; rm -f /tmp/pipeline.yml; $(JSONNET) -J ./jsonnet-libs -y pipeline.jsonnet > /tmp/pipeline.yml && ${FLY} -t devs sp -c /tmp/pipeline.yml -p $(APP)
 
-.PHONY: version
-version:
-	@echo "$(APP_VERSION)"
-
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
 benchmarker-gen:
@@ -226,3 +209,7 @@ benchmarker-gen:
 .PHONY: benchmarker-run
 benchmarker-run:
 	benchmarker --input benchmarker-grpc.json --output benchmarker-output.json --format json --verbose
+
+# Catch all to mage
+%::
+	@$(MAGE_CMD) $@

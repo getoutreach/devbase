@@ -7,8 +7,9 @@ require (
 	github.com/getoutreach/localizer v1.14.5
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
+	github.com/magefile/mage v1.13.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.27.0
+	github.com/rs/zerolog v1.28.0
 	github.com/sirupsen/logrus v1.8.1
 	google.golang.org/grpc v1.47.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -57,7 +58,7 @@ require (
 	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
+	google.golang.org/genproto v0.0.0-20220111164026-67b88f271998 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

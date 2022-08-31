@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Linters for protobuf
-PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
+PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_version "buf")")
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034

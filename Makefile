@@ -2,7 +2,7 @@ APP := devbase
 OSS := true
 _ := $(shell ./scripts/devbase.sh) 
 
-include .bootstrap/root/Makefile
+include root/Makefile
 
 ###Block(targets)
 .PHONY: build-orb
