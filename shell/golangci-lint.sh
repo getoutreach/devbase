@@ -4,7 +4,6 @@
 # with your editor.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-GOBIN="$DIR/gobin.sh"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
@@ -25,4 +24,4 @@ mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
 export GOLANGCI_LINT_CACHE
 
-exec "$GOBIN" "github.com/golangci/golangci-lint/cmd/golangci-lint@v$(get_application_version "golangci-lint")" "${args[@]}"
+exec golangci-lint "${args[@]}"
