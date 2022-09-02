@@ -21,7 +21,15 @@ export GOGC=20
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
-GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
-export GOLANGCI_LINT_CACHE
+
+# Why: We're OK with masking the return value
+# shellcheck disable=SC2155
+export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
+
+# Ensure we're using the correct version of golangci-lint
+#
+# Why: We're OK with masking the return value
+# shellcheck disable=SC2155
+export ASDF_DEFAULT_TOOL_VERSIONS_FILENAME="$(get_repo_directory)/.bootstrap/.tool-versions"
 
 exec golangci-lint "${args[@]}"
