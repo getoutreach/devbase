@@ -8,5 +8,7 @@ protoc 3.19.1
 # CAREFUL with this. If you override a standard version you are
 # reducing compatibility guarantees.
 ###Block(toolver)
+# The below tools are used by all repositories when using devbase
 mage 1.13.0
+golangci-lint 1.49.0
 ###EndBlock(toolver)
