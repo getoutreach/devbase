@@ -54,7 +54,7 @@ steps:
             command: make test
         - run:
             name: Upload Code Coverage
-            command: ./scripts/shell-wrapper.sh ci/testing/codecov/upload.sh -f /tmp/coverage.out
+            command: ./scripts/shell-wrapper.sh ci/testing/codecov/upload-coverage.sh -f /tmp/coverage.out
         - save_go_cache # We save at the end because binaries are included with this
         - upload_test_results # Uploads to CircleCI
   - when:
