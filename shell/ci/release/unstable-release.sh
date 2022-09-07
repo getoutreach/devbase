@@ -14,12 +14,6 @@ if [[ $1 == "--dry-run" ]]; then
   dryRun=true
 fi
 
-# If we don't have any commands, skip this
-commandsLen=$(yq -r '.arguments.commands | length' <"$(get_service_yaml)")
-if [[ $commandsLen -eq 0 ]]; then
-  exit 0
-fi
-
 # If we don't have pre-releasing enabled, skip this.
 if [[ "$(yq -r ".arguments.releaseOptions.enablePrereleases" 2>/dev/null <"$(get_service_yaml)")" != "true" ]]; then
   exit 0
