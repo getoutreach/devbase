@@ -14,6 +14,12 @@ if [[ $1 == "--dry-run" ]]; then
   dryRun=true
 fi
 
+# If we don't have a .goreleaser file, skip this.
+# TODO(jaredallard)[DT-2796]: This enables plugins to release from main.
+if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
+  exit 0
+fi
+
 # If we don't have pre-releasing enabled, skip this.
 if [[ "$(yq -r ".arguments.releaseOptions.enablePrereleases" 2>/dev/null <"$(get_service_yaml)")" != "true" ]]; then
   exit 0
