@@ -14,9 +14,9 @@ if [[ $1 == "--dry-run" ]]; then
   dryRun=true
 fi
 
-# If we don't have any commands, skip this
-commandsLen=$(yq -r '.arguments.commands | length' <"$(get_service_yaml)")
-if [[ $commandsLen -eq 0 ]]; then
+# If we don't have a .goreleaser file, skip this.
+# TODO(jaredallard)[DT-2796]: This enables plugins to release from main.
+if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
   exit 0
 fi
 

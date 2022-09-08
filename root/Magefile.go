@@ -33,6 +33,12 @@ func Gobuild(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	if _, err := os.Stat("cmd"); os.IsNotExist(err) {
+		log.Warn().Msg("This repository produces no artifacts (no 'cmd' directory found)")
+		return nil
+	}
+
 	buildDir := filepath.Join(cwd, "bin")
 
 	honeycombKey, err := readSecret(ctx, "honeycomb/apiKey")
