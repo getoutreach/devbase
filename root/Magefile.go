@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	logger "github.com/rs/zerolog/log"
 )
@@ -40,6 +41,11 @@ func Gobuild(ctx context.Context) error {
 	}
 
 	buildDir := filepath.Join(cwd, "bin")
+	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
+		if err := os.Mkdir(buildDir, 0o755); err != nil {
+			return errors.Wrapf(err, "failed to mkdir %s", buildDir)
+		}
+	}
 
 	honeycombKey, err := readSecret(ctx, "honeycomb/apiKey")
 	if err != nil {
