@@ -10,7 +10,7 @@ APP                 ?= unset
 ORG                 ?= getoutreach
 
 # Transition
-MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(CURDIR)/.bootstrap/.tool-versions" | grep mage | awk '{ print $$2 }') mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
+MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(CURDIR)/.bootstrap/.tool-versions" | grep mage | awk '{ print $$2 }') MAGE_HASHFAST=1 mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
 APP_VERSION         := $(shell $(MAGE_CMD) version)
 
 # go options
