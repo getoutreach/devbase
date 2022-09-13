@@ -70,8 +70,8 @@ fi
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/asdf.sh"
 
-if [[ "$installedAsdf" == "true" ]]; then
-    # Install preloaded versions, usually used for docker executors
+if [[ $installedAsdf == "true" ]]; then
+  # Install preloaded versions, usually used for docker executors
   # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
   if [[ -n $PRELOAD_VERSIONS ]]; then
     info "Preloading language versions"
@@ -90,7 +90,6 @@ if [[ "$installedAsdf" == "true" ]]; then
     done
   fi
 fi
-
 
 echo "🛠 Installing languages/plugins from all .tool-version files"
 asdf_install
