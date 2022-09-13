@@ -10,8 +10,6 @@ LIB_DIR="${DIR}/../../lib"
 source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
-# shellcheck source=../../lib/logging.sh
-source "${LIB_DIR}/asdf.sh"
 
 # Used in CircleCI, stub it in Docker. Note: Using this docker image
 # outside of a platform that has BASH_ENV as a way to carry over environment
@@ -50,8 +48,30 @@ EOF
   # Setup asdf for our current terminal session
   # shellcheck disable=SC1090
   source "$BASH_ENV"
+}
 
-  # Install preloaded versions, usually used for docker executors
+installedAsdf=false
+
+# Install asdf if it doesn't exist.
+if [[ ! -e "$HOME/.asdf" ]]; then
+  installedAsdf=true
+  init_asdf
+else
+  # Ensure that we can use asdf in all steps
+  inject_bash_env
+
+  # Setup asdf for our current terminal session, future ones will
+  # call BASH_ENV.
+  # shellcheck disable=SC1090
+  source "$BASH_ENV"
+fi
+
+# Note: we load this later to let asdf.sh actually be able to use asdf
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/asdf.sh"
+
+if [[ "$installedAsdf" == "true" ]]; then
+    # Install preloaded versions, usually used for docker executors
   # Example: PRELOAD_VERSIONS: "golang@1.17.1 ruby@2.6.6"
   if [[ -n $PRELOAD_VERSIONS ]]; then
     info "Preloading language versions"
@@ -69,20 +89,8 @@ EOF
       asdf install "$language" "$version" || exit 1
     done
   fi
-}
-
-# Install asdf if it doesn't exist.
-if [[ ! -e "$HOME/.asdf" ]]; then
-  init_asdf
-else
-  # Ensure that we can use asdf in all steps
-  inject_bash_env
-
-  # Setup asdf for our current terminal session, future ones will
-  # call BASH_ENV.
-  # shellcheck disable=SC1090
-  source "$BASH_ENV"
 fi
+
 
 echo "🛠 Installing languages/plugins from all .tool-version files"
 asdf_install
