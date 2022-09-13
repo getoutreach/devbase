@@ -1,4 +1,9 @@
-SHELL               := /usr/bin/env bash
+SHELL                := /usr/bin/env bash
+
+# This ensures that all of the devbase tool-versions have been installed before
+# running any of the targets. This is especially important for the mage,
+# which we execute as part of the Makefile.
+ENSURE_TOOL_VERSIONS := $(shell "$(CURDIR)/root/ensure_asdf.sh") 
 
 # application information
 APP                 ?= unset
