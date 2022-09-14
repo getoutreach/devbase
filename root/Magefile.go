@@ -35,8 +35,12 @@ func Gobuild(ctx context.Context) error {
 		return err
 	}
 
-	if _, err := os.Stat("cmd"); os.IsNotExist(err) {
-		log.Warn().Msg("This repository produces no artifacts (no 'cmd' directory found)")
+	// TODO(jaredallard)[DT-2796]: This is a hack to get around the fact that plugins
+	// still don't implement the commands framework. Can remove when DT-2796 is done.
+	_, cmdErr := os.Stat("cmd")
+	_, pluginDirErr := os.Stat("plugin")
+	if cmdErr != nil && pluginDirErr != nil {
+		log.Warn().Msg("This repository produces no artifacts (no 'cmd' or 'plugin' directory found)")
 		return nil
 	}
 
@@ -68,5 +72,13 @@ func Gobuild(ctx context.Context) error {
 	}
 
 	log.Info().Msg("Building...")
-	return runGoCommand("build", "-v", "-o", buildDir, "-ldflags", ldFlags, "./cmd/...")
+
+	// TODO(jaredallard)[DT-2796]: This is a hack to get around the fact that plugins
+	// still don't implement the commands framework. Can remove when DT-2796 is done.
+	buildPath := "./cmd"
+	if pluginDirErr == nil {
+		buildPath = "./plugin"
+	}
+
+	return runGoCommand("build", "-v", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
 }
