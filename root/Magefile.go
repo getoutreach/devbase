@@ -73,9 +73,12 @@ func Gobuild(ctx context.Context) error {
 
 	log.Info().Msg("Building...")
 
+	// TODO(jaredallard)[DT-2796]: This is a hack to get around the fact that plugins
+	// still don't implement the commands framework. Can remove when DT-2796 is done.
 	buildPath := "./cmd"
 	if pluginDirErr == nil {
 		buildPath = "./plugin"
 	}
-	return runGoCommand("build", "-v", "-o", buildDir, "-ldflags", ldFlags, filepath.Join(buildPath, "/..."))
+
+	return runGoCommand("build", "-v", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
 }
