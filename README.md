@@ -1,3 +1,5 @@
+# MOVED: This repo has been moved into [stencil-circleci](https://github.com/getoutreach/stencil-circleci/tree/main/devbase)
+
 # devbase
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/devbase)
 [![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
