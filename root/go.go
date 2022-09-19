@@ -8,6 +8,7 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/magefile/mage/sh"
+	"github.com/pkg/errors"
 )
 
 // runGoCommand runs the given go command with the given arguments
@@ -21,7 +22,7 @@ func runGoCommand(args ...string) error {
 
 	conf, err := box.LoadBox()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read box config")
 	}
 
 	return sh.RunWith(map[string]string{

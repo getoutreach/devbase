@@ -1,11 +1,17 @@
 #!/bin/bash
-
+# This file is ran when a devspace instance is started
 set +e # Continue on errors
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+
+# shellcheck source=./lib/box.sh
+source "$DIR/lib/box.sh"
 
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
+
+# SSH -> HTTPS, since we're not using SSH keys
+git config --global url.https://github.com/.insteadOf git@github.com:
+
+download_box
 
 if [[ -n $NPM_TOKEN ]]; then
   # We actually don't want it to expand, we want it to be a literal string written to the file
