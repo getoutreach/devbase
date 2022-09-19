@@ -8,6 +8,9 @@ source "$DIR/lib/box.sh"
 
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
+# SSH -> HTTPS, since we're not using SSH keys
+git config --global url.https://github.com/.insteadOf git@github.com:
+
 download_box
 
 if [[ -n $NPM_TOKEN ]]; then
