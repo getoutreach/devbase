@@ -21,9 +21,14 @@ download_box() {
   local tempDir="$(mktemp -d)"
   trap 'rm -rf "${TMPDIR}"' EXIT
 
-  mkdir -p "$(dirname "$BOXPATH")"
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
+
+  # Stub for the below yq command if it doesn't exist
+  mkdir -p "$(dirname "$BOXPATH")"
+  if [[ ! -e "$BOXPATH" ]]; then
+    echo "{}" >"$BOXPATH"
+  fi
 
   # Why: OK with assigning without checking exit code.
   # shellcheck disable=SC2155
