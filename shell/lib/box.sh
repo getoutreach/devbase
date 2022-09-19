@@ -21,12 +21,11 @@ download_box() {
   local tempDir="$(mktemp -d)"
   trap 'rm -rf "${TMPDIR}"' EXIT
 
-
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
 
   # Stub for the below yq command if it doesn't exist
   mkdir -p "$(dirname "$BOXPATH")"
-  if [[ ! -e "$BOXPATH" ]]; then
+  if [[ ! -e $BOXPATH ]]; then
     echo "{}" >"$BOXPATH"
   fi
 
