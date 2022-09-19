@@ -21,6 +21,8 @@ download_box() {
   local tempDir="$(mktemp -d)"
   trap 'rm -rf "${TMPDIR}"' EXIT
 
+  mkdir -p "$(dirname "$BOXPATH")"
+
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
 
   # Why: OK with assigning without checking exit code.
@@ -37,7 +39,7 @@ get_box_yaml() {
   if [[ ! -e ${BOXPATH} ]]; then
     download_box >&2
   fi
-  cat "$HOME/.outreach/.config/box/box.yaml"
+  cat "$BOXPATH"
 }
 
 # get_box_field returns the value of the field specified by the
