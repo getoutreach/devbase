@@ -3,7 +3,12 @@
 
 # asdf_plugins_list stores a list of all asdf plugins
 # this is done to speed up the plugin install
-asdf_plugins_list=$(asdf plugin list 2>/dev/null || echo "")
+asdf_plugins_list=""
+
+# asdf_plugins_list_regenerate regenerates the list of plugins
+asdf_plugins_list_regenerate() {
+  asdf_plugins_list=$(asdf plugin list 2>/dev/null || echo "")
+}
 
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.
@@ -59,4 +64,5 @@ asdf_plugin_install() {
   fi
 
   asdf plugin-add "$name"
+  asdf_plugins_list_regenerate
 }
