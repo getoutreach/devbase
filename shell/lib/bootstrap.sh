@@ -53,7 +53,7 @@ get_application_version() {
 has_feature() {
   local feat="$1"
 
-  val=$(yq -r ".[\"$feat\"]" <"$(get_service_yaml)")
+  val=$(yq -r ".arguments[\"$feat\"]" <"$(get_service_yaml)")
 
   if [[ $val == "true" ]]; then
     return 0
@@ -84,21 +84,21 @@ has_resource() {
 get_resource_version() {
   local name="$1"
 
-  if [[ "$(yq -r ".resources[\"$name\"]" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -r ".resources[\"$name\"]" <"$(get_service_yaml)"
+    yq -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)"
   fi
 }
 
 has_grpc_client() {
   local name="$1"
 
-  if [[ "$(yq -r '.grpcClients' <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -r '.arguments.grpcClients' <"$(get_service_yaml)")" == "null" ]]; then
     return 1
   fi
 
-  if [[ -n "$(yq -r ".grpcClients[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
+  if [[ -n "$(yq -r ".arguments.grpcClients[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
     return 0
   fi
 
@@ -108,19 +108,19 @@ has_grpc_client() {
 get_list() {
   local name="$1"
 
-  if [[ "$(yq -rc ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -rc ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -rc ".\"$name\"[]" <"$(get_service_yaml)"
+    yq -rc ".arguments.\"$name\"[]" <"$(get_service_yaml)"
   fi
 }
 
 get_keys() {
   local name="$1"
 
-  if [[ "$(yq -r ".\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$(yq -r ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -r ".\"$name\" | keys[]" <"$(get_service_yaml)"
+    yq -r ".arguments.\"$name\" | keys[]" <"$(get_service_yaml)"
   fi
 }
