@@ -73,7 +73,7 @@ get_time_ms() {
 # get_cursor_pos returns the current cursor position
 get_cursor_pos() {
   # If not a tty, return 0,0
-  if [[ ! -t 0 ]]; then
+  if [[ ! -t 0 ]] || [[ ! -t 1 ]]; then
     echo "0,0"
     return
   fi
@@ -121,7 +121,7 @@ run_command() {
   local finished_at="$(get_time_ms)"
   local duration="$((finished_at - started_at))"
 
-  if [[ -t 0 ]]; then
+  if [[ -t 0 ]] && [[ -t 1 ]]; then
     # If the position of the cursor didn't change, we can safely assume
     # that the linter didn't output anything, so we can just overwrite
     # the previous line.
