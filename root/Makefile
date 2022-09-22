@@ -1,16 +1,18 @@
 SHELL                := /usr/bin/env bash
 
+BOOTSTRAP_DIR        := $(shell if [[ "$$(yq -r .name service.yaml)" == "devbase" ]]; then echo "$(CURDIR)" ; else echo "$(CURDIR)/.bootstrap"; fi)
+
 # This ensures that all of the devbase tool-versions have been installed before
 # running any of the targets. This is especially important for the mage,
 # which we execute as part of the Makefile.
-ENSURE_TOOL_VERSIONS := $(shell "$(CURDIR)/.bootstrap/root/ensure_asdf.sh") 
+ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh") 
 
 # application information
 APP                 ?= unset
 ORG                 ?= getoutreach
 
 # Transition
-MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(CURDIR)/.bootstrap/.tool-versions" | grep mage | awk '{ print $$2 }') MAGEFILE_HASHFAST=true mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
+MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep mage | awk '{ print $$2 }') MAGEFILE_HASHFAST=true mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
 APP_VERSION         := $(shell $(MAGE_CMD) version)
 
 # go options

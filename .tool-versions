@@ -11,4 +11,6 @@ protoc 3.19.1
 # The below tools are used by all repositories when using devbase
 mage 1.13.0
 golangci-lint 1.49.0
+shellcheck 0.8.0
+shfmt 3.4.2
 ###EndBlock(toolver)

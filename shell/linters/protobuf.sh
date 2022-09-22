@@ -6,13 +6,18 @@ PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_versi
 # shellcheck disable=SC2034
 extensions=(proto)
 
-buf() {
-  if ! "$PROTOFMT" format --exit-code >/dev/null 2>&1; then
-    error "protobuf format (buf format) failed on some files. Run 'make fmt' to fix."
-    exit 1
-  fi
+buf_linter() {
+  git ls-files '*.proto' | xargs -n40 "$PROTOFMT" format --exit-code
+}
+
+buf_formatter() {
+  git ls-files '*.proto' | xargs -n40 "$PROTOFMT" format -w
 }
 
 linter() {
-  run_linter "buf" buf
+  run_command "buf" buf_linter
+}
+
+formatter() {
+  run_command "buf" buf
 }

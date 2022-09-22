@@ -10,6 +10,9 @@ asdf_plugins_list_regenerate() {
   asdf_plugins_list=$(asdf plugin list 2>/dev/null || echo "")
 }
 
+# Populate the list of plugins once
+asdf_plugins_list_regenerate
+
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.
 # Then strip the comments and run uniq.

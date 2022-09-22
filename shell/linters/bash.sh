@@ -8,20 +8,22 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 extensions=(sh bash)
 
 shellcheck() {
-  if ! git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR; then
-    error "shellcheck failed on some files. Run 'make fmt' to fix."
-    exit 1
-  fi
+  git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
 }
 
-shellfmt() {
-  if ! git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d; then
-    error "shfmt failed on some files. Run 'make fmt' to fix."
-    exit 1
-  fi
+shellfmt_linter() {
+  git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
+}
+
+shellfmt_formatter() {
+  git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -w -l
 }
 
 linter() {
-  run_linter "shellcheck" shellcheck
-  run_linter "shellfmt" shellfmt
+  run_command "shellcheck" shellcheck
+  run_command "shellfmt" shellfmt_linter
+}
+
+formatter() {
+  run_command "shellfmt" shellfmt_formatter
 }

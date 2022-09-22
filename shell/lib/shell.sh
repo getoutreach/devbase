@@ -63,3 +63,81 @@ get_cached_binary() {
     echo "$cachedPath"
   fi
 }
+
+# get_time_ms returns the current time in milliseconds
+# we use perl because we can't use the date command %N on macOS
+get_time_ms() {
+  perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+}
+
+# get_cursor_pos returns the current cursor position
+get_cursor_pos() {
+  # based on a script from http://invisible-island.net/xterm/xterm.faq.html
+  exec </dev/tty
+  oldstty=$(stty -g)
+  stty raw -echo min 0
+  # on my system, the following line can be replaced by the line below it
+  echo -en "\033[6n" >/dev/tty
+  # tput u7 > /dev/tty    # when TERM=xterm (and relatives)
+  IFS=';' read -r -d R -a pos
+  stty "$oldstty"
+  # change from one-based to zero based so they work with: tput cup $row $col
+  row=$((${pos[0]:2} - 1)) # strip off the esc-[
+  col=$((pos[1] - 1))
+  echo "$row,$col"
+}
+
+# run_command is a helper for running a command and timing it, showing
+# the status
+run_command() {
+  local name="$1"
+  local cmd="$2"
+  shift
+  shift
+  local args=("$@")
+
+  # show is metadata to be shown along with the command name
+  local show=$show
+
+  # Why: We're OK with declaring and assigning.
+  # shellcheck disable=SC2155
+  local started_at="$(get_time_ms)"
+  info_sub "$name ($show)"
+
+  current_pos="$(get_cursor_pos)"
+  "$cmd" "${args[@]}"
+  after_pos="$(get_cursor_pos)"
+  exit_code=$?
+
+  # Get how long it took to run the linter
+  # Why: We're OK with declaring and assigning.
+  # shellcheck disable=SC2155
+  local finished_at="$(get_time_ms)"
+  local duration="$((finished_at - started_at))"
+
+  if [[ -t 0 ]]; then
+    # If the position of the cursor didn't change, we can safely assume
+    # that the linter didn't output anything, so we can just overwrite
+    # the previous line.
+    if [[ $current_pos == "$after_pos" ]]; then
+      tput cuu1 || true
+    fi
+  fi
+
+  # Rewrite the above line, or append, with the time taken
+  info_sub "$name ($show) ($(format_diff $duration))"
+
+  # If we failed, display an error and exit
+  if [[ $exit_code -ne 0 ]]; then
+    error "$name failed with exit code $exit_code"
+    exit 1
+  fi
+}
+
+# format_diff takes a diff and formats it into a friendly timestamp
+format_diff() {
+  local diff="$1"
+  local seconds=$((diff / 1000))
+  local ms=$((diff % 1000))
+  printf "%d.%02ds" "$seconds" "$ms"
+}

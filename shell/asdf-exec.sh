@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-
-set -e
-
 # Runs the provided tool in an `asdf exec` under an environment that respects
 # the tool versions defined in this project's `.tool-versions` file.
 #
@@ -11,6 +8,7 @@ set -e
 #
 # The idea here is that `some_project/.bootstrap/shell/exec.sh go` will always
 # invoke the right go version for that particular `some_project`.
+set -e
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
