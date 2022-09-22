@@ -91,7 +91,7 @@ help: Makefile
 	@sed -n 's/^##[^#]//p' .bootstrap/root/Makefile Makefile
 	@printf "\n"
 	@echo "Mage (make <target>) targets"
-	@mage -d root -l
+	@$(MAGE_CMD) -l
 
 ## pre-commit:      run housekeeping utilities before creating a commit
 .PHONY: pre-commit
