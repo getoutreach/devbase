@@ -87,7 +87,7 @@ for ext in "yaml" "yml" "json" "md"; do
   for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
 done
 
-if has_feature "grpc"; then
+if has_service_activity "grpc"; then
   if has_grpc_client "node"; then
     nodeSourceDir="$(pwd)/api/clients/node"
     pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
@@ -102,7 +102,7 @@ if has_feature "grpc"; then
   fi
 fi
 
-if ! has_feature "library"; then
+if has_feature "service"; then
   if [[ -e deployments ]] && [[ -e monitoring ]]; then
     info_sub "terraform fmt (.tf/.tfvars)"
     for tfdir in deployments monitoring; do
