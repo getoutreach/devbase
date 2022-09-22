@@ -105,6 +105,20 @@ has_grpc_client() {
   return 1
 }
 
+has_service_activity() {
+  local name="$1"
+
+  if [[ "$(yq -r '.arguments.serviceActivities' <"$(get_service_yaml)")" == "null" ]]; then
+    return 1
+  fi
+
+  if [[ -n "$(yq -r ".arguments.serviceActivities[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
 get_list() {
   local name="$1"
 
