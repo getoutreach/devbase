@@ -9,7 +9,7 @@ buf_linter() {
   # Why: We're OK with this.
   # shellcheck disable=SC2155
   local PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_version "buf")")
-  git ls-files '*.proto' | xargs -n40 "$PROTOFMT" format --exit-code
+  git ls-files '*.proto' | xargs -n40 "$PROTOFMT" format --exit-code --diff
 }
 
 buf_formatter() {
