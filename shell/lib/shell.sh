@@ -72,6 +72,12 @@ get_time_ms() {
 
 # get_cursor_pos returns the current cursor position
 get_cursor_pos() {
+  # If not a tty, return 0,0
+  if [[ ! -t 0 ]]; then
+    echo "0,0"
+    return
+  fi
+
   # based on a script from http://invisible-island.net/xterm/xterm.faq.html
   exec </dev/tty
   oldstty=$(stty -g)
