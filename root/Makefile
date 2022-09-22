@@ -1,6 +1,6 @@
 SHELL                := /usr/bin/env bash
 
-BOOTSTRAP_DIR        := $(shell if [[ "$$(yq -r .name service.yaml)" == "devbase" ]]; then echo "$(CURDIR)" ; else echo "$(CURDIR)/.bootstrap"; fi)
+BOOTSTRAP_DIR        := $(shell if [[ "$$(yq -r .name service.yaml 2>/dev/null || echo "")" == "devbase" ]]; then echo "$(CURDIR)" ; else echo "$(CURDIR)/.bootstrap"; fi)
 
 # This ensures that all of the devbase tool-versions have been installed before
 # running any of the targets. This is especially important for the mage,
