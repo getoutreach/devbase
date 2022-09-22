@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Generic linter/formatter for prettier
 
+# Note: This is called from the perspective of shell/
+# shellcheck source=../languages/nodejs.sh
+source "$DIR/languages/nodejs.sh"
+
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(yaml yml json md)
