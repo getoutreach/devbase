@@ -16,3 +16,7 @@ jsonnetfmt() {
 linter() {
   true # No linters yet
 }
+
+formatter() {
+  run_command "jsonnetfmt" jsonnetfmt
+}
