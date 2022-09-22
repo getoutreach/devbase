@@ -70,10 +70,16 @@ get_time_ms() {
   perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
 }
 
+# is_terminal returns true if the current process is a terminal, with
+# a special case of always being false if CI is true
+is_terminal() {
+  [[ -t 0 ]] && [[ $CI != "true" ]]
+}
+
 # get_cursor_pos returns the current cursor position
 get_cursor_pos() {
   # If not a tty, return 0,0
-  if [[ ! -t 0 ]] || [[ ! -t 1 ]]; then
+  if ! is_terminal; then
     echo "0,0"
     return
   fi
@@ -121,7 +127,7 @@ run_command() {
   local finished_at="$(get_time_ms)"
   local duration="$((finished_at - started_at))"
 
-  if [[ -t 0 ]] && [[ -t 1 ]]; then
+  if is_terminal; then
     # If the position of the cursor didn't change, we can safely assume
     # that the linter didn't output anything, so we can just overwrite
     # the previous line.
