@@ -2,4 +2,4 @@
 # vim: set syntax=yaml:
 version: v10.3.0-rc.15
 versions:
-  devbase: v2.3.0
+  devbase: jaredallard/feat/merge-linters-fmt

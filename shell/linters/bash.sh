@@ -7,7 +7,7 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 # shellcheck disable=SC2034
 extensions=(sh bash)
 
-shellcheck() {
+shellcheck_linter() {
   git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
 }
 
@@ -20,7 +20,7 @@ shellfmt_formatter() {
 }
 
 linter() {
-  run_command "shellcheck" shellcheck
+  run_command "shellcheck" shellcheck_linter
   run_command "shellfmt" shellfmt_linter
 }
 
