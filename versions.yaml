@@ -6,7 +6,7 @@ goimports: 0.1.10
 delve: 1.9.1
 gotestsum: 1.7.0
 lintroller: 1.14.1
-clerkgenproto: 1.25.3
+clerkgenproto: 1.28.1
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
 getoutreach/logfmt: v1.1.0
