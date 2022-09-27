@@ -30,7 +30,7 @@ As we've been writing `devbase`, and other tooling that uses it, we've identifie
 
  - All configuration should be written as go structs (as we intend to only write new targets in), and have godoc compatible documentation on each exported field along with examples as needed.
  - Standard location for all configuration for tooling provided by devbase, et. al
- - Documentation on how to write Magefile targets, if the framework docs aren't self-explanatory enough
+ - Documentation on how to write Magefile targets
  - Ensure that all targets are "plug-and-play" compatible (e.g. usable by themselves), they shouldn't require stencil modules to be used, and if they do require certain options to work "out of the box" they should be sane defaults and well documented (as per the above goals)
  - Not breaking, while we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal
 
