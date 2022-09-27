@@ -23,7 +23,7 @@ fi
 
 # Check to see if the repository is not already active.
 if [[ $(jq '.repo.active | not' <<<"$info") == "true" ]]; then
-  echo "Attempting to activate repository."
+  echo "Attempting to activate repository." >&2
   curl -X POST "https://codecov.io/api/pub/gh/$owner/$repo/settings" -d 'action=activate' -H "Authorization: $CODECOV_API_KEY"
 fi
 
