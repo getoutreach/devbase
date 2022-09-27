@@ -62,11 +62,7 @@ docker.yaml
 
 #### Magefile Targets Implementation Details
 
-Each magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`
-
-The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves.
-
-A library will be provided at `pkg/targets`, which will provide functionality to read configuration, and other shared functions between targets.
+Each magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`. The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves. A library will be provided at `pkg/targets`, which will provide functionality to read configuration and other shared functions between targets.
 
 #### Magefile Targets Available Day One
 
