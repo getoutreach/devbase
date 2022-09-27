@@ -121,5 +121,5 @@ image_name:
 
 ## Test/Release Plan
 
-The test plan for this is to ensure that each target has unit, and where possible, integration tests. Releasing would follow the standard DT team releasing process, which is to be released in the next release window, while being put on the `rc` channel to be consumed by Outreach internally first.
+The test plan for this is to ensure that each target has unit and, where possible, integration tests. Releasing would follow the standard DT team releasing process, which is to be released in the next release window, while being put on the `rc` channel to be consumed by Outreach internally first.
 
