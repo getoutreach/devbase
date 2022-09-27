@@ -1,4 +1,4 @@
-# Declarative Configuration
+# Title of Proposal
 
 <!-- Add more dates here post-merge -->
 
@@ -20,7 +20,7 @@
 
 ## Summary
 
-A high level summary, without going into to much technical details, about what this RFC is about.
+A high-level summary of this RFC.
 
 ## Motiviation
 
@@ -28,15 +28,15 @@ Detail why this proposal is needed, without talking about the goals/non-goals an
 
 ### Goals
 
-Add a check list of what the goals of this proposal is, ideally this will help clarify what this is meant to do.
+Add a checklist of things this proposal is trying to achieve.
 
 ### Non-goals
 
-Add a check list of things this proposal does _not_ intend to solve.
+Add a list of things this proposal is _not_ trying to achieve.
 
 ## Implementation Details
 
-Add implementation specific details, the "how" of the proposal.
+Add details of how the proposal will be implemented.
 
 ## Testing and Release Plan
 
