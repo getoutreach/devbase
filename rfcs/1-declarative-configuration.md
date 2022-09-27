@@ -35,7 +35,7 @@ This, combined with a lack of documentation into all of these options, has lareg
 ### Non-goals
 
  - Expose new functionality. This would be nice to have, but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
- - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time. (TL;DR: Wrap shell were needed)
+ - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell were needed).
 
 ## Proposal
 
