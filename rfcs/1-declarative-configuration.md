@@ -49,7 +49,7 @@ The high level proposal here is generally covered in the [Summary](#summary) and
 
 Configuration would live in the root of repository consuming `devbase`, in `.devbase`.
 
-Each configuration file would match the relevant `mage <target>` target, e.g.
+Each configuration file would match the relevant `make <target>` target, e.g.
 
 ```bash
 $ ls .devbase
@@ -58,7 +58,7 @@ e2e.yaml
 docker.yaml
 ```
 
-**Note**: For shared configuration, e.g. `docker` (which could be shared between `docker-build` and `docker-push`) that's also allowed and can become a unified target.
+**Note**: Configuration should be able to be shared between targets (e.g. `docker-build` and `docker-push` today largely share `docker.yaml`), but this should be limited to only being able to consume the same configuration struct, not two different configs in one. The idea is to allow _closely_ related targets to consume the same configuration only. Complicated things like target a and target b sharing two different configs in a file is expressly what this system is _not_ trying to support.
 
 #### Magefile Targets Implementation Details
 
