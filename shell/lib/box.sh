@@ -23,6 +23,12 @@ download_box() {
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
 
+  # Stub for the below yq command if it doesn't exist
+  mkdir -p "$(dirname "$BOXPATH")"
+  if [[ ! -e $BOXPATH ]]; then
+    echo "{}" >"$BOXPATH"
+  fi
+
   # Why: OK with assigning without checking exit code.
   # shellcheck disable=SC2155
   local newBox=$(yq . "${BOXPATH}" |
@@ -37,7 +43,7 @@ get_box_yaml() {
   if [[ ! -e ${BOXPATH} ]]; then
     download_box >&2
   fi
-  cat "$HOME/.outreach/.config/box/box.yaml"
+  cat "$BOXPATH"
 }
 
 # get_box_field returns the value of the field specified by the

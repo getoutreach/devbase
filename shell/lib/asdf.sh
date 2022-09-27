@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
-# Deprecated: Use asdf_install instead.
-# asdf_plugins_from_tool_versions installs all plugins from .tool-versions
-asdf_plugins_from_tool_versions() {
-  while read -r line; do
-    # Skip comments
-    if grep -E "^#" <<<"$line" >/dev/null; then
-      continue
-    fi
+# asdf_plugins_list stores a list of all asdf plugins
+# this is done to speed up the plugin install
+asdf_plugins_list=""
 
-    # Why: We're OK not declaring separately here.
-    # shellcheck disable=SC2155
-    local name="$(awk '{ print $1 }' <<<"$line")"
-    asdf_plugin_install "$name" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
-  done <.tool-versions
+# asdf_plugins_list_regenerate regenerates the list of plugins
+asdf_plugins_list_regenerate() {
+  asdf_plugins_list=$(asdf plugin list 2>/dev/null || echo "")
+}
+
+# read_all_asdf_tool_versions combines all .tool-versions found in this directory
+# and the child directories minus node_modules and vendor.
+# Then strip the comments and run uniq.
+read_all_asdf_tool_versions() {
+  find . -name .tool-versions | grep -vE "./node_modules" | grep -vE "./vendor" | xargs cat | grep -Ev "^#" | sort | uniq
 }
 
 # asdf_install installs a plugins/version required from a top-level
 # .tool-versions and all subdirectories
 asdf_install() {
-  # Combine all .tool-versions found in this directory and the child directories
-  # minus node_modules and vendor. Then strip the comments and run uniq.
-  readarray -t asdf_entries < <(find . -name .tool-versions | grep -vE "./node_modules" | grep -vE "./vendor" | xargs cat | grep -Ev "^#" | sort | uniq)
+  readarray -t asdf_entries < <(read_all_asdf_tool_versions)
   for entry in "${asdf_entries[@]}"; do
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
@@ -61,9 +59,10 @@ asdf_plugin_install() {
   name="$1"
 
   # NOOP if it already exists
-  if asdf plugin list | grep -E "^$name$" >/dev/null; then
+  if grep -qE "^$name$" <<<"$asdf_plugins_list"; then
     return
   fi
 
   asdf plugin-add "$name"
+  asdf_plugins_list_regenerate
 }

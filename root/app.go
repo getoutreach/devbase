@@ -42,11 +42,12 @@ func readSecret(ctx context.Context, path string) (cfg.SecretData, error) {
 
 	lookupPaths := []string{
 		"/run/secrets/outreach.io",
-		filepath.Join(homeDir, ".outreach", appName, path),
+		filepath.Join(homeDir, ".outreach", appName),
 	}
 	for _, p := range lookupPaths {
-		if _, err := os.Stat(p); err == nil {
-			return cfg.Secret{Path: p}.Data(ctx)
+		secretPath := filepath.Join(p, path)
+		if _, err := os.Stat(secretPath); err == nil {
+			return cfg.Secret{Path: secretPath}.Data(ctx)
 		}
 	}
 
