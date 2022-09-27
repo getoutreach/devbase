@@ -1,5 +1,9 @@
 # Declarative Configuration
 
+| Date       | Status   |
+|------------|----------|
+| 2022-09-26 | Draft    |
+
 ## Table of Contents
 
 <!-- toc -->
@@ -7,10 +11,13 @@
 - [Motivation](#motivation)
   - [Goals](#goals)
   - [Non-Goals](#non-goals)
-- [Proposal](#proposal)
-  - [Implementation Details](#implementation-details)
-  - [Configuration example](#examples)
-- [Test Plan](#testrelease-plan)
+- [Implementation Details](#implementation-details)
+  - [Repository Configuration](#repository-configuration)
+  - [Magefile Targets Implementation Details](#magefile-targets-implementation-details)
+  - [Magefile Targets Available Day One](#magefile-targets-available-day-one)
+  - [Testing Framework](#testing-framework)
+  - [Configuration Examples](#configuration-examples)
+- [Test Plan](#testing-and-release-plan)
 <!-- /toc -->
 
 
@@ -39,13 +46,9 @@ As we've been writing `devbase`, and other tooling that uses it, we've identifie
  - Expose new functionality, this would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
  - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell were needed).
 
-## Proposal
+## Implementation Details
 
-The high level proposal here is generally covered in the [Summary](#summary) and [Moviation](#motiviation) sections.
-
-### Implementation Details
-
-#### Repository Configuration
+### Repository Configuration
 
 Configuration would live in the root of repository consuming `devbase`, in `.devbase`.
 
@@ -60,11 +63,11 @@ docker.yaml
 
 **Note**: Configuration should be able to be shared between targets (e.g. `docker-build` and `docker-push` today largely share `docker.yaml`), but this should be limited to only being able to consume the same configuration struct, not two different configs in one. The idea is to allow _closely_ related targets to consume the same configuration only. Complicated things like target a and target b sharing two different configs in a file is expressly what this system is _not_ trying to support.
 
-#### Magefile Targets Implementation Details
+### Magefile Targets Implementation Details
 
 Each magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`. The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves. A library will be provided at `pkg/targets`, which will provide functionality to read configuration and other shared functions between targets.
 
-#### Magefile Targets Available Day One
+### Magefile Targets Available Day One
 
 The following targets will be available/configurable day one:
 
@@ -81,11 +84,11 @@ The rest will still be available for compatibility, but unconfigurable, e.g. `go
 
 See [Examples](#examples) for an idea of what options will be available/an idea of some of the steps.
 
-#### Testing Framework
+### Testing Framework
 
 Testing would be done via Go Testing, enabling us to easily write unit tests. Integration tests would, unforuantely, still need to be figured out as they rely on being ran in macOS/Linux in a predictable fashion
 
-### Examples
+### Configuration Examples
 
 Below are example configuration objects that would be exposed, note this is not all-inclusive and is purposefully not fully spec'd out to allow for changes during implementation.
 
@@ -119,7 +122,6 @@ image_name:
     - linux/amd64
  ```
 
-## Test/Release Plan
+## Testing and Release Plan
 
 The test plan for this is to ensure that each target has unit and, where possible, integration tests. Releasing would follow the standard DT team releasing process, which is to be released in the next release window, while being put on the `rc` channel to be consumed by Outreach internally first.
-
