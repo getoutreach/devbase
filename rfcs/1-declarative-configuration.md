@@ -20,21 +20,23 @@ This proposal replaces environment variable based configuration being used in Ma
 
 ## Motiviation
 
-As we've been writing `devbase`, and other tooling, we've identified that trying to codify all options for tooling to environment variables, bespoke configuration files, and other obscure means has made it difficult for us to provide options and maintain a common set of toolign.
+As we've been writing `devbase`, and other tooling that uses it, we've identified that the current practice of environment variable based configuration as well as opinionated and unchangeable defaults is not flexible enough for using this tooling both outside of stencil-base (where it is primarily used today) and giving our users the flexibility to easily make minor behaviour changes. This has, ultimately created two pain points:
 
-This, combined with a lack of documentation into all of these options, has laregely made `devbase` unconsumable outside of bootstrap/stencil. Thinking of `devbase` as it's own framework to build software makes it more usable in non-stencil projects (like we do already today w/ submodules)
+ * Documentation is hard to write and not easily discoverable
+ * Finding configuration consumption, and configurable areas is difficult
+ * Using `devbase` outside of `stencil-base` projects is not easy (must use sub-modules, and even then it's hard to "plug and play") 
+
 ### Goals
 
- - Documentation for all options in configuration file(s)
+ - All configuration should be written as go structs (as we intend to only write new targets in), and have godoc compatible documentation on each exported field along with examples as needed.
  - Standard location for all configuration for tooling provided by devbase, et. al
- - Documentation mapping 1:1 with Magefile target, with framework to consume/declare it
  - Documentation on how to write Magefile targets, if the framework docs aren't self-explanatory enough
- - Support for usage outside of stencil-base, et. al
+ - Ensure that all targets are "plug-and-play" compatible (e.g. usable by themselves), they shouldn't require stencil modules to be used, and if they do require certain options to work "out of the box" they should be sane defaults and well documented (as per the above goals)
  - Not breaking, while we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal
 
 ### Non-goals
 
- - Expose new functionality. This would be nice to have, but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
+ - Expose new functionality, this would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
  - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell were needed).
 
 ## Proposal
@@ -79,7 +81,7 @@ The following targets will be available/configurable day one:
  - `e2e`
  - `docker` (includes: `build`, `publish`)
 
-The rest will still be available for compat, but unconfigurable, e.g. `gobuild` will still build go but will not work for non-go repos.
+The rest will still be available for compatibility, but unconfigurable, e.g. `gobuild` will still build go but will not work for non-go repos.
 
 See [Examples](#examples) for an idea of what options will be available/an idea of some of the steps.
 
