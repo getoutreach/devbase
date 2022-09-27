@@ -30,7 +30,7 @@ This, combined with a lack of documentation into all of these options, has lareg
  - Documentation mapping 1:1 with Magefile target, with framework to consume/declare it
  - Documentation on how to write Magefile targets, if the framework docs aren't self-explanatory enough
  - Support for usage outside of stencil-base, et. al
- - Not breaking, while we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal.
+ - Not breaking, while we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal
 
 ### Non-goals
 
