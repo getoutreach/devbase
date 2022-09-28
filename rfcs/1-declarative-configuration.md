@@ -4,7 +4,7 @@
 
 <!-- toc -->
 - [Summary](#summary)
-- [Motiviation](#motiviation)
+- [Motivation](#motivation)
   - [Goals](#goals)
   - [Non-goals](#non-goals)
 - [Design Details](#design-details)
@@ -24,7 +24,7 @@
 
 This proposal replaces environment variable based configuration being used in Make+Magefiles in favor of using declarative yaml based configuration.
 
-## Motiviation
+## Motivation
 
 As we've been writing `devbase`, and other tooling that uses it, we've identified that the current practice of environment variable based configuration as well as opinionated and unchangeable defaults is not flexible enough for using this tooling both outside of stencil-base (where it is primarily used today) and giving our users the flexibility to easily make minor behaviour changes. This has, ultimately created two pain points:
 
