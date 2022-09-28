@@ -1,9 +1,5 @@
 # Declarative Configuration
 
-| Date       | Status   |
-|------------|----------|
-| 2022-09-26 | Draft    |
-
 ## Table of Contents
 
 <!-- toc -->
