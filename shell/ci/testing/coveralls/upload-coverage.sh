@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # Uploads code coverage to coveralls.io
+#
+# Note: This is not meant to be called outside of coverage.sh
+set -e
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-SHELL_DIR="$DIR/../.."
-LIB_DIR="${DIR}/../../lib"
+SHELL_DIR="$DIR/../../.."
+LIB_DIR="$SHELL_DIR/lib"
 
 # shellcheck source=../../../lib/bootstrap.sh
-source "${LIB_DIR}/../bootstrap.sh"
+source "${LIB_DIR}/bootstrap.sh"
 
-flag_name="$1"
-coverage_file=/tmp/coverage.out
+coverage_file="$1"
+flag_name="$2"
 
 if [[ -n $COVERALLS_TOKEN && -f $coverage_file ]]; then
   extra_args=()
