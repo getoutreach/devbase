@@ -38,7 +38,7 @@ if [[ -n $coverage_group ]]; then
 fi
 
 # If the codecov CLI is not found, download it into a temporary directory.
-codecovPath="$(command -v codecov)"
+codecovPath="$(command -v codecov || true)"
 if [[ ! -e $codecovPath ]] || [[ ! -x $codecovPath ]]; then
   tempDir="$(mktemp -d)"
   trap 'rm -rf $tempDir' EXIT

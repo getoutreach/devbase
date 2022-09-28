@@ -28,9 +28,9 @@ if [[ -z $file ]]; then
   show_help
 fi
 
-coverage_provider=$(yq '.arguments.coverage.provider' <"$(get_service_yaml)")
-if [[ -z $coverage_provider ]]; then
-  log_info "No coverage provider configured (.arguments.coverage) is empty"
+coverage_provider=$(yq -r '.arguments.coverage.provider' <"$(get_service_yaml)" 2>/dev/null)
+if [[ -z $coverage_provider ]] || [[ $coverage_provider == "null" ]]; then
+  info "No coverage provider configured (.arguments.coverage) is empty"
   exit 0
 fi
 
