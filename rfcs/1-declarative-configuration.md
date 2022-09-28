@@ -8,16 +8,19 @@
 
 <!-- toc -->
 - [Summary](#summary)
-- [Motivation](#motivation)
+- [Motiviation](#motiviation)
   - [Goals](#goals)
-  - [Non-Goals](#non-goals)
-- [Implementation Details](#implementation-details)
+  - [Non-goals](#non-goals)
+- [Design Details](#design-details)
   - [Repository Configuration](#repository-configuration)
   - [Magefile Targets Implementation Details](#magefile-targets-implementation-details)
   - [Magefile Targets Available Day One](#magefile-targets-available-day-one)
   - [Testing Framework](#testing-framework)
   - [Configuration Examples](#configuration-examples)
-- [Test Plan](#testing-and-release-plan)
+- [Testing and Release Plan](#testing-and-release-plan)
+- [Implementation History](#implementation-history)
+- [Drawbacks](#drawbacks)
+- [Alternatives](#alternatives)
 <!-- /toc -->
 
 
@@ -46,7 +49,7 @@ As we've been writing `devbase`, and other tooling that uses it, we've identifie
  - Expose new functionality, this would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
  - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell were needed).
 
-## Implementation Details
+## Design Details
 
 ### Repository Configuration
 
@@ -122,6 +125,29 @@ image_name:
     - linux/amd64
  ```
 
+
 ## Testing and Release Plan
 
-The test plan for this is to ensure that each target has unit and, where possible, integration tests. Releasing would follow the standard DT team releasing process, which is to be released in the next release window, while being put on the `rc` channel to be consumed by Outreach internally first.
+Testing will be figured out more as we get closer to implementation, but the general idea is to have unit tests for each target, and integration tests for targets that require a full environment to be ran in (e.g. `docker`) using the framework that will be designed during the implementation phase.
+
+## Implementation History
+
+ * 2022-09-26: Initial draft
+
+## Drawbacks
+
+Moving to declarative configuration presents challenges with adding flexibility from a user perspective.
+Users cannot construct their own chain of logic, and are instead limited to the functionality provided by
+the configuration format.
+
+We consider this to be acceptable, however, as one of the main design principles of devbase is to take an
+opinionated stance on how to build software, and to provide a consistent experience across all repositories.
+
+## Alternatives
+
+A potential alternative would be to build building blocks for users to do these operations and allow users
+to chain them together for the behaviour they want, instead of providing a declarative configuration format.
+
+However, this would make it more complicated to provide a consistent experience across all repositories as well
+as make it more difficult to maintain. This would also make it harder to provide out of the box functionality
+for common tasks, such as building docker images in a DRY way.
