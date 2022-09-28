@@ -14,7 +14,7 @@ if [[ -z $CODECOV_API_KEY ]]; then
 fi
 
 if [[ $# -ne 2 ]]; then
-  echo "Script expects the owner/organization and name of repository passed to it as parameters." >&2
+  echo "Usage: $(basename "$0") [owner] [repo]" >&2
   exit 1
 fi
 
