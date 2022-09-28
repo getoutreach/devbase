@@ -17,7 +17,7 @@ coverage_group="$2"
 
 origin="$(git remote get-url origin)"
 owner="$(sed -E 's/.*github.com[:\/]([^\/]+)\/([^\/]+).*/\1/' <<<"$origin")"
-repo="$(sed -E 's/.*github.com[:\/]([^\/]+)\/([^\/]+).*/\2/' <<<"$origin")"
+repo="$(basename "$(sed -E 's/.*github.com[:\/]([^\/]+)\/([^\/]+).*/\2/' <<<"$origin")" .git)"
 if [[ -z $owner || -z $repo ]]; then
   echo "Could not determine owner and repo." >&2
   exit 1
