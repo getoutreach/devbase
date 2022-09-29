@@ -322,7 +322,8 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 
 	return func() {
 		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
 			log.Warn().Err(err).Msg("failed to kill running localizer server")
 		}
