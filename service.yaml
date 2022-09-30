@@ -1,20 +1,4 @@
 name: devbase
-reportingTeam: fnd-dt
-description: A collection of scripts and ci configuration
-oss: true
-slack: ""
-library: true
-circleAPIKey: ""
-lintroller: bronze
-tracing: honeycomb
-metrics: datadog
-releaseType: ""
-releaseOptions:
-  allowPrereleases: true
-  prereleasesBranch: rc
-  allowMajorVersions: true
-deployTo:
-  environments: []
 arguments:
   circleAPIKey: ""
   commands: []
@@ -23,6 +7,7 @@ arguments:
     optional: []
     required: []
   description: A collection of scripts and ci configuration
+  go-protoc-imports: []
   grpcClients: []
   kubernetes:
     groups: []
@@ -71,25 +56,19 @@ arguments:
       pods:
         thresholds:
           availableLowCount: 0
-  tracing: honeycomb
+  tracing: opentelemetry
   tutorial: false
+  validation: false
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
+  - name: github.com/getoutreach/stencil-circleci
+  - name: github.com/getoutreach/stencil-actions
+  - name: github.com/getoutreach/stencil-discovery
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
   - name: github.com/getoutreach/stencil-outreach
-  - name: github.com/getoutreach/stencil-circleci
-  - name: github.com/getoutreach/stencil-actions
-opsLevel:
-  serviceTier: 0
-  lifecycle: ""
-  confluenceSpaceKey: ""
-  pagerDutyLink: ""
-  datadogDashboards:
-    mainLink: ""
-    custom: []
-  designDocumentLink: ""
+migrated: true
