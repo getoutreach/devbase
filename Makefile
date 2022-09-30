@@ -2,9 +2,9 @@ APP := devbase
 OSS := true
 _ := $(shell ./scripts/devbase.sh) 
 
-include root/Makefile
+include .bootstrap/root/Makefile
 
-###Block(targets)
+## <<Stencil::Block(targets)>>
 .PHONY: build-orb
 pre-build:: build-orb
 
@@ -19,4 +19,4 @@ validate-orb: build-orb
 .PHONY: publish-orb
 publish-orb: validate-orb
 	circleci orb publish orb.yml getoutreach/shared@dev:first
-###EndBlock(targets)
+## <</Stencil::Block>>

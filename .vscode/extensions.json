@@ -13,9 +13,9 @@
     "foxundermoon.shell-format"
 
     // Please consider contributing back all recommended
-    // extensions to bootstrap!
-    ///Block(extensions)
+    // extensions to stencil!
+    // <<Stencil::Block(extensions)>>
 
-    ///EndBlock(extensions)
+    // <</Stencil::Block>>
   ]
 }
