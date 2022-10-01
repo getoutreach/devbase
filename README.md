@@ -2,6 +2,9 @@
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/devbase)
 [![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
 [![Coverage Status](https://coveralls.io/repos/github/getoutreach/devbase/badge.svg?branch=main)](https://coveralls.io/github//getoutreach/devbase?branch=main)
+<!-- <<Stencil::Block(extraBadges)>> -->
+
+<!-- <</Stencil::Block>> -->
 
 A collection of scripts and ci configuration
 
@@ -11,7 +14,7 @@ Please read the [CONTRIBUTING.md](CONTRIBUTING.md) document for guidelines on de
 
 ## High-level Overview
 
-<!--- Block(overview) -->
+<!-- <<Stencil::Block(overview)>> -->
 
 ## How to use a Custom Build of `devbase`
 
@@ -56,4 +59,4 @@ image_name:
     - linux/amd64
 ```
 
-<!--- EndBlock(overview) -->
+<!-- <</Stencil::Block>> -->

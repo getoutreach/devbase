@@ -12,7 +12,7 @@ indent_style = tab
 indent_style = space
 indent_size  = 2
 
-###Block(editorconfig)
+## <<Stencil::Block(editorconfig)>>
 # Set for templates as well
 [*.go.tpl]
 indent_style = tab
@@ -21,4 +21,4 @@ indent_size  = 2
 [*.{bash,rb,sh,slim,yml,yaml}.tpl]
 indent_style = space
 indent_size  = 2
-###EndBlock(editorconfig)
+## <</Stencil::Block>>
