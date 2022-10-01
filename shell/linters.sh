@@ -72,7 +72,10 @@ for languageScript in "$DIR/linters"/*.sh; do
     fi
 
     # Set by the language file
-    linter
+    if ! linter; then
+      error "Linter failed to run, run 'make fmt' to fix"
+      exit 1
+    fi
   )
 done
 finished_at="$(get_time_ms)"
