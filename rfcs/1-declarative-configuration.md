@@ -81,7 +81,7 @@ The following targets will be available/configurable day one:
 
 The rest will still be available for compatibility, but unconfigurable, e.g. `gobuild` will still build go but will not work for non-go repos.
 
-See [Examples](#examples) for an idea of what options will be available/an idea of some of the steps.
+See [Configuration Examples](#configuration-examples) for an idea of what options will be available/an idea of some of the steps.
 
 ### Testing Framework
 
