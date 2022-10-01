@@ -32,6 +32,6 @@ steps:
       no_output_timeout: << parameters.no_output_timeout >>
   - run:
       name: Upload Code Coverage
-      command: ./scripts/shell-wrapper.sh ci/testing/coveralls.sh e2e
+      command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out e2e
   - save_go_cache # We save at the end because binaries are included with this
   - upload_test_results # Uploads to CircleCI

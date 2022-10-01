@@ -14,17 +14,17 @@ service:
   framework: stencil
   description: >
     A collection of scripts and ci configuration
-  ###Block(extraServiceMetadata)
-  ###EndBlock(extraServiceMetadata)
+  ## <<Stencil::Block(extraServiceMetadata)>>
+  ## <</Stencil::Block>>
   aliases:
-    ###Block(extraAliases)
+    ## <<Stencil::Block(extraAliases)>>
 
-    ###EndBlock(extraAliases)
+    ## <</Stencil::Block>>
     - devbase
   tags:
-    ###Block(extraTags)
+    ## <<Stencil::Block(extraTags)>>
 
-    ###EndBlock(extraTags)
+    ## <</Stencil::Block>>
     - key: repo
       value: "https://github.com/getoutreach/devbase"
     - key: reporting_team
@@ -34,7 +34,7 @@ service:
     - key: name
       value: "devbase"
     - key: stencil_version
-      value: "v1.25.1"
+      value: "v1.28.0"
     - key: golang_version
       value: "1.17.9"
     - key: tutorial
