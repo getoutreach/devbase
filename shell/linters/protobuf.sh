@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
 # Linters for protobuf
-PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_version "buf")")
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(proto)
 
-buf() {
-  if ! "$PROTOFMT" format --exit-code >/dev/null 2>&1; then
-    error "protobuf format (buf format) failed on some files. Run 'make fmt' to fix."
-    exit 1
-  fi
+buf_linter() {
+  # Why: We're OK with this.
+  # shellcheck disable=SC2155
+  local PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_version "buf")")
+  git ls-files '*.proto' | xargs -n1 "$PROTOFMT" format --exit-code --diff
+}
+
+buf_formatter() {
+  # Why: We're OK with this.
+  # shellcheck disable=SC2155
+  local PROTOFMT=$("$DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_tool_version "buf")")
+  git ls-files '*.proto' | xargs -n1 "$PROTOFMT" format -w
 }
 
 linter() {
-  run_linter "buf" buf
+  run_command "buf" buf_linter
+}
+
+formatter() {
+  run_command "buf" buf_formatter
 }

@@ -1,8 +1,6 @@
-shfmt: 3.4.2
-shellcheck: 0.8.0
-grpcui: 1.0.0
+grpcui: 1.3.1
 jsonnetfmt: 4906958414ed9617e3fe5acac5752f6f8426551c # use a tagged version whenever they release past v0.18.0 (https://github.com/google/go-jsonnet)
-goimports: 0.1.10
+goimports: 0.1.12
 delve: 1.9.1
 gotestsum: 1.7.0
 lintroller: 1.14.1
@@ -12,16 +10,13 @@ getoutreach/ci: v1.3.0
 getoutreach/logfmt: v1.1.0
 
 # protobuf formatters/plugins/tools/etc
-buf: 1.4.0 # formatter
+buf: 1.8.0 # formatter
 protoc-gen-validate: 0.6.7
 protoc-gen-go: 1.5.2
 protoc-gen-doc: 1.5.1
 node-grpc-tools: 1.11.2
 ruby-grpc-tools: 1.46.3
 node-ts-grpc-tools: 5.3.2
-
-# check_config
-check_config: 1.12.0
 
 # Whenever we go to the non-deprecated version of golang protobuf generation
 # these should be uncommented as well as all of the commented out code in

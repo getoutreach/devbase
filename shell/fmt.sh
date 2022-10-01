@@ -1,112 +1,76 @@
 #!/usr/bin/env bash
 # Run various formatters for our source code
-set -e
+# Note: This is mostly duplicated from linters.sh, we
+# will eventually merge this into a better go-based system.
+set -e -o pipefail
 
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/bootstrap.sh
-source "$SCRIPTS_DIR/lib/bootstrap.sh"
-# shellcheck source=./languages/nodejs.sh
-source "$SCRIPTS_DIR/languages/nodejs.sh"
 # shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
+source "$DIR/lib/logging.sh"
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/shell.sh
+source "$DIR/lib/shell.sh"
 
-# Tools
-JSONNETFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@"$(get_application_version "jsonnetfmt")")
-GOIMPORTS=$("$SCRIPTS_DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
-SHELLFMTPATH="$SCRIPTS_DIR/shfmt.sh"
-GOFMT="${GOFMT:-gofmt}"
-PROTOFMT=$("$SCRIPTS_DIR/gobin.sh" -p github.com/bufbuild/buf/cmd/buf@v"$(get_application_version "buf")")
+info "Running formatters"
 
-info "Running Formatters"
+started_at="$(get_time_ms)"
+for languageScript in "$DIR/linters"/*.sh; do
+  languageName="$(basename "${languageScript%.sh}")"
 
-# for_all_files runs the provided command against all files that
-# match the provided glob. This is powered by find, and thus the glob
-# must match whatever `-name` supports matching against. Directories
-# provided to `skip_directories` are automatically skipped.
-for_all_files() {
-  local skip_directories=(
-    # Snapshot testing for templates
-    '*.snapshots*'
+  # We use a sub-shell to prevent inheriting
+  # the changes to functions/variables to the parent
+  # (this) script
+  (
+    # Note: These are modified by the source'd language file
+    # extensions are the extensions this linter should run on
+    extensions=()
+    # files are the files this linter should run on
+    files=()
 
-    # Go vendoring, unsupported by attempt to skip it anyways.
-    # Also used by ruby.
-    "./vendor"
+    # Why: Dynamic
+    # shellcheck disable=SC1090
+    source "$DIR/linters/$languageName.sh"
 
-    # Skip gRPC clients
-    "./api/clients"
-
-    # Skip devbase, when it's embedded
-    "./.bootstrap"
-
-    # Skip node modules
-    "*node_modules*"
-
-    # Skip git internals
-    "./.git"
-  )
-  local glob="$1"
-  shift
-  local command=("$@")
-
-  # create arguments for each directory we're skipping
-  local find_args=()
-  for dir in "${skip_directories[@]}"; do
-    find_args+=(-path "$dir" -prune -o)
-  done
-
-  # only include files, exec the command
-  find_args+=(-type f -name "$glob" -exec "${command[@]}" {} +)
-
-  find . "${find_args[@]}"
-}
-
-info_sub "goimports (.go)"
-for_all_files '*.go' "$GOIMPORTS" -w
-
-info_sub "gofmt (.go)"
-for_all_files '*.go' gofmt -w -s
-
-info_sub "go mod tidy"
-go mod tidy
-
-info_sub "jsonnetfmt (.jsonnet/.libsonnet)"
-for ext in "jsonnet" "libsonnet"; do
-  for_all_files '*.'${ext} "$JSONNETFMT" -i
-done
-
-info_sub "buf (.proto)"
-"$PROTOFMT" format -w
-
-info_sub "shfmt (.sh)"
-for_all_files '*.sh' "$SHELLFMTPATH" -w -l
-
-info_sub "prettier (.yaml/.yml/.json/.md)"
-yarn_install_if_needed
-for ext in "yaml" "yml" "json" "md"; do
-  for_all_files '*.'${ext} "node_modules/.bin/prettier" --write --loglevel warn
-done
-
-if has_service_activity "grpc"; then
-  if has_grpc_client "node"; then
-    nodeSourceDir="$(pwd)/api/clients/node"
-    pushd "$nodeSourceDir" >/dev/null 2>&1 || exit 1
-    yarn_install_if_needed
-
-    info_sub "eslint (node)"
-    yarn lint-fix >/dev/null
-
-    info_sub "prettier (node)"
-    yarn pretty-fix >/dev/null # When files are modified this returns 1.
-    popd >/dev/null 2>&1
-  fi
-fi
-
-if has_feature "service"; then
-  if [[ -e deployments ]] && [[ -e monitoring ]]; then
-    info_sub "terraform fmt (.tf/.tfvars)"
-    for tfdir in deployments monitoring; do
-      terraform fmt "$tfdir"
+    matched=false
+    for extension in "${extensions[@]}"; do
+      # If we don't find any files with the extension, skip the run.
+      if [[ "$(git ls-files '*'."$extension" | wc -l | tr -d ' ')" -le 0 ]]; then
+        continue
+      fi
+      matched=true
     done
-  fi
-fi
+    for file in "${files[@]}"; do
+      # If there are no matching files, skip the run.
+      if [[ "$(git ls-files "$file" | wc -l | tr -d ' ')" -le 0 ]]; then
+        continue
+      fi
+      matched=true
+    done
+    if [[ $matched == "false" ]]; then
+      exit 0
+    fi
+
+    # Note: extensions is set by the linter.
+    # Why: We're OK with declaring and assigning.
+    # shellcheck disable=SC2155,SC2001
+    extensionsString=$(sed 's/ /,./g' <<<"${extensions[*]}" | sed 's/^/./')
+
+    # show is used by run_command as metadata to be shown along with the command name
+    show=$extensionsString
+
+    # If we don't have any extensions, show the files this was ran on
+    if [[ $extensionsString == "." ]]; then
+      # shellcheck disable=SC2155,SC2001
+      filesString=$(sed 's/ /,/g' <<<"${files[*]}")
+      show=$filesString
+    fi
+
+    # Set by the language file
+    formatter
+  )
+done
+finished_at="$(get_time_ms)"
+duration="$((finished_at - started_at))"
+info "Formatters took $(format_diff $duration)"

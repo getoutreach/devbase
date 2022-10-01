@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Linters for js (node)
 
+# Note: This is called from the perspective of shell/
+# shellcheck source=../languages/nodejs.sh
+source "$DIR/languages/nodejs.sh"
+
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(js)
@@ -9,37 +13,43 @@ find_node_projects() {
   git ls-files "*.package.json"
 }
 
-prettier_wrapper() {
+# for_each_package runs a command for each package found in the repo
+for_each_package() {
+  local cmd="$1"
   readarray -t packages < <(find_node_projects)
+
   for package in "${packages[@]}"; do
-    pushd "$1" >/dev/null 2>&1 || exit 1
-    prettier
-    popd >/dev/null 2>&1 || exit 1
+    local dir
+    dir="$(dirname "$package")"
+    pushd "$dir" >/dev/null || exit
+    yarn_install_if_needed
+    "$SHELL" -c "$cmd"
+    popd >/dev/null || exit
   done
 }
 
-prettier() {
-  yarn_install_if_needed
-  yarn pretty
+prettier_linter() {
+  for_each_package "yarn pretty"
 }
 
-eslint_wrapper() {
-  readarray -t packages < <(find_node_projects)
-  for package in "${packages[@]}"; do
-    pushd "$1" >/dev/null 2>&1 || exit 1
-    estlint
-    popd >/dev/null 2>&1 || exit 1
-  done
+eslint_linter() {
+  for_each_package "yarn lint"
 }
 
-eslint() {
-  pushd "$1" >/dev/null 2>&1 || exit 1
-  yarn_install_if_needed
-  yarn lint
-  popd >/dev/null 2>&1 || exit 1
+prettier_formatter() {
+  for_each_package "yarn pretty-fix"
+}
+
+eslint_formatter() {
+  for_each_package "yarn lint-fix"
 }
 
 linter() {
-  run_linter "eslint" eslint_wrapper
-  run_linter "prettier" prettier_wrapper
+  run_command "eslint" eslint_linter
+  run_command "prettier" prettier_linter
+}
+
+formatter() {
+  run_command "eslint" eslint_formatter
+  run_command "prettier" prettier_formatter
 }

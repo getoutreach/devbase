@@ -2,13 +2,14 @@
 # This is a wrapper around gobin.sh to run shfmt.
 # Useful for using the correct version of shfmt
 # with your editor.
+set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-GOBIN="$DIR/gobin.sh"
 
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/asdf.sh
+source "$DIR/lib/asdf.sh"
 
 # Always set simplify mode.
 args=("-s" "$@")
-exec "$GOBIN" "mvdan.cc/sh/v3/cmd/shfmt@v$(get_application_version "shfmt")" "${args[@]}"
+
+asdf_devbase_exec shfmt "${args[@]}"
