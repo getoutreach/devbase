@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/getoutreach/gobox v1.54.0
-	github.com/getoutreach/localizer v1.14.5
+	github.com/getoutreach/localizer v1.15.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/magefile/mage v1.14.0
