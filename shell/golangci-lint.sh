@@ -7,6 +7,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/asdf.sh
+source "$DIR/lib/asdf.sh"
 
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
@@ -26,10 +28,4 @@ mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 # shellcheck disable=SC2155
 export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
 
-# Ensure we're using the correct version of golangci-lint
-#
-# Why: We're OK with masking the return value
-# shellcheck disable=SC2155
-export ASDF_DEFAULT_TOOL_VERSIONS_FILENAME="$(get_repo_directory)/.bootstrap/.tool-versions"
-
-exec golangci-lint "${args[@]}"
+asdf_devbase_exec golangci-lint "${args[@]}"

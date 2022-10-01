@@ -26,7 +26,7 @@ go_mod_tidy() {
 goimports() {
   # Why: We're OK with this.
   # shellcheck disable=SC2155
-  local GOIMPORTS=$("$GOBIN" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
+  local GOIMPORTS=$("$DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
   git ls-files '*.go' | xargs -n40 "$GOIMPORTS" -w
 }
 
@@ -37,7 +37,7 @@ gofmt() {
 linter() {
   run_command "go mod tidy" go_mod_tidy
   run_command "golangci-lint" \
-    "$LINTER" --build-tags "or_e2e,or_test" --timeout 10m run --out-format colored-line-number ./...
+    "$DIR/golangci-lint.sh" --build-tags "or_e2e,or_test" --timeout 10m run --out-format colored-line-number ./...
   run_command "lintroller" lintroller
 }
 
