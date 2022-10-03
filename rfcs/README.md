@@ -54,9 +54,10 @@ Once an RFC is implemented, it is considered "Completed". This means that the RF
 
 ### Create a new RFC
 
-  1. Copy the `0-template.md` file to `rfcs/0000-my-feature.md` (where "my-feature" is a hyphenated version of the title. Don't assign an RFC number yet, a number will be assigned during the PR review phase).
+  1. Copy the `0000-template.md` file to `rfcs/0000-my-feature.md`, `0000` will be replaced with the PR number later.
   2. Fill in the RFC. Put care into the details: RFCs that do not; present convincing motivation, demonstrate understanding of the impact of the design, or are disingenuous about the drawbacks or alternatives tend to be poorly-received. You might want to create a [Draft Pull Request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) to make this process easier and more effective.
   3. Submit a pull request. As a pull request the RFC will receive design feedback from the larger community, and the author should be prepared to revise it in response.
+  4. Update the RFC with the PR number once it is created.
 
 
 ### Update an RFC
