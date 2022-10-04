@@ -3,7 +3,7 @@
 <!-- <<Stencil::Block(customGeneralInformation)>> -->
 Contributions to `devbase` are super welcome! This document is a guide to help you get started.
 
-Generally when working on larger scale features and changes, it's a good idea to open an RFC (Request for Comments) to discuss the design and implementation of the feature. This is to ensure that the design and implementation of the feature is well thought out, documented, and given time for feedback from the community.
+Generally when working on larger scale features and changes, it's a good idea to open an RFC (Request For Comments) to discuss the design and implementation of the feature. This is to ensure that the design and implementation of the feature is well thought out, documented, and given time for feedback from the community.
 
 To learn more about that, look at the documentation in the [`./rfcs`](./rfcs/) directory.
 <!-- <</Stencil::Block>> -->

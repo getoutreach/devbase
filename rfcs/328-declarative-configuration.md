@@ -22,15 +22,15 @@
 
 ## Summary
 
-This proposal replaces environment variable based configuration being used in Make+Magefiles in favor of using declarative yaml based configuration.
+This proposal updates the configuration being used in Make & Magefiles from using environment variables to using declarative yaml.
 
 ## Motivation
 
-As we've been writing `devbase`, and other tooling that uses it, we've identified that the current practice of environment variable based configuration as well as opinionated and unchangeable defaults is not flexible enough for using this tooling both outside of stencil-base (where it is primarily used today) and giving our users the flexibility to easily make minor behaviour changes. This has, ultimately created two pain points:
+As we've been writing `devbase` and other tooling that uses it, we've identified that the current method of configuration using environment variables with opinionated and unchangeable defaults is not flexible enough for using `devbase` outside of stencil-base and giving our users the flexibility to make minor behavioral changes. This is summarized in three pain points:
 
  * Documentation is hard to write and not easily discoverable
- * Finding configuration consumption, and configurable areas is difficult
- * Using `devbase` outside of `stencil-base` projects is not easy (must use sub-modules, and even then it's hard to "plug and play") 
+ * Finding where configuration is used and what is configurable is difficult
+ * Using `devbase` outside of `stencil-base` projects is not easy. Users must use sub-modules, and even then it's hard to "plug and play".
 
 ### Goals
 
@@ -38,20 +38,20 @@ As we've been writing `devbase`, and other tooling that uses it, we've identifie
  - Standard location for all configuration for tooling provided by devbase, et. al
  - Documentation on how to write Magefile targets
  - Ensure that all targets are "plug-and-play" compatible (e.g. usable by themselves), they shouldn't require stencil modules to be used, and if they do require certain options to work "out of the box" they should be sane defaults and well documented (as per the above goals)
- - Not breaking, while we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal
+ - Not breaking (backwards-compatible). While we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal.
 
 ### Non-goals
 
  - Expose new functionality, this would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
- - Migrating `Makefile` to `Magefile`, while it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell were needed).
+ - Migrating `Makefile` to `Magefile`. While it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell where needed).
 
 ## Design Details
 
 ### Repository Configuration
 
-Configuration would live in the root of repository consuming `devbase`, in `.devbase`.
+Configuration will live in the root of repository consuming `devbase`, in the `.devbase` folder.
 
-Each configuration file would match the relevant `make <target>` target, e.g.
+Each configuration file will match the relevant `make <target>` target with a `.yaml` suffix added, e.g.
 
 ```bash
 $ ls .devbase
@@ -60,11 +60,11 @@ e2e.yaml
 docker.yaml
 ```
 
-**Note**: Configuration should be able to be shared between targets (e.g. `docker-build` and `docker-push` today largely share `docker.yaml`), but this should be limited to only being able to consume the same configuration struct, not two different configs in one. The idea is to allow _closely_ related targets to consume the same configuration only. Complicated things like target a and target b sharing two different configs in a file is expressly what this system is _not_ trying to support.
+**Note**: Configuration should be able to be shared between targets (e.g. `docker-build` and `docker-push` today largely share `docker.yaml`), but this should be limited to only being able to consume the same configuration struct, not having two different configurations live in one file. The idea is to allow _closely_ related targets to consume the same configuration.
 
 ### Magefile Targets Implementation Details
 
-Each magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`. The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves. A library will be provided at `pkg/targets`, which will provide functionality to read configuration and other shared functions between targets.
+Each Magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`. The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves. A library will be provided at `pkg/targets`, which will provide functionality to read configuration and other shared functions between targets.
 
 ### Magefile Targets Available Day One
 
@@ -79,17 +79,17 @@ The following targets will be available/configurable day one:
  - `e2e`
  - `docker` (includes: `build`, `publish`)
 
-The rest will still be available for compatibility, but unconfigurable, e.g. `gobuild` will still build go but will not work for non-go repos.
+The other existing targets will still be available for compatibility, but will not be configurable, e.g. `gobuild` will still build go but will not work for non-go repos.
 
 See [Configuration Examples](#configuration-examples) for an idea of what options will be available/an idea of some of the steps.
 
 ### Testing Framework
 
-Testing would be done via Go Testing, enabling us to easily write unit tests. Integration tests would, unforuantely, still need to be figured out as they rely on being ran in macOS/Linux in a predictable fashion
+Testing would be done via Go Testing, enabling us to easily write unit tests. Integration tests would, unfortunately, still need to be figured out as they rely on being run in macOS/Linux in a predictable fashion
 
 ### Configuration Examples
 
-Below are example configuration objects that would be exposed, note this is not all-inclusive and is purposefully not fully spec'd out to allow for changes during implementation.
+Below are example configuration objects that would be exposed. Note this is not all-inclusive and is purposefully not fully spec'd out to allow for changes during implementation.
 
 An example configuration might look like so, for `build`:
 

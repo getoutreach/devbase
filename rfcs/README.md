@@ -40,7 +40,7 @@ Once an RFC is merged, it is considered "accepted" and may be implemented with t
 
 An RFC will be updated as development progresses, as it's considered to be a living document that will be updated as the feature evolves. The author, or implementor, of the RFC should update it as needed.
 
-If, during the development of an rfc, the implementation changes significantly, the author should update the RFC to reflect the changes. This will help keep the RFC up to date, and will help the community to understand the changes. If the changes void the original RFC, the author should create a new RFC to supersede the original RFC and note that accordingly.
+If, during the development of an RFC, the implementation changes significantly, the author should update the RFC to reflect the changes. This will help keep the RFC up to date, and will help the community to understand the changes. If the changes void the original RFC, the author should create a new RFC to supersede the original RFC and note that accordingly.
 
 ### Rejected
 
@@ -55,7 +55,7 @@ Once an RFC is implemented, it is considered "Completed". This means that the RF
 ### Create a new RFC
 
   1. Copy the `0000-template.md` file to `rfcs/0000-my-feature.md`, `0000` will be replaced with the PR number later.
-  2. Fill in the RFC. Put care into the details: RFCs that do not; present convincing motivation, demonstrate understanding of the impact of the design, or are disingenuous about the drawbacks or alternatives tend to be poorly-received. You might want to create a [Draft Pull Request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) to make this process easier and more effective.
+  2. Fill in the RFC. Put care into the details: RFCs that do not present convincing motivation, demonstrate understanding of the impact of the design, or are disingenuous about the drawbacks or alternatives tend to be poorly-received. You might want to create a [Draft Pull Request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) to make this process easier and more effective.
   3. Submit a pull request. As a pull request the RFC will receive design feedback from the larger community, and the author should be prepared to revise it in response.
   4. Update the RFC with the PR number once it is created.
 
@@ -66,6 +66,6 @@ Updating an RFC follows the same process as creating a new RFC. The author shoul
 
 ### Complete an RFC
 
-Once an RFC has been "completed" (the functionality has been implemented), the same process as updating an RFC should be followed. The author should create a PR updating the current document and pull request the changes into the RFC. The RFC should be updated to reflect that it is completed, and contain information about how the process went, and any lessons learned.
+Once an RFC has reached the "Completed" stage (the functionality has been implemented), the same process as updating an RFC should be followed. The author should create a PR updating the current document and pull request the changes into the RFC. The RFC should be updated to reflect that it is completed, and contain information about how the process went, and any lessons learned.
 
 This is also the opportunity to fine-tune the RFC process itself. If there are changes that could be made to the RFC process, consider creating a new RFC to propose those changes to the RFC process itself.

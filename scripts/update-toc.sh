@@ -26,4 +26,4 @@ TOOL_VERSION=b8c54a57d69f29386d055584e595f38d65ce2a1f
 mdtoc=$("$DIR/shell-wrapper.sh" gobin.sh -p "sigs.k8s.io/mdtoc@$TOOL_VERSION")
 
 # Update tables of contents if necessary.
-find rfcs -name '*.md' -exec "$mdtoc" --inplace --max-depth=5 {} +
+find "$DIR/../rfcs" -name '*.md' -exec "$mdtoc" --inplace --max-depth=5 {} +
