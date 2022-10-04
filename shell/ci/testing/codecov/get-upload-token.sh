@@ -5,6 +5,7 @@ set -e
 
 if [[ -n $CODECOV_UPLOAD_TOKEN ]]; then
   echo "Using CODECOV_UPLOAD_TOKEN environment variable." >&2
+  echo -n "$CODECOV_UPLOAD_TOKEN"
   exit 0
 fi
 
