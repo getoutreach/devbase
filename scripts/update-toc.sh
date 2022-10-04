@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#
 # Based off of:
 # Original License:
 #
