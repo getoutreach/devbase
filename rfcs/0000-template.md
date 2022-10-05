@@ -24,7 +24,6 @@ To get started with this template:
 - [Alternatives](#alternatives)
 <!-- /toc -->
 
-
 ## Summary
 
 <!--

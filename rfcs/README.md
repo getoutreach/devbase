@@ -59,7 +59,6 @@ Once an RFC is implemented, it is considered "Completed". This means that the RF
   3. Submit a pull request. As a pull request the RFC will receive design feedback from the larger community, and the author should be prepared to revise it in response.
   4. Update the RFC with the PR number once it is created.
 
-
 ### Update an RFC
 
 Updating an RFC follows the same process as creating a new RFC. The author should create a PR updating the current document, as it is considered "living", and pull request the changes into the RFC.

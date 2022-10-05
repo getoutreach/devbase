@@ -1,4 +1,4 @@
-# Declarative Configuration
+# RFC-328: Declarative Configuration
 
 ## Table of Contents
 
@@ -10,7 +10,7 @@
 - [Design Details](#design-details)
   - [Repository Configuration](#repository-configuration)
   - [Magefile Targets Implementation Details](#magefile-targets-implementation-details)
-  - [Magefile Targets Available Day One](#magefile-targets-available-day-one)
+  - [Magefile Targets](#magefile-targets)
   - [Testing Framework](#testing-framework)
   - [Configuration Examples](#configuration-examples)
 - [Testing and Release Plan](#testing-and-release-plan)
@@ -19,33 +19,34 @@
 - [Alternatives](#alternatives)
 <!-- /toc -->
 
-
 ## Summary
 
-This proposal updates the configuration being used in Make & Magefiles from using environment variables to using declarative yaml.
+This proposal introduces a system for defining configuration for all of the current make targets provided by `devbase` in a declarative format. This format will be backed by Go structs and stored as YAML within each repository that uses these make targets. Also covered is the in-flight work of migrating the current make targets to a Go-based `mage` build system instead.
 
 ## Motivation
 
 As we've been writing `devbase` and other tooling that uses it, we've identified that the current method of configuration using environment variables with opinionated and unchangeable defaults is not flexible enough for using `devbase` outside of stencil-base and giving our users the flexibility to make minor behavioral changes. This is summarized in three pain points:
 
- * Documentation is hard to write and not easily discoverable
- * Finding where configuration is used and what is configurable is difficult
- * Using `devbase` outside of `stencil-base` projects is not easy. Users must use sub-modules, and even then it's hard to "plug and play".
+- Documentation is hard to write and not easily discoverable.
+- Finding where configuration is used and what is configurable is difficult.
+- Using `devbase` outside of `stencil-base` projects is not easy. Users must use sub-modules, and even then it's hard to "plug and play" with existing projects' CI and local build systems.
 
 ### Goals
 
- - All configuration should be written as go structs (as we intend to only write new targets in), and have godoc compatible documentation on each exported field along with examples as needed.
- - Standard location for all configuration for tooling provided by devbase, et. al
- - Documentation on how to write Magefile targets
- - Ensure that all targets are "plug-and-play" compatible (e.g. usable by themselves), they shouldn't require stencil modules to be used, and if they do require certain options to work "out of the box" they should be sane defaults and well documented (as per the above goals)
- - Not breaking (backwards-compatible). While we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal.
+- All configuration should be written as go structs (as we intend to only write new targets in Go), and have godoc compatible documentation on each exported field along with examples as needed.
+- Standard location for all configuration for tooling provided by devbase, et al.
+- Documentation on how to write Magefile targets.
+- Ensure that all targets are "plug-and-play" compatible (e.g. usable by themselves), they shouldn't require stencil modules to be used, and if they do require certain options to work "out of the box" they should be sane defaults and well documented (as per the above goals).
+- Not breaking (backwards-compatible). While we could do a lot more if we did a breaking release, breaking _all_ of the existing releasing tooling isn't optimal.
 
 ### Non-goals
 
- - Expose new functionality, this would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
- - Migrating `Makefile` to `Magefile`. While it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell where needed).
+- Expose new functionality. This would be nice to have but would balloon the amount of work. We're targeting 1:1 compatibility with features/configuration already exposed today, with nice-to-haves being limited.
+- Migrating `Makefile` to `Magefile`. While it'd be nice to migrate all of them over, that's also an amount of work to do. While moving to `Magefile` would be good, we shouldn't try to move everything to Go at the same time (TL;DR: Wrap shell where needed).
 
 ## Design Details
+
+The overarching design is to move all of the current environment variable based config to be backed by YAML, and strongly-typed through Go structs, consumed by `mage` targets that replace the currently existing `make` targets. This will allow us to have a single source of truth for configuration, and allow us to have a single place to document all of the configuration options as well as "for free" documentation rendered on [pkg.go.dev](https://pkg.go.dev).
 
 ### Repository Configuration
 
@@ -66,18 +67,18 @@ docker.yaml
 
 Each Magefile target that consumes this configuration will live inside of the `devbase` repository in the `targets/<targetName>` package, which will be pulled in by `root/mage.go`. The reasoning for a package per target is to make it easier to test these in isolation, as well as (generated) documentation to be localized to the packages (targets) themselves. A library will be provided at `pkg/targets`, which will provide functionality to read configuration and other shared functions between targets.
 
-### Magefile Targets Available Day One
+### Magefile Targets
 
-The following targets will be available/configurable day one:
+The following targets are examples/ideas of what we'd like to have available in `devbase` as targets:
 
- - `build`
- - `debug`
- - `release`
- - `test` (includes: `coverage` as `--coverage`, `benchmark` as `--bench`)
- - `lint`
- - `fmt`
- - `e2e`
- - `docker` (includes: `build`, `publish`)
+- `build`
+- `debug`
+- `release`
+- `test` (includes: `coverage` as `--coverage`, `benchmark` as `--bench`)
+- `lint`
+- `fmt`
+- `e2e`
+- `docker` (includes: `build`, `publish` as subcommands)
 
 The other existing targets will still be available for compatibility, but will not be configurable, e.g. `gobuild` will still build go but will not work for non-go repos.
 
@@ -119,8 +120,7 @@ image_name:
   # See: https://github.com/docker/buildx#building-multi-platform-images
   platforms:
     - linux/amd64
- ```
-
+```
 
 ## Testing and Release Plan
 
@@ -128,7 +128,7 @@ Testing will be figured out more as we get closer to implementation, but the gen
 
 ## Implementation History
 
- * 2022-09-26: Initial draft
+- 2022-09-26: Initial draft
 
 ## Drawbacks
 
