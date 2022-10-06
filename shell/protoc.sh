@@ -115,14 +115,15 @@ go_args+=(
   --plugin=protoc-gen-go="$protoc_gen_go"
   # --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
   # --go_out=.
-  --go_out=plugins=grpc:. # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
+  --go_out="$(get_repo_directory)/"
+  # --go_out=plugins=grpc:. # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
   --go_opt=paths=source_relative
   # --go-grpc_out=.
   # --go-grpc_opt=paths=source_relative
   --plugin=protoc-gen-doc="$protoc_gen_doc"
   --doc_out="$(get_repo_directory)/api/doc"
   "--doc_opt=html,index.html"
-  --proto_path="$(get_repo_directory)/api"
+  --proto_path="$(get_repo_directory)/"
 )
 
 if has_feature "validation"; then
@@ -138,7 +139,7 @@ fi
 mkdir -p "$(get_repo_directory)/api/doc"
 
 # Run protoc for Go.
-protoc "${go_args[@]}" "$(get_repo_directory)/api/"*.proto
+protoc "${go_args[@]}" "$(pwd)/"*.proto
 
 # Move docs into the actual docs directory.
 mkdir -p "$PROTO_DOCS_DIR"
