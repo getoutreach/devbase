@@ -61,6 +61,29 @@ These caches will be imported by using the `restore_cache` command, which will r
 the newest cache that matches the key `v1-daily-cache` as per
 [CircleCI `restore_cache` docs](https://circleci.com/docs/caching#restoring-cache).
 
+The daily cache will only run if the current commit is different from the last commit
+that generated the cache. This will be done by storing the commit hash in a file in
+the cache and comparing it to the current commit hash.
+
+### What is in a Cache?
+
+A cache today currently contains the following:
+
+- **Machine Mode Only** `~/.asdf` - The asdf version manager language installs and go cache
+- `~/go/pkg` - The Go package cache (broken, this is per asdf version (see `go env GOROOT`))
+- `~/.outreach/.cache/.golangci-lint` - golangci-lint cache
+- `~/.cache/go-build` - The Go build cache (broken, we don't output build cache there (see `go env GOCACHE`))
+
+The planned cache will instead be:
+
+- **Now Always** `~/.asdf` - The asdf version manager language installs, etc
+- `~/.outreach/.cache` - All caches for Outreach tooling (including `golangci-lint`)
+- `~/.cache` - All caches for other tooling (including `go-build`)
+
+This will catch essentially all caches that are currently being generated, and
+will be easier to manage as we can just add new caches to the standard `~/.cache`
+directory as needed.
+
 ## Testing and Release Plan
 
 Run on CI for a week on two internal Outreach services to ensure that the
