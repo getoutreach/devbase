@@ -82,7 +82,8 @@ The planned cache will instead be:
 
 This will catch essentially all caches that are currently being generated, and
 will be easier to manage as we can just add new caches to the standard `~/.cache`
-directory as needed.
+directory as needed. The reasoning behind caching `asdf` is that it allows us to keep
+slim docker images that don't need to contain any languages out of the box.
 
 ## Testing and Release Plan
 
