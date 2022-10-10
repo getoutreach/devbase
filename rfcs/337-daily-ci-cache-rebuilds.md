@@ -77,8 +77,8 @@ A cache today currently contains the following:
 The planned cache will instead be:
 
 - **Now Always** `~/.asdf` - The asdf version manager language installs, etc
-- `~/.outreach/.cache` - All caches for Outreach tooling (including `golangci-lint`)
-- `~/.cache` - All caches for other tooling (including `go-build`)
+- `~/.outreach/.cache` - All caches for Outreach tooling
+- `~/.cache` - All caches for other tooling (including `go-build` and `golangci-lint`)
 
 This will catch essentially all caches that are currently being generated, and
 will be easier to manage as we can just add new caches to the standard `~/.cache`
