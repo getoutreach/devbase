@@ -24,8 +24,4 @@ export GOGC=20
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
-# Why: We're OK with masking the return value
-# shellcheck disable=SC2155
-export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
-
 asdf_devbase_exec golangci-lint "${args[@]}"
