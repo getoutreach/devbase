@@ -3,6 +3,9 @@ branches:
   - name: main
     prerelease: "rc"
   - name: release
+  - name: release-2.2
+    range: 2.2.x
+    channel: ''
 plugins:
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
