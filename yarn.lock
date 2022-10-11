@@ -420,10 +420,10 @@
   dependencies:
     "@octokit/openapi-types" "^13.11.0"
 
-"@outreach/semantic-release-circleci-orb@^1.1.7":
-  version "1.1.7"
-  resolved "https://registry.yarnpkg.com/@outreach/semantic-release-circleci-orb/-/semantic-release-circleci-orb-1.1.7.tgz#697882188a4a2d76a1d7faffef3c7fef9666618c"
-  integrity sha512-gHHZyNxYdQI8r9bkWxwB9K64QU0Ct9tSIDpcfc9O9R+UhDo9cSeDexZjg8Myo9IWlEkANMXbOjYP1cDPvuuE3Q==
+"@outreach/semantic-release-circleci-orb@^1.1.9":
+  version "1.1.9"
+  resolved "https://registry.yarnpkg.com/@outreach/semantic-release-circleci-orb/-/semantic-release-circleci-orb-1.1.9.tgz#187f9d71599f7e3f6b88cefa3b180d788e9be6cd"
+  integrity sha512-j3eFWSXa9kD3GIoDEpIlovCajxvUugt4mBROcB+a5X8kPMBFuDEqlNTNVA98AuvCtWsdzg7KokvGIVWJDTjHXQ==
   dependencies:
     "@semantic-release/error" "^3.0.0"
     aggregate-error "^3.1.0"
