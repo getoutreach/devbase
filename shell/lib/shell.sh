@@ -118,8 +118,8 @@ run_command() {
 
   current_pos="$(get_cursor_pos)"
   "$cmd" "${args[@]}"
-  after_pos="$(get_cursor_pos)"
   exit_code=$?
+  after_pos="$(get_cursor_pos)"
 
   # Get how long it took to run the linter
   # Why: We're OK with declaring and assigning.
