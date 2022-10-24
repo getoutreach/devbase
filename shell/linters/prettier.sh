@@ -7,16 +7,16 @@ source "$DIR/languages/nodejs.sh"
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
-extensions=(yaml yml json md)
+extensions=(yaml yml json md ts)
 
 prettier_linter() {
   yarn_install_if_needed >/dev/null
-  git ls-files '*.yaml' '*.yml' '*.json' '*.md' | xargs -n40 "node_modules/.bin/prettier" -l --loglevel warn
+  git ls-files '*.yaml' '*.yml' '*.json' '*.md' '*.ts' | xargs -n40 "node_modules/.bin/prettier" -l --loglevel log || exit $?
 }
 
 prettier_formatter() {
   yarn_install_if_needed >/dev/null
-  git ls-files '*.yaml' '*.yml' '*.json' '*.md' | xargs -n40 "node_modules/.bin/prettier" --write --loglevel warn
+  git ls-files '*.yaml' '*.yml' '*.json' '*.md' '*.ts' | xargs -n40 "node_modules/.bin/prettier" --write --loglevel warn
 }
 
 linter() {
