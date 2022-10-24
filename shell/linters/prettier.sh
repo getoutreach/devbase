@@ -11,7 +11,7 @@ extensions=(yaml yml json md ts)
 
 prettier_linter() {
   yarn_install_if_needed >/dev/null
-  git ls-files '*.yaml' '*.yml' '*.json' '*.md' '*.ts' | xargs -n40 "node_modules/.bin/prettier" -l --loglevel log || exit $?
+  git ls-files '*.yaml' '*.yml' '*.json' '*.md' '*.ts' | xargs -n40 "node_modules/.bin/prettier" -l --loglevel log || return $?
 }
 
 prettier_formatter() {
