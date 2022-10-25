@@ -1,4 +1,4 @@
-description: Run tests on the current commit
+description: Runs the necessary steps to generate a cache and then saves it
 parameters:
   app_name:
     description: Name of the application
@@ -39,9 +39,6 @@ executor:
   docker_image: << parameters.docker_image >>
   docker_tag: << parameters.docker_tag >>
 
-environment:
-  AWS_REGION: << parameters.aws_region >>
-
 steps:
   - when:
       condition:
@@ -51,10 +48,12 @@ steps:
         - run:
             name: Run tests
             command: make test
-        - run:
-            name: Upload Code Coverage
-            command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out
-        - upload_test_results # Uploads to CircleCI
+        - save_cache:
+            key: v1-daily-cache-{{ epoch }}
+            paths:
+              - "~/.cache"
+              - "~/.asdf"
+              - "~/.outreach/.cache"
   - when:
       condition: << parameters.skip >>
       steps:
