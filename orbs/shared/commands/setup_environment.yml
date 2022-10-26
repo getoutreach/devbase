@@ -13,11 +13,21 @@ parameters:
     description: Setup a fully provisioned devenv. Do not use for E2E, use setup_devenv with e2e instead.
     type: boolean
     default: false
+  restore_cache:
+    description: Skips restoring the cache in case a clean slate is needed.
+    type: boolean
+    default: true
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
       steps:
         - use_docker
+  - when:
+      condition: << parameters.restore_cache >>
+      steps:
+        - restore_cache:
+            keys:
+              - v1-daily-cache-
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   - when:
@@ -34,17 +44,6 @@ steps:
         - run:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
-  - when:
-      condition: << parameters.machine >>
-      steps:
-        - run:
-            name: Setup CACHE_VERSION
-            command: |-
-              # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
-              echo "$CACHE_VERSION" > cache-version.txt
-        - restore_cache:
-            keys:
-              - v1-asdf-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
@@ -52,10 +51,3 @@ steps:
       condition: << parameters.setup_devenv >>
       steps:
         - setup_devenv
-  - when:
-      condition: << parameters.machine >>
-      steps:
-        - save_cache:
-            key: v1-asdf-cache-{{ checksum "cache-version.txt" }}
-            paths:
-              - "~/.asdf"

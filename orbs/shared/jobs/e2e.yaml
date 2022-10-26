@@ -25,7 +25,6 @@ resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
       machine: true
-  - with_go_cache
   - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
@@ -33,5 +32,4 @@ steps:
   - run:
       name: Upload Code Coverage
       command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out e2e
-  - save_go_cache # We save at the end because binaries are included with this
   - upload_test_results # Uploads to CircleCI
