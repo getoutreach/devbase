@@ -44,7 +44,8 @@ steps:
       condition:
         not: << parameters.skip >>
       steps:
-        - setup_environment
+        - setup_environment:
+            restore_cache: false
         - run:
             name: Run tests
             command: make test

@@ -44,14 +44,14 @@ workflows:
   ### Start workflows inserted by other modules
   ### End workflows inserted by other modules
   rebuild-cache:
-    triggers:
-      - schedule:
-          # Every day at 00:00 UTC.
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - main
+    # triggers:
+    #   - schedule:
+    #       # Every day at 00:00 UTC.
+    #       cron: "0 0 * * *"
+    #       filters:
+    #         branches:
+    #           only:
+    #             - main
     jobs:
       - shared/save_cache:
           context: *contexts
