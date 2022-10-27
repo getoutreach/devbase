@@ -29,9 +29,9 @@ CGO_ENABLED         ?= 1
 TOOL_DEPS           := ${GO}
 
 # formatters / misc
-JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.18.0
+JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.19.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
-FLY                 ?= $(shell ./scripts/shell-wrapper.sh gobin.sh -p github.com/concourse/concourse/fly@cfe7746ae74247743708be6c5b2f40215030a1f1)
+FLY                 ?= $(HOME)/.outreach/bin/fly
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
@@ -199,6 +199,7 @@ docs-publish:: pre-docs-publish
 ## fly-login:       log into concourse
 .PHONY: fly-login
 fly-login:
+	ls ${FLY} 2>/dev/null || curl -s 'https://concourse.outreach.cloud/api/v1/cli?arch=${GOARCH}&platform=${GOOS}' -o ${FLY} && chmod +x ${FLY} && ${FLY} --version
 	${FLY} -t devs userinfo || ${FLY} -t devs login --concourse-url https://concourse.outreach.cloud -n devs
 
 ## update-pipeline: update application pipeline in concourse
