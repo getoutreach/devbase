@@ -32,6 +32,8 @@ TOOL_DEPS           := ${GO}
 JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.19.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
 FLY                 ?= fly
+BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
+CONCOURSE_URL       := $(shell $(BOX_CONFIG) '.cd.concourse.address')
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
@@ -201,8 +203,8 @@ docs-publish:: pre-docs-publish
 fly-login:
 	brew list fly >/dev/null 2>&1 || brew install fly
 	xattr -c $(shell brew --prefix)/bin/fly >/dev/null 2>&1 || true
-	${FLY} sync -c https://concourse.outreach.cloud 
-	${FLY} -t devs userinfo || ${FLY} -t devs login --concourse-url https://concourse.outreach.cloud -n devs
+	${FLY} sync -c $(CONCOURSE_URL)
+	${FLY} -t devs userinfo || ${FLY} -t devs login -c $(CONCOURSE_URL) -n devs
 
 ## update-pipeline: update application pipeline in concourse
 .PHONY: update-pipeline
