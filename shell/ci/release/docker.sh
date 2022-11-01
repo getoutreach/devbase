@@ -26,7 +26,8 @@ source "${LIB_DIR}/logging.sh"
 
 # get_image_field returns a field from the manifest of the image
 get_image_field() {
-  local field="$1"
+  local name="$1"
+  local field="$2"
   yq -r ".[\"$name\"]$field" "$MANIFEST"
 }
 
@@ -41,7 +42,7 @@ build_and_push_image() {
   #   - linux/amd64
   #
   # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
-  mapfile -t platforms < <(get_image_field '.platforms')
+  mapfile -t platforms < <(get_image_field "$image" '.platforms')
   if [[ -z $platforms ]] || [[ $platforms == "null" ]]; then
     platforms=("linux/arm64" "linux/amd64")
   fi
@@ -53,7 +54,7 @@ build_and_push_image() {
   #
   # See docker docs:
   # https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
-  mapfile -t secrets < <(get_image_field '.secrets')
+  mapfile -t secrets < <(get_image_field "$image" '.secrets')
   if [[ -z $secrets ]] || [[ $secrets == "null" ]]; then
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
@@ -66,7 +67,7 @@ build_and_push_image() {
   # as the repository. If this is not the main image (appName), we'll
   # append the appName to the repository to keep the images isolated
   # to this repository.
-  local remote_image_name=$(get_image_field '.pushTo')
+  local remote_image_name=$(get_image_field "$image" '.pushTo')
   if [[ -z $remote_image_name ]] || [[ $remote_image_name == "null" ]]; then
     local remote_image_name="$imageRegistry/$image"
 
@@ -104,7 +105,7 @@ build_and_push_image() {
 
   # If we're not the main image, the build context should be
   # the image directory instead.
-  buildContext="$(get_image_field '.buildContext')"
+  buildContext="$(get_image_field "$image" '.buildContext')"
   if [[ -z $buildContext ]] || [[ $buildContext == "null" ]]; then
     buildContext="."
     if [[ $APPNAME != "$image" ]]; then
