@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: This file has the package main.
 package main
 
 import (
@@ -31,6 +34,7 @@ import (
 // flagship is the name of the flagship
 const flagship = "flagship"
 
+// virtualDeps is flagship dependencies
 var virtualDeps = map[string][]string{
 	// TODO(jaredallard): [DT-510] Store flagship dependencies in the outreach repository
 	// This will be removed once reactor is dead.
@@ -215,8 +219,8 @@ func appAlreadyDeployed(ctx context.Context, app string) bool {
 	return false
 }
 
-//nolint:unparam // Why: keeping in the interface for now
-func provisionNew(ctx context.Context, deps []string, target string) error {
+// provisionNew destroys and re-provisions a devenv
+func provisionNew(ctx context.Context, deps []string, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
@@ -267,6 +271,7 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 	return osStdInOutErr(exec.Command("sudo", "rm", "-f", localizer.Socket)).Run()
 }
 
+// runLocalizer runs localizer for devenv
 func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 	if localizer.IsRunning() {
 		if err := ensureRunningLocalizerWorks(ctx); err != nil {
@@ -384,7 +389,7 @@ func shouldRunE2ETests() (bool, error) {
 	return runEndToEndTests, err
 }
 
-func main() { //nolint:funlen,gocyclo
+func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
