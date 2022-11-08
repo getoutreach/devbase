@@ -71,11 +71,20 @@ for languageScript in "$DIR/linters"/*.sh; do
       show=$filesString
     fi
 
+    # Set a trap to print the user-friendly error message
+    # because linters use run_command which exits if there is an error
+    function exit_trap {
+      # Why: We are in a trap
+      # shellcheck disable=SC2181
+      if [[ $? -ne 0 ]]; then
+        error "Linter failed to run, run 'make fmt' to fix"
+        exit $?
+      fi
+    }
+    trap exit_trap EXIT
+
     # Set by the language file
-    if ! linter; then
-      error "Linter failed to run, run 'make fmt' to fix"
-      exit 1
-    fi
+    linter
   )
 done
 finished_at="$(get_time_ms)"

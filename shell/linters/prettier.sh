@@ -12,17 +12,7 @@ extensions=(yaml yml json md ts)
 prettier_linter() {
   yarn_install_if_needed >/dev/null
   git ls-files '*.yaml' '*.yml' '*.json' '*.md' '*.ts' | xargs -n40 "node_modules/.bin/prettier" -l --loglevel log
-  
-  # Print out a friendlier error message, because prettier will just print a list of files
-  code=$?
-  if [[ $code == 1 ]]; then
-	  # Clear lines above and below because magic terminal stuff going on
-	  echo
-	  echo "prettier_linter: the above files have not been formatted. Please run \`make fmt\` to fix this."
-	  echo
-  fi
-  
-  return $code
+  return $?
 }
 
 prettier_formatter() {
