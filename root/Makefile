@@ -144,6 +144,8 @@ gogenerate:: pre-gogenerate
 ## gobuild:         build application binary
 .PHONY: gobuild
 gobuild:
+	# ensure that we have secrets for the build phase
+	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
 	@$(MAGE_CMD) gobuild
 
 ## grpcui:          run grpcui for an already locally running service
@@ -165,13 +167,11 @@ dev:: pre-dev
 ## devserver:       run the service
 .PHONY: devserver
 devserver:: pre-devserver build
-	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
 	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) $(BINDIR)/$(BIN_NAME)
 
 ## debug:           run the service via delve
 .PHONY: debug
 debug:: pre-debug build
-	@if [[ -z $$SKIP_DEVCONFIG ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh devconfig.sh; fi
 	@if [[ -n $$DLV_PORT ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh debug.sh; fi
 	@if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
