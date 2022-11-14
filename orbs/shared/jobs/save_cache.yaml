@@ -44,6 +44,19 @@ steps:
       condition:
         not: << parameters.skip >>
       steps:
+        - restore_cache:
+            keys:
+              - v1-toggle-daily-cache-{{ .Revision }}
+        - run:
+            name: Check cache flag
+            command: |
+              if [[ -f "/home/circleci/cache-toggle" ]]; then
+                echo "Cache for this commit already exists"
+                curl -X POST "https://circleci.com/api/v2/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/job/$CIRCLE_BUILD_NUM/cancel?circle-token=$CIRCLECI_API_TOKEN"
+              fi
+        - run:
+            name: Create a cache flag file
+            command: touch ~/cache-toggle && echo "true" > ~/cache-toggle
         - setup_environment:
             restore_cache: false
         - run:
@@ -55,6 +68,11 @@ steps:
               - "~/.cache"
               - "~/.asdf"
               - "~/.outreach/.cache"
+        - save_cache:
+            key: v1-toggle-daily-cache-{{ .Revision }}
+            paths:
+              - "~/cache-toggle"
+
   - when:
       condition: << parameters.skip >>
       steps:
