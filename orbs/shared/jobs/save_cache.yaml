@@ -57,6 +57,9 @@ steps:
         - run:
             name: Create a cache flag file
             command: touch ~/cache-toggle && echo "true" > ~/cache-toggle
+        - run:
+            name: Create cache restored file
+            command: touch ~/cache-restored && echo "true" > ~/cache-restored
         - setup_environment:
             restore_cache: false
         - run:
@@ -68,6 +71,7 @@ steps:
               - "~/.cache"
               - "~/.asdf"
               - "~/.outreach/.cache"
+              - "~/cache-restored"
         - save_cache:
             key: v1-toggle-daily-cache-{{ .Revision }}
             paths:
