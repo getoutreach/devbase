@@ -68,7 +68,10 @@ for languageScript in "$DIR/linters"/*.sh; do
     fi
 
     # Set by the language file
-    formatter
+    if ! formatter; then
+      error "Formatter failed to run"
+      exit 1
+    fi
   )
 done
 finished_at="$(get_time_ms)"
