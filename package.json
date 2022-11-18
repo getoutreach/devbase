@@ -1,6 +1,7 @@
 {
   "license": "UNLICENSED",
   "devDependencies": {
+    "@outreach/semantic-release-circleci-orb": "^1.1.9",
     "@semantic-release/commit-analyzer": "^9.0.2",
     "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
