@@ -2,7 +2,12 @@
 # syntax, such as anchors, will be fixed automatically.
 version: 2.1
 orbs:
-  shared: getoutreach/shared@dev:cache
+  shared: getoutreach/shared@dev:2.7.0-rc.1
+
+parameters:
+  rebuild_cache:
+    type: boolean
+    default: false
 
 # Extra contexts to expose to all jobs below
 contexts: &contexts
@@ -11,11 +16,22 @@ contexts: &contexts
   - opslevel-credentials
   - vault-dev
   - confluence
+  - circleci-credentials
   ## <<Stencil::Block(extraContexts)>>
   - docker-registry
   - npm-credentials
   - ghaccesstoken
   - package-cloud-credentials
+  ## <</Stencil::Block>>
+
+# Test configs to pass to test and cache jobs
+test: &test
+  context: *contexts
+  app_name: devbase
+  ### Start parameters inserted by other modules
+  ### End parameters inserted by other modules
+  ## <<Stencil::Block(circleTestExtra)>>
+
   ## <</Stencil::Block>>
 
 # Branches used for releasing code, pre-release or not
@@ -43,6 +59,7 @@ workflows:
 
   ### Start workflows inserted by other modules
   ### End workflows inserted by other modules
+
   rebuild-cache:
     triggers:
       - schedule:
@@ -53,15 +70,16 @@ workflows:
               only:
                 - main
     jobs:
-      - shared/save_cache:
-          context: *contexts
-          app_name: devbase
-          ### Start parameters from test
-          ### End parameters from test
-          ### Start parameters inserted by other modules
-          ### End parameters inserted by other modules
+      - shared/save_cache: *test
+
+  manual-rebuild-cache:
+    when: << pipeline.parameters.rebuild_cache >>
+    jobs:
+      - shared/save_cache: *test
 
   release:
+    when:
+      not: << pipeline.parameters.rebuild_cache >>
     jobs:
       ## <<Stencil::Block(circleWorkflowJobs)>>
 
@@ -90,15 +108,7 @@ workflows:
           filters:
             branches:
               ignore: *release_branches
-      - shared/test:
-          context: *contexts
-          app_name: devbase
-          ### Start parameters inserted by other modules
-          ### End parameters inserted by other modules
-          ## <<Stencil::Block(circleTestExtra)>>
-
-          ## <</Stencil::Block>>
-
+      - shared/test: *test
       - shared/publish_docs:
           context: *contexts
           filters:
