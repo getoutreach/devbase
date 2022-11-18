@@ -139,11 +139,7 @@ run_command() {
   # Rewrite the above line, or append, with the time taken
   info_sub "$name ($show) ($(format_diff $duration))"
 
-  # If we failed, display an error and exit
-  if [[ $exit_code -ne 0 ]]; then
-    error "$name failed with exit code $exit_code"
-    exit 1
-  fi
+  return $exit_code
 }
 
 # format_diff takes a diff and formats it into a friendly timestamp
