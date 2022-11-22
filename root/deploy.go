@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -52,7 +52,7 @@ func Deploy(ctx context.Context, appName, channel string) error {
 
 	defer resp.Body.Close()
 
-	respPayload, err := ioutil.ReadAll(resp.Body)
+	respPayload, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "failed to read response payload")
 	}
