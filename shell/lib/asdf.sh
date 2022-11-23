@@ -19,7 +19,7 @@ asdf_plugins_list_regenerate
 read_all_asdf_tool_versions() {
   find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
     -name .tool-versions -exec cat {} \; |
-    grep -Ev "^#" | sort | uniq
+    grep -Ev "^#|^$" | sort | uniq
 }
 
 # asdf_get_version_from_devbase returns the version of a tool from the devbase
@@ -68,6 +68,15 @@ asdf_devbase_ensure() {
     # shellcheck disable=SC2155
     local version="$(awk '{ print $2 }' <<<"$entry")"
 
+    if [[ -z $plugin ]]; then
+      echo "No plugin found in devbase .tool-versions file"
+      exit 1
+    fi
+    if [[ -z $version ]]; then
+      echo "No version found for $plugin in devbase .tool-versions file"
+      exit 1
+    fi
+
     # Install the plugin first, so we can install the version
     # Note: This only runs if the plugin doesn't already exist
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
@@ -93,6 +102,15 @@ asdf_install() {
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
     local version="$(awk '{ print $2 }' <<<"$entry")"
+
+    if [[ -z $plugin ]]; then
+      echo "No plugin found in devbase .tool-versions file"
+      exit 1
+    fi
+    if [[ -z $version ]]; then
+      echo "No version found for $plugin in devbase .tool-versions file"
+      exit 1
+    fi
 
     # Install the plugin first, so we can install the version
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
