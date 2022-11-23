@@ -58,7 +58,7 @@ OSS                 ?= false
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
+.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devconfig pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
 pre-release::
 pre-build::
 pre-run::
@@ -69,6 +69,7 @@ pre-integration::
 pre-e2e::
 pre-benchmark::
 pre-gogenerate::
+pre-devconfig::
 pre-devserver::
 pre-dev::
 pre-debug::
@@ -162,10 +163,14 @@ run:: pre-run build
 dev:: pre-dev
 	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
+## devconfig:       generates the required configuration to run the service locally
+.PHONY: devconfig
+devconfig:: pre-devconfig
+	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
+
 ## devserver:       run the service
 .PHONY: devserver
-devserver:: pre-devserver build
-	if [[ -z $$SKIP_DEVCONFIG ]]; then ./scripts/shell-wrapper.sh devconfig.sh; fi
+devserver:: pre-devserver build devconfig
 	OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) $(BINDIR)/$(BIN_NAME)
 
 ## debug:           run the service via delve
