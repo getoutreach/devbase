@@ -116,6 +116,11 @@ lint:: pre-test pre-lint
 test:: pre-test lint
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
 
+## test-e2e:        run only e2e test (use inside a dev pod)
+.PHONY: test-e2e
+test-e2e:: pre-test
+	$(BASE_TEST_ENV) TEST_TAGS=or_test,or_e2e ./scripts/shell-wrapper.sh test.sh
+
 ## coverage:        generate code coverage
 .PHONY: coverage
 coverage:: pre-coverage
