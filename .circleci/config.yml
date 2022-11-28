@@ -77,17 +77,6 @@ workflows:
     jobs:
       - shared/save_cache: *test
 
-  manual-rebuild-cache:
-    when: << pipeline.parameters.rebuld_cache >>
-    jobs:
-      - shared/save_cache:
-          context: *contexts
-          app_name: devbase
-          ### Start parameters from test
-          ### End parameters from test
-          ### Start parameters inserted by other modules
-          ### End parameters inserted by other modules
-
   release:
     when:
       not: << pipeline.parameters.rebuild_cache >>
