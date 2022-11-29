@@ -8,6 +8,15 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
+# The script should be ran in the directory where the protobuf generation occurs.
+# We get the working directory here and then trim off of the repository directory
+# to use the relative path in various places in this script.
+#
+# Even when the script is ran using the go:generate directive, this still works.
+workDir="$(pwd)"
+workDir=${workDir#"$(get_repo_directory)"}
+info "Running protoc generation in $workDir"
+
 PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
 PROTOC_IMPORTS_BASE_PATH="$HOME/.outreach/.protoc-imports"
 mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
@@ -120,9 +129,9 @@ go_args+=(
   # --go-grpc_out=.
   # --go-grpc_opt=paths=source_relative
   --plugin=protoc-gen-doc="$protoc_gen_doc"
-  --doc_out="$(get_repo_directory)/api/doc"
+  --doc_out="$(get_repo_directory)$workDir/doc"
   "--doc_opt=html,index.html"
-  --proto_path="$(get_repo_directory)/api"
+  --proto_path="$(get_repo_directory)$workDir"
 )
 
 if has_feature "validation"; then
@@ -130,19 +139,19 @@ if has_feature "validation"; then
 
   go_args+=(
     --plugin=protoc-gen-validate="$protoc_gen_validate"
-    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)/api"
+    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)$workDir"
   )
 fi
 
 # Make docs output directory if it doesn't exist.
-mkdir -p "$(get_repo_directory)/api/doc"
+mkdir -p "$(get_repo_directory)$workDir/doc"
 
 # Run protoc for Go.
-protoc "${go_args[@]}" "$(get_repo_directory)/api/"*.proto
+protoc "${go_args[@]}" "$(get_repo_directory)$workDir/"*.proto
 
 # Move docs into the actual docs directory.
 mkdir -p "$PROTO_DOCS_DIR"
-mv "$(get_repo_directory)/api/doc/index.html" "$PROTO_DOCS_DIR"
+mv "$(get_repo_directory)$workDir/doc/index.html" "$PROTO_DOCS_DIR"
 
 if has_grpc_client "node"; then
   info "Generating Node gRPC client"
@@ -155,19 +164,19 @@ if has_grpc_client "node"; then
   grpc_tools_node_plugin="$(get_package_prefix "grpc-tools" "$node_tools_version")/bin/grpc_tools_node_protoc_plugin"
 
   # Make node/TS output directory if it doesn't exist.
-  mkdir -p "$(get_repo_directory)/api/clients/node/src/grpc"
+  mkdir -p "$(get_repo_directory)$workDir/clients/node/src/grpc"
 
   info_sub "Running Node protobuf generation"
 
   node_args=("${default_args[@]}")
   node_args+=(
     --plugin=protoc-gen-grpc="$grpc_tools_node_plugin"
-    "--js_out=import_style=commonjs,binary:$(get_repo_directory)/api/clients/node/src/grpc"
-    --grpc_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
-    --proto_path "$(get_repo_directory)/api"
+    "--js_out=import_style=commonjs,binary:$(get_repo_directory)$workDir/clients/node/src/grpc"
+    --grpc_out=grpc_js:"$(get_repo_directory)$workDir/clients/node/src/grpc"
+    --proto_path "$(get_repo_directory)$workDir"
   )
 
-  "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)/api/"*.proto
+  "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)$workDir/"*.proto
 
   info_sub "Running TS protobuf generation"
 
@@ -178,11 +187,11 @@ if has_grpc_client "node"; then
   ts_args=("${default_args[@]}")
   ts_args+=(
     --plugin=protoc-gen-ts="$ts_protoc_bin"
-    --ts_out=grpc_js:"$(get_repo_directory)/api/clients/node/src/grpc"
-    --proto_path "$(get_repo_directory)/api"
+    --ts_out=grpc_js:"$(get_repo_directory)$workDir/clients/node/src/grpc"
+    --proto_path "$(get_repo_directory)$workDir"
   )
 
-  "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)/api/"*.proto
+  "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)$workDir/"*.proto
 fi
 
 if has_grpc_client "ruby"; then
@@ -207,10 +216,10 @@ if has_grpc_client "ruby"; then
   ruby_args=("${default_args[@]}")
   ruby_args+=(
     --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin"
-    --ruby_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client"
-    --grpc_out="$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client"
-    --proto_path "$(get_repo_directory)/api"
+    --ruby_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client"
+    --grpc_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client"
+    --proto_path "$(get_repo_directory)$workDir"
   )
 
-  "$grpc_tools_ruby_bin" "${ruby_args[@]}" "$(get_repo_directory)/api/"*.proto
+  "$grpc_tools_ruby_bin" "${ruby_args[@]}" "$(get_repo_directory)$workDir/"*.proto
 fi
