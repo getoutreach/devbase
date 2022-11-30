@@ -64,6 +64,7 @@ imports=$(
 )
 
 default_args=()
+import_paths=()
 for import in $imports; do
   module_version_str=$(jq -r .module <<<"$import")
   info_sub "$module_version_str"
@@ -91,6 +92,7 @@ for import in $imports; do
 
   # Add import to list
   default_args+=("--proto_path=$import_path/$path")
+  import_paths+=("$import_path/$path")
 
   # Check to see if we already have this version locally and skip cloning
   # if we already do.
@@ -168,11 +170,21 @@ if has_grpc_client "node"; then
 
   info_sub "Running Node protobuf generation"
 
+  grpc_path="$(get_repo_directory)$workDir/clients/node/src/grpc"
+
+  # Copy imported pb files.
+  for import_path in "${import_paths[@]}"; do
+    import_grpc_path="$import_path/clients/node/src/grpc"
+    if [[ -d $import_grpc_path ]]; then
+      cp -r "$import_grpc_path/" "$grpc_path"
+    fi
+  done
+
   node_args=("${default_args[@]}")
   node_args+=(
     --plugin=protoc-gen-grpc="$grpc_tools_node_plugin"
-    "--js_out=import_style=commonjs,binary:$(get_repo_directory)$workDir/clients/node/src/grpc"
-    --grpc_out=grpc_js:"$(get_repo_directory)$workDir/clients/node/src/grpc"
+    "--js_out=import_style=commonjs,binary:$grpc_path"
+    --grpc_out=grpc_js:"$grpc_path"
     --proto_path "$(get_repo_directory)$workDir"
   )
 
@@ -187,7 +199,7 @@ if has_grpc_client "node"; then
   ts_args=("${default_args[@]}")
   ts_args+=(
     --plugin=protoc-gen-ts="$ts_protoc_bin"
-    --ts_out=grpc_js:"$(get_repo_directory)$workDir/clients/node/src/grpc"
+    --ts_out=grpc_js:"$grpc_path"
     --proto_path "$(get_repo_directory)$workDir"
   )
 
