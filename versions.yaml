@@ -26,5 +26,5 @@ node-ts-grpc-tools: 5.3.2
 # protoc-gen-go-grpc: 1.46.0
 
 # confluence publishing tools
-getoutreach/markdowntools/visualizemd: v0.0.32
+getoutreach/markdowntools/visualizemd: v0.0.33
 kovetskiy/mark: 6.5
