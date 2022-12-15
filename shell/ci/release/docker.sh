@@ -24,6 +24,11 @@ source "${LIB_DIR}/buildx.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+if [[ ! -f $MANIFEST ]]; then
+  error "Manifest file '$MANIFEST' required for building Docker images"
+  fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
+fi
+
 # get_image_field returns a field from the manifest of the image
 get_image_field() {
   local name="$1"
