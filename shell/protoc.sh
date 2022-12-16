@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Generates proto types and clients from proto filess
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$SCRIPTS_DIR/gobin.sh"
@@ -7,6 +8,12 @@ GOBIN="$SCRIPTS_DIR/gobin.sh"
 source "$SCRIPTS_DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
+
+SUBDIR=""
+# check if SUBDIR passed as argument
+if [[ -n $1 ]]; then
+  SUBDIR="/$1"
+fi
 
 # The script should be ran in the directory where the protobuf generation occurs.
 # We get the working directory here and then trim off of the repository directory
@@ -126,14 +133,14 @@ go_args+=(
   --plugin=protoc-gen-go="$protoc_gen_go"
   # --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
   # --go_out=.
-  --go_out=plugins=grpc:. # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
+  --go_out=plugins=grpc:".$SUBDIR" # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
   --go_opt=paths=source_relative
   # --go-grpc_out=.
   # --go-grpc_opt=paths=source_relative
   --plugin=protoc-gen-doc="$protoc_gen_doc"
   --doc_out="$(get_repo_directory)$workDir/doc"
   "--doc_opt=html,index.html"
-  --proto_path="$(get_repo_directory)$workDir"
+  --proto_path="$(get_repo_directory)$workDir$SUBDIR"
 )
 
 if has_feature "validation"; then
@@ -141,7 +148,7 @@ if has_feature "validation"; then
 
   go_args+=(
     --plugin=protoc-gen-validate="$protoc_gen_validate"
-    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)$workDir"
+    "--validate_out=lang=go,paths=source_relative:$(get_repo_directory)$workDir$SUBDIR"
   )
 fi
 
@@ -149,7 +156,7 @@ fi
 mkdir -p "$(get_repo_directory)$workDir/doc"
 
 # Run protoc for Go.
-protoc "${go_args[@]}" "$(get_repo_directory)$workDir/"*.proto
+protoc "${go_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
 
 # Move docs into the actual docs directory.
 mkdir -p "$PROTO_DOCS_DIR"
@@ -166,11 +173,11 @@ if has_grpc_client "node"; then
   grpc_tools_node_plugin="$(get_package_prefix "grpc-tools" "$node_tools_version")/bin/grpc_tools_node_protoc_plugin"
 
   # Make node/TS output directory if it doesn't exist.
-  mkdir -p "$(get_repo_directory)$workDir/clients/node/src/grpc"
+  mkdir -p "$(get_repo_directory)$workDir/clients/node/src/grpc$SUBDIR"
 
   info_sub "Running Node protobuf generation"
 
-  grpc_path="$(get_repo_directory)$workDir/clients/node/src/grpc"
+  grpc_path="$(get_repo_directory)$workDir/clients/node/src/grpc$SUBDIR"
 
   # Copy imported pb files.
   for import_path in "${import_paths[@]}"; do
@@ -185,10 +192,10 @@ if has_grpc_client "node"; then
     --plugin=protoc-gen-grpc="$grpc_tools_node_plugin"
     "--js_out=import_style=commonjs,binary:$grpc_path"
     --grpc_out=grpc_js:"$grpc_path"
-    --proto_path "$(get_repo_directory)$workDir"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
   )
 
-  "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)$workDir/"*.proto
+  "$grpc_tools_node_bin" "${node_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
 
   info_sub "Running TS protobuf generation"
 
@@ -200,10 +207,10 @@ if has_grpc_client "node"; then
   ts_args+=(
     --plugin=protoc-gen-ts="$ts_protoc_bin"
     --ts_out=grpc_js:"$grpc_path"
-    --proto_path "$(get_repo_directory)$workDir"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
   )
 
-  "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)$workDir/"*.proto
+  "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
 fi
 
 if has_grpc_client "ruby"; then
@@ -223,15 +230,18 @@ if has_grpc_client "ruby"; then
   grpc_tools_ruby_bin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$ruby_grpc_tools_version/bin/grpc_tools_ruby_protoc"
   grpc_tools_ruby_plugin="$(gem env | grep "\- INSTALLATION DIRECTORY" | awk '{print $4}')/gems/grpc-tools-$ruby_grpc_tools_version/bin/grpc_tools_ruby_protoc_plugin"
 
+  # Make ruby output directory if it doesn't exist.
+  mkdir -p "$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client$SUBDIR"
+
   info_sub "Running Ruby protobuf generation"
 
   ruby_args=("${default_args[@]}")
   ruby_args+=(
     --plugin=grpc_tools_ruby_protoc_plugin="$grpc_tools_ruby_plugin"
-    --ruby_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client"
-    --grpc_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client"
-    --proto_path "$(get_repo_directory)$workDir"
+    --ruby_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client$SUBDIR"
+    --grpc_out="$(get_repo_directory)$workDir/clients/ruby/lib/$(get_app_name)_client$SUBDIR"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
   )
 
-  "$grpc_tools_ruby_bin" "${ruby_args[@]}" "$(get_repo_directory)$workDir/"*.proto
+  "$grpc_tools_ruby_bin" "${ruby_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
 fi
