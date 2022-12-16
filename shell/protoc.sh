@@ -101,10 +101,10 @@ for import in $imports; do
   default_args+=("--proto_path=$import_path/$path")
   import_paths+=("$import_path/$path")
 
-  # Check to see if we already have this version locally and skip cloning
-  # if we already do.
+  # Check to see if we already have this version locally and remove
+  # to allow a fresh clone if we already do.
   if [[ -d $import_path && -d "$import_path/.git" ]]; then
-    continue
+    rm -r "$import_path"
   fi
 
   # Clone import into the import path since we don't have it already
