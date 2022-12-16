@@ -97,7 +97,7 @@ for import in $imports; do
   # Check to see if we already have this version locally and skip cloning
   # if we already do.
   if [[ -d $import_path && -d "$import_path/.git" ]]; then
-    continue
+      rm -r "$import_path"
   fi
 
   # Clone import into the import path since we don't have it already
