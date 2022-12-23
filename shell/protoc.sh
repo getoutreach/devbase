@@ -211,6 +211,16 @@ if has_grpc_client "node"; then
   )
 
   "$grpc_tools_node_bin" "${ts_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+
+  # remove unsupported validate proto plugin
+  if pushd "$grpc_path"; then
+    for f in * **/*; do
+      if [ -f "$f" ]; then
+        sed -i '' '/validate_pb/d' "$f" 2>/dev/null || sed -i '/validate_pb/d' "$f"
+      fi
+    done
+    popd || exit 1
+  fi
 fi
 
 if has_grpc_client "ruby"; then
@@ -244,4 +254,14 @@ if has_grpc_client "ruby"; then
   )
 
   "$grpc_tools_ruby_bin" "${ruby_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+
+  # remove unsupported validate proto plugin
+  if pushd "$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client$SUBDIR"; then
+    for f in * **/*; do
+      if [ -f "$f" ]; then
+        sed -i '' '/validate_pb/d' "$f" 2>/dev/null || sed -i '/validate_pb/d' "$f"
+      fi
+    done
+    popd || exit 1
+  fi
 fi
