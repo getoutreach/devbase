@@ -152,6 +152,10 @@ if has_feature "validation"; then
   )
 fi
 
+delete_validate() {
+  sed -i '' '/validate_pb/d' "$1" 2>/dev/null || sed -i '/validate_pb/d' "$1"
+}
+
 # Make docs output directory if it doesn't exist.
 mkdir -p "$(get_repo_directory)$workDir/doc"
 
@@ -214,10 +218,8 @@ if has_grpc_client "node"; then
 
   # remove unsupported validate proto plugin
   if pushd "$grpc_path"; then
-    for f in * **/*; do
-      if [ -f "$f" ]; then
-        sed -i '' '/validate_pb/d' "$f" 2>/dev/null || sed -i '/validate_pb/d' "$f"
-      fi
+    find . -name '*.js' -or -name '*.ts' | while read -r file; do
+      delete_validate "$file"
     done
     popd || exit 1
   fi
@@ -257,10 +259,8 @@ if has_grpc_client "ruby"; then
 
   # remove unsupported validate proto plugin
   if pushd "$(get_repo_directory)/api/clients/ruby/lib/$(get_app_name)_client$SUBDIR"; then
-    for f in * **/*; do
-      if [ -f "$f" ]; then
-        sed -i '' '/validate_pb/d' "$f" 2>/dev/null || sed -i '/validate_pb/d' "$f"
-      fi
+    find . -name '*.rb' | while read -r file; do
+      delete_validate "$file"
     done
     popd || exit 1
   fi
