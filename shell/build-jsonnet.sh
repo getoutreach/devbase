@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# wrapper arround jsonnet for rendering files
+# wrapper around jsonnet for rendering files
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
