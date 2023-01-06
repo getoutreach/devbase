@@ -12,6 +12,7 @@ action=$1
 
 appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
 bento="${DEVENV_DEPLOY_BENTO:-"bento1a"}"
+channel="${DEVENV_DEPLOY_CHANNEL:-"devenv"}"
 namespace="${DEVENV_DEPLOY_NAMESPACE:-$appName--$bento}"
 version="${DEVENV_DEPLOY_VERSION:-"latest"}"
 environment="${DEVENV_DEPLOY_ENVIRONMENT:-"development"}"
@@ -30,6 +31,7 @@ kubecfg \
   -V environment="$environment" \
   -V version="$version" \
   -V bento="$bento" \
+  -V channel="$channel" \
   -V dev_email="$email" \
   -V host="$host" \
   -V appImageRegistry="$appImageRegistry"
