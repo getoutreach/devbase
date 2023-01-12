@@ -3,6 +3,7 @@ modules:
     - name: github.com/getoutreach/devbase
       url: https://github.com/getoutreach/devbase
       version: v2.7.0
+      version: artemchernyak-outreach/feat/release-failure-notifications
     - name: github.com/getoutreach/stencil-actions
       url: https://github.com/getoutreach/stencil-actions
       version: v0.3.0-rc.1
