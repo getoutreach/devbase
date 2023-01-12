@@ -48,7 +48,7 @@ send_failure_notification() {
     exit 1
   fi
 
-  curl -X POST https://e8272402-7480-42f4-9bfb-881634a91628.trayapp.io \
+  curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
     -H 'Content-Type: application/json' \
     -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'"}'
   exit 1

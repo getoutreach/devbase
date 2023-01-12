@@ -17,6 +17,7 @@ contexts: &contexts
   - vault-dev
   - confluence
   - circleci-credentials
+  - tray-webhooks
   ## <<Stencil::Block(extraContexts)>>
   - docker-registry
   - npm-credentials
