@@ -89,8 +89,7 @@ workflows:
       - shared/release: &release
           dryrun: false
           context: *contexts
-          environment:
-            RELEASE_FAILURE_SLACK_CHANNEL: C01CEQP2MA6
+          release_failure_slack_channel: C01CEQP2MA6
           ## <<Stencil::Block(circleReleaseExtra)>>
 
           ## <</Stencil::Block>>

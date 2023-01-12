@@ -31,7 +31,7 @@ ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
 NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
-  yarn --frozen-lockfile semantic-release
+  yarn --frozen-lockfile semantic-release || send_failure_notification
 
 NEW_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
@@ -62,7 +62,6 @@ elif [[ $UPDATED == "true" ]]; then
 
     pushd "$nodeClientDir" >/dev/null || exit 1
     info_sub "pushing to github packages"
-    send_failure_notification
     npm publish || send_failure_notification
     popd >/dev/null || exit 1
   fi

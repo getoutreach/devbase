@@ -42,6 +42,20 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
+send_failure_notification() {
+  if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
+    echo "Failed to release"
+    exit 1
+  fi
+
+  curl -X POST https://e8272402-7480-42f4-9bfb-881634a91628.trayapp.io \
+    -H 'Content-Type: application/json' \
+    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'"}'
+  exit 1
+}
+
+send_failure_notification
+
 GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
 
 # Handle unstable releasing for CLIs, pre-conditions for this exist
