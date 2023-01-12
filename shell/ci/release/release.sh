@@ -12,6 +12,18 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
+send_failure_notification() {
+  if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
+    echo "Failed to release"
+    exit 1
+  fi
+
+  curl -X POST https://e8272402-7480-42f4-9bfb-881634a91628.trayapp.io \
+    -H 'Content-Type: application/json' \
+    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'"}'
+  exit 1
+}
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -50,7 +62,8 @@ elif [[ $UPDATED == "true" ]]; then
 
     pushd "$nodeClientDir" >/dev/null || exit 1
     info_sub "pushing to github packages"
-    npm publish
+    send_failure_notification
+    npm publish || send_failure_notification
     popd >/dev/null || exit 1
   fi
 fi

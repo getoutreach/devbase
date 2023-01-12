@@ -2,7 +2,7 @@
 # syntax, such as anchors, will be fixed automatically.
 version: 2.1
 orbs:
-  shared: getoutreach/shared@2.7.0
+  shared: getoutreach/shared@dev:test
 
 parameters:
   rebuild_cache:
@@ -89,6 +89,8 @@ workflows:
       - shared/release: &release
           dryrun: false
           context: *contexts
+          environment:
+            RELEASE_FAILURE_SLACK_CHANNEL: C01CEQP2MA6
           ## <<Stencil::Block(circleReleaseExtra)>>
 
           ## <</Stencil::Block>>
