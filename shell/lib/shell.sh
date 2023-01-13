@@ -93,6 +93,13 @@ get_cursor_pos() {
   # tput u7 > /dev/tty    # when TERM=xterm (and relatives)
   IFS=';' read -r -d R -a pos
   stty "$oldstty"
+
+  # Check if the output is in the format we expect
+  if [[ ${pos[0]} != $'\033['* ]] || [[ ${pos[1]} != *[0-9] ]]; then
+    echo "0,0"
+    return
+  fi
+
   # change from one-based to zero based so they work with: tput cup $row $col
   row=$((${pos[0]:2} - 1)) # strip off the esc-[
   col=$((pos[1] - 1))
