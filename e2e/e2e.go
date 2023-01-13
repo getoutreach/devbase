@@ -6,50 +6,27 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/box"
-	"github.com/getoutreach/gobox/pkg/sshhelper"
-	localizerapi "github.com/getoutreach/localizer/api"
-	"github.com/getoutreach/localizer/pkg/localizer"
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v2"
 )
 
 // flagship is the name of the flagship
 const flagship = "flagship"
 
-// virtualDeps is flagship dependencies
-var virtualDeps = map[string][]string{
-	// TODO(jaredallard): [DT-510] Store flagship dependencies in the outreach repository
-	// This will be removed once reactor is dead.
-	"outreach": {
-		"outreach-templating-service",
-		"olis",
-		"mint",
-		"giraffe",
-		"outreach-accounts",
-		"clientron",
-	},
-}
-
 // DevenvConfig is a struct that contains the devenv configuration
-// which is usually called "devenv.yaml"
+// which is usually called "devenv.yaml". This also works for the
+// legacy service.yaml format.
 type DevenvConfig struct {
 	// Service denotes if this repository is a service.
 	Service bool `yaml:"service"`
@@ -76,29 +53,15 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 // is a flat list of all of the dependencies of the initial root
 // application who's dependency list was provided.
 func BuildDependenciesList(ctx context.Context) ([]string, error) {
-	deps := make(map[string]bool)
+	deps := make(map[string]struct{})
 
-	a := sshhelper.GetSSHAgent()
-	if _, err := sshhelper.LoadDefaultKey("github.com", a, logrus.StandardLogger()); err != nil {
-		return nil, err
-	}
-
-	auth := sshhelper.NewExistingSSHAgentCallback(a)
-
-	s, err := parseDevenvConfig()
+	s, err := parseDevenvConfig("devenv.yaml")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse service.yaml")
+		return nil, errors.Wrap(err, "failed to parse devenv.yaml")
 	}
 
 	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
-		// Error on flagship dependency. This can be removed later as this was a breaking change
-		// and is just a nice to have. We only error only on our top-level dependencies. Later on
-		// we map flagship -> outreach for sub-level deps.
-		if d == flagship {
-			log.Fatal().Msg("flagship has been replaced by outreach, please update your dependency list")
-		}
-
-		if err := grabDependencies(ctx, deps, d, auth); err != nil {
+		if err := grabDependencies(ctx, deps, d); err != nil {
 			return nil, err
 		}
 	}
@@ -111,66 +74,87 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	return depsList, nil
 }
 
+// findDependenciesInRepo finds the dependencies in a repository
+// at all of the possible paths
+func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
+	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
+
+	var dc *DevenvConfig
+	for _, f := range possibleFiles {
+		if _, err := os.Stat(filepath.Join(repoPath, f)); err != nil {
+			continue
+		}
+
+		var err error
+		dc, err = parseDevenvConfig(filepath.Join(repoPath, f))
+		if err != nil {
+			continue
+		}
+
+		// We found a file, stop looking
+		break
+	}
+
+	if dc == nil {
+		log.Warn().Str("service", serviceName).
+			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
+		return nil
+	}
+
+	deps := make(map[string]struct{})
+	for _, d := range append(dc.Dependencies.Required, dc.Dependencies.Optional...) {
+		deps[d] = struct{}{}
+	}
+
+	return deps
+}
+
 // grabDependencies traverses the dependency tree by calculating
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
-func grabDependencies(ctx context.Context, deps map[string]bool, name string, auth *sshhelper.ExistingSSHAgentCallback) error {
+func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
-	if name == flagship {
-		name = "outreach"
+	if serviceName == flagship {
+		serviceName = "outreach"
 	}
 
-	fs := memfs.New()
-
 	// Skip if we've already been downloaded
-	if _, ok := deps[name]; ok {
+	if _, ok := deps[serviceName]; ok {
 		return nil
 	}
 
-	log.Info().Str("dep", name).Msg("Resolving dependency")
+	log.Info().Str("dep", serviceName).Msg("Resolving dependency")
 
-	var foundDeps []string
-
-	// If we don't have a virtualDeps entry here, then download the git
-	// repo, read service.yaml, and
-	if _, ok := virtualDeps[name]; !ok {
-		opts := &git.CloneOptions{
-			URL:  "git@github.com:" + path.Join("getoutreach", name),
-			Auth: auth,
-		}
-		_, err := git.CloneContext(ctx, memory.NewStorage(), fs, opts)
-		if err != nil {
-			return errors.Wrapf(err, "failed to clone dependency %s", name)
-		}
-
-		f, err := fs.Open("service.yaml")
-		if err != nil {
-			deps[name] = true
-			log.Warn().Err(err).Msg("Failed to find service.yaml, will not try to calculate dependencies of this service")
-			return nil
-		}
-
-		var dc *DevenvConfig
-		if err := yaml.NewDecoder(f).Decode(&dc); err != nil {
-			return errors.Wrapf(err, "failed to parse service.yaml in dependency %s", name)
-		}
-
-		//nolint:gocritic // Why: done on purpose
-		foundDeps = append(dc.Dependencies.Required, dc.Dependencies.Optional...)
-	} else {
-		log.Info().Msgf("Using baked-in dependency list")
-		foundDeps = virtualDeps[name]
+	// Create a temporary directory to clone the repo into
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("e2e-%s-*", serviceName))
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp dir")
 	}
+	defer os.RemoveAll(tmpDir)
+
+	// Download the git repo locally
+	//nolint:gosec // Why: Need to do this
+	cmd := exec.CommandContext(ctx,
+		"git", "clone", "-q", "--depth", "1", "git@github.com:"+path.Join("getoutreach", serviceName), tmpDir,
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "failed to clone dependency %s", serviceName)
+	}
+
+	// Find the dependencies of this repo
+	foundDeps := findDependenciesInRepo(serviceName, tmpDir)
 
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
-	deps[name] = true
+	deps[serviceName] = struct{}{}
 
-	for _, d := range foundDeps {
-		err := grabDependencies(ctx, deps, d, auth)
-		if err != nil {
+	for d := range foundDeps {
+		if err := grabDependencies(ctx, deps, d); err != nil {
 			return err
 		}
 	}
@@ -179,15 +163,15 @@ func grabDependencies(ctx context.Context, deps map[string]bool, name string, au
 }
 
 // parseDevenvConfig parses the devenv.yaml file and returns a struct
-func parseDevenvConfig() (*DevenvConfig, error) {
-	f, err := os.Open("devenv.yaml")
+func parseDevenvConfig(path string) (*DevenvConfig, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
 	}
 	defer f.Close()
 
 	var dc DevenvConfig
-	if err = yaml.NewDecoder(f).Decode(&dc); err != nil {
+	if err := yaml.NewDecoder(f).Decode(&dc); err != nil {
 		return nil, errors.Wrapf(err, "failed to parse devenv.yaml or service.yaml")
 	}
 
@@ -201,7 +185,7 @@ func appAlreadyDeployed(ctx context.Context, app string) bool {
 		Name string `json:"name"`
 	}
 
-	b, err := exec.CommandContext(ctx, "devenv", "apps", "list", "--output", "json").Output()
+	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
 	if err != nil {
 		return false
 	}
@@ -244,95 +228,6 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 	}
 
 	return nil
-}
-
-// ensureRunningLocalizerWorks check if a localizer is already running, and if it is
-// ensure it's working properly (responding to pings). If it's not, remove the socket.
-func ensureRunningLocalizerWorks(ctx context.Context) error {
-	log.Info().Msg("Ensuring existing localizer is actually running")
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
-
-	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	// Made connection, ping it
-	if err == nil {
-		defer closer()
-
-		// Responding to pings, return nil
-		if _, err := client.Ping(ctx, &localizerapi.PingRequest{}); err == nil {
-			return nil
-		}
-	}
-
-	// not responding to pings, or failed to connect, remove the socket
-	//nolint:gosec // Why: We're OK with this. It's a constant.
-	return osStdInOutErr(exec.Command("sudo", "rm", "-f", localizer.Socket)).Run()
-}
-
-// runLocalizer runs localizer for devenv
-func runLocalizer(ctx context.Context) (cleanup func(), err error) {
-	if localizer.IsRunning() {
-		if err := ensureRunningLocalizerWorks(ctx); err != nil {
-			return nil, err
-		}
-	}
-
-	if !localizer.IsRunning() {
-		// Preemptively ask for sudo to prevent input mangling with o.LocalApps
-		log.Info().Msg("You may get a sudo prompt so localizer can create tunnels")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "sudo", "true")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to get root permissions")
-		}
-
-		log.Info().Msg("Starting devenv tunnel")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")).Start(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
-		}
-
-		// Wait until localizer is running, max 1m
-		//nolint:govet // Why: done on purpose
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(1*time.Minute))
-		defer cancel()
-
-		for ctx.Err() == nil && !localizer.IsRunning() {
-			async.Sleep(ctx, time.Second*1)
-		}
-	}
-
-	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to localizer")
-	}
-	defer closer()
-
-	log.Info().Msg("Waiting for devenv tunnel to be finished creating tunnels")
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
-	defer cancel()
-
-	for ctx.Err() == nil {
-		resp, err := client.Stable(ctx, &localizerapi.Empty{})
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to check if localizer is running")
-		}
-
-		if resp.Stable {
-			break
-		}
-
-		async.Sleep(ctx, time.Second*2)
-	}
-
-	return func() {
-		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
-			log.Warn().Err(err).Msg("failed to kill running localizer server")
-		}
-	}, nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -457,9 +352,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	dc, err := parseDevenvConfig()
+	dc, err := parseDevenvConfig("devenv.yaml")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse service.yaml file")
+		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
 
 	// if it's a library we don't need to deploy the application.
