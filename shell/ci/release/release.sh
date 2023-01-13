@@ -20,7 +20,7 @@ send_failure_notification() {
 
   curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
     -H 'Content-Type: application/json' \
-    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'"}'
+    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'", "buildURL": "'"$CIRCLE_BUILD_URL"'", "repoName": "'"$CIRCLE_PROJECT_REPONAME"'"}'
   exit 1
 }
 
