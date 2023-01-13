@@ -12,6 +12,18 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
+send_failure_notification() {
+  if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
+    echo "Failed to release"
+    exit 1
+  fi
+
+  curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
+    -H 'Content-Type: application/json' \
+    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'", "buildURL": "'"$CIRCLE_BUILD_URL"'", "repoName": "'"$CIRCLE_PROJECT_REPONAME"'"}'
+  exit 1
+}
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -19,7 +31,7 @@ ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
 NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
-  yarn --frozen-lockfile semantic-release
+  yarn --frozen-lockfile semantic-release || send_failure_notification
 
 NEW_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
@@ -50,7 +62,7 @@ elif [[ $UPDATED == "true" ]]; then
 
     pushd "$nodeClientDir" >/dev/null || exit 1
     info_sub "pushing to github packages"
-    npm publish
+    npm publish || send_failure_notification
     popd >/dev/null || exit 1
   fi
 fi
