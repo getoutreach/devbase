@@ -2,4 +2,4 @@
 # vim: set syntax=yaml:
 version: v11.0.2
 versions:
-  devbase: artemchernyak-outreach/feat/release-failure-notifications
+  devbase: v2.4.4
