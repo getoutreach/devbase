@@ -7,6 +7,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=../../lib/logging.sh
 source "$DIR/../../lib/logging.sh"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "$SCRIPTS_DIR/../../lib/bootstrap.sh"
+PROJECT_DIR="$(get_repo_directory)"
+
 # Arguments
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
@@ -90,6 +94,11 @@ if [[ $PROVISION == "true" ]]; then
   info "Provisioning developer environment"
   # shellcheck disable=SC2086 # Why: Not an array, have to split.
   exec devenv --skip-update provision $PROVISION_ARGS
+fi
+
+# If scripts/devenv/post-e2e-deploy.sh exists within the project then run it.
+if [[ -f "$PROJECT_DIR/scripts/devenv/post-e2e-deploy.sh" ]]; then
+  exec "$PROJECT_DIR/scripts/devenv/post-e2e-deploy.sh"
 fi
 
 if [[ $E2E == "true" ]]; then
