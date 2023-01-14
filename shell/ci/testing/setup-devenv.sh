@@ -8,7 +8,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/../../lib/logging.sh"
 
 # shellcheck source=../../lib/bootstrap.sh
-source "$SCRIPTS_DIR/../../lib/bootstrap.sh"
+source "$DIR/../../lib/bootstrap.sh"
 PROJECT_DIR="$(get_repo_directory)"
 
 # Arguments
@@ -98,7 +98,7 @@ fi
 
 # If scripts/devenv/post-e2e-deploy.sh exists within the project then run it.
 if [[ -f "$PROJECT_DIR/scripts/devenv/post-e2e-deploy.sh" ]]; then
-  exec "$PROJECT_DIR/scripts/devenv/post-e2e-deploy.sh"
+  ("$PROJECT_DIR/scripts/devenv/post-e2e-deploy.sh")
 fi
 
 if [[ $E2E == "true" ]]; then
