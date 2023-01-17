@@ -370,6 +370,15 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 
+	// If the post-deploy script for e2e exists, run it.
+	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
+		log.Info().Msg("Running scripts/devenv/post-e2e-deploy.sh")
+
+		if err := osStdInOutErr(exec.CommandContext(ctx, "scripts/devenv/post-e2e-deploy.sh")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to run scripts/devenv/post-e2e-deploy.sh")
+		}
+	}
+
 	// Allow users to opt out of running localizer
 	if os.Getenv("SKIP_LOCALIZER") != "true" {
 		closer, err := runLocalizer(ctx)
