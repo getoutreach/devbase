@@ -104,3 +104,9 @@ Runs `go build` on the project with a set of linker variables.
 ### `dep`
 
 Installs all Go dependencies
+
+### `e2e`
+
+Runs tests marked with `or_e2e` build tags after provisioning a [devenv](github.com/getoutreach/devenv).
+If you have a file in your repository, `scripts/devenv/post-e2e-deploy.sh`, it
+will run it right after the devenv has been provisioned (before the tests run).
