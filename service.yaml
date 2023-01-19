@@ -1,6 +1,9 @@
 name: devbase
 arguments:
   circleAPIKey: ""
+  ciOptions:
+    skipE2e: true
+    skipDocker: true
   commands: []
   commitGuard: false
   dependencies:
