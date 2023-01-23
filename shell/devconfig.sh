@@ -80,7 +80,7 @@ info "Generating local config/secrets in '$configDir'"
 envsubst="$("$DIR/gobin.sh" -p github.com/a8m/envsubst/cmd/envsubst@v1.2.0)"
 
 info "Fetching Configuration File(s)"
-DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
+DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
   while IFS=$'\t' read -r configFile configData; do
 
     saveFile="$configDir/$configFile"
