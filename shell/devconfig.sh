@@ -107,7 +107,7 @@ DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r
 
     info_sub "$secretName ($secretKey)"
     mkdir -p "$saveDir"
-    echo -n "$secretValueBase64" | base64 --decode >"$saveFile"
+    base64 --decode >"$saveFile" <<<"$secretValueBase64"
   done
 
 # Fetch secrets from Vault and store them at ~/.outreach/<appName>
