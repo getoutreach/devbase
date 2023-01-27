@@ -96,6 +96,20 @@ DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r
     rm "$tmpFile" "$mergedFile" >/dev/null 2>&1 || true
   done
 
+info "Fetching non-Vault Secret(s)"
+# Why: `$secretName` is intended as a yq variable not a shell variable.
+# shellcheck disable=SC2016
+DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "Secret") | .metadata.name as $secretName | (.data | to_entries[] | [$secretName, .key, .value] | @tsv)' | "$envsubst" |
+  while IFS=$'\t' read -r secretName secretKey secretValueBase64; do
+
+    saveDir="$configDir/$secretName"
+    saveFile="$configDir/$secretName/$secretKey"
+
+    info_sub "$secretName ($secretKey)"
+    mkdir -p "$saveDir"
+    base64 --decode >"$saveFile" <<<"$secretValueBase64"
+  done
+
 # Fetch secrets from Vault and store them at ~/.outreach/<appName>
 # In Kubernetes these will be stored in the same format, but at the path
 # /run/secrets/outreach.io/<basename vaultKey>/<vault subKey>
