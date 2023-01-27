@@ -72,4 +72,6 @@ modules:
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
+  - name: github.com/getoutreach/devbase
+    channel: rc
 migrated: true
