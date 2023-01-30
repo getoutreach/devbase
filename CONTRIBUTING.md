@@ -16,6 +16,8 @@ To learn more about that, look at the documentation in the [`./rfcs`](./rfcs/) d
 
 ## Building and Testing
 
+This project uses devbase, which exposes the following build tooling: [devbase/docs/makefile.md](https://github.com/getoutreach/devbase/blob/main/docs/makefile.md)
+
 <!-- <<Stencil::Block(customBuildingAndTesting)>> -->
 
 <!-- <</Stencil::Block>> -->
