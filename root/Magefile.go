@@ -80,6 +80,6 @@ func Gobuild(ctx context.Context) error {
 		buildPath = "./plugin"
 	}
 
-        // Build with -trimpath to ensure we have consistent module filenames embedded.
+	// Build with -trimpath to ensure we have consistent module filenames embedded.
 	return runGoCommand("build", "-v", "-trimpath", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
 }

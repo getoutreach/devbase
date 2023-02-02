@@ -10,7 +10,7 @@ source "${LIB_DIR}/logging.sh"
 
 TAG="$CIRCLE_TAG"
 # Do not update engdocs every run
-if [[ ! -z "$TAG" ]]; then
+if [[ -n $TAG ]]; then
   # We need to use the module path to support major versions properly
   MODULE_PATH="$(go list -f '{{ .Path }}' -m)"
 
