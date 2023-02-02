@@ -77,4 +77,4 @@ while read -r file; do
   else
     info_sub "no space directive found, skipping ${file}"
   fi
-done < <(git diff --name-only HEAD.."$previousTag" -- '*.md')
+done < <(git ls-files -- '*.md')
