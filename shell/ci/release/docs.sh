@@ -23,4 +23,4 @@ fi
 
 # Confluence docs get updated every run
 info "publishing eligible markdown documents to confluence"
-"$DIR/confluence-publish.sh"
+exec "$DIR/confluence-publish.sh"
