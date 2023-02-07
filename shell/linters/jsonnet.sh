@@ -8,7 +8,7 @@ extensions=(jsonnet libsonnet)
 jsonnetfmt() {
   # Why: We're OK with this.
   # shellcheck disable=SC2155
-  local JSONNETFMT=$("$DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@"$(get_application_version "jsonnetfmt")")
+  local JSONNETFMT=$("$DIR/gobin.sh" -p github.com/google/go-jsonnet/cmd/jsonnetfmt@v"$(get_application_version "jsonnetfmt")")
   git ls-files '*.jsonnet' '*.libsonnet' | xargs -n40 "$JSONNETFMT" -i
 }
 
