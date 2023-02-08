@@ -138,3 +138,12 @@ get_keys() {
     yq -r ".arguments.\"$name\" | keys[]" <"$(get_service_yaml)"
   fi
 }
+
+# is_service checks if the repo is declared as a service inside service.yaml.
+is_service() {
+  if [[ "$(yq -r ".arguments.service" <"$(get_service_yaml)")" == "null" ]]; then
+    echo "false"
+  else
+    yq -r ".arguments.service" <"$(get_service_yaml)"
+  fi
+}
