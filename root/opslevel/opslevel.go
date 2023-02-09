@@ -1,3 +1,8 @@
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
+
+// Description: This file implements helpers for working with the OpsLevel API.
+
+// Package opslevel implements helpers for working with the OpsLevel API.
 package opslevel
 
 import (
@@ -38,7 +43,7 @@ const (
 	EndOfLifeLifecycle = 6
 )
 
-// LifecycleToLevel maps lifecycle index to level index.
+// DefaultLifecycleToLevelMap maps lifecycle index to level index.
 // We want to keep this at the index level in case names or other attributes change.
 var DefaultLifecycleToLevelMap = LifecycleToLevelMap{
 	DevelopmentLifecycle: BronzeLevel,
