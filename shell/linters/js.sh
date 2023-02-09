@@ -45,11 +45,11 @@ eslint_formatter() {
 }
 
 linter() {
-  run_command "eslint" eslint_linter
-  run_command "prettier" prettier_linter
+  run_command "eslint" eslint_linter || exit 1
+  run_command "prettier" prettier_linter || exit 1
 }
 
 formatter() {
-  run_command "eslint" eslint_formatter
-  run_command "prettier" prettier_formatter
+  run_command "eslint" eslint_formatter || exit 1
+  run_command "prettier" prettier_formatter || exit 1
 }
