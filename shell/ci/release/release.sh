@@ -27,6 +27,15 @@ send_failure_notification() {
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/../../lib/bootstrap.sh"
+
+OPSLEVEL_ENABLED="$(get_box_field '.ci.opslevelEnabled')"
+if [[ $OPSLEVEL_ENABLED == "true" && "$(is_service)" == "false" ]]; then
+  echo "checking opslevel"
+  make checkopslevel
+fi
+
 ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc

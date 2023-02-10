@@ -7,6 +7,7 @@ require (
 	github.com/getoutreach/localizer v1.14.5
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/magefile/mage v1.14.0
+	github.com/opslevel/opslevel-go/v2022 v2022.10.22
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.28.0
 	google.golang.org/grpc v1.49.0
@@ -31,8 +32,11 @@ require (
 	github.com/go-git/go-git/v5 v5.5.2 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/gosimple/slug v1.13.1 // indirect
+	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
@@ -51,7 +55,9 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/relvacode/iso8601 v1.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
@@ -68,10 +74,12 @@ require (
 	go.opentelemetry.io/proto/otlp v0.18.0 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220909194730-69f6226f97e5 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
