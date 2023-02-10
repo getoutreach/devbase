@@ -20,8 +20,8 @@ shellfmt_formatter() {
 }
 
 linter() {
-  run_command "shellcheck" shellcheck_linter || exit 1
-  run_command "shellfmt" shellfmt_linter || exit 1
+  run_command "shellcheck" shellcheck_linter || return 1
+  run_command "shellfmt" shellfmt_linter || return 1
 }
 
 formatter() {
