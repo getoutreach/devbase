@@ -10,6 +10,8 @@ GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # SSH -> HTTPS, since we're not using SSH keys
 git config --global url.https://github.com/.insteadOf git@github.com:
+# Trust /home/dev/app
+git config --global --add safe.directory /home/dev/app
 
 download_box
 
