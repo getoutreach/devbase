@@ -99,7 +99,7 @@ DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r
 info "Fetching non-Vault Secret(s)"
 # Why: `$secretName` is intended as a yq variable not a shell variable.
 # shellcheck disable=SC2016
-DEPLOY_TO_DEV_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "Secret") | .metadata.name as $secretName | (.data | to_entries[] | [$secretName, .key, .value] | @tsv)' | "$envsubst" |
+DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "Secret") | .metadata.name as $secretName | (.data | to_entries[] | [$secretName, .key, .value] | @tsv)' | "$envsubst" |
   while IFS=$'\t' read -r secretName secretKey secretValueBase64; do
 
     saveDir="$configDir/$secretName"
