@@ -28,7 +28,7 @@ send_failure_notification() {
 source "${LIB_DIR}/logging.sh"
 
 # shellcheck source=../../lib/bootstrap.sh
-source "${LIB_DIR}/lib/bootstrap.sh"
+source "${LIB_DIR}/bootstrap.sh"
 
 OPSLEVEL_ENABLED="$(get_box_field '.ci.opslevelEnabled')"
 if [[ $OPSLEVEL_ENABLED == "true" && "$(is_service)" == "false" ]]; then
