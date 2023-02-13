@@ -30,6 +30,9 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/box.sh
+source "${LIB_DIR}/box.sh"
+
 OPSLEVEL_ENABLED="$(get_box_field '.ci.opslevelEnabled')"
 if [[ $OPSLEVEL_ENABLED == "true" && "$(is_service)" == "false" ]]; then
   echo "checking opslevel"
