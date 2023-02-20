@@ -21,6 +21,7 @@ delve=(
   exec
   "$(get_repo_directory)/bin/${DEV_CONTAINER_EXECUTABLE:-$(get_app_name)}"
   --headless
+  --api-version=2
   --listen=":${DLV_PORT}"
 )
 
