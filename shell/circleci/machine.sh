@@ -20,7 +20,20 @@ fi
 
 # Add APT repositories we do need.
 if should_install_vault; then
-  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o hashicorp-archive-keyring.gpg
+
+  # 2023-02-22: Hashicorp updated their keyring but removed their older key, this reulted in no
+  # being able to fetch their repository. To make up for this, we fetch the older key on the
+  # fly and add it to their keyring. This can be removed once they have resolved the following
+  # issue: https://github.com/hashicorp/vault/issues/19292
+  #
+  # This is also best effort, so we ignore any errors.
+  gpg --no-default-keyring --keyring ./hashicorp-archive-keyring.gpg --keyserver keyserver.ubuntu.com --recv-keys DA418C88A3219F7B || true
+  echo " === Hashicorp Keyring ==="
+  gpg --no-default-keyring --keyring ./hashicorp-archive-keyring.gpg --list-keys || true
+  echo " === End Hashicorp Keyring ==="
+  sudo mv hashicorp-archive-keyring.gpg /usr/share/keyrings/
+
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 fi
 
