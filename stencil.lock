@@ -2,7 +2,7 @@ version: v1.30.0
 modules:
     - name: github.com/getoutreach/devbase
       url: https://github.com/getoutreach/devbase
-      version: v2.9.0
+      version: v2.9.1
     - name: github.com/getoutreach/stencil-base
       url: https://github.com/getoutreach/stencil-base
       version: v0.8.0
@@ -11,7 +11,7 @@ modules:
       version: v1.7.0
     - name: github.com/getoutreach/stencil-golang
       url: https://github.com/getoutreach/stencil-golang
-      version: v1.7.0
+      version: v1.8.0-rc.3
 files:
     - name: .circleci/config.yml
       template: .circleci/config.yml.tpl
