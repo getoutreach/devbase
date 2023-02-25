@@ -4,65 +4,20 @@ arguments:
   ciOptions:
     skipE2e: true
     skipDocker: true
-  commands: []
   commitGuard: false
-  dependencies:
-    optional: []
-    required: []
   description: A collection of scripts and ci configuration
-  go-protoc-imports: []
-  grpcClients: []
-  kubernetes:
-    groups: []
   lintroller: platinum
   metrics: datadog
   opslevel:
     tier: 2
-    confluenceSpaceKey: ""
-    datadogDashboards:
-      mainLink: ""
-    designDocumentLink: ""
   oss: true
   releaseOptions:
     allowMajorVersions: true
     enablePrereleases: true
     prereleasesBranch: rc
   reportingTeam: fnd-dt
-  resources: {}
-  service: false
   slack: ""
-  terraform:
-    datadog:
-      grpc:
-        evaluationWindow: ""
-        latency:
-          percentiles:
-            highTraffic: 0
-            lowTraffic: 0
-          thresholds:
-            highTraffic: 0
-            lowTraffic: 0
-        lowTrafficCountThreshold: 0
-        qos:
-          thresholds:
-            highTraffic: 0
-            lowTraffic: 0
-        tags: []
-      http:
-        evaluationWindow: ""
-        percentiles:
-          highTraffic: 0
-          lowTraffic: 0
-        thresholds:
-          highTraffic: 0
-          lowCount: 0
-          lowTraffic: 0
-      pods:
-        thresholds:
-          availableLowCount: 0
   tracing: opentelemetry
-  tutorial: false
-  validation: false
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
@@ -72,5 +27,7 @@ modules:
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
+    # Removes ruby requirement
+    version: ">=v1.8.0-rc.2"
   - name: github.com/getoutreach/devbase
 migrated: true
