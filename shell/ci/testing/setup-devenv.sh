@@ -37,7 +37,7 @@ if [[ -n $CI ]]; then
 
   if ! command -v kubecfg >/dev/null; then
     info "Installing kubecfg"
-    curl -fsSL https://github.com/getoutreach/kubecfg/releases/download/v0.17.0/kubecfg-linux-amd64 >kubecfg
+    curl -fsSL https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-amd64 >kubecfg
     chmod +x kubecfg
     sudo mv kubecfg /usr/local/bin/kubecfg
   fi
