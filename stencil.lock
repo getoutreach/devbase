@@ -1,7 +1,7 @@
-version: v1.30.0
+version: v0.0.0-unstable+8fbd9332465faadac4180438a11eec4984df8bdb
 modules:
     - name: github.com/getoutreach/devbase
-      url: https://github.com/getoutreach/devbase
+      url: file://./
       version: local
     - name: github.com/getoutreach/stencil-base
       url: https://github.com/getoutreach/stencil-base
