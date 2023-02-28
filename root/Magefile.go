@@ -13,13 +13,16 @@ import (
 	logger "github.com/rs/zerolog/log"
 )
 
+// log is the logger used by this magefile
+var log = logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 // Dep installs all the dependencies needed to run the project.
 func Dep() error {
-	if err := runGoCommand("mod", "download", "-x"); err != nil {
+	if err := runGoCommand(log, "mod", "download", "-x"); err != nil {
 		return err
 	}
 
-	return runGoCommand("mod", "tidy")
+	return runGoCommand(log, "mod", "tidy")
 }
 
 // Version prints the current application version
@@ -29,7 +32,6 @@ func Version() {
 
 // GoBuild builds a Go project
 func Gobuild(ctx context.Context) error {
-	log := logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -81,5 +83,5 @@ func Gobuild(ctx context.Context) error {
 	}
 
 	// Build with -trimpath to ensure we have consistent module filenames embedded.
-	return runGoCommand("build", "-v", "-trimpath", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
+	return runGoCommand(log, "build", "-v", "-trimpath", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
 }
