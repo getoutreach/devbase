@@ -29,8 +29,6 @@ info "srcPath: ${srcPath}"
 defaultBranch="$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
 info "defaultBranch: ${defaultBranch}"
 
-previousTag=$(git describe --abbrev=0 --tags HEAD^ || printf '' | git hash-object -t tree --stdin)
-
 while read -r file; do
   info "inspecting found markdown file: ${file}"
   if grep -Eq '^\s*<!--\s*Space:\s*\w+\s*-->\s*$' "${file}"; then
