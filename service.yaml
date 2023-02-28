@@ -30,4 +30,6 @@ modules:
     # Removes ruby requirement
     version: ">=v1.8.0-rc.2"
   - name: github.com/getoutreach/devbase
+replacements:
+  github.com/getoutreach/devbase: ./
 migrated: true

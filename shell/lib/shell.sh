@@ -135,10 +135,10 @@ run_command() {
   local duration="$((finished_at - started_at))"
 
   if is_terminal; then
-    # If the position of the cursor didn't change, we can safely assume
-    # that the linter didn't output anything, so we can just overwrite
-    # the previous line.
-    if [[ $current_pos == "$after_pos" ]]; then
+    # If the position of the cursor didn't change, and wasn't zero,
+    # we can safely assume that the linter didn't output anything,
+    # so we can just overwrite the previous line.
+    if [[ $current_pos == "$after_pos" ]] && [[ $current_pos != "0,0" ]]; then
       tput cuu1 || true
     fi
   fi
