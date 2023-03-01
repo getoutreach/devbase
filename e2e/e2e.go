@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"go/build"
 	"os"
@@ -178,31 +177,6 @@ func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
 	return &dc, nil
 }
 
-// appAlreadyDeployed checks if an application is already deployed, if it is
-// it returns true, otherwise false.
-func appAlreadyDeployed(ctx context.Context, app string) bool {
-	var deployedApps []struct {
-		Name string `json:"name"`
-	}
-
-	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
-	if err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal(b, &deployedApps); err != nil {
-		return false
-	}
-
-	for _, a := range deployedApps {
-		if a.Name == app {
-			return true
-		}
-	}
-
-	return false
-}
-
 // provisionNew destroys and re-provisions a devenv
 func provisionNew(ctx context.Context, deps []string, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
@@ -346,7 +320,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "--with-deps", "apps", "deploy", ".")).Run() != nil {
+		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run() != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
