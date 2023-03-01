@@ -163,8 +163,8 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 }
 
 // parseDevenvConfig parses the devenv.yaml file and returns a struct
-func parseDevenvConfig(path string) (*DevenvConfig, error) {
-	f, err := os.Open(path)
+func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
+	f, err := os.Open(confPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
 	}
