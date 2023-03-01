@@ -213,20 +213,6 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
-	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
-
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
-	}
-
 	return nil
 }
 
@@ -360,7 +346,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
+		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "--with-deps", "apps", "deploy", ".")).Run() != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
