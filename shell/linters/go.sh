@@ -27,11 +27,11 @@ goimports() {
   # Why: We're OK with this.
   # shellcheck disable=SC2155
   local GOIMPORTS=$("$DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
-  git ls-files '*.go' | xargs -n40 "$GOIMPORTS" -w
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$GOIMPORTS" -w
 }
 
 gofmt() {
-  git ls-files '*.go' | xargs -n40 "$(command -v gofmt)" -s -w
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$(command -v gofmt)" -s -w
 }
 
 linter() {
