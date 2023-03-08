@@ -30,28 +30,17 @@ for languageScript in "$DIR/linters"/*.sh; do
     # Note: These are modified by the source'd language file
     # extensions are the extensions this linter should run on
     extensions=()
-    # files are the files this linter should run on
-    files=()
 
     # Why: Dynamic
     # shellcheck disable=SC1090
     source "$DIR/linters/$languageName.sh"
 
+    # If we don't find any files with the extension, skip the run.
     matched=false
-    for extension in "${extensions[@]}"; do
-      # If we don't find any files with the extension, skip the run.
-      if [[ "$(git ls-files '*'."$extension" | wc -l | tr -d ' ')" -le 0 ]]; then
-        continue
-      fi
+    if [[ "$(find_files_with_extensions "${extensions[@]}" | wc -l | tr -d ' ')" -gt 0 ]]; then
       matched=true
-    done
-    for file in "${files[@]}"; do
-      # If there are no matching files, skip the run.
-      if [[ "$(git ls-files "$file" | wc -l | tr -d ' ')" -le 0 ]]; then
-        continue
-      fi
-      matched=true
-    done
+    fi
+
     if [[ $matched == "false" ]]; then
       exit 0
     fi
@@ -63,13 +52,6 @@ for languageScript in "$DIR/linters"/*.sh; do
 
     # show is used by run_command as metadata to be shown along with the command name
     show=$extensionsString
-
-    # If we don't have any extensions, show the files this was ran on
-    if [[ $extensionsString == "." ]]; then
-      # shellcheck disable=SC2155,SC2001
-      filesString=$(sed 's/ /,/g' <<<"${files[*]}")
-      show=$filesString
-    fi
 
     # Set by the language file
     if ! linter; then

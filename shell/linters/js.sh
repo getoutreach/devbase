@@ -10,7 +10,7 @@ source "$DIR/languages/nodejs.sh"
 extensions=(js)
 
 find_node_projects() {
-  git ls-files "*.package.json"
+  find_files_with_extensions "package.json"
 }
 
 # for_each_package runs a command for each package found in the repo
