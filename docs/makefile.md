@@ -37,6 +37,8 @@ This uses [gotestsum](https://github.com/gotestyourself/gotestsum) to run the te
 
 Runs the linters for the project. This defaults to running all linters.
 
+See [linters](linters.md) for more information.
+
 ### `coverage`
 
 **Note**: The options here are shared with `make test`.
@@ -46,6 +48,8 @@ Runs the tests for the project and generates a coverage report. This defaults to
 ### `fmt`
 
 Runs all formatting tools for the project.
+
+Formatters share most of the same options as `make lint`, see the [linters](linters.md) documentation for more information.
 
 ### `gogenerate`
 

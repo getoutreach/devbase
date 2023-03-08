@@ -8,15 +8,15 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 extensions=(sh bash)
 
 shellcheck_linter() {
-  git ls-files '*.sh' | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
 }
 
 shellfmt_linter() {
-  git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -s -d
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLFMTPATH" -s -d
 }
 
 shellfmt_formatter() {
-  git ls-files '*.sh' | xargs -n40 "$SHELLFMTPATH" -w -l
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLFMTPATH" -w -l
 }
 
 linter() {

@@ -156,3 +156,24 @@ format_diff() {
   local ms=$((diff % 1000))
   printf "%d.%02ds" "$seconds" "$ms"
 }
+
+# find_files_with_extensions returns a newline separated list of files
+# that contain one of the provided extensions.
+#
+# Usage: find_files_with_extensions <extensions...>
+find_files_with_extensions() {
+  local extensions=("$@")
+
+  local git_ls_files_extensions=()
+  for ext in "${extensions[@]}"; do
+    git_ls_files_extensions+=("*.$ext")
+  done
+
+  # Find all files that match the extension, including untracked and tracked files. Excluding
+  # files in the .gitignore.
+  git ls-files --cached --others --modified --exclude-standard "${git_ls_files_extensions[@]}" |
+    # Remove duplicates.
+    sort | uniq |
+    # Remove deleted files from the list.
+    grep -vE "^$(git ls-files --deleted | paste -sd "|" -)$"
+}
