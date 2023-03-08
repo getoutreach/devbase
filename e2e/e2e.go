@@ -5,15 +5,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/box"
+	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -75,18 +75,26 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
-func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
+func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string]struct{}, error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
+	gh, err := githubauth.NewClient()
+	if err != nil {
+		return nil, err
+	}
 
 	var dc *DevenvConfig
 	for _, f := range possibleFiles {
-		if _, err := os.Stat(filepath.Join(repoPath, f)); err != nil {
+		config, _, _, err := gh.Repositories.GetContents(ctx, "getoutreach", serviceName, f, &github.RepositoryContentGetOptions{})
+		if err != nil {
 			continue
 		}
-
-		var err error
-		dc, err = parseDevenvConfig(filepath.Join(repoPath, f))
+		content, err := config.GetContent()
 		if err != nil {
+			log.Warn().Str("service", serviceName).Msgf("Unable to get content of file %s", f)
+			continue
+		}
+		if err := yaml.NewDecoder(strings.NewReader(content)).Decode(&dc); err != nil {
+			log.Warn().Str("service", serviceName).Msgf("Unable to parse %s", f)
 			continue
 		}
 
@@ -97,7 +105,7 @@ func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
 	if dc == nil {
 		log.Warn().Str("service", serviceName).
 			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
-		return nil
+		return nil, nil
 	}
 
 	deps := make(map[string]struct{})
@@ -105,7 +113,7 @@ func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
 		deps[d] = struct{}{}
 	}
 
-	return deps
+	return deps, nil
 }
 
 // grabDependencies traverses the dependency tree by calculating
@@ -126,27 +134,12 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 
 	log.Info().Str("dep", serviceName).Msg("Resolving dependency")
 
-	// Create a temporary directory to clone the repo into
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("e2e-%s-*", serviceName))
-	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Download the git repo locally
-	//nolint:gosec // Why: Need to do this
-	cmd := exec.CommandContext(ctx,
-		"git", "clone", "-q", "--depth", "1", "git@github.com:"+path.Join("getoutreach", serviceName), tmpDir,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "failed to clone dependency %s", serviceName)
-	}
-
 	// Find the dependencies of this repo
-	foundDeps := findDependenciesInRepo(serviceName, tmpDir)
+	foundDeps, err := findDependenciesInRepo(ctx, serviceName)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to grap dependencies")
+	}
 
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
