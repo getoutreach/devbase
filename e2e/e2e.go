@@ -13,7 +13,6 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
-	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -84,7 +83,7 @@ func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string
 
 	var dc *DevenvConfig
 	for _, f := range possibleFiles {
-		config, _, _, err := gh.Repositories.GetContents(ctx, "getoutreach", serviceName, f, &github.RepositoryContentGetOptions{})
+		config, _, _, err := gh.Repositories.GetContents(ctx, "getoutreach", serviceName, f, nil)
 		if err != nil {
 			continue
 		}
