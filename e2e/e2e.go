@@ -76,7 +76,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
 func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string]struct{}, error) {
-	possibleFiles := []string{"devenv.yaml" /*, "noncompat-service.yaml", "service.yaml"*/}
+	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
 	gh, err := githubauth.NewClient()
 	if err != nil {
 		return nil, err
