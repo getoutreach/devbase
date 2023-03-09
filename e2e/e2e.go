@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"go/build"
 	"os"
 	"os/exec"
@@ -168,31 +167,6 @@ func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
 	}
 
 	return &dc, nil
-}
-
-// appAlreadyDeployed checks if an application is already deployed, if it is
-// it returns true, otherwise false.
-func appAlreadyDeployed(ctx context.Context, app string) bool {
-	var deployedApps []struct {
-		Name string `json:"name"`
-	}
-
-	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
-	if err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal(b, &deployedApps); err != nil {
-		return false
-	}
-
-	for _, a := range deployedApps {
-		if a.Name == app {
-			return true
-		}
-	}
-
-	return false
 }
 
 // provisionNew destroys and re-provisions a devenv
