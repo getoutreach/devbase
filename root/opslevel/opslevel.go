@@ -88,6 +88,11 @@ func (c Client) IsCompliant(service *opslevel.Service, sm *opslevel.ServiceMatur
 		return true, nil
 	}
 
+	// lifecycle index is zero with empty name when lifecycle is not assigned in opslevel
+	if service.Lifecycle.Name == "" {
+		return false, fmt.Errorf("no lifecycle assigned to %q", service.Name)
+	}
+
 	currentLevelIndex := sm.MaturityReport.OverallLevel.Index
 	if len(c.LifecycleToLevelMap) < service.Lifecycle.Index {
 		return false, fmt.Errorf("unsupported lifecycle %d %s",
