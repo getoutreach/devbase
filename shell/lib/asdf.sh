@@ -7,7 +7,7 @@ asdf_plugins_list=""
 
 # asdf_plugins_list_regenerate regenerates the list of plugins
 asdf_plugins_list_regenerate() {
-  asdf_plugins_list=$(asdf plugin list 2>/dev/null || echo "")
+  asdf_plugins_list=$(rtx plugin list 2>/dev/null || echo "")
 }
 
 # Populate the list of plugins once
@@ -18,7 +18,7 @@ asdf_plugins_list_regenerate
 # Then strip the comments and run uniq.
 read_all_asdf_tool_versions() {
   find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
-    -name .tool-versions -exec cat {} \; |
+    -name .tool-versions -exec sh -c 'cat "$1"; echo' shell {} \; |
     grep -Ev "^#|^$" | sort | uniq
 }
 
@@ -48,12 +48,10 @@ asdf_devbase_exec() {
     exit 1
   fi
 
-  export "ASDF_${tool_env_var}_VERSION"="${version}"
-
   # Ensure that the tool and/or plugin is installed
   asdf_devbase_ensure
 
-  exec "$@"
+  exec rtx exec "$tool@$version" -- "$@"
 }
 
 # asdf_devbase_ensure ensures that the versions from the devbase
@@ -84,9 +82,9 @@ asdf_devbase_ensure() {
     # If the version doesn't exist, install it.
     # Note: we don't use asdf list <plugin> here because checking the file system
     # entry is ~90% faster than running the asdf command.
-    if [[ ! -d "$ASDF_DIR/installs/$plugin/$version" ]]; then
+    if ! rtx list | grep -q "$plugin $version"; then
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
-      asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
+      rtx install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi
   done
 }
@@ -116,11 +114,11 @@ asdf_install() {
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
 
     # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
-    asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
+    rtx install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
   done
 
   echo "Reshimming asdf (this may take awhile ...)"
-  asdf reshim
+  #asdf reshim
 }
 
 # asdf_install_retry attempts to retry on certain platforms
@@ -134,7 +132,7 @@ asdf_install_retry() {
   fi
 
   # Not a supported retry, so just try again once and pray.
-  asdf install "$plugin" "$version"
+  rtx install "$plugin" "$version"
 }
 
 # asdf_plugin_install installs an asdf plugin
@@ -146,6 +144,6 @@ asdf_plugin_install() {
     return
   fi
 
-  asdf plugin-add "$name"
+  rtx plugin install "$name"
   asdf_plugins_list_regenerate
 }
