@@ -6,15 +6,15 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/box"
+	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -52,7 +52,7 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 // and appending them to the list. Deduplication is done and returned
 // is a flat list of all of the dependencies of the initial root
 // application who's dependency list was provided.
-func BuildDependenciesList(ctx context.Context) ([]string, error) {
+func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, error) {
 	deps := make(map[string]struct{})
 
 	s, err := parseDevenvConfig("devenv.yaml")
@@ -61,7 +61,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	}
 
 	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
 	}
@@ -74,21 +74,37 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	return depsList, nil
 }
 
+// getConfig gets config file from GitHub and parses it into DevenvConfig
+func getConfig(ctx context.Context, conf *box.Config, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
+	r, _, err := gh.Repositories.DownloadContents(ctx, conf.Org, serviceName, configFileName, nil)
+	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
+	if err != nil {
+		l.Debug().Msg("Unable to find file in GH")
+		return nil, err
+	}
+	defer r.Close()
+	var dc DevenvConfig
+	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
+		l.Warn().Msg("Unable to parse config file")
+		return nil, err
+	}
+	return &dc, nil
+}
+
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
-func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
+func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (map[string]struct{}, error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
+	gh, err := githubauth.NewClient()
+	if err != nil {
+		return nil, err
+	}
 
 	var dc *DevenvConfig
 	for _, f := range possibleFiles {
-		if _, err := os.Stat(filepath.Join(repoPath, f)); err != nil {
-			continue
-		}
-
-		var err error
-		dc, err = parseDevenvConfig(filepath.Join(repoPath, f))
+		dc, err = getConfig(ctx, conf, serviceName, gh, f)
 		if err != nil {
-			continue
+			continue // we continue to the next file, err is logged in getConfig
 		}
 
 		// We found a file, stop looking
@@ -98,7 +114,7 @@ func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
 	if dc == nil {
 		log.Warn().Str("service", serviceName).
 			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
-		return nil
+		return nil, nil
 	}
 
 	deps := make(map[string]struct{})
@@ -106,14 +122,14 @@ func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
 		deps[d] = struct{}{}
 	}
 
-	return deps
+	return deps, nil
 }
 
 // grabDependencies traverses the dependency tree by calculating
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
-func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName string) error {
+func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]struct{}, serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
 	if serviceName == flagship {
@@ -127,34 +143,19 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 
 	log.Info().Str("dep", serviceName).Msg("Resolving dependency")
 
-	// Create a temporary directory to clone the repo into
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("e2e-%s-*", serviceName))
-	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Download the git repo locally
-	//nolint:gosec // Why: Need to do this
-	cmd := exec.CommandContext(ctx,
-		"git", "clone", "-q", "--depth", "1", "git@github.com:"+path.Join("getoutreach", serviceName), tmpDir,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "failed to clone dependency %s", serviceName)
-	}
-
 	// Find the dependencies of this repo
-	foundDeps := findDependenciesInRepo(serviceName, tmpDir)
+	foundDeps, err := findDependenciesInRepo(ctx, conf, serviceName)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to grab dependencies")
+	}
 
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
 	deps[serviceName] = struct{}{}
 
 	for d := range foundDeps {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return err
 		}
 	}
@@ -162,7 +163,7 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	return nil
 }
 
-// parseDevenvConfig parses the devenv.yaml file and returns a struct
+// parseDevenvConfig parses the devenv.yaml file and returns a DevenvConfig
 func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
 	f, err := os.Open(confPath)
 	if err != nil {
@@ -288,6 +289,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	conf, err := box.EnsureBoxWithOptions(ctx)
@@ -317,7 +319,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	log.Info().Msg("Building dependency tree")
 
-	deps, err := BuildDependenciesList(ctx)
+	deps, err := BuildDependenciesList(ctx, conf)
 	if err != nil {
 		//nolint:gocritic // Why: need to get exit code >0
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
@@ -360,7 +362,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
