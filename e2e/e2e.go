@@ -13,6 +13,7 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -72,6 +73,27 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	return depsList, nil
 }
 
+// getConfig gets config file from GitHub and parses it into DevenvConfig
+func getConfig(ctx context.Context, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
+	r, _, err := gh.Repositories.DownloadContents(ctx, "getoutreach", serviceName, configFileName, nil)
+	l := log.Warn().Str("service", serviceName).Str("file", configFileName)
+	defer func() {
+		if err := r.Close(); err != nil {
+			l.Msg("Unable to close GH reader")
+		}
+	}()
+	if err != nil {
+		// no logging, since we expect this to fail in some cases (e.g. flagship)
+		return nil, err
+	}
+	var dc *DevenvConfig
+	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
+		l.Msgf("Unable to parse config file")
+		return nil, err
+	}
+	return dc, nil
+}
+
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
 func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string]struct{}, error) {
@@ -83,18 +105,9 @@ func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string
 
 	var dc *DevenvConfig
 	for _, f := range possibleFiles {
-		config, _, _, err := gh.Repositories.GetContents(ctx, "getoutreach", serviceName, f, nil)
+		dc, err = getConfig(ctx, serviceName, gh, f)
 		if err != nil {
-			continue
-		}
-		content, err := config.GetContent()
-		if err != nil {
-			log.Warn().Str("service", serviceName).Msgf("Unable to get content of file %s", f)
-			continue
-		}
-		if err := yaml.NewDecoder(strings.NewReader(content)).Decode(&dc); err != nil {
-			log.Warn().Str("service", serviceName).Msgf("Unable to parse %s", f)
-			continue
+			continue // we continue to the next file, err is logged in getConfig
 		}
 
 		// We found a file, stop looking
@@ -153,7 +166,7 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	return nil
 }
 
-// parseDevenvConfig parses the devenv.yaml file and returns a struct
+// parseDevenvConfig parses the devenv.yaml file and returns a DevenvConfig
 func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
 	f, err := os.Open(confPath)
 	if err != nil {
