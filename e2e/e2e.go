@@ -52,7 +52,7 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 // and appending them to the list. Deduplication is done and returned
 // is a flat list of all of the dependencies of the initial root
 // application who's dependency list was provided.
-func BuildDependenciesList(ctx context.Context) ([]string, error) {
+func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, error) {
 	deps := make(map[string]struct{})
 
 	s, err := parseDevenvConfig("devenv.yaml")
@@ -61,7 +61,7 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 	}
 
 	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
 	}
@@ -75,29 +75,25 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 }
 
 // getConfig gets config file from GitHub and parses it into DevenvConfig
-func getConfig(ctx context.Context, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
-	r, _, err := gh.Repositories.DownloadContents(ctx, "getoutreach", serviceName, configFileName, nil)
+func getConfig(ctx context.Context, conf *box.Config, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
+	r, _, err := gh.Repositories.DownloadContents(ctx, conf.Org, serviceName, configFileName, nil)
 	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
-	defer func() {
-		if err := r.Close(); err != nil {
-			l.Warn().Msg("Unable to close GH reader")
-		}
-	}()
+	defer r.Close()
 	if err != nil {
 		l.Debug().Msg("Unable to find file in GH")
 		return nil, err
 	}
-	var dc *DevenvConfig
+	var dc DevenvConfig
 	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
 		l.Warn().Msg("Unable to parse config file")
 		return nil, err
 	}
-	return dc, nil
+	return &dc, nil
 }
 
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
-func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string]struct{}, error) {
+func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (map[string]struct{}, error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
 	gh, err := githubauth.NewClient()
 	if err != nil {
@@ -106,7 +102,7 @@ func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string
 
 	var dc *DevenvConfig
 	for _, f := range possibleFiles {
-		dc, err = getConfig(ctx, serviceName, gh, f)
+		dc, err = getConfig(ctx, conf, serviceName, gh, f)
 		if err != nil {
 			continue // we continue to the next file, err is logged in getConfig
 		}
@@ -133,7 +129,7 @@ func findDependenciesInRepo(ctx context.Context, serviceName string) (map[string
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
-func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName string) error {
+func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]struct{}, serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
 	if serviceName == flagship {
@@ -148,7 +144,7 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	log.Info().Str("dep", serviceName).Msg("Resolving dependency")
 
 	// Find the dependencies of this repo
-	foundDeps, err := findDependenciesInRepo(ctx, serviceName)
+	foundDeps, err := findDependenciesInRepo(ctx, conf, serviceName)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to grab dependencies")
@@ -159,7 +155,7 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	deps[serviceName] = struct{}{}
 
 	for d := range foundDeps {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return err
 		}
 	}
@@ -322,7 +318,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	log.Info().Msg("Building dependency tree")
 
-	deps, err := BuildDependenciesList(ctx)
+	deps, err := BuildDependenciesList(ctx, conf)
 	if err != nil {
 		//nolint:gocritic // Why: need to get exit code >0
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
