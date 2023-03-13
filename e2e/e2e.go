@@ -84,7 +84,7 @@ func getConfig(ctx context.Context, conf *box.Config, serviceName string, gh *gi
 		return nil, err
 	}
 	var dc DevenvConfig
-	if err := yaml.NewDecoder(r).Decode(dc); err != nil {
+	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
 		l.Warn().Msg("Unable to parse config file")
 		return nil, err
 	}
