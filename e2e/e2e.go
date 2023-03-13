@@ -289,6 +289,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	conf, err := box.EnsureBoxWithOptions(ctx)
