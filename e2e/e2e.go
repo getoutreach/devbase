@@ -78,11 +78,11 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 func getConfig(ctx context.Context, conf *box.Config, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
 	r, _, err := gh.Repositories.DownloadContents(ctx, conf.Org, serviceName, configFileName, nil)
 	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
-	defer r.Close()
 	if err != nil {
 		l.Debug().Msg("Unable to find file in GH")
 		return nil, err
 	}
+	defer r.Close()
 	var dc DevenvConfig
 	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
 		l.Warn().Msg("Unable to parse config file")
