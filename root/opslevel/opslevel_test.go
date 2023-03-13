@@ -23,6 +23,7 @@ func TestIsCompliant(t *testing.T) {
 			service: opslevelGo.Service{
 				Lifecycle: opslevelGo.Lifecycle{
 					Index: opslevel.PublicLifecycle,
+					Name:  "public_ga",
 				},
 			},
 			sm: &opslevelGo.ServiceMaturity{
@@ -40,6 +41,7 @@ func TestIsCompliant(t *testing.T) {
 			service: opslevelGo.Service{
 				Lifecycle: opslevelGo.Lifecycle{
 					Index: opslevel.PublicLifecycle,
+					Name:  "public_ga",
 				},
 				Tags: opslevelGo.TagConnection{
 					Nodes: []opslevelGo.Tag{
@@ -65,6 +67,7 @@ func TestIsCompliant(t *testing.T) {
 			service: opslevelGo.Service{
 				Lifecycle: opslevelGo.Lifecycle{
 					Index: opslevel.PublicLifecycle,
+					Name:  "public_ga",
 				},
 				Tags: opslevelGo.TagConnection{
 					Nodes: []opslevelGo.Tag{
@@ -90,6 +93,7 @@ func TestIsCompliant(t *testing.T) {
 			service: opslevelGo.Service{
 				Lifecycle: opslevelGo.Lifecycle{
 					Index: opslevel.PublicLifecycle,
+					Name:  "public_ga",
 				},
 			},
 			sm: &opslevelGo.ServiceMaturity{
@@ -107,6 +111,24 @@ func TestIsCompliant(t *testing.T) {
 			service: opslevelGo.Service{
 				Lifecycle: opslevelGo.Lifecycle{
 					Index: 10,
+					Name:  "invalid",
+				},
+			},
+			sm: &opslevelGo.ServiceMaturity{
+				MaturityReport: opslevelGo.MaturityReport{
+					OverallLevel: opslevelGo.Level{
+						Index: opslevel.SilverLevel,
+					},
+				},
+			},
+			expected:  false,
+			expectErr: true,
+		},
+		{
+			name: "lifecycle not assigned",
+			service: opslevelGo.Service{
+				Lifecycle: opslevelGo.Lifecycle{
+					Index: 0,
 				},
 			},
 			sm: &opslevelGo.ServiceMaturity{
