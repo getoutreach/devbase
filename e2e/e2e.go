@@ -138,7 +138,7 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	foundDeps, err := findDependenciesInRepo(ctx, serviceName)
 
 	if err != nil {
-		return errors.Wrap(err, "failed to grap dependencies")
+		return errors.Wrap(err, "failed to grab dependencies")
 	}
 
 	// Mark us as resolved to prevent inf dependency resolution
