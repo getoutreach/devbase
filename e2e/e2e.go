@@ -77,19 +77,19 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 // getConfig gets config file from GitHub and parses it into DevenvConfig
 func getConfig(ctx context.Context, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
 	r, _, err := gh.Repositories.DownloadContents(ctx, "getoutreach", serviceName, configFileName, nil)
-	l := log.Warn().Str("service", serviceName).Str("file", configFileName)
+	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
 	defer func() {
 		if err := r.Close(); err != nil {
-			l.Msg("Unable to close GH reader")
+			l.Warn().Msg("Unable to close GH reader")
 		}
 	}()
 	if err != nil {
-		// no logging, since we expect this to fail in some cases (e.g. flagship)
+		l.Debug().Msg("Unable to find file in GH")
 		return nil, err
 	}
 	var dc *DevenvConfig
 	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
-		l.Msgf("Unable to parse config file")
+		l.Warn().Msg("Unable to parse config file")
 		return nil, err
 	}
 	return dc, nil
