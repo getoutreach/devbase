@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
+asdf_global_plugins=("golang 1.19.5")
+
 # asdf_plugins_list stores a list of all asdf plugins
 # this is done to speed up the plugin install
 asdf_plugins_list=""
@@ -59,6 +61,14 @@ asdf_devbase_exec() {
 # asdf_devbase_ensure ensures that the versions from the devbase
 # .tool-versions file are installed
 asdf_devbase_ensure() {
+  for global_entry in "${asdf_global_plugins[@]}"; do
+    read -ra gearr <<< "$global_entry"
+    local plugin="${gearr[0]}"
+    local version="${gearr[1]}"
+    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$plugin', may fail to invoke things using that language"
+    asdf global "$plugin" "$version"
+  done
+
   readarray -t asdf_entries < <(read_all_asdf_tool_versions)
   for entry in "${asdf_entries[@]}"; do
     # Why: We're OK not declaring separately here.
@@ -79,7 +89,7 @@ asdf_devbase_ensure() {
 
     # Install the plugin first, so we can install the version
     # Note: This only runs if the plugin doesn't already exist
-    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
+    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$plugin', may fail to invoke things using that language"
 
     # If the version doesn't exist, install it.
     # Note: we don't use asdf list <plugin> here because checking the file system
@@ -113,7 +123,7 @@ asdf_install() {
     fi
 
     # Install the plugin first, so we can install the version
-    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
+    asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$plugin', may fail to invoke things using that language"
 
     # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
     asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
