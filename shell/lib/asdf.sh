@@ -62,7 +62,7 @@ asdf_devbase_exec() {
 # .tool-versions file are installed
 asdf_devbase_ensure() {
   for global_entry in "${asdf_global_plugins[@]}"; do
-    read -ra gearr <<< "$global_entry"
+    read -ra gearr <<<"$global_entry"
     local plugin="${gearr[0]}"
     local version="${gearr[1]}"
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$plugin', may fail to invoke things using that language"
