@@ -2,10 +2,16 @@ description: Build and (optionally push) a Docker image. Pushes only on release 
 executor:
   name: testbed-machine
 resource_class: xlarge
+parameters:
+  image:
+    default: ''
+    description: allow build a named image besides the default
+    type: string
 steps:
   - setup_environment:
       machine: true
   - build_docker_image
+      script: './scripts/shell-wrapper.sh ci/release/docker.sh' << parameters.image >>
 
   # IDEA(jaredallard): We'll need to move this out in the future
   - store_artifacts:
