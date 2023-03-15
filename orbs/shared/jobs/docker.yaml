@@ -11,7 +11,7 @@ steps:
   - setup_environment:
       machine: true
   - build_docker_image
-      script: './scripts/shell-wrapper.sh ci/release/docker.sh' << parameters.image >>
+      script: './scripts/shell-wrapper.sh ci/release/docker.sh << parameters.image >>'
 
   # IDEA(jaredallard): We'll need to move this out in the future
   - store_artifacts:
