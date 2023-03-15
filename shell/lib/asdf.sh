@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
+# asdf_global_plugins is a list of global plugins to always make sure exist, usually
+# to ensure that /other/ asdf plugins have a valid build environment to build
+# themselves with.  This script will attempt to _first_ install everything from this
+# global plugins list before going through the tool-versions from the local app.
+# Any global plugin that has a matching version from inside the app will set that
+# version globally.  If the app does not have the global plugin in its local
+# tool-versions file, it will fall back to the hardcoded version in here.
 asdf_global_plugins=("golang 1.19.5")
 
 # asdf_plugins_list stores a list of all asdf plugins
@@ -61,15 +68,37 @@ asdf_devbase_exec() {
 # asdf_devbase_ensure ensures that the versions from the devbase
 # .tool-versions file are installed
 asdf_devbase_ensure() {
+  # Pull all tool-versions from the app
+  readarray -t asdf_entries < <(read_all_asdf_tool_versions)
+
+  # For each global entry, see if we can find a matching version inside the app's
+  # tool-versions list, otherwise fall back to the hardcoded version from above.
   for global_entry in "${asdf_global_plugins[@]}"; do
     read -ra gearr <<<"$global_entry"
     local plugin="${gearr[0]}"
-    local version="${gearr[1]}"
+    local fallback_version="${gearr[1]}"
+
+    local version="$fallback_version"
+
+    for entry in "${asdf_entries[@]}"; do
+      # Why: We're OK not declaring separately here.
+      # shellcheck disable=SC2155
+      local local_plugin="$(awk '{ print $1 }' <<<"$entry")"
+      # Why: We're OK not declaring separately here.
+      # shellcheck disable=SC2155
+      local local_version="$(awk '{ print $2 }' <<<"$entry")"
+
+      if [[ $local_plugin == "$plugin" ]]; then
+        version=$local_version
+        break
+      fi
+    done
+
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$plugin', may fail to invoke things using that language"
+    asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     asdf global "$plugin" "$version"
   done
 
-  readarray -t asdf_entries < <(read_all_asdf_tool_versions)
   for entry in "${asdf_entries[@]}"; do
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
