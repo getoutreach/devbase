@@ -53,6 +53,8 @@ E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 E2E_CLUSTER         ?= development.us-west-2
 E2E_ENVIRONMENT     ?= development
 OSS                 ?= false
+SKIP_E2E_DEVENV_PROVISION ?= false
+SKIP_E2E_LOCALIZER        ?= false
 
 .PHONY: default
 default: build
@@ -132,6 +134,7 @@ e2e:: pre-e2e
 	$(BASE_TEST_ENV) E2E=true OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) \
 	MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) \
 	MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) \
+	SKIP_DEVENV_PROVISION=$(SKIP_E2E_DEVENV_PROVISION) SKIP_LOCALIZER=$(SKIP_E2E_LOCALIZER) \
 	./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh
 
 ## benchmark:       run benchmarks
