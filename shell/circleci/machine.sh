@@ -48,7 +48,13 @@ fi
 
 if ! command -v gh >/dev/null; then
   echo "Installing gh"
-  wget -O gh.deb https://github.com/cli/cli/releases/download/v2.20.0/gh_2.20.0_linux_amd64.deb
+
+  if [[ $(uname -m) == "aarch64" ]]; then
+    wget -O gh.deb https://github.com/cli/cli/releases/download/v2.20.0/gh_2.20.0_linux_arm64.deb
+  else
+    wget -O gh.deb https://github.com/cli/cli/releases/download/v2.20.0/gh_2.20.0_linux_amd64.deb
+  fi
+
   sudo apt install -yf ./gh.deb
   rm gh.deb
 fi
