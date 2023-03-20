@@ -3,10 +3,10 @@ module github.com/getoutreach/devbase/v2
 go 1.19
 
 require (
-	github.com/getoutreach/gobox v1.57.1
+	github.com/getoutreach/gobox v1.65.1
 	github.com/getoutreach/localizer v1.14.5
 	github.com/google/go-github/v47 v47.0.0
-	github.com/hashicorp/go-retryablehttp v0.7.1
+	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/magefile/mage v1.14.0
 	github.com/opslevel/opslevel-go/v2022 v2022.10.22
 	github.com/pkg/errors v0.9.1
@@ -63,7 +63,7 @@ require (
 	github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zalando/go-keyring v0.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.32.0 // indirect

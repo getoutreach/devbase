@@ -433,15 +433,6 @@
   dependencies:
     "@octokit/openapi-types" "^16.0.0"
 
-"@outreach/semantic-release-circleci-orb@^1.1.9":
-  version "1.1.9"
-  resolved "https://registry.yarnpkg.com/@outreach/semantic-release-circleci-orb/-/semantic-release-circleci-orb-1.1.9.tgz#187f9d71599f7e3f6b88cefa3b180d788e9be6cd"
-  integrity sha512-j3eFWSXa9kD3GIoDEpIlovCajxvUugt4mBROcB+a5X8kPMBFuDEqlNTNVA98AuvCtWsdzg7KokvGIVWJDTjHXQ==
-  dependencies:
-    "@semantic-release/error" "^3.0.0"
-    aggregate-error "^3.1.0"
-    execa "^5.1.0"
-
 "@pnpm/network.ca-file@^1.0.1":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@pnpm/network.ca-file/-/network.ca-file-1.0.2.tgz#2ab05e09c1af0cdf2fcf5035bea1484e222f7983"
@@ -674,7 +665,7 @@ agentkeepalive@^4.2.1:
     depd "^1.1.2"
     humanize-ms "^1.2.1"
 
-aggregate-error@^3.0.0, aggregate-error@^3.1.0:
+aggregate-error@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/aggregate-error/-/aggregate-error-3.1.0.tgz#92670ff50f5359bdb7a3e0d40d0ec30c5737687a"
   integrity sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==
@@ -1301,7 +1292,7 @@ execa@^4.0.0:
     signal-exit "^3.0.2"
     strip-final-newline "^2.0.0"
 
-execa@^5.0.0, execa@^5.1.0:
+execa@^5.0.0:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/execa/-/execa-5.1.1.tgz#f80ad9cbf4298f7bd1d4c9555c21e93741c411dd"
   integrity sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==
