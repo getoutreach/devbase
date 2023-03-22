@@ -14,9 +14,9 @@ args=("-plaintext" "$@")
 
 # check if the grpcui command failed
 if [ $? -ne 0 ]; then
-    echo
-    echo "this expects your service to either be running locally or have a prot forward.
+  echo
+  echo 'this expects your service to either be running locally or have a prot forward.
 to port forward:
-  - deploy to devenv (i.e. \"devenv app deploy .\")
-  - run \"kubectl port-forward service/[SERVICE-NAME] 5000:5000 -n [NAMESPACE]\""
+  - deploy to devenv (i.e. "devenv app deploy .")
+  - run "kubectl port-forward service/[SERVICE-NAME] 5000:5000 -n [NAMESPACE]"'
 fi
