@@ -36,7 +36,7 @@ source "${LIB_DIR}/box.sh"
 OPSLEVEL_ENABLED="$(get_box_field '.ci.opslevelEnabled')"
 if [[ $OPSLEVEL_ENABLED == "true" && "$(is_service)" == "false" ]]; then
   echo "checking opslevel"
-  make checkopslevel
+  make checkopslevel || send_failure_notification
 fi
 
 ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
