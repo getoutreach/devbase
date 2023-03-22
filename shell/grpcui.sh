@@ -10,10 +10,8 @@ source "$DIR/lib/bootstrap.sh"
 # We set -plaintext here because we don't use GRPC TLS
 args=("-plaintext" "$@")
 
-"$GOBIN" "github.com/fullstorydev/grpcui/cmd/grpcui@v$(get_application_version "grpcui")" "${args[@]}"
-
-# check if the grpcui command failed
-if [ $? -ne 0 ]; then
+# check if the grpcui command failes and if so echo error message
+if ! "$GOBIN" "github.com/fullstorydev/grpcui/cmd/grpcui@v$(get_application_version "grpcui")" "${args[@]}"; then
   echo
   echo 'this expects your service to either be running locally or have port forward running.
 to port forward:
