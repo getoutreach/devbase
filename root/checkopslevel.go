@@ -69,5 +69,5 @@ func CheckOpsLevel(ctx context.Context, appName string) error {
 		return errors.Wrap(err, "failed to get expected level")
 	}
 
-	return fmt.Errorf("The service maturity level of %q in OpsLevel does not match the required level for th: %q (current), %q (expected)", service.Name, sm.MaturityReport.OverallLevel.Name, expectedLevel)
+	return fmt.Errorf("The service maturity level of %q in OpsLevel does not match the required level for the lifecycle: %q (current), %q (expected)", service.Name, sm.MaturityReport.OverallLevel.Name, expectedLevel)
 }
