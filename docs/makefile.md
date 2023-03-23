@@ -29,7 +29,8 @@ This uses [gotestsum](https://github.com/gotestyourself/gotestsum) to run the te
 * `BENCH_FLAGS` (env var): Flags to pass to `go test -bench` when `make benchmark` is run
 * `GO_TEST_TIMEOUT` (env var): Timeout for `go test`
 * `TEST_TAGS` (env var): Tags to pass to `go test` (default: `or_test`)
-* `RACE` (env var): Enables race condition testings (default: ''). Set to `disabled` to disable.
+* `RACE` (env var): Enables `-race` testflag (default: ''). Set to `disabled` to disable.
+* `SHUFFLE` (env var): Enables `-shuffle` testflag (default: ''). Set to `disabled` to disable.
 * `TEST_PACKAGES` (env var): Packages to test. Defaults to `./...`
 * `PACKAGE_TO_DEBUG` (env var): Set to debug a specific package.
 

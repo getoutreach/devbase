@@ -79,6 +79,13 @@ GO_TEST_TIMEOUT="${GO_TEST_TIMEOUT:-}"
 # will not be passed to 'go test'. Defaults to 'enabled'.
 RACE="${RACE:-enabled}"
 
+# SHUFFFLE determines if 'go test -shuffle' should be enabled or not. If set to
+# 'disabled', test order randomization will not be enabled and the flag will
+# not be passed to 'go test'. Note that `-shuffle` is incompatible with test
+# caching, so disabling it can result in a substantial speedup in development.
+# Defaults to 'enabled'.
+SHUFFLE="${SHUFFLE:-enabled}"
+
 # TEST_OUTPUT_FORMAT is the format to pass to gotestsum. If not set,
 # the default value of "dots-v2" will be used. If CI is set, the default
 # value is "pkgname". If 'TEST_FLAGS' contains '-v', the default value
@@ -110,7 +117,7 @@ REPODIR=$(get_repo_directory)
 # Catches test dependencies by shuffling tests if the installed Go version supports it
 currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
 requiredver="1.17.0"
-if [[ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" == "$requiredver" ]]; then
+if [[ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" == "$requiredver" && $SHUFFLE != "disabled" ]]; then
   TEST_FLAGS+=(-shuffle=on)
 fi
 
