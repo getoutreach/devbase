@@ -118,7 +118,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 	}
 
 	deps := make(map[string]struct{})
-	for _, d := range append(dc.Dependencies.Required, dc.Dependencies.Optional...) {
+	for _, d := range dc.Dependencies.Required {
 		deps[d] = struct{}{}
 	}
 
