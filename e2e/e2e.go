@@ -60,7 +60,7 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 		return nil, errors.Wrap(err, "failed to parse devenv.yaml")
 	}
 
-	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
+	for _, d := range s.Dependencies.Required {
 		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
