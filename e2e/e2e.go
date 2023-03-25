@@ -228,16 +228,15 @@ func deployDeps(ctx context.Context, deps []string) {
 			defer wg.Done()
 			// Skip applications that are already deployed, this is usually when
 			// they're in a snapshot we just provisioned from.
-			if appAlreadyDeployed(ctx, d) {
-				log.Info().Msgf("App %s already deployed, skipping", d)
+			if appAlreadyDeployed(ctx, appName) {
+				log.Info().Msgf("App %s already deployed, skipping", appName)
 				return
 			}
 
-			log.Info().Msgf("Deploying dependency '%s'", d)
-			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
+			log.Info().Msgf("Deploying dependency '%s'", appName)
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", appName)).Run(); err != nil {
+				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", appName)
 			}
-
 		}(&wg, d)
 	}
 	wg.Wait()
