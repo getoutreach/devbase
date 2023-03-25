@@ -445,5 +445,5 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 }
 
 func logDuration(msg string, start time.Time) {
-	log.Printf("%v: %v\n", msg, time.Since(start))
+	log.Info().Msgf("%v: %v\n", msg, time.Since(start))
 }
