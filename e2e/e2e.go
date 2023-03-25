@@ -359,6 +359,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
+	var wg sync.WaitGroup
+
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
 	// Allow skipping provision, this is generally only useful for the devenv
@@ -373,10 +375,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			logDuration("Provision devenv", start)
 			start = time.Now()
 
-			deployDeps(ctx, deps)
-
-			logDuration("Deploy dependencies", start)
-			start = time.Now()
+			wg.Add(1)
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				deployDeps(ctx, deps)
+			}(&wg)
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -389,18 +392,20 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
 
-	logDuration("Parse devenv.yaml", start)
-	start = time.Now()
-
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
-		}
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
+				log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+			}
+		}(&wg)
 	}
 
-	logDuration("Deploy current app", start)
+	wg.Wait()
+	logDuration("Deploy deps & current app", start)
 	start = time.Now()
 
 	log.Info().Msg("Running devconfig")
