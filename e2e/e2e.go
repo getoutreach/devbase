@@ -220,19 +220,27 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 
 // deployDeps deploys app dependencies
 func deployDeps(ctx context.Context, deps []string) {
+	var wg sync.WaitGroup
 	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
+		wg.Add(1)
 
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			// Skip applications that are already deployed, this is usually when
+			// they're in a snapshot we just provisioned from.
+			if appAlreadyDeployed(ctx, d) {
+				log.Info().Msgf("App %s already deployed, skipping", d)
+				return
+			}
+
+			log.Info().Msgf("Deploying dependency '%s'", d)
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
+				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
+			}
+
+		}(&wg)
 	}
+	wg.Wait()
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
