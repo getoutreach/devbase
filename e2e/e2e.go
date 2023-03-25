@@ -224,7 +224,7 @@ func deployDeps(ctx context.Context, deps []string) {
 	for _, d := range deps {
 		wg.Add(1)
 
-		go func(wg *sync.WaitGroup) {
+		go func(wg *sync.WaitGroup, appName string) {
 			defer wg.Done()
 			// Skip applications that are already deployed, this is usually when
 			// they're in a snapshot we just provisioned from.
@@ -238,7 +238,7 @@ func deployDeps(ctx context.Context, deps []string) {
 				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 			}
 
-		}(&wg)
+		}(&wg, d)
 	}
 	wg.Wait()
 }
