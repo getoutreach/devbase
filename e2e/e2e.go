@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
@@ -297,6 +298,7 @@ func shouldRunE2ETests() (bool, error) {
 }
 
 func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
+	start := time.Now()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -318,6 +320,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		os.Setenv("VAULT_ADDR", vaultAddr)
 	}
 
+	logDuration("Preparation steps", start)
+	start = time.Now()
+
 	// No or_e2e build tags were found.
 	runE2ETests, err := shouldRunE2ETests()
 	if err != nil {
@@ -328,6 +333,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
+	logDuration("Determine if should run e2e", start)
+	start = time.Now()
+
 	log.Info().Msg("Building dependency tree")
 
 	deps, err := BuildDependenciesList(ctx, conf)
@@ -336,6 +344,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Fatal().Err(err).Msg("Failed to build dependency tree")
 		return
 	}
+
+	logDuration("Building dependency tree", start)
+	start = time.Now()
 
 	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
 
@@ -348,8 +359,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	var wg sync.WaitGroup
-
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
 	// Allow skipping provision, this is generally only useful for the devenv
@@ -360,11 +369,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
-			wg.Add(1)
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				deployDeps(ctx, deps)
-			}(&wg)
+
+			logDuration("Provision devenv", start)
+			start = time.Now()
+
+			deployDeps(ctx, deps)
+
+			logDuration("Deploy dependencies", start)
+			start = time.Now()
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -377,6 +389,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
 
+	logDuration("Parse devenv.yaml", start)
+	start = time.Now()
+
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
@@ -385,12 +400,16 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	wg.Wait()
+	logDuration("Deploy current app", start)
+	start = time.Now()
 
 	log.Info().Msg("Running devconfig")
 	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
+
+	logDuration("Run devconfig", start)
+	start = time.Now()
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
@@ -401,6 +420,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
+	logDuration("Run postdeploy", start)
+	start = time.Now()
+
 	// Allow users to opt out of running localizer
 	if os.Getenv("SKIP_LOCALIZER") != "true" {
 		closer, err := runLocalizer(ctx)
@@ -410,9 +432,18 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		defer closer()
 	}
 
+	logDuration("Run localizer", start)
+	start = time.Now()
+
 	log.Info().Msg("Running e2e tests")
 	os.Setenv("TEST_TAGS", "or_test,or_e2e")
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
+
+	logDuration("Run e2e", start)
+}
+
+func logDuration(msg string, start time.Time) {
+	log.Printf("%v: %v\n", msg, time.Since(start))
 }
