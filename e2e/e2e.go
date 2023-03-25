@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
@@ -205,7 +206,7 @@ func appAlreadyDeployed(ctx context.Context, app string) bool {
 }
 
 // provisionNew destroys and re-provisions a devenv
-func provisionNew(ctx context.Context, deps []string, target string) error { // nolint:unparam // Why: keeping in the interface for now
+func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
@@ -214,6 +215,10 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
+	return nil
+}
+
+func deployDeps(ctx context.Context, deps []string) {
 	for _, d := range deps {
 		// Skip applications that are already deployed, this is usually when
 		// they're in a snapshot we just provisioned from.
@@ -227,8 +232,6 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
 	}
-
-	return nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -337,16 +340,23 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
+	var wg sync.WaitGroup
+
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
 	// Allow skipping provision, this is generally only useful for the devenv
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
 		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
-			if err := provisionNew(ctx, deps, target); err != nil {
+			if err := provisionNew(ctx, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
+			wg.Add(1)
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				deployDeps(ctx, deps)
+			}(&wg)
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -366,6 +376,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
+
+	wg.Wait()
 
 	log.Info().Msg("Running devconfig")
 	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
