@@ -218,6 +218,7 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 	return nil
 }
 
+// deployDeps deploys app dependencies
 func deployDeps(ctx context.Context, deps []string) {
 	for _, d := range deps {
 		// Skip applications that are already deployed, this is usually when
