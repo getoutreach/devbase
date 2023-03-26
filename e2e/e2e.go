@@ -420,11 +420,10 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	// Allow users to opt out of running localizer
 	if os.Getenv("SKIP_LOCALIZER") != "true" {
-		closer, err := runLocalizer(ctx)
+		_, err := runLocalizer(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to run localizer")
 		}
-		defer closer()
 	}
 
 	logDuration("Run postdeploy & localizer", start)
