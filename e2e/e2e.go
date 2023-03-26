@@ -226,7 +226,7 @@ func deployDeps(ctx context.Context, deps []string) {
 		// they're in a snapshot we just provisioned from.
 		if appAlreadyDeployed(ctx, d) {
 			log.Info().Msgf("App %s already deployed, skipping", d)
-			return
+			continue
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
@@ -396,13 +396,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	logDuration("Deploy deps & current app", start)
 	start = time.Now()
 
-	log.Info().Msg("Running devconfig")
-	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
-	}
-
-	logDuration("Run devconfig", start)
-	start = time.Now()
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		log.Info().Msg("Running devconfig")
+		if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to run devconfig")
+		}
+	}(&wg)
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
@@ -413,9 +414,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	logDuration("Run postdeploy", start)
-	start = time.Now()
-
 	// Allow users to opt out of running localizer
 	if os.Getenv("SKIP_LOCALIZER") != "true" {
 		closer, err := runLocalizer(ctx)
@@ -425,7 +423,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		defer closer()
 	}
 
-	logDuration("Run localizer", start)
+	wg.Wait()
+	logDuration("Run devconfig & postdeploy & localizer", start)
 	start = time.Now()
 
 	log.Info().Msg("Running e2e tests")
