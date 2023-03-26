@@ -387,14 +387,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
-		log.Info().Msg("Deploying current application into cluster")
-		wg.Add(1)
-		go func(wg *sync.WaitGroup) {
-			defer wg.Done()
-			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
-				log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
-			}
-		}(&wg)
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		}
 	}
 
 	wg.Wait()
