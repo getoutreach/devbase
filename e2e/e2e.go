@@ -387,14 +387,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
-		}
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
+				log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+			}
+		}(&wg)
 	}
-
-	wg.Wait()
-	logDuration("Deploy deps & current app", start)
-	start = time.Now()
 
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -404,6 +404,10 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			log.Fatal().Err(err).Msg("Failed to run devconfig")
 		}
 	}(&wg)
+
+	wg.Wait()
+	logDuration("Deploy deps & current app & devconfig", start)
+	start = time.Now()
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
@@ -423,8 +427,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		defer closer()
 	}
 
-	wg.Wait()
-	logDuration("Run devconfig & postdeploy & localizer", start)
+	logDuration("Run postdeploy & localizer", start)
 	start = time.Now()
 
 	log.Info().Msg("Running e2e tests")
