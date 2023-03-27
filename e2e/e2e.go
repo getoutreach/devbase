@@ -223,23 +223,23 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 func deployDeps(ctx context.Context, deps []string) {
 	var wg sync.WaitGroup
 
-	for _, d := range deps {
-		// wg.Add(1)
+	for _, dep := range deps {
+		wg.Add(1)
 
-		// go func(wg *sync.WaitGroup, d string) {
-		// 	defer wg.Done()
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
+		go func(wg *sync.WaitGroup, d string) {
+			defer wg.Done()
+			// Skip applications that are already deployed, this is usually when
+			// they're in a snapshot we just provisioned from.
+			if appAlreadyDeployed(ctx, d) {
+				log.Info().Msgf("App %s already deployed, skipping", d)
+				return
+			}
 
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
-		// }(&wg, dep)
+			log.Info().Msgf("Deploying dependency '%s'", d)
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
+				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
+			}
+		}(&wg, dep)
 	}
 	wg.Wait()
 }
@@ -324,6 +324,19 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	logDuration("Preparation steps", start)
 	start = time.Now()
 
+	// No or_e2e build tags were found.
+	runE2ETests, err := shouldRunE2ETests()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to determine if e2e tests should be run")
+	}
+	if !runE2ETests {
+		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
+		return
+	}
+
+	logDuration("Determine if should run e2e", start)
+	start = time.Now()
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -337,19 +350,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			log.Info().Msg("Early docker build finished successfully")
 		}
 	}(&wg)
-
-	// No or_e2e build tags were found.
-	runE2ETests, err := shouldRunE2ETests()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to determine if e2e tests should be run")
-	}
-	if !runE2ETests {
-		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
-		return
-	}
-
-	logDuration("Determine if should run e2e", start)
-	start = time.Now()
 
 	log.Info().Msg("Building dependency tree")
 
