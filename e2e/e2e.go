@@ -319,30 +319,30 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	log.Info().Msg("Building dependency tree")
 
-	deps, err := BuildDependenciesList(ctx, conf)
-	if err != nil {
-		//nolint:gocritic // Why: need to get exit code >0
-		log.Fatal().Err(err).Msg("Failed to build dependency tree")
-		return
-	}
-
-	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
-
-	// TODO(jaredallard): outreach specific code
-	target := "base"
-	for _, d := range deps {
-		if d == "outreach" {
-			target = flagship
-			break
-		}
-	}
-
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
 	// Allow skipping provision, this is generally only useful for the devenv
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
 		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+			deps, err := BuildDependenciesList(ctx, conf)
+			if err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				return
+			}
+
+			log.Info().Strs("deps", deps).Msg("Provisioning devenv")
+
+			// TODO(jaredallard): outreach specific code
+			target := "base"
+			for _, d := range deps {
+				if d == "outreach" {
+					target = flagship
+					break
+				}
+			}
+
 			if err := provisionNew(ctx, deps, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
