@@ -232,7 +232,7 @@ func deployDeps(ctx context.Context, deps []string) {
 		// they're in a snapshot we just provisioned from.
 		if appAlreadyDeployed(ctx, d) {
 			log.Info().Msgf("App %s already deployed, skipping", d)
-			return
+			continue
 		}
 
 		log.Info().Msgf("Deploying dependency '%s'", d)
