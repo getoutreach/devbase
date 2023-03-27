@@ -368,11 +368,13 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			logDuration("Provision devenv", start)
 			start = time.Now()
 
-			wg.Add(1)
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				deployDeps(ctx, deps)
-			}(&wg)
+			// wg.Add(1)
+			// go func(wg *sync.WaitGroup) {
+			// 	defer wg.Done()
+			deployDeps(ctx, deps)
+			logDuration("Deploy deps", start)
+			start = time.Now()
+			// }(&wg)
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -406,7 +408,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}(&wg)
 
 	wg.Wait()
-	logDuration("Deploy deps & current app & devconfig", start)
+	logDuration("Deploy current app & devconfig", start)
 	start = time.Now()
 
 	// If the post-deploy script for e2e exists, run it.
