@@ -316,6 +316,20 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	logDuration("Preparation steps", start)
 	start = time.Now()
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		// build sooner to speed things up
+		if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+			log.Warn().Err(err).Msg("Error when running make docker-build")
+		} else {
+			log.Info().Msg("Early docker build finished successfully")
+		}
+	}(&wg)
+
 	// No or_e2e build tags were found.
 	runE2ETests, err := shouldRunE2ETests()
 	if err != nil {
@@ -351,8 +365,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			break
 		}
 	}
-
-	var wg sync.WaitGroup
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
