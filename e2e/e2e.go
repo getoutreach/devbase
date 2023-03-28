@@ -43,7 +43,7 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 		return nil, errors.Wrap(err, "failed to parse devenv.yaml")
 	}
 
-	for _, d := range dc.GetDependencies() {
+	for _, d := range dc.GetAllDependencies() {
 		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
@@ -84,7 +84,8 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 	}
 
 	deps := make(map[string]struct{})
-	for _, d := range dc.GetDependencies() {
+	// We deploy just required transitive dependencies
+	for _, d := range dc.Dependencies.Required {
 		deps[d] = struct{}{}
 	}
 

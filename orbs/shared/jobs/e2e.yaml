@@ -1,9 +1,5 @@
 description: Run E2E tests in a Kubernetes cluster
 parameters:
-  deploy_optional_dependencies:
-    description: Deploy all optional dependencies (defined in devenv.yaml) before running e2e tests
-    type: boolean
-    default: false
   vault_address:
     description: Vault Instance to use
     type: string

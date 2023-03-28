@@ -66,12 +66,10 @@ func FromGitHub(ctx context.Context, conf *box.Config, serviceName string,
 	return &dc, nil
 }
 
-// getDependencies returns dependencies to install based on Devenv config and DEPLOY_OPTIONAL_DEPENDENCIES environment variable
-func (c *Devenv) GetDependencies() []string {
+// getDependencies returns all dependencies
+func (c *Devenv) GetAllDependencies() []string {
 	deps := make([]string, 0)
 	deps = append(deps, c.Dependencies.Required...)
-	if os.Getenv("DEPLOY_OPTIONAL_DEPENDENCIES") == "true" {
-		deps = append(deps, c.Dependencies.Optional...)
-	}
+	deps = append(deps, c.Dependencies.Optional...)
 	return deps
 }
