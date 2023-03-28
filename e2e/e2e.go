@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
@@ -214,19 +215,29 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
-	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
+	var wg sync.WaitGroup
 
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
+	for _, d := range deps {
+		wg.Add(1)
+
+		// deploy apps in parallel to speed things up
+		go func(wg *sync.WaitGroup, d string) {
+			defer wg.Done()
+			// Skip applications that are already deployed, this is usually when
+			// they're in a snapshot we just provisioned from.
+			if appAlreadyDeployed(ctx, d) {
+				log.Info().Msgf("App %s already deployed, skipping", d)
+				return
+			}
+
+			log.Info().Msgf("Deploying dependency '%s'", d)
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
+				log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
+			}
+		}(&wg, d)
 	}
+
+	wg.Wait()
 
 	return nil
 }
