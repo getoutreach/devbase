@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/devbase/v2/e2e/config"
 	"github.com/getoutreach/gobox/pkg/box"
@@ -310,6 +311,19 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		log.Info().Msg("Running devconfig in background")
+		if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to run devconfig")
+		}
+		log.Info().Msg("Running devconfig in background finished")
+	}(&wg)
+
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
@@ -318,10 +332,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	log.Info().Msg("Running devconfig")
-	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
-	}
+	wg.Wait() // Ensure that devconfig is done
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
