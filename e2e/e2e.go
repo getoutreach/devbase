@@ -12,33 +12,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getoutreach/devbase/v2/e2e/config"
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
-	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
 )
 
 // flagship is the name of the flagship
 const flagship = "flagship"
-
-// DevenvConfig is a struct that contains the devenv configuration
-// which is usually called "devenv.yaml". This also works for the
-// legacy service.yaml format.
-type DevenvConfig struct {
-	// Service denotes if this repository is a service.
-	Service bool `yaml:"service"`
-
-	Dependencies struct {
-		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
-		Optional []string `yaml:"optional"`
-
-		// Required is a list of services that this service cannot function without
-		Required []string `yaml:"required"`
-	} `yaml:"dependencies"`
-}
 
 // osStdinOut is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
@@ -55,12 +38,12 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, error) {
 	deps := make(map[string]struct{})
 
-	s, err := parseDevenvConfig("devenv.yaml")
+	dc, err := config.FromFile("devenv.yaml")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse devenv.yaml")
 	}
 
-	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
+	for _, d := range dc.GetDependencies() {
 		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
@@ -74,23 +57,6 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 	return depsList, nil
 }
 
-// getConfig gets config file from GitHub and parses it into DevenvConfig
-func getConfig(ctx context.Context, conf *box.Config, serviceName string, gh *github.Client, configFileName string) (*DevenvConfig, error) {
-	r, _, err := gh.Repositories.DownloadContents(ctx, conf.Org, serviceName, configFileName, nil)
-	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
-	if err != nil {
-		l.Debug().Msg("Unable to find file in GH")
-		return nil, err
-	}
-	defer r.Close()
-	var dc DevenvConfig
-	if err := yaml.NewDecoder(r).Decode(&dc); err != nil {
-		l.Warn().Msg("Unable to parse config file")
-		return nil, err
-	}
-	return &dc, nil
-}
-
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
 func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (map[string]struct{}, error) {
@@ -100,9 +66,9 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 		return nil, err
 	}
 
-	var dc *DevenvConfig
+	var dc *config.Devenv
 	for _, f := range possibleFiles {
-		dc, err = getConfig(ctx, conf, serviceName, gh, f)
+		dc, err = config.FromGitHub(ctx, conf, serviceName, gh, f)
 		if err != nil {
 			continue // we continue to the next file, err is logged in getConfig
 		}
@@ -118,7 +84,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 	}
 
 	deps := make(map[string]struct{})
-	for _, d := range append(dc.Dependencies.Required, dc.Dependencies.Optional...) {
+	for _, d := range dc.GetDependencies() {
 		deps[d] = struct{}{}
 	}
 
@@ -161,22 +127,6 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 	}
 
 	return nil
-}
-
-// parseDevenvConfig parses the devenv.yaml file and returns a DevenvConfig
-func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
-	f, err := os.Open(confPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
-	}
-	defer f.Close()
-
-	var dc DevenvConfig
-	if err := yaml.NewDecoder(f).Decode(&dc); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse devenv.yaml or service.yaml")
-	}
-
-	return &dc, nil
 }
 
 // appAlreadyDeployed checks if an application is already deployed, if it is
@@ -354,7 +304,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	dc, err := parseDevenvConfig("devenv.yaml")
+	dc, err := config.FromFile("devenv.yaml")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
