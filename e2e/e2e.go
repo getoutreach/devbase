@@ -272,8 +272,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
-	var wg sync.WaitGroup
-
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -305,6 +303,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
 
+			var wg sync.WaitGroup
+			dockerBuilt := false
 			wg.Add(1)
 
 			// Build docker sooner and out of critical path to speed things up.
@@ -317,9 +317,16 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				} else {
 					log.Info().Msg("Early docker build finished successfully")
 				}
+				dockerBuilt = true
 			}(&wg)
 
 			deployDependencies(ctx, deps)
+
+			if !dockerBuilt {
+				log.Info().Msg("Waiting for docker build to finish")
+			}
+
+			wg.Wait() // To ensure that docker build is finished
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -331,8 +338,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
-
-	wg.Wait() // To ensure that docker build is finished
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
