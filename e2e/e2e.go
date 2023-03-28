@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
@@ -317,6 +318,21 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	// Build docker sooner and out of critical path to speed things up.
+	// Docker build in devenv apps deploy . will be superfast then.
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+			log.Warn().Err(err).Msg("Error when running early docker build")
+		} else {
+			log.Info().Msg("Early docker build finished successfully")
+		}
+	}(&wg)
+
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -358,6 +374,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
 	}
+
+	wg.Wait() // To ensure that docker build is finished
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
