@@ -206,7 +206,7 @@ func appAlreadyDeployed(ctx context.Context, app string) bool {
 }
 
 // provisionNew destroys and re-provisions a devenv
-func provisionNew(ctx context.Context, deps []string, target string) error { // nolint:unparam // Why: keeping in the interface for now
+func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
@@ -215,6 +215,11 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
+	return nil
+}
+
+// deployDependencies deploys app's dependencies to devenv
+func deployDependencies(ctx context.Context, deps []string) {
 	for _, d := range deps {
 		// Skip applications that are already deployed, this is usually when
 		// they're in a snapshot we just provisioned from.
@@ -228,8 +233,6 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
 		}
 	}
-
-	return nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -320,20 +323,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
-	// Build docker sooner and out of critical path to speed things up.
-	// Docker build in devenv apps deploy . will be superfast then.
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		log.Info().Msg("Starting early docker build")
-		if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
-			log.Warn().Err(err).Msg("Error when running early docker build")
-		} else {
-			log.Info().Msg("Early docker build finished successfully")
-		}
-	}(&wg)
-
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -360,10 +349,26 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				}
 			}
 
-			if err := provisionNew(ctx, deps, target); err != nil {
+			if err := provisionNew(ctx, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
+
+			wg.Add(1)
+
+			// Build docker sooner and out of critical path to speed things up.
+			// Docker build in devenv apps deploy . will be superfast then.
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				log.Info().Msg("Starting early docker build")
+				if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+					log.Warn().Err(err).Msg("Error when running early docker build")
+				} else {
+					log.Info().Msg("Early docker build finished successfully")
+				}
+			}(&wg)
+
+			deployDependencies(ctx, deps)
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
