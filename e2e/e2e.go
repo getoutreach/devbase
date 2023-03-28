@@ -366,10 +366,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		log.Info().Msg("Running devconfig")
+		log.Info().Msg("Running devconfig in background")
 		if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to run devconfig")
 		}
+		log.Info().Msg("Running devconfig in background finished")
 	}(&wg)
 
 	// if it's a library we don't need to deploy the application.
@@ -380,7 +381,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	wg.Wait()
+	wg.Wait() // Ensure that devconfig is done
+
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
 		log.Info().Msg("Running scripts/devenv/post-e2e-deploy.sh")
