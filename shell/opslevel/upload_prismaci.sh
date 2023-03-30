@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This script uploads Twistlock Image Scan results (in a compact format) to Prisma Cloud.
+# This script uploads Twistlock Image Scan results (in a compact format) to OpsLevel.
 # This is not a standalone script - it is meant to be called from the upload.sh script only.
 #
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
