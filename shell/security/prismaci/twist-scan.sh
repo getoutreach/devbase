@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# This script scans docker images for vulnerabilities, generates local
-# report and also uploads the report to Prisma Cloud. The script expects
+# This script scans docker images for vulnerabilities and generates a local
+# report to be prepared for upload to OpsLevel. The script expects
 # special credentials - those are set by prismacloud-credentials circleci context.
 #
 
@@ -60,7 +60,7 @@ chmod a+x ${PC_CLOUD_TWISTCLI}
 # since we are running this script on a bare VM. If this ever changes, pls set --docker-address explicitly.
 # Note: https version of the address will require TLS cert - see twistcli doc for details.
 ${PC_CLOUD_TWISTCLI} images scan --token "${PC_CLOUD_TOKEN}" \
-  --ci --details --address "${PC_CONSOLE_URL}" \
+  --details --address "${PC_CONSOLE_URL}" \
   --custom-labels \
   --output-file "${TEST_RESULTS}/image_scan.json" \
   "$@"
