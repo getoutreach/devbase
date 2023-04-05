@@ -25,11 +25,15 @@ arguments:
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
   - name: github.com/getoutreach/stencil-circleci
+    channel: rc
   - name: github.com/getoutreach/stencil-base
+    channel: rc
   - name: github.com/getoutreach/stencil-golang
     # Removes ruby requirement
     version: ">=v1.8.0-rc.2"
+    channel: rc
   - name: github.com/getoutreach/devbase
+    channel: rc
 replacements:
   github.com/getoutreach/devbase: ./
 migrated: true
