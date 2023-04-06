@@ -10,7 +10,7 @@ require (
 	github.com/magefile/mage v1.14.0
 	github.com/opslevel/opslevel-go/v2022 v2022.10.22
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.28.0
+	github.com/rs/zerolog v1.29.0
 	github.com/whilp/git-urls v1.0.0
 	google.golang.org/grpc v1.53.0
 	gopkg.in/yaml.v2 v2.4.0
