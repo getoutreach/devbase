@@ -5,14 +5,12 @@ go 1.19
 require (
 	github.com/getoutreach/gobox v1.68.1
 	github.com/getoutreach/localizer v1.14.5
-	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v47 v47.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/magefile/mage v1.14.0
 	github.com/opslevel/opslevel-go/v2022 v2022.10.22
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.28.0
-	github.com/urfave/cli/v2 v2.6.0
 	github.com/whilp/git-urls v1.0.0
 	google.golang.org/grpc v1.53.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -28,7 +26,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/pty v1.1.17 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -67,7 +64,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/relvacode/iso8601 v1.1.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
