@@ -441,7 +441,7 @@
     "@semantic-release/error" "^3.0.0"
     aggregate-error "^3.1.0"
     execa "^5.1.0"
-    
+
 "@pnpm/network.ca-file@^1.0.1":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@pnpm/network.ca-file/-/network.ca-file-1.0.2.tgz#2ab05e09c1af0cdf2fcf5035bea1484e222f7983"
