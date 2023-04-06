@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/getoutreach/gobox v1.68.1
-	github.com/getoutreach/localizer v1.14.5
+	github.com/getoutreach/localizer v1.15.1
 	github.com/google/go-github/v47 v47.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/magefile/mage v1.14.0
@@ -83,7 +83,7 @@ require (
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
-	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
