@@ -43,6 +43,10 @@ HEADLESS="${HEADLESS:-$IN_CONTAINER}"
 # Why: Declared for documentation/discoverability purposes.
 # shellcheck disable=SC2269
 DLV_PORT="${DLV_PORT}"
+if [[ $HEADLESS == "true" ]] && [[ -z $DLV_PORT ]]; then
+  echo "DLV_PORT must be set when running in headless mode" >&2
+  exit 1
+fi
 DLV_VERSION="v$(get_application_version "delve")"
 
 # DEV_CONTAINER_LOGFILE is the path to the log file that will be used for all output
