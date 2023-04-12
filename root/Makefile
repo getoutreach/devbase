@@ -180,7 +180,7 @@ devserver:: pre-devserver build devconfig
 
 ## debug:           run the service via delve
 .PHONY: debug
-debug:: pre-debug build
+debug:: pre-debug
 	@if [[ -z $$SKIP_DEVCONFIG ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh devconfig.sh; fi
 	@if [[ -n $$DLV_PORT ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh debug.sh; fi
 	@if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
