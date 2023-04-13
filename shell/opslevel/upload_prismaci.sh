@@ -25,11 +25,11 @@ fi
 # Set interval (duration) in seconds.
 SECONDS=10
 # Calculate end timeout.
-ENDTIMEOUT=$(( $(date +%s) + SECONDS )) 
+ENDTIMEOUT=$(($(date +%s) + SECONDS))
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   sleep 2
-  
+
   # Download the scan results locally
   download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
@@ -38,12 +38,12 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
 
   # if no message field exists then we can assume that the artifact exists based
   # on file output
-  if [[ "${RESULT_FILE_MESSAGE}" == "null" ]]; then 
+  if [[ ${RESULT_FILE_MESSAGE} == "null" ]]; then
     break
   fi
 
   # check var contains the message "Build not found". If so continue
-  if [[ "${RESULT_FILE_MESSAGE}" == "Build not found" ]]; then
+  if [[ ${RESULT_FILE_MESSAGE} == "Build not found" ]]; then
     continue
   fi
 done
