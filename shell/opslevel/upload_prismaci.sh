@@ -48,7 +48,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   fi
 done
 
-Generate summary file, see image_scan_filter.jq for more details.
+# Generate summary file, see image_scan_filter.jq for more details.
 jq \
   -f "${DIR}/image_scan_filter.jq" \
   --arg url "${ARTIFACT_URL}" \
