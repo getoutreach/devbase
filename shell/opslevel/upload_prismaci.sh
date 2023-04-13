@@ -23,11 +23,13 @@ if [[ -z ${ARTIFACT_URL} ]]; then
 fi
 
 # Set interval (duration) in seconds.
-SECONDS=1
+SECONDS=10
 # Calculate end timeout.
 ENDTIMEOUT=$(( $(date +%s) + SECONDS )) 
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
+  sleep 2
+  
   # Download the scan results locally
   download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
