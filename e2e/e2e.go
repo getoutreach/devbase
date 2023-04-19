@@ -382,7 +382,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	log.Info().Msg("Running e2e tests")
 	os.Setenv("TEST_TAGS", "or_test,or_e2e")
-	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e")).Run(); err != nil {
+	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
 }
