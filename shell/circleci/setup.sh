@@ -31,6 +31,10 @@ if [[ -n $TEST_RESULTS ]]; then
   mkdir -p "$TEST_RESULTS"
 fi
 
+if [[ -n $PRETEST_SCRIPT ]]; then
+  source "${PRETEST_SCRIPT}
+fi
+
 # Setup a box stub
 boxPath="$HOME/.outreach/.config/box/box.yaml"
 mkdir -p "$(dirname "$boxPath")"
