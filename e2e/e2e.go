@@ -352,7 +352,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Info().Msg("Running devconfig in background finished")
 	}(&wg)
 
-	if os.Getenv("REQUIRE_DEVCONFIG_BEFORE_DEPLOY") != "true" {
+	if os.Getenv("REQUIRE_DEVCONFIG_BEFORE_DEPLOY") == "true" {
 		log.Info().Msg("Requested waiting for devconfig to finish before app deploy")
 		wg.Wait()
 	}
