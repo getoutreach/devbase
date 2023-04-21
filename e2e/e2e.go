@@ -352,6 +352,10 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		log.Info().Msg("Running devconfig in background finished")
 	}(&wg)
 
+	if os.Getenv("REQUIRE_DEVCONFIG_BEFORE_DEPLOY") != "true" {
+		wg.Wait()
+	}
+
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
