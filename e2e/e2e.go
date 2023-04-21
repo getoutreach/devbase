@@ -272,7 +272,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
-	log.Info().Msg("Building dependency tree")
+	log.Info().Msg("Building dependency tree - MF")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
