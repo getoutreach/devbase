@@ -15,7 +15,7 @@ nodejs 18.14.1
 ## <<Stencil::Block(toolver)>>
 # The below tools are used by all repositories when using devbase
 mage 1.14.0
-golangci-lint 1.50.0
+golangci-lint 1.52.2
 shellcheck 0.9.0
 shfmt 3.6.0
 ## <</Stencil::Block>>
