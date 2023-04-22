@@ -40,9 +40,20 @@ asdf_devbase_exec() {
   # shellcheck disable=SC2155
   local tool_env_var="$(echo "$tool" | tr '[:lower:]-' '[:upper:]_')"
 
-  # Why: We're OK with this being the way it is.
-  # shellcheck disable=SC2155
-  local version="$(asdf_get_version_from_devbase "$tool")"
+  # Check if there's a repo level .tool-versions and if so, allow that to override the devbase
+  # version of a specific tool
+  if [[ $tool == "golangci-lint" ]] && grep "golangci-lint" .tool-versions; then
+    # Why: We're OK with this being the way it is.
+    # shellcheck disable=SC2155
+    local version=$(grep golangci-lint <.tool-versions | awk '{print $2}')
+    echo "found repo override .tool-versions of golangci-lint, using $version instead"
+    echo "$version"
+  else
+    # Why: We're OK with this being the way it is.
+    # shellcheck disable=SC2155
+    local version="$(asdf_get_version_from_devbase "$tool")"
+  fi
+
   if [[ -z $version ]]; then
     echo "No version found for $tool in devbase .tool-versions file"
     exit 1
