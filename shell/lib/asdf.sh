@@ -47,7 +47,6 @@ asdf_devbase_exec() {
     # shellcheck disable=SC2155
     local version=$(grep golangci-lint <.tool-versions | awk '{print $2}')
     echo "found repo override .tool-versions of golangci-lint, using $version instead"
-    echo "$version"
   else
     # Why: We're OK with this being the way it is.
     # shellcheck disable=SC2155
