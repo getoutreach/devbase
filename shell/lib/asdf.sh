@@ -40,13 +40,18 @@ asdf_devbase_exec() {
   # shellcheck disable=SC2155
   local tool_env_var="$(echo "$tool" | tr '[:lower:]-' '[:upper:]_')"
 
-  # Check if there's a repo level .tool-versions and if so, allow that to override the devbase
-  # version of a specific tool
-  if [[ $tool == "golangci-lint" ]] && grep "golangci-lint" .tool-versions; then
+  # Allow overriding the golangci-lint version with an environmental variable
+  if [[ $tool = "golangci-lint" ]] && [[ "${GOLANGCI_LINT_VER}" ]]; then
     # Why: We're OK with this being the way it is.
     # shellcheck disable=SC2155
-    local version=$(grep golangci-lint <.tool-versions | awk '{print $2}')
-    echo "found repo override .tool-versions of golangci-lint, using $version instead"
+    echo "using override version of golangci-lint: $GOLANGCI_LINT_VER"
+    local version=$GOLANGCI_LINT_VER
+
+    # If the version isn't installed, install it.
+    if [[ ! -d "$ASDF_DIR/installs/golangci-lint/$version" ]]; then
+      # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
+      asdf install "golangci-lint" "$version" || asdf_install_retry "golangci-lint" "$version"
+    fi
   else
     # Why: We're OK with this being the way it is.
     # shellcheck disable=SC2155
