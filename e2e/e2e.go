@@ -23,9 +23,14 @@ import (
 // flagship is the name of the flagship
 const flagship = "flagship"
 
-// osStdinOut is a helper function to use the os stdin/out/err
+// osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
+	return osStdOutErr(c)
+}
+
+// osStdOutErr is a helper function to use the os stdin/out/err
+func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c
@@ -145,7 +150,7 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 
 // runDevconfig executes devconfig command
 func runDevconfig(ctx context.Context) {
-	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+	if err := osStdOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 }
