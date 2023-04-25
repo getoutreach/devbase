@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"go/build"
 	"os"
 	"os/exec"
@@ -131,31 +130,6 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 	return nil
 }
 
-// appAlreadyDeployed checks if an application is already deployed, if it is
-// it returns true, otherwise false.
-func appAlreadyDeployed(ctx context.Context, app string) bool {
-	var deployedApps []struct {
-		Name string `json:"name"`
-	}
-
-	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
-	if err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal(b, &deployedApps); err != nil {
-		return false
-	}
-
-	for _, a := range deployedApps {
-		if a.Name == app {
-			return true
-		}
-	}
-
-	return false
-}
-
 // provisionNew destroys and re-provisions a devenv
 func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
@@ -167,23 +141,6 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 	}
 
 	return nil
-}
-
-// deployDependencies deploys app's dependencies to devenv
-func deployDependencies(ctx context.Context, deps []string) {
-	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
-
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
-	}
 }
 
 // runDevconfig executes devconfig command
@@ -303,7 +260,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				}
 				dockerBuilt = true
 			}(&wg)
-			
+
 			deps, err := BuildDependenciesList(ctx, conf)
 			if err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
