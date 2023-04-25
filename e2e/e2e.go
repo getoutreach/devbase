@@ -287,6 +287,23 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
 		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+			var wg sync.WaitGroup
+			dockerBuilt := false
+			wg.Add(1)
+
+			// Build docker sooner and out of critical path to speed things up.
+			// Docker build in devenv apps deploy . will be superfast then.
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				log.Info().Msg("Starting early docker build")
+				if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+					log.Warn().Err(err).Msg("Error when running early docker build")
+				} else {
+					log.Info().Msg("Early docker build finished successfully")
+				}
+				dockerBuilt = true
+			}(&wg)
+			
 			deps, err := BuildDependenciesList(ctx, conf)
 			if err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
@@ -309,25 +326,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
-
-			var wg sync.WaitGroup
-			dockerBuilt := false
-			wg.Add(1)
-
-			// Build docker sooner and out of critical path to speed things up.
-			// Docker build in devenv apps deploy . will be superfast then.
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				log.Info().Msg("Starting early docker build")
-				if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
-					log.Warn().Err(err).Msg("Error when running early docker build")
-				} else {
-					log.Info().Msg("Early docker build finished successfully")
-				}
-				dockerBuilt = true
-			}(&wg)
-
-			deployDependencies(ctx, deps)
 
 			if !dockerBuilt {
 				log.Info().Msg("Waiting for docker build to finish")
@@ -362,7 +360,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
