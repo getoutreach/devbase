@@ -186,6 +186,13 @@ func deployDependencies(ctx context.Context, deps []string) {
 	}
 }
 
+// runDevconfig executes devconfig command
+func runDevconfig(ctx context.Context) {
+	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run devconfig")
+	}
+}
+
 // shouldRunE2ETests denotes whether or not this needs to actually
 // run
 func shouldRunE2ETests() (bool, error) {
@@ -340,17 +347,17 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 
 	var wg sync.WaitGroup
+	requireDevconfigAfterDeploy := os.Getenv("REQUIRE_DEVCONFIG_AFTER_DEPLOY") == "true"
 
-	wg.Add(1)
-
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		log.Info().Msg("Running devconfig in background")
-		if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to run devconfig")
-		}
-		log.Info().Msg("Running devconfig in background finished")
-	}(&wg)
+	if !requireDevconfigAfterDeploy {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			log.Info().Msg("Running devconfig in background")
+			runDevconfig(ctx)
+			log.Info().Msg("Running devconfig in background finished")
+		}(&wg)
+	}
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
@@ -360,7 +367,12 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	wg.Wait() // Ensure that devconfig is done
+	if requireDevconfigAfterDeploy {
+		log.Info().Msg("Running devconfig")
+		runDevconfig(ctx)
+	} else {
+		wg.Wait() // Ensure that devconfig is done
+	}
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {
