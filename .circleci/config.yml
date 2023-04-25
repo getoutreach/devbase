@@ -33,8 +33,7 @@ test: &test
   ### Start parameters inserted by other modules
   ### End parameters inserted by other modules
   ## <<Stencil::Block(circleTestExtra)>>
-  environment:
-    PRETEST_SCRIPT: ./bin/echo
+
   ## <</Stencil::Block>>
 
 # Branches used for releasing code, pre-release or not

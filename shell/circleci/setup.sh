@@ -31,8 +31,11 @@ if [[ -n $TEST_RESULTS ]]; then
   mkdir -p "$TEST_RESULTS"
 fi
 
-if [[ -n $PRETEST_SCRIPT ]]; then
-  source "${PRETEST_SCRIPT}
+# run prescript if user specified to install packages etc. before tests
+if [[ -n $PRE_SETUP_SCRIPT ]]; then
+  echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from PRE_SETUP_SCRIPT)"
+  # shellcheck source=/dev/null
+  source "${PRE_SETUP_SCRIPT}"
 fi
 
 # Setup a box stub
