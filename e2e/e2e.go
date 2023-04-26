@@ -282,7 +282,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				}
 			}
 
-			log.Info().Strs("deps", deps).Strs("target", target).Msg("Provisioning devenv")
+			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
 
 			if err := provisionNew(ctx, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
