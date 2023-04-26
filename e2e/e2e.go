@@ -273,8 +273,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				return
 			}
 
-			log.Info().Strs("deps", deps).Msg("Provisioning devenv")
-
 			// TODO(jaredallard): outreach specific code
 			target := "base"
 			for _, d := range deps {
@@ -283,6 +281,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 					break
 				}
 			}
+
+			log.Info().Strs("deps", deps).Strs("target", target).Msg("Provisioning devenv")
 
 			if err := provisionNew(ctx, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
