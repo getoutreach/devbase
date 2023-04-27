@@ -29,7 +29,7 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	return osStdOutErr(c)
 }
 
-// osStdOutErr is a helper function to use the os stdin/out/err
+// osStdOutErr is a helper function to use the os stdout/err
 func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
