@@ -35,7 +35,7 @@ fi
 if [[ -n $PRE_SETUP_SCRIPT ]]; then
   echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from PRE_SETUP_SCRIPT)"
   # shellcheck source=/dev/null
-  source "${PRE_SETUP_SCRIPT}"
+  "${PRE_SETUP_SCRIPT}"
 fi
 
 # Setup a box stub
