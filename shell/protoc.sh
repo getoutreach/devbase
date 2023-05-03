@@ -187,7 +187,7 @@ if has_grpc_client "node"; then
   for import_path in "${import_paths[@]}"; do
     import_grpc_path="$import_path/clients/node/src/grpc"
     if [[ -d $import_grpc_path ]]; then
-      cp -r "$import_grpc_path/" "$grpc_path"
+      cp -r "$import_grpc_path/." "$grpc_path"
     fi
   done
 
