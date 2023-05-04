@@ -33,7 +33,7 @@ fi
 
 # run prescript if user specified to install packages etc. before tests
 if [[ -n $PRE_SETUP_SCRIPT ]]; then
-  echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from PRE_SETUP_SCRIPT)"
+  echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from pre_setup_script)"
   # shellcheck source=/dev/null
   "${PRE_SETUP_SCRIPT}"
 fi
