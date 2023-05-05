@@ -16,7 +16,6 @@ export DEVENV_DEPLOY_BENTO="bento1a"
 export DEVENV_DEPLOY_VERSION="${DEPLOY_TO_DEV_VERSION:-"latest"}"
 export DEVENV_DEPLOY_NAMESPACE="$APPNAME--$DEVENV_DEPLOY_BENTO"
 export DEVENV_DEPLOY_ENVIRONMENT="${DEPLOY_TO_DEV_ENVIRONMENT:-"development"}"
-export DEVENV_DEPLOY_DEV_EMAIL="${DEV_EMAIL:-$(git config user.email)}"
 export DEVENV_DEPLOY_HOST="bento1a.outreach-dev.com"
 
 showHelp() {
