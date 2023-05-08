@@ -7,6 +7,9 @@ parameters:
     default: _json_key
     description: Username to use when fetching images from a registry
     type: string
+  pre_setup_script:
+    description: If set, the executable to run before running tests in CircleCI. This may not include arguments.
+    type: string
   docker_password:
     default: $GCLOUD_SERVICE_ACCOUNT
     description: Environment variable to read docker password from
@@ -45,7 +48,7 @@ executor:
 
 environment:
   AWS_REGION: << parameters.aws_region >>
-
+  PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
 steps:
   - when:
       condition:
