@@ -319,11 +319,18 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}(&wg)
 	}
 
+	skipAppDeployment := os.Getenv("SKIP_APP_DEPLOYMENT") == "true"
+
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
-		log.Info().Msg("Deploying current application into cluster")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		if skipAppDeployment {
+			log.Info().Msg("Skipping application deployment since SKIP_APP_DEPLOYMENT is true")	
+		}
+		else{
+			log.Info().Msg("Deploying current application into cluster")
+			if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
+				log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+			}
 		}
 	}
 
