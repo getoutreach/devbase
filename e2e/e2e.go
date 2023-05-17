@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"go/build"
 	"os"
 	"os/exec"
@@ -24,9 +23,14 @@ import (
 // flagship is the name of the flagship
 const flagship = "flagship"
 
-// osStdinOut is a helper function to use the os stdin/out/err
+// osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
+	return osStdOutErr(c)
+}
+
+// osStdOutErr is a helper function to use the os stdout/err
+func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c
@@ -131,31 +135,6 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 	return nil
 }
 
-// appAlreadyDeployed checks if an application is already deployed, if it is
-// it returns true, otherwise false.
-func appAlreadyDeployed(ctx context.Context, app string) bool {
-	var deployedApps []struct {
-		Name string `json:"name"`
-	}
-
-	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
-	if err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal(b, &deployedApps); err != nil {
-		return false
-	}
-
-	for _, a := range deployedApps {
-		if a.Name == app {
-			return true
-		}
-	}
-
-	return false
-}
-
 // provisionNew destroys and re-provisions a devenv
 func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
@@ -169,20 +148,10 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 	return nil
 }
 
-// deployDependencies deploys app's dependencies to devenv
-func deployDependencies(ctx context.Context, deps []string) {
-	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
-
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
+// runDevconfig executes devconfig command
+func runDevconfig(ctx context.Context) {
+	if err := osStdOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run devconfig")
 	}
 }
 
@@ -280,29 +249,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
 		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
-			deps, err := BuildDependenciesList(ctx, conf)
-			if err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to build dependency tree")
-				return
-			}
-
-			log.Info().Strs("deps", deps).Msg("Provisioning devenv")
-
-			// TODO(jaredallard): outreach specific code
-			target := "base"
-			for _, d := range deps {
-				if d == "outreach" {
-					target = flagship
-					break
-				}
-			}
-
-			if err := provisionNew(ctx, target); err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to create cluster")
-			}
-
 			var wg sync.WaitGroup
 			dockerBuilt := false
 			wg.Add(1)
@@ -320,7 +266,28 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				dockerBuilt = true
 			}(&wg)
 
-			deployDependencies(ctx, deps)
+			deps, err := BuildDependenciesList(ctx, conf)
+			if err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				return
+			}
+
+			// TODO(jaredallard): outreach specific code
+			target := "base"
+			for _, d := range deps {
+				if d == "outreach" {
+					target = flagship
+					break
+				}
+			}
+
+			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+
+			if err := provisionNew(ctx, target); err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to create cluster")
+			}
 
 			if !dockerBuilt {
 				log.Info().Msg("Waiting for docker build to finish")
@@ -340,27 +307,32 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 
 	var wg sync.WaitGroup
+	requireDevconfigAfterDeploy := os.Getenv("REQUIRE_DEVCONFIG_AFTER_DEPLOY") == "true"
 
-	wg.Add(1)
-
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		log.Info().Msg("Running devconfig in background")
-		if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to run devconfig")
-		}
-		log.Info().Msg("Running devconfig in background finished")
-	}(&wg)
+	if !requireDevconfigAfterDeploy {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			log.Info().Msg("Running devconfig in background")
+			runDevconfig(ctx)
+			log.Info().Msg("Running devconfig in background finished")
+		}(&wg)
+	}
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run(); err != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
 
-	wg.Wait() // Ensure that devconfig is done
+	if requireDevconfigAfterDeploy {
+		log.Info().Msg("Running devconfig")
+		runDevconfig(ctx)
+	} else {
+		wg.Wait() // Ensure that devconfig is done
+	}
 
 	// If the post-deploy script for e2e exists, run it.
 	if _, err := os.Stat("scripts/devenv/post-e2e-deploy.sh"); err == nil {

@@ -31,6 +31,13 @@ if [[ -n $TEST_RESULTS ]]; then
   mkdir -p "$TEST_RESULTS"
 fi
 
+# run prescript if user specified to install packages etc. before tests
+if [[ -n $PRE_SETUP_SCRIPT ]]; then
+  echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from pre_setup_script)"
+  # shellcheck source=/dev/null
+  "${PRE_SETUP_SCRIPT}"
+fi
+
 # Setup a box stub
 boxPath="$HOME/.outreach/.config/box/box.yaml"
 mkdir -p "$(dirname "$boxPath")"

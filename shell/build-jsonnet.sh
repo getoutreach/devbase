@@ -17,7 +17,7 @@ namespace="${DEVENV_DEPLOY_NAMESPACE:-$appName--$bento}"
 version="${DEVENV_DEPLOY_VERSION:-"latest"}"
 environment="${DEVENV_DEPLOY_ENVIRONMENT:-"development"}"
 host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
-email="${DEVENV_DEPLOY_DEV_EMAIL:-$(git config user.email)}"
+email="${DEV_EMAIL:-$(git config user.email)}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"gcr.io/outreach-docker"}"
 
 kubecfg \

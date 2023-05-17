@@ -34,7 +34,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
   # check for a message value
-  RESULT_FILE_MESSAGE=$(jq -r .message ${SCAN_RESULTS_OPSLEVEL_FILE})
+  RESULT_FILE_MESSAGE=$(jq -r .message ${SCAN_RESULTS_FILE})
 
   # if no message field exists then we can assume that the artifact exists based
   # on file output
