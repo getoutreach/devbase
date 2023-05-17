@@ -371,15 +371,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	// Allow users to opt out of running localizer
-	if os.Getenv("SKIP_LOCALIZER") != "true" {
-		closer, err := runLocalizer(ctx)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to run localizer")
-		}
-		defer closer()
-	}
-
 	log.Info().Msg("Running e2e tests")
 	os.Setenv("TEST_TAGS", "or_test,or_e2e")
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e")).Run(); err != nil {
