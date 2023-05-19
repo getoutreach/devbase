@@ -5,44 +5,32 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
+	"github.com/getoutreach/devbase/v2/e2e/config"
 	"github.com/getoutreach/gobox/pkg/box"
+	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
 )
 
 // flagship is the name of the flagship
 const flagship = "flagship"
 
-// DevenvConfig is a struct that contains the devenv configuration
-// which is usually called "devenv.yaml". This also works for the
-// legacy service.yaml format.
-type DevenvConfig struct {
-	// Service denotes if this repository is a service.
-	Service bool `yaml:"service"`
-
-	Dependencies struct {
-		// Optional is a list of OPTIONAL services e.g. the service can run / gracefully function without it running
-		Optional []string `yaml:"optional"`
-
-		// Required is a list of services that this service cannot function without
-		Required []string `yaml:"required"`
-	} `yaml:"dependencies"`
-}
-
-// osStdinOut is a helper function to use the os stdin/out/err
+// osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
+	return osStdOutErr(c)
+}
+
+// osStdOutErr is a helper function to use the os stdout/err
+func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c
@@ -52,16 +40,16 @@ func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 // and appending them to the list. Deduplication is done and returned
 // is a flat list of all of the dependencies of the initial root
 // application who's dependency list was provided.
-func BuildDependenciesList(ctx context.Context) ([]string, error) {
+func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, error) {
 	deps := make(map[string]struct{})
 
-	s, err := parseDevenvConfig("devenv.yaml")
+	dc, err := config.FromFile("devenv.yaml")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse devenv.yaml")
 	}
 
-	for _, d := range append(s.Dependencies.Required, s.Dependencies.Optional...) {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+	for _, d := range dc.GetAllDependencies() {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return nil, err
 		}
 	}
@@ -76,19 +64,18 @@ func BuildDependenciesList(ctx context.Context) ([]string, error) {
 
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
-func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
+func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (map[string]struct{}, error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
+	gh, err := githubauth.NewClient()
+	if err != nil {
+		return nil, err
+	}
 
-	var dc *DevenvConfig
+	var dc *config.Devenv
 	for _, f := range possibleFiles {
-		if _, err := os.Stat(filepath.Join(repoPath, f)); err != nil {
-			continue
-		}
-
-		var err error
-		dc, err = parseDevenvConfig(filepath.Join(repoPath, f))
+		dc, err = config.FromGitHub(ctx, conf, serviceName, gh, f)
 		if err != nil {
-			continue
+			continue // we continue to the next file, err is logged in getConfig
 		}
 
 		// We found a file, stop looking
@@ -98,22 +85,23 @@ func findDependenciesInRepo(serviceName, repoPath string) map[string]struct{} {
 	if dc == nil {
 		log.Warn().Str("service", serviceName).
 			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
-		return nil
+		return nil, nil
 	}
 
 	deps := make(map[string]struct{})
-	for _, d := range append(dc.Dependencies.Required, dc.Dependencies.Optional...) {
+	// We deploy just required transitive dependencies
+	for _, d := range dc.Dependencies.Required {
 		deps[d] = struct{}{}
 	}
 
-	return deps
+	return deps, nil
 }
 
 // grabDependencies traverses the dependency tree by calculating
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
-func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName string) error {
+func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]struct{}, serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
 	if serviceName == flagship {
@@ -127,34 +115,19 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 
 	log.Info().Str("dep", serviceName).Msg("Resolving dependency")
 
-	// Create a temporary directory to clone the repo into
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("e2e-%s-*", serviceName))
-	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Download the git repo locally
-	//nolint:gosec // Why: Need to do this
-	cmd := exec.CommandContext(ctx,
-		"git", "clone", "-q", "--depth", "1", "git@github.com:"+path.Join("getoutreach", serviceName), tmpDir,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "failed to clone dependency %s", serviceName)
-	}
-
 	// Find the dependencies of this repo
-	foundDeps := findDependenciesInRepo(serviceName, tmpDir)
+	foundDeps, err := findDependenciesInRepo(ctx, conf, serviceName)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to grab dependencies")
+	}
 
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
 	deps[serviceName] = struct{}{}
 
 	for d := range foundDeps {
-		if err := grabDependencies(ctx, deps, d); err != nil {
+		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return err
 		}
 	}
@@ -162,49 +135,8 @@ func grabDependencies(ctx context.Context, deps map[string]struct{}, serviceName
 	return nil
 }
 
-// parseDevenvConfig parses the devenv.yaml file and returns a struct
-func parseDevenvConfig(confPath string) (*DevenvConfig, error) {
-	f, err := os.Open(confPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read devenv.yaml or service.yaml")
-	}
-	defer f.Close()
-
-	var dc DevenvConfig
-	if err := yaml.NewDecoder(f).Decode(&dc); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse devenv.yaml or service.yaml")
-	}
-
-	return &dc, nil
-}
-
-// appAlreadyDeployed checks if an application is already deployed, if it is
-// it returns true, otherwise false.
-func appAlreadyDeployed(ctx context.Context, app string) bool {
-	var deployedApps []struct {
-		Name string `json:"name"`
-	}
-
-	b, err := exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "list", "--output", "json").Output()
-	if err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal(b, &deployedApps); err != nil {
-		return false
-	}
-
-	for _, a := range deployedApps {
-		if a.Name == app {
-			return true
-		}
-	}
-
-	return false
-}
-
 // provisionNew destroys and re-provisions a devenv
-func provisionNew(ctx context.Context, deps []string, target string) error { // nolint:unparam // Why: keeping in the interface for now
+func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
@@ -213,21 +145,14 @@ func provisionNew(ctx context.Context, deps []string, target string) error { // 
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
-	for _, d := range deps {
-		// Skip applications that are already deployed, this is usually when
-		// they're in a snapshot we just provisioned from.
-		if appAlreadyDeployed(ctx, d) {
-			log.Info().Msgf("App %s already deployed, skipping", d)
-			continue
-		}
-
-		log.Info().Msgf("Deploying dependency '%s'", d)
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", d)).Run(); err != nil {
-			log.Fatal().Err(err).Msgf("Failed to deploy dependency '%s'", d)
-		}
-	}
-
 	return nil
+}
+
+// runDevconfig executes devconfig command
+func runDevconfig(ctx context.Context) {
+	if err := osStdOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run devconfig")
+	}
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -288,6 +213,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	conf, err := box.EnsureBoxWithOptions(ctx)
@@ -317,34 +243,57 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	log.Info().Msg("Building dependency tree")
 
-	deps, err := BuildDependenciesList(ctx)
-	if err != nil {
-		//nolint:gocritic // Why: need to get exit code >0
-		log.Fatal().Err(err).Msg("Failed to build dependency tree")
-		return
-	}
-
-	log.Info().Strs("deps", deps).Msg("Provisioning devenv")
-
-	// TODO(jaredallard): outreach specific code
-	target := "base"
-	for _, d := range deps {
-		if d == "outreach" {
-			target = flagship
-			break
-		}
-	}
-
 	// Provision a devenv if it doesn't already exist. If it does exist,
 	// warn the user their test is no longer potentially reproducible.
 	// Allow skipping provision, this is generally only useful for the devenv
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
 		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
-			if err := provisionNew(ctx, deps, target); err != nil {
+			var wg sync.WaitGroup
+			dockerBuilt := false
+			wg.Add(1)
+
+			// Build docker sooner and out of critical path to speed things up.
+			// Docker build in devenv apps deploy . will be superfast then.
+			go func(wg *sync.WaitGroup) {
+				defer wg.Done()
+				log.Info().Msg("Starting early docker build")
+				if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+					log.Warn().Err(err).Msg("Error when running early docker build")
+				} else {
+					log.Info().Msg("Early docker build finished successfully")
+				}
+				dockerBuilt = true
+			}(&wg)
+
+			deps, err := BuildDependenciesList(ctx, conf)
+			if err != nil {
+				//nolint:gocritic // Why: need to get exit code >0
+				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				return
+			}
+
+			// TODO(jaredallard): outreach specific code
+			target := "base"
+			for _, d := range deps {
+				if d == "outreach" {
+					target = flagship
+					break
+				}
+			}
+
+			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+
+			if err := provisionNew(ctx, target); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
+
+			if !dockerBuilt {
+				log.Info().Msg("Waiting for docker build to finish")
+			}
+
+			wg.Wait() // To ensure that docker build is finished
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
@@ -352,22 +301,37 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}
 	}
 
-	dc, err := parseDevenvConfig("devenv.yaml")
+	dc, err := config.FromFile("devenv.yaml")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse devenv.yaml, cannot run e2e tests for this repo")
+	}
+
+	var wg sync.WaitGroup
+	requireDevconfigAfterDeploy := os.Getenv("REQUIRE_DEVCONFIG_AFTER_DEPLOY") == "true"
+
+	if !requireDevconfigAfterDeploy {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			log.Info().Msg("Running devconfig in background")
+			runDevconfig(ctx)
+			log.Info().Msg("Running devconfig in background finished")
+		}(&wg)
 	}
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", ".")).Run() != nil {
+		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	}
 
-	log.Info().Msg("Running devconfig")
-	if err := osStdInOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
+	if requireDevconfigAfterDeploy {
+		log.Info().Msg("Running devconfig")
+		runDevconfig(ctx)
+	} else {
+		wg.Wait() // Ensure that devconfig is done
 	}
 
 	// If the post-deploy script for e2e exists, run it.

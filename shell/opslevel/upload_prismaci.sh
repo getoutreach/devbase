@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#
-# This script uploads Twistlock Image Scan results (in a compact format) to Prisma Cloud.
+
+# This script uploads Twistlock Image Scan results (in a compact format) to OpsLevel.
 # This is not a standalone script - it is meant to be called from the upload.sh script only.
-#
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 IMAGE_SCAN_ARTIFACT_NAME="tmp/test-results/image_scan.json"
@@ -22,8 +22,31 @@ if [[ -z ${ARTIFACT_URL} ]]; then
   exit 0
 fi
 
-# Download the scan results locally
-download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
+# Set interval (duration) in seconds.
+SECONDS=10
+# Calculate end timeout.
+ENDTIMEOUT=$(($(date +%s) + SECONDS))
+
+while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
+  sleep 2
+
+  # Download the scan results locally
+  download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
+
+  # check for a message value
+  RESULT_FILE_MESSAGE=$(jq -r .message ${SCAN_RESULTS_FILE})
+
+  # if no message field exists then we can assume that the artifact exists based
+  # on file output
+  if [[ ${RESULT_FILE_MESSAGE} == "null" ]]; then
+    break
+  fi
+
+  # check var contains the message "Build not found". If so continue
+  if [[ ${RESULT_FILE_MESSAGE} == "Build not found" ]]; then
+    continue
+  fi
+done
 
 # Generate summary file, see image_scan_filter.jq for more details.
 jq \

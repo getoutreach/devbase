@@ -10,4 +10,11 @@ source "$DIR/lib/bootstrap.sh"
 # We set -plaintext here because we don't use GRPC TLS
 args=("-plaintext" "$@")
 
-exec "$GOBIN" "github.com/fullstorydev/grpcui/cmd/grpcui@v$(get_application_version "grpcui")" "${args[@]}"
+# check if the grpcui command failes and if so echo error message
+if ! "$GOBIN" "github.com/fullstorydev/grpcui/cmd/grpcui@v$(get_application_version "grpcui")" "${args[@]}"; then
+  echo
+  echo 'this expects your service to either be running locally or have port forward running.
+to port forward:
+  - deploy to devenv (i.e. "devenv app deploy .")
+  - run "kubectl port-forward service/[SERVICE-NAME] 5000:5000 -n [NAMESPACE]"'
+fi

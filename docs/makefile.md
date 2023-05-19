@@ -83,7 +83,15 @@ Alias for `make dev`.
 
 ### `debug`
 
-Runs the project in debug mode. This defaults to running a go application.
+Runs a Go application in debug mode using [delve](https://github.com/go-delve/delve).
+
+#### Environment Variables
+
+* `PACKAGE_TO_DEBUG`: Path to package to debug. Defaults to `./cmd/$(APP_NAME)`.
+* `IN_CONTAINER`: Overrides the `IN_CONTAINER` environment variable. This is set automatically when running in a container.
+* `DLV_PORT`: Port to run the debugger on, must be set when `HEADLESS` is true.
+* `HEADLESS`: Run in headless mode. Defaults to `false` when `IN_CONTAINER` is `false`. Must set `DLV_PORT` when `HEADLESS` is `true`.
+* `DEV_CONTAINER_LOGFILE`: Path to log file to use when running in a container. Defaults to `/tmp/app.log`.
 
 ### `docs`
 

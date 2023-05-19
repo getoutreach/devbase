@@ -126,9 +126,25 @@ asdf_install_retry() {
   local plugin="$1"
   local version="$2"
 
-  if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
-    arch -x86_64 asdf install "$plugin" "$version"
-    return $?
+  # Failed to install, try again once in case of network flakiness
+  if ! asdf install "$plugin" "$version"; then
+    echo
+    echo "Failed to install $plugin $version"
+
+    # If we're on macOS and we're on an M1, note that the user should try
+    # installing with AMD64 emulation. We don't do this ourself because it's
+    # slow to run commands under emulation and we can't tell if that is the reason.
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+      echo "$(tput bold)Note:$(tput sgr0) This may be due to the plugin not supporting your current architecture."
+      echo "      This is likely the case if you're seeing \"not found\" or 404 errors and"
+      echo "      you're sure that the version you're trying to install exists. Using the"
+      echo "      plugin with AMD64 emulation may help, however this will result in all"
+      echo "      commands being run under emulation which is slow."
+      echo
+      echo "      You can try installing the plugin with the following command:"
+      echo
+      echo "      arch -x86_64 asdf install $plugin $version"
+    fi
   fi
 
   # Not a supported retry, so just try again once and pray.
