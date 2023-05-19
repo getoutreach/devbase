@@ -37,7 +37,7 @@ gofmt() {
 linter() {
   run_command "go mod tidy" go_mod_tidy || return 1
   run_command "golangci-lint" \
-    "$DIR/golangci-lint.sh" --build-tags "or_e2e,or_test" --timeout 10m run --out-format colored-line-number ./... || return 1
+    "$DIR/golangci-lint.sh" --build-tags "or_e2e,or_test" --timeout 20m run --out-format colored-line-number ./... || return 1
   run_command "lintroller" lintroller || return 1
 }
 
