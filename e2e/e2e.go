@@ -141,7 +141,7 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update",
-		"provision", "--snapshot-target", target)).Run(); err != nil {
+		"provision", "--snapshot-target", target, "--snapshot-channel", "rc")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
