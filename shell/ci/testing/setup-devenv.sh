@@ -46,7 +46,7 @@ if [[ -n $CI ]]; then
       # Otherwise, just copy the file
       sudo cp "$tmpFile" "$keyringLocation"
     fi
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
+    echo "deb [signed-by=$keyringLocation] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
     sudo apt-get update -y
     sudo apt-get install -y kubectl
   fi
