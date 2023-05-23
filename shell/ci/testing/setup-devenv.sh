@@ -39,7 +39,7 @@ if [[ -n $CI ]]; then
     # they end up fixing it.
     if grep -q -- "-----BEGIN" "$tmpFile"; then
       # Output is armored, convert to binary
-      gpg --dearmor "$tmpFile" | sudo tee "$keyringLocation" >/dev/null
+      gpg --output - --dearmor "$tmpFile" | sudo tee "$keyringLocation" >/dev/null
       rm "$tmpFile"
     else
       echo "Warning: GCP apt-key is not armored. We can remove this workaround now."
