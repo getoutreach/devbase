@@ -31,7 +31,8 @@ if [[ -n $CI ]]; then
     info "Installing kubectl"
     tmpFile=$(mktemp)
     keyringLocation=/etc/apt/keyrings/kubernetes-archive-keyring.gpg
-    sudo curl -fsSLo "$tmpFile" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+    curl -fsSLo "$tmpFile" https://packages.cloud.google.com/apt/doc/apt-key.gpg
 
     # 2023-05-23: GCP changed their key to be armored and their location. Currently
     # the file extension is incorrect. So, we handle if it is armored or not in case
