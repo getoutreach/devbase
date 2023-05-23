@@ -34,7 +34,7 @@ if [[ -n $CI ]]; then
 
     curl -fsSLo "$tmpFile" https://packages.cloud.google.com/apt/doc/apt-key.gpg
 
-    # 2023-05-23: GCP changed their key to be armored and their location. Currently
+    # 2023-05-23: GCP changed their key to be armored and changed the key location. Currently
     # the file extension is incorrect. So, we handle if it is armored or not in case
     # they end up fixing it.
     if grep -q -- "-----BEGIN" "$tmpFile"; then
