@@ -29,8 +29,24 @@ if [[ -n $CI ]]; then
 
   if ! command -v kubectl >/dev/null; then
     info "Installing kubectl"
-    sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://dl.k8s.io/apt/doc/apt-key.gpg
-    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    tmpFile=$(mktemp)
+    keyringLocation=/etc/apt/keyrings/kubernetes-archive-keyring.gpg
+
+    curl -fsSLo "$tmpFile" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+    # 2023-05-23: GCP changed their key to be armored and changed the key location. Currently
+    # the file extension is incorrect. So, we handle if it is armored or not in case
+    # they end up fixing it.
+    if grep -q -- "-----BEGIN" "$tmpFile"; then
+      # Output is armored, convert to binary
+      gpg --output - --dearmor "$tmpFile" | sudo tee "$keyringLocation" >/dev/null
+      rm "$tmpFile"
+    else
+      echo "Warning: GCP apt-key is not armored. We can remove this workaround now."
+      # Otherwise, just copy the file
+      sudo cp "$tmpFile" "$keyringLocation"
+    fi
+    echo "deb [signed-by=$keyringLocation] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
     sudo apt-get update -y
     sudo apt-get install -y kubectl
   fi
