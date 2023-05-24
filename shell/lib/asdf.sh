@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
+VERSION_MANAGER="asdf"
+if command -v rtx @ >/dev/null && [[ -z "$DEVBASE_DISABLE_RTX" ]]; then
+  echo "[devbase] rtx found in path, using rtx instead of asdf. This is a beta feature."
+  VERSION_MANAGER="rtx"
+
+  # alias asdf to rtx because it is compatible with asdf, for the most part.
+  # Note: When this code is rewritten in Go, we should have actual interfaces
+  # for the version managers and not have to alias.
+  asdf() {
+    rtx "$@"
+  }
+fi
+
 # asdf_plugins_list stores a list of all asdf plugins
 # this is done to speed up the plugin install
 asdf_plugins_list=""
@@ -48,12 +61,16 @@ asdf_devbase_exec() {
     exit 1
   fi
 
-  export "ASDF_${tool_env_var}_VERSION"="${version}"
+  if [[ "$VERSION_MANAGER" == "asdf" ]]; then
+    export "ASDF_${tool_env_var}_VERSION"="${version}"
 
-  # Ensure that the tool and/or plugin is installed
-  asdf_devbase_ensure
+    # Ensure that the tool and/or plugin is installed
+    asdf_devbase_ensure
 
-  exec "$@"
+    exec "$@"
+  else
+    exec rtx exec "$tool@$version" -- "$@"
+  fi
 }
 
 # asdf_devbase_ensure ensures that the versions from the devbase
@@ -81,10 +98,8 @@ asdf_devbase_ensure() {
     # Note: This only runs if the plugin doesn't already exist
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
 
-    # If the version doesn't exist, install it.
-    # Note: we don't use asdf list <plugin> here because checking the file system
-    # entry is ~90% faster than running the asdf command.
-    if [[ ! -d "$ASDF_DIR/installs/$plugin/$version" ]]; then
+    # Install the version if it doesn't already exist
+    if ! asdf list "$plugin" | grep -qE "$version"; then
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
       asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi
@@ -145,7 +160,7 @@ asdf_install_retry() {
       echo
       echo "      You can try installing the plugin with the following command:"
       echo
-      echo "      arch -x86_64 asdf install $plugin $version"
+      echo "      arch -x86_64 $VERSION_MANAGER install $plugin $version"
     fi
   fi
 }
@@ -159,6 +174,6 @@ asdf_plugin_install() {
     return
   fi
 
-  asdf plugin-add "$name"
+  asdf plugin add "$name"
   asdf_plugins_list_regenerate
 }
