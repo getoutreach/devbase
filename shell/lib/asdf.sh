@@ -2,8 +2,8 @@
 # Utilities for working with asdf
 
 VERSION_MANAGER="asdf"
-if command -v rtx @ >/dev/null && [[ -z "$DEVBASE_DISABLE_RTX" ]]; then
-  echo "[devbase] rtx found in path, using rtx instead of asdf. This is a beta feature."
+if command -v rtx @ >/dev/null && [[ -z $DEVBASE_DISABLE_RTX ]]; then
+  echo "[devbase] rtx found in path, using rtx instead of asdf. This is a beta feature." >&2
   VERSION_MANAGER="rtx"
 
   # alias asdf to rtx because it is compatible with asdf, for the most part.
@@ -61,7 +61,7 @@ asdf_devbase_exec() {
     exit 1
   fi
 
-  if [[ "$VERSION_MANAGER" == "asdf" ]]; then
+  if [[ $VERSION_MANAGER == "asdf" ]]; then
     export "ASDF_${tool_env_var}_VERSION"="${version}"
 
     # Ensure that the tool and/or plugin is installed
