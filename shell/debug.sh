@@ -100,12 +100,6 @@ else
   echo -e "\n\n\n\n\n\n\n\n" >>"$DEV_CONTAINER_LOGFILE"
 
   # Start delve in the background so we can kill it on ctrl-c.
-
-  # This is a bit of a hack, but this is the best way I could find to
-  # send the logs to stdout and the logfile. Using tee overwrites
-  # the most recent PID and makes it hard to get the delve PID, which
-  # we need if we want to kill delve.
-
   "${delve[@]}" >>"$DEV_CONTAINER_LOGFILE" 2>&1 &
   DLV_PID=$!
   echo "delve pid is: $DLV_PID"
