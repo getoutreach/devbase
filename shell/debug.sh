@@ -83,10 +83,9 @@ if [[ $HEADLESS == "true" ]]; then
   )
 fi
 
-function ctrl_c_trap()
-{
+function ctrl_c_trap() {
   echo "killing delve with PID: $DLV_PID"
-  kill $DLV_PID
+  kill "$DLV_PID"
   exit
 }
 
@@ -98,7 +97,7 @@ trap ctrl_c_trap SIGINT
 if [[ $IN_CONTAINER == "false" ]]; then
   exec "${delve[@]}"
 else
-  echo -e "\n\n\n\n\n\n\n\n" >> $DEV_CONTAINER_LOGFILE
+  echo -e "\n\n\n\n\n\n\n\n" >>"$DEV_CONTAINER_LOGFILE"
 
   # Start delve in the background so we can kill it on ctrl-c.
 
@@ -107,7 +106,7 @@ else
   # the most recent PID and makes it hard to get the delve PID, which
   # we need if we want to kill delve.
 
-  "${delve[@]}" 2>&1 >> $DEV_CONTAINER_LOGFILE &
+  "${delve[@]}" 2>&1 >>"$DEV_CONTAINER_LOGFILE" &
   DLV_PID=$!
   echo "delve pid is: $DLV_PID"
 
