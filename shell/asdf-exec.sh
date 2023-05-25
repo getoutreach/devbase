@@ -15,7 +15,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
-# shellcheck source=./lib/bootstrap.sh
+# shellcheck source=./lib/asdf.sh
 source "$SCRIPTS_DIR/lib/asdf.sh"
 
 if [[ $VERSION_MANAGER == "asdf" ]]; then
