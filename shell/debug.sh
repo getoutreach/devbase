@@ -106,12 +106,12 @@ else
   # the most recent PID and makes it hard to get the delve PID, which
   # we need if we want to kill delve.
 
-  "${delve[@]}" 2>&1 >>"$DEV_CONTAINER_LOGFILE" &
+  "${delve[@]}" >>"$DEV_CONTAINER_LOGFILE" 2>&1 &
   DLV_PID=$!
   echo "delve pid is: $DLV_PID"
 
   # tail to watch logs here
-  tail -f "$DEV_CONTAINER_LOGFILE"
+  tail -n 5 -f "$DEV_CONTAINER_LOGFILE"
 fi
 
 wait
