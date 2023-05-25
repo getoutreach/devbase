@@ -19,7 +19,10 @@ source "$SCRIPTS_DIR/lib/bootstrap.sh"
 source "$SCRIPTS_DIR/lib/asdf.sh"
 
 if [[ $VERSION_MANAGER == "asdf" ]]; then
-  TOOLVERSIONS="$(get_repo_directory)/.tool-versions"
+  # TOOLVERSIONS contains all of the `.tool-versions` files that should be
+  # searched for tool versions. The first occurance of a tool in the list will
+  # be used.
+  TOOLVERSIONS=("$(get_repo_directory)/.tool-versions" "$(get_repo_directory)/.bootstrap/.tool-versions")
 
   while read -r line; do
     tool=$(awk '{ print $1 }' <<<"$line" | tr '[:lower:]-' '[:upper:]_')
@@ -35,7 +38,7 @@ if [[ $VERSION_MANAGER == "asdf" ]]; then
     #
     # Uses the `sed` reverse mechanism described here for portability:
     # https://stackoverflow.com/a/744093
-  done < <(sed '/^[[:blank:]]*#/d;s/#.*//;s/[[:blank:]]*$//' "${TOOLVERSIONS}" | sed '1!G;h;$!d')
+  done < <(cat "${TOOLVERSIONS[@]}" | sed '/^[[:blank:]]*#/d;s/#.*//;s/[[:blank:]]*$//' | sed '1!G;h;$!d')
   exec asdf exec "$@"
 else
   asdf_devbase_exec "$@"
