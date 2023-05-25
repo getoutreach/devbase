@@ -3,7 +3,10 @@
 
 VERSION_MANAGER="asdf"
 if command -v rtx @ >/dev/null && [[ -z $DEVBASE_DISABLE_RTX ]]; then
-  echo "[devbase] rtx found in path, using rtx instead of asdf. This is a beta feature." >&2
+  if [[ -z $DEVBASE_WARNED_RTX ]]; then
+    export DEVBASE_WARNED_RTX=1
+    echo "[devbase] rtx found in path, using rtx instead of asdf. This is a beta feature." >&2
+  fi
   VERSION_MANAGER="rtx"
 
   # alias asdf to rtx because it is compatible with asdf, for the most part.

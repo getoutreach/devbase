@@ -12,7 +12,7 @@ APP                 ?= unset
 ORG                 ?= getoutreach
 
 # Transition
-MAGE_CMD            := MAGEFILE_HASHFAST=true exec $(SHELL) -c 'source "$(BOOTSTRAP_DIR)/shell/lib/asdf.sh" && asdf_devbase_exec mage -d "$(BOOTSTRAP_DIR)/root" -w "$(CURDIR)"'
+MAGE_CMD            := MAGEFILE_HASHFAST=true "$(BOOTSTRAP_DIR)/shell/asdf-exec.sh" mage -d "$(BOOTSTRAP_DIR)/root" -w "$(CURDIR)"
 APP_VERSION         := $(shell $(MAGE_CMD) version)
 
 # go options
