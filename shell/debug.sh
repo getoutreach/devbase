@@ -111,7 +111,7 @@ else
   DLV_PID=$!
   echo "delve pid is: $DLV_PID"
 
-  if [[ $HEADLESS != "false" ]]; then
+  if [[ $IN_CONTAINER != "false" ]]; then
     # tail to watch logs here
     tail -n 5 -f "$DEV_CONTAINER_LOGFILE"
   fi
