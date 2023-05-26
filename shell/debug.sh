@@ -106,13 +106,12 @@ else
     # a container so the output can be processed by devspace.
     echo -e "\n\n\n\n\n\n\n\n" >>"$DEV_CONTAINER_LOGFILE"
     "${delve[@]}" >>"$DEV_CONTAINER_LOGFILE" 2>&1 &
-    IS_LOGGING="true"
   fi
 
   DLV_PID=$!
   echo "delve pid is: $DLV_PID"
 
-  if [[ $IS_LOGGING == "true" ]]; then
+  if [[ $HEADLESS != "false" ]]; then
     # tail to watch logs here
     tail -n 5 -f "$DEV_CONTAINER_LOGFILE"
   fi
