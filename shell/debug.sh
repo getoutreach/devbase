@@ -10,9 +10,9 @@ source "$DIR/lib/bootstrap.sh"
 # PACKAGE_TO_DEBUG is the package to debug. If not set, it will default to the
 # main package, which is cmd/<app_name>.
 if [[ -z $PACKAGE_TO_DEBUG ]]; then
-PACKAGE_TO_DEBUG="${PACKAGE_TO_DEBUG:-$(get_repo_directory)/cmd/$(get_app_name)}"
+  PACKAGE_TO_DEBUG="${PACKAGE_TO_DEBUG:-$(get_repo_directory)/cmd/$(get_app_name)}"
 else
-PACKAGE_TO_DEBUG="${DEV_CONTAINER_EXECUTABLE:-$(get_repo_directory)/cmd/$(get_app_name)}"
+  PACKAGE_TO_DEBUG="${DEV_CONTAINER_EXECUTABLE:-$(get_repo_directory)/cmd/$(get_app_name)}"
 fi
 
 # IN_CONTAINER is a flag that indicates whether or not we are running in a
