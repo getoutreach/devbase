@@ -32,11 +32,12 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   sleep 2
   download_artifacts_json "${ARTIFACTS_JSON_FILE}"
 
-  EXITCODE=$?
-
-  if [ "${EXITCODE}" -eq "0" ]; then
-    echo "successfully ran command to download artifacts json"
+  # Check if artifact file is empty
+  if [ -s "${ARTIFACTS_JSON_FILE}" ]; then
+    echo "successfully retrived artifacts json"
     break
+  else
+    echo "failed to retrive artifacts json"
   fi
 done
 # capture the result into a var
