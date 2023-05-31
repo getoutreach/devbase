@@ -44,6 +44,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   if [[ ${RESULT_FILE_MESSAGE} == "Build not found" ]]; then
     continue
   fi
+  sleep 2
 done
 
 # Generate summary file, see image_scan_filter.jq for more details.
