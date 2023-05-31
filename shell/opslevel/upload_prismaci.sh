@@ -28,8 +28,6 @@ SECONDS=20
 ENDTIMEOUT=$(($(date +%s) + SECONDS))
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
-  sleep 2
-
   # Download the scan results locally
   download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
