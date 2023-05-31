@@ -31,12 +31,12 @@ ENDTIMEOUT=$(($(date +%s) + SECONDS))
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   sleep 2
   download_artifacts_json "${ARTIFACTS_JSON_FILE}"
-  
+
   EXITCODE=$?
   echo "EXIT CODE: ${EXITCODE}"
 
   if [ "${EXITCODE}" -eq "0" ]; then
-    echo "exit code is zero"
+    echo "successfully ran command to download artifacts json"
     break
   fi
 done
