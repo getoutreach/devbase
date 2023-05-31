@@ -29,7 +29,6 @@ SECONDS=20
 ENDTIMEOUT=$(($(date +%s) + SECONDS))
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
-  sleep 2
   download_artifacts_json "${ARTIFACTS_JSON_FILE}"
 
   # Check if artifact file is empty
@@ -38,6 +37,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
     break
   else
     echo "failed to retrive artifacts json"
+    sleep 2
   fi
 done
 
