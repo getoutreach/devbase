@@ -28,7 +28,6 @@ SECONDS=20
 ENDTIMEOUT=$(($(date +%s) + SECONDS))
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
-  echo "ARTIFACT_URL: ${ARTIFACT_URL}"
   sleep 2
 
   # Download the scan results locally
