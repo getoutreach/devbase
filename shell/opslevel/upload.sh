@@ -33,7 +33,6 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   download_artifacts_json "${ARTIFACTS_JSON_FILE}"
 
   EXITCODE=$?
-  echo "EXIT CODE: ${EXITCODE}"
 
   if [ "${EXITCODE}" -eq "0" ]; then
     echo "successfully ran command to download artifacts json"
