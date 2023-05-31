@@ -21,7 +21,6 @@ source "$DIR/../lib/opslevel.sh"
 
 # Download Artifacts JSON once
 ARTIFACTS_JSON_FILE=/tmp/artifacts.json
-# download_artifacts_json "${ARTIFACTS_JSON_FILE}"
 
 # have a loop that runs every 2 seconds and will terminate after X seconds or if file doesnt contain message
 # Set interval (duration) in seconds.
@@ -32,6 +31,7 @@ ENDTIMEOUT=$(($(date +%s) + SECONDS))
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   sleep 2
   download_artifacts_json "${ARTIFACTS_JSON_FILE}"
+  
   EXITCODE=$?
   echo "EXIT CODE: ${EXITCODE}"
 
