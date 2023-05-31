@@ -23,18 +23,27 @@ if [[ -z ${ARTIFACT_URL} ]]; then
 fi
 
 # Set interval (duration) in seconds.
-SECONDS=10
+SECONDS=20
 # Calculate end timeout.
 ENDTIMEOUT=$(($(date +%s) + SECONDS))
 
 while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
+  echo "ARTIFACT_URL: ${ARTIFACT_URL}"
   sleep 2
 
   # Download the scan results locally
   download_artifact_by_full_url "${ARTIFACT_URL}" "${SCAN_RESULTS_FILE}"
 
+  echo "SCAN_RESULTS_FILE:"
+  echo "${SCAN_RESULTS_FILE}"
+
+  echo "SCAN_RESULTS_OPSLEVEL_FILE:"
+  echo "${SCAN_RESULTS_OPSLEVEL_FILE}"
+
   # check for a message value
   RESULT_FILE_MESSAGE=$(jq -r .message ${SCAN_RESULTS_FILE})
+
+  echo "RESULT_FILE_MESSAGE: ${RESULT_FILE_MESSAGE}"
 
   # if no message field exists then we can assume that the artifact exists based
   # on file output
