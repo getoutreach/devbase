@@ -40,7 +40,6 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
     echo "failed to retrive artifacts json"
   fi
 done
-# capture the result into a var
 
 # Upload scan results to OpsLevel
 # shellcheck source=./upload_prismaci.sh
