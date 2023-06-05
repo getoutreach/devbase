@@ -39,11 +39,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   if [[ ${RESULT_FILE_MESSAGE} == "null" ]]; then
     break
   fi
-
-  # check var contains the message "Build not found". If so continue
-  if [[ ${RESULT_FILE_MESSAGE} == "Build not found" ]]; then
-    continue
-  fi
+  
   sleep 2
 done
 
