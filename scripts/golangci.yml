@@ -19,8 +19,6 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 3
-  depguard:
-    list-type: blacklist
   misspell:
     locale: US
   lll:
@@ -47,7 +45,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - depguard
     - dogsled
     - errcheck
     - errorlint
