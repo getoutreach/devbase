@@ -21,7 +21,25 @@ source "$DIR/../lib/opslevel.sh"
 
 # Download Artifacts JSON once
 ARTIFACTS_JSON_FILE=/tmp/artifacts.json
-download_artifacts_json "${ARTIFACTS_JSON_FILE}"
+
+# have a loop that runs every 2 seconds and will terminate after X seconds or if file doesnt contain message
+# Set interval (duration) in seconds.
+SECONDS=20
+# Calculate end timeout.
+ENDTIMEOUT=$(($(date +%s) + SECONDS))
+
+while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
+  download_artifacts_json "${ARTIFACTS_JSON_FILE}"
+
+  # Check if artifact file is empty
+  if [ -s "${ARTIFACTS_JSON_FILE}" ]; then
+    echo "successfully retrived artifacts json"
+    break
+  fi
+
+  echo "failed to retrive artifacts json"
+  sleep 2
+done
 
 # Upload scan results to OpsLevel
 # shellcheck source=./upload_prismaci.sh
