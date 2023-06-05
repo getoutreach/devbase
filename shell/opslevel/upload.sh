@@ -37,8 +37,8 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
     break
   fi
 
-   echo "failed to retrive artifacts json"
-   sleep 2
+  echo "failed to retrive artifacts json"
+  sleep 2
 done
 
 # Upload scan results to OpsLevel
