@@ -35,10 +35,10 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   if [ -s "${ARTIFACTS_JSON_FILE}" ]; then
     echo "successfully retrived artifacts json"
     break
-  else
-    echo "failed to retrive artifacts json"
-    sleep 2
   fi
+
+   echo "failed to retrive artifacts json"
+   sleep 2
 done
 
 # Upload scan results to OpsLevel
