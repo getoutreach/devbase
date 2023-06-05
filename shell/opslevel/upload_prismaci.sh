@@ -39,7 +39,7 @@ while [ "$(date +%s)" -lt $ENDTIMEOUT ]; do
   if [[ ${RESULT_FILE_MESSAGE} == "null" ]]; then
     break
   fi
-  
+
   sleep 2
 done
 
