@@ -77,6 +77,7 @@ if [[ -z $CI ]]; then
 fi
 
 if [[ -z $SKIP_LOAD_CONFIG ]]; then
+  info "Skipping loading configs"
   return 0
 fi
 
