@@ -76,11 +76,6 @@ if [[ -z $CI ]]; then
   ensure_logged_into_vault
 fi
 
-if [[ -z $SKIP_LOAD_CONFIG ]]; then
-  info "Skipping loading configs"
-  return 0
-fi
-
 info "Generating local config/secrets in '$configDir'"
 envsubst="$("$DIR/gobin.sh" -p github.com/a8m/envsubst/cmd/envsubst@v1.2.0)"
 

@@ -307,9 +307,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 
 	var wg sync.WaitGroup
+
+	skipAppDeployment := os.Getenv("SKIP_APP_DEPLOYMENT") == "true"
 	requireDevconfigAfterDeploy := os.Getenv("REQUIRE_DEVCONFIG_AFTER_DEPLOY") == "true"
 
-	if !requireDevconfigAfterDeploy {
+	if !requireDevconfigAfterDeploy && !skipAppDeployment {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
@@ -318,8 +320,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			log.Info().Msg("Running devconfig in background finished")
 		}(&wg)
 	}
-
-	skipAppDeployment := os.Getenv("SKIP_APP_DEPLOYMENT") == "true"
 
 	// if it's a library we don't need to deploy the application.
 	if dc.Service {
