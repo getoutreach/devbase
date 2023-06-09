@@ -319,6 +319,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			runDevconfig(ctx)
 			log.Info().Msg("Running devconfig in background finished")
 		}(&wg)
+	} else {
+		log.Info().Msg("Skipping runDevConfig")
 	}
 
 	// if it's a library we don't need to deploy the application.
