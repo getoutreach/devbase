@@ -311,7 +311,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	skipAppDeployment := os.Getenv("SKIP_APP_DEPLOYMENT") == "true"
 	requireDevconfigAfterDeploy := os.Getenv("REQUIRE_DEVCONFIG_AFTER_DEPLOY") == "true"
 
-	if !requireDevconfigAfterDeploy || !skipAppDeployment {
+	if !requireDevconfigAfterDeploy && !skipAppDeployment {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
