@@ -12,7 +12,7 @@ source "$DIR/lib/bootstrap.sh"
 DEV_CONTAINER_EXECUTABLE="${DEV_CONTAINER_EXECUTABLE:-$(get_app_name)}"
 
 # PACKAGE_TO_DEBUG is the package to debug. If not set, it will default to the
-# main package, which is cmd/<app_name>.
+# to `./cmd/$DEV_CONTAINER_EXECUTABLE`
 PACKAGE_TO_DEBUG="${PACKAGE_TO_DEBUG:-$(get_repo_directory)/cmd/${DEV_CONTAINER_EXECUTABLE}}"
 
 # IN_CONTAINER is a flag that indicates whether or not we are running in a
