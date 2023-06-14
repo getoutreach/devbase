@@ -33,7 +33,8 @@ fi
 get_image_field() {
   local name="$1"
   local field="$2"
-  yq -r ".[\"$name\"]$field" "$MANIFEST"
+  # shellcheck disable=SC1087 # this is a yq/jq filter that shellcheck thinks is bash
+  yq -r ".[\"$name\"]$field[]" "$MANIFEST"
 }
 
 # build_and_push_image builds and pushes a docker image to
