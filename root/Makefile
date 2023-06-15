@@ -166,7 +166,7 @@ run:: pre-run build
 ## watch-build:         watch source files and build them for linux. To be used with devspace using `devenv apps run --bin .`
 .PHONY: watch-build
 watch-build:
-	@DEVBOX_LOGFMT="$(LOGFMT)" GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
+	@DEVBOX_LOGFMT="$(LOGFMT)" GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
 ## dev:       run the service
 .PHONY: dev
