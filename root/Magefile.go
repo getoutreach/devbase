@@ -84,13 +84,12 @@ func Gobuild(ctx context.Context) error {
 
 	args := []string{"build", "-v", "-o", buildDir, "-ldflags", ldFlags}
 
-	if os.Getenv("SKIP_TRIMPATH") != "true" {
-		// Build with -trimpath to ensure we have consistent module filenames embedded.
-		args = append(args, "-trimpath")
-	} else {
+	if os.Getenv("SKIP_TRIMPATH") == "true" {
 		log.Debug().Msg("Skipping trimpath argument for go build")
+	} else {
+		// Build with -trimpath to ensure we have consistent module filenames embedded.
+		args = append(args, "-trimpath")		
 	}
-
 
 	args = append(args, buildPath+"/...");
 	
