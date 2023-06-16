@@ -3,7 +3,7 @@
 set -e
 
 if [[ $SKIP_STARTING_APP == "true" ]]; then
-  echo "Application was built into bin folder, use 'devenv apps run --bin .' to start it in devspace pod"
+  echo "Application was built into bin folder, use 'devenv apps run -bin .' to start it in devspace pod"
   exit
 fi
 
