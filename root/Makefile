@@ -171,7 +171,7 @@ watch-build:
 ## dev:       run the service
 .PHONY: dev
 dev:: pre-dev
-	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
+	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 ## devconfig:       generates the required configuration to run the service locally
 .PHONY: devconfig
