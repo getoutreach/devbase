@@ -91,7 +91,7 @@ asdf_devbase_ensure() {
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
 
     # Install the version if it doesn't already exist
-    if ! asdf list "$plugin" | grep -qE "^$version$"; then
+    if ! asdf list "$plugin" | grep -qE "$version$"; then
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
       asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi

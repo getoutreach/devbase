@@ -29,12 +29,13 @@ if [[ ! -f $MANIFEST ]]; then
   fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
 fi
 
-# get_image_field returns a field from the manifest of the image
+# get_image_field is a helper to return a field from the manifest
+# for a given image. It will return an empty string if the field
+# is not set.
 get_image_field() {
-  local name="$1"
+  local image="$1"
   local field="$2"
-  # shellcheck disable=SC1087 # this is a yq/jq filter that shellcheck thinks is bash
-  yq -r ".[\"$name\"]$field[]" "$MANIFEST"
+  yaml_get_array "$(yaml_construct_object_filter "$image" "$field")" "$MANIFEST"
 }
 
 # build_and_push_image builds and pushes a docker image to
@@ -48,7 +49,7 @@ build_and_push_image() {
   #   - linux/amd64
   #
   # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
-  mapfile -t platforms < <(get_image_field "$image" '.platforms')
+  mapfile -t platforms < <(get_image_field "$image" 'platforms')
   if [[ -z $platforms ]] || [[ $platforms == "null" ]]; then
     platforms=("linux/arm64" "linux/amd64")
   fi
@@ -60,7 +61,7 @@ build_and_push_image() {
   #
   # See docker docs:
   # https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
-  mapfile -t secrets < <(get_image_field "$image" '.secrets')
+  mapfile -t secrets < <(get_image_field "$image" 'secrets')
   if [[ -z $secrets ]] || [[ $secrets == "null" ]]; then
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
@@ -73,7 +74,7 @@ build_and_push_image() {
   # as the repository. If this is not the main image (appName), we'll
   # append the appName to the repository to keep the images isolated
   # to this repository.
-  local remote_image_name=$(get_image_field "$image" '.pushTo')
+  local remote_image_name=$(get_image_field "$image" 'pushTo')
   if [[ -z $remote_image_name ]] || [[ $remote_image_name == "null" ]]; then
     local remote_image_name="$imageRegistry/$image"
 
@@ -128,8 +129,10 @@ build_and_push_image() {
     docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
   )
 
-  info "🔐 Scanning docker image for vulnerabilities"
-  "${TWIST_SCAN_DIR}/twist-scan.sh" "$image" || echo "Warning: Failed to scan image" >&2
+  if [[ $CI == "true" ]]; then
+    info "🔐 Scanning docker image for vulnerabilities"
+    "${TWIST_SCAN_DIR}/twist-scan.sh" "$image" || echo "Warning: Failed to scan image" >&2
+  fi
 
   if [[ -n $CIRCLE_TAG ]]; then
     echo "🔨 Building and Pushing Docker Image (production)"
@@ -142,6 +145,7 @@ build_and_push_image() {
   fi
 }
 
+# Build and (on tags: push) all images in the manifest
 mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
 for image in "${images[@]}"; do
   build_and_push_image "$image"
