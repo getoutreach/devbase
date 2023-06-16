@@ -163,9 +163,9 @@ grpcui:
 run:: pre-run build
 	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh air-runner.sh
 
-## watch-devspace:         watch source files and build them for linux. To be used with devspace using `devenv apps run --sync-binaries .`
-.PHONY: watch-devspace
-watch-devspace:
+## devspace-watch:         watch source files and build them for linux. To be used with devspace using `devenv apps run --sync-binaries .`
+.PHONY: devspace-watch
+devspace-watch:
 	@DEVBOX_LOGFMT="$(LOGFMT)" GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
 
 ## devspace:               build sources for linux with debugging symbols. To be used with devspace using `devenv apps run --sync-binaries .`
