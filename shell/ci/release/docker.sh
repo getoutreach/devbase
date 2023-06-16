@@ -24,6 +24,9 @@ source "${LIB_DIR}/buildx.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/yaml.sh
+source "${LIB_DIR}/yaml.sh"
+
 if [[ ! -f $MANIFEST ]]; then
   error "Manifest file '$MANIFEST' required for building Docker images"
   fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
