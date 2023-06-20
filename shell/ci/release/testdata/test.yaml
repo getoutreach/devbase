@@ -1,0 +1,5 @@
+default:
+  buildContext: helloWorld
+  secrets:
+    - hello
+    - world

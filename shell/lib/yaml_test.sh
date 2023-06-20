@@ -45,4 +45,31 @@ test_yaml_get_array() {
   return 0
 }
 
+test_yaml_get_field() {
+  # should be able to get a string value
+  local yaml_file=$(mktemp)
+  {
+    echo "foo: bar"
+  } >"$yaml_file"
+
+  echo "Should be able to get a string value"
+  local got=$(yaml_get_field ".foo" "$yaml_file")
+  local expected="bar"
+  if [[ $got != "$expected" ]]; then
+    echo "Expected '$expected', got '$got'"
+    exit 1
+  fi
+
+  echo "Should not error if the field is not set"
+  got=$(yaml_get_field ".not_set" "$yaml_file" 2>&1)
+  if [[ $got != "" ]]; then
+    echo "Expected empty value for unset field, got: '$got'" >&2
+    exit 1
+  fi
+
+  rm -f "$yaml_file"
+  return 0
+}
+
 test_yaml_get_array
+test_yaml_get_field
