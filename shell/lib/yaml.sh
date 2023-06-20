@@ -5,6 +5,10 @@
 # from a yaml array. If a value is not set, it will return
 # an empty string.
 #
+# To convert into a bash array, use the following:
+#
+#  mapfile -t my_array < <(yaml_get_array "$filter" "$file")
+#
 # $1 yq filter
 # $2 yaml file
 yaml_get_array() {
@@ -29,4 +33,26 @@ yaml_construct_object_filter() {
     filter+="[\"$arg\"]"
   done
   echo "$filter"
+}
+
+# yaml_get_field returns a value from a yaml file. If the
+# value is not set, or is null, an empty string is returned instead.
+# For array values, use yaml_get_array instead.
+#
+# $1 yq filter
+# $2 yaml file
+yaml_get_field() {
+  local filter="$1"
+  local file="$2"
+
+  returnValue=$(yq -r "$filter" "$file")
+
+  # If the return value was null, we want to return an empty string
+  # since it's more inline with bash's behavior.
+  if [[ $returnValue == "null" ]]; then
+    returnValue=""
+  fi
+
+  # Use printf instead of echo to avoid printing a newline
+  printf "%s" "$returnValue"
 }
