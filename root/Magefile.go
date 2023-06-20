@@ -84,6 +84,7 @@ func Gobuild(ctx context.Context) error {
 
 	args := []string{"build", "-v", "-o", buildDir, "-ldflags", ldFlags}
 
+	// SKIP_TRIMPATH is used for devspace binary sync, where you want to have same file paths for delve to work correctly
 	if os.Getenv("SKIP_TRIMPATH") == "true" {
 		log.Debug().Msg("Skipping trimpath argument for go build")
 	} else {
