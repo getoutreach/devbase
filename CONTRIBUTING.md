@@ -22,15 +22,6 @@ This project uses devbase, which exposes the following build tooling: [devbase/d
 
 <!-- <</Stencil::Block>> -->
 
-### Testing Bash Scripts
-
-This project currently has a very simple bash testing framework that will likely evolve to use
-[bats](https://github.com/bats-core/bats-core) in the future. For now, you can add a test anywhere
-as long as it is suffixed with `_test.sh` and it will be run when you run `make test`.
-
-A test is called with `bash` and should return a non-zero exit code if the test fails. For an example
-of a test, see [shell/lib/yaml_test.sh](shell/lib/yaml_test.sh).
-
 ### Replacing a Remote Version of the a Package with Local Version
 
 _This is only applicable if this repository exposes a public package_.
