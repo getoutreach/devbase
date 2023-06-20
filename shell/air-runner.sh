@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # This script enables us to run different bins with one Air configuration
 set -e
+
+if [[ $SKIP_STARTING_APP == "true" ]]; then
+  echo "Application was built into bin folder, use 'devenv apps run -bin .' to start it in devspace pod"
+  exit
+fi
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
