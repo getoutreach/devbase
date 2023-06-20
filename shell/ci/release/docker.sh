@@ -27,18 +27,37 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/yaml.sh
 source "${LIB_DIR}/yaml.sh"
 
-if [[ ! -f $MANIFEST ]]; then
-  error "Manifest file '$MANIFEST' required for building Docker images"
-  fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
-fi
-
 # get_image_field is a helper to return a field from the manifest
 # for a given image. It will return an empty string if the field
 # is not set.
+#
+# Arguments:
+#   $1 - image name
+#   $2 - field name
+#   $3 - type (array or string) (default: string)
+#   $4 - manifest file (default: $MANIFEST)
 get_image_field() {
   local image="$1"
   local field="$2"
-  yaml_get_array "$(yaml_construct_object_filter "$image" "$field")" "$MANIFEST"
+
+  # type can be 'array' or 'string'. Array values are
+  # returned as newline separated values, string values
+  # are returned as a single string. A string value can
+  # be strings, ints, bools, etc.
+  local type=${3:-string}
+  local manifest=${4:-$MANIFEST}
+
+  local filter="$(yaml_construct_object_filter "$image" "$field")"
+  if [[ $type == "array" ]]; then
+    yaml_get_array "$filter" "$manifest"
+    return
+  elif [[ $type == "string" ]]; then
+    yaml_get_field "$filter" "$manifest"
+    return
+  else
+    error "Unknown type '$type' for get_image_field"
+    fatal "Expected 'array' or 'string'"
+  fi
 }
 
 # build_and_push_image builds and pushes a docker image to
@@ -52,8 +71,8 @@ build_and_push_image() {
   #   - linux/amd64
   #
   # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
-  mapfile -t platforms < <(get_image_field "$image" 'platforms')
-  if [[ -z $platforms ]] || [[ $platforms == "null" ]]; then
+  mapfile -t platforms < <(get_image_field "$image" "platforms" "array")
+  if [[ -z $platforms ]]; then
     platforms=("linux/arm64" "linux/amd64")
   fi
 
@@ -64,8 +83,8 @@ build_and_push_image() {
   #
   # See docker docs:
   # https://docs.docker.com/develop/develop-images/build_enhancements/#new-docker-build-secret-information
-  mapfile -t secrets < <(get_image_field "$image" 'secrets')
-  if [[ -z $secrets ]] || [[ $secrets == "null" ]]; then
+  mapfile -t secrets < <(get_image_field "$image" "secrets" "array")
+  if [[ -z $secrets ]]; then
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
 
@@ -77,8 +96,8 @@ build_and_push_image() {
   # as the repository. If this is not the main image (appName), we'll
   # append the appName to the repository to keep the images isolated
   # to this repository.
-  local remote_image_name=$(get_image_field "$image" 'pushTo')
-  if [[ -z $remote_image_name ]] || [[ $remote_image_name == "null" ]]; then
+  local remote_image_name=$(get_image_field "$image" "pushTo")
+  if [[ -z $remote_image_name ]]; then
     local remote_image_name="$imageRegistry/$image"
 
     # If we're not the main image, then we should prefix the image name with the
@@ -115,8 +134,8 @@ build_and_push_image() {
 
   # If we're not the main image, the build context should be
   # the image directory instead.
-  buildContext="$(get_image_field "$image" '.buildContext')"
-  if [[ -z $buildContext ]] || [[ $buildContext == "null" ]]; then
+  buildContext="$(get_image_field "$image" "buildContext")"
+  if [[ -z $buildContext ]]; then
     buildContext="."
     if [[ $APPNAME != "$image" ]]; then
       buildContext="$(get_repo_directory)/deployments/$image"
@@ -148,8 +167,17 @@ build_and_push_image() {
   fi
 }
 
-# Build and (on tags: push) all images in the manifest
-mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
-for image in "${images[@]}"; do
-  build_and_push_image "$image"
-done
+# HACK(jaredallard): Skips building images if TESTING_DO_NOT_BUILD is set. We
+# should break out the functions from this script instead.
+if [[ -z $TESTING_DO_NOT_BUILD ]]; then
+  if [[ ! -f $MANIFEST ]]; then
+    error "Manifest file '$MANIFEST' required for building Docker images"
+    fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
+  fi
+
+  # Build and (on tags: push) all images in the manifest
+  mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
+  for image in "${images[@]}"; do
+    build_and_push_image "$image"
+  done
+fi
