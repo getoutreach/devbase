@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -149,10 +150,12 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 }
 
 // runDevconfig executes devconfig command
-func runDevconfig(ctx context.Context) {
-	if err := osStdOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
+func runDevconfig(ctx context.Context) error {
+	out, err := exec.CommandContext(ctx, "./scripts/shell-wrapper.sh", "devconfig.sh").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s", out)
 	}
+	return nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -314,7 +317,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
 			log.Info().Msg("Running devconfig in background")
-			runDevconfig(ctx)
+			if err := runDevconfig(ctx); err != nil {
+				// Call cancel to hopefully communicate a signal back to other currently running commands to stop
+				// doing what they're doing. If we just exit (implicitly via log.Fatal) they likely will continue
+				// running.
+				cancel()
+
+				log.Fatal().Err(err).Msg("failed to run devconfig")
+			}
 			log.Info().Msg("Running devconfig in background finished")
 		}(&wg)
 	}
@@ -329,7 +339,9 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	if requireDevconfigAfterDeploy {
 		log.Info().Msg("Running devconfig")
-		runDevconfig(ctx)
+		if err := runDevconfig(ctx); err != nil {
+			log.Fatal().Err(err).Msg("failed to run devconfig")
+		}
 	} else {
 		wg.Wait() // Ensure that devconfig is done
 	}
