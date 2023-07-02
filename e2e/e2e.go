@@ -1,6 +1,9 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: This file has the package main.
+// Description: This is the entrypoint of the e2e runner for the devenv.
+
+// TODO(george-e-shaw-iv): Remove all calls to log.Fatal with graceful exits in mind.
+
 package main
 
 import (
