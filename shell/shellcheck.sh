@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This is a wrapper around gobin.sh to run shellcheck.
+# This is a wrapper around asdf to run shellcheck.
 # Useful for using the correct version of shellcheck
 # with your editor.
 set -e
