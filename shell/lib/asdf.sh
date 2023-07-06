@@ -99,7 +99,7 @@ asdf_devbase_ensure() {
     fi
   done
 
-  if [ "$reshim" == 1 ]; then
+  if [ "$need_reshim" == 1 ]; then
     # Reshim to ensure that the correct versions are used
     asdf reshim
   fi
