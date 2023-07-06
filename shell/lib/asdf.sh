@@ -70,13 +70,13 @@ asdf_devbase_exec() {
 asdf_devbase_ensure() {
   readarray -t asdf_entries < <(read_all_asdf_tool_versions)
   local need_reshim=0
-  for (( i=0; i < "${#asdf_entries[@]}"; i=(($i + 2)) )); do
+  for ((i = 0; i < "${#asdf_entries[@]}"; i = (i + 2))); do
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
     local plugin="${asdf_entries[$i]}"
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
-    local version="${asdf_entries[$i + 1]}"
+    local version="${asdf_entries[i + 1]}"
 
     if [[ -z $plugin ]]; then
       echo "No plugin found in devbase .tool-versions file"
