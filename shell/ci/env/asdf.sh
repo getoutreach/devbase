@@ -91,5 +91,5 @@ if [[ $installedAsdf == "true" ]]; then
   fi
 fi
 
-echo "🛠 Installing languages/plugins from all .tool-version files"
+echo "🛠 Installing languages/plugins from all .tool-versions files"
 asdf_devbase_ensure
