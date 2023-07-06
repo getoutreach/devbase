@@ -143,14 +143,15 @@ build_and_push_image() {
   fi
 
   # Build image with registry prefix for devenv
-  if [[ -n "$DEVENV" ]]; then
-      echo "Building Docker Image for devenv"
-      image="gcr.io/outreach-docker/$image"
-  fi
+  if [[ -n $DEVENV_DOCKER_BUILD ]]; then
+    info "Building Docker Image for devenv"
+    image="gcr.io/outreach-docker/$image"
   # Build a quick native image and load it into docker cache for security scanning
   # Scan reports for release images are also uploaded to OpsLevel
   # (test image reports only available on PR runs as artifacts).
-  info "Building Docker Image (for scanning)"
+  else
+    info "Building Docker Image (for scanning)"
+  fi
   (
     set -x
     docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
