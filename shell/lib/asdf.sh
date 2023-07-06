@@ -15,11 +15,11 @@ asdf_plugins_list_regenerate
 
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.
-# Then strip the comments and run uniq.
+# This prints the plugin, then the version, each separated by a newline.
 read_all_asdf_tool_versions() {
   find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
     -name .tool-versions -exec cat {} \; |
-    grep -Ev "^#|^$" | sort | uniq
+    grep -Ev "^#|^$" | sort | uniq | awk '{ print $1 } { print $2 }'
 }
 
 # asdf_get_version_from_devbase returns the version of a tool from the devbase
@@ -69,13 +69,14 @@ asdf_devbase_exec() {
 # .tool-version files in the current directory and all subdirectories.
 asdf_devbase_ensure() {
   readarray -t asdf_entries < <(read_all_asdf_tool_versions)
-  for entry in "${asdf_entries[@]}"; do
+  local need_reshim=0
+  for ((i = 0; i < "${#asdf_entries[@]}"; i = (i + 2))); do
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
-    local plugin="$(awk '{ print $1 }' <<<"$entry")"
+    local plugin="${asdf_entries[$i]}"
     # Why: We're OK not declaring separately here.
     # shellcheck disable=SC2155
-    local version="$(awk '{ print $2 }' <<<"$entry")"
+    local version="${asdf_entries[i + 1]}"
 
     if [[ -z $plugin ]]; then
       echo "No plugin found in devbase .tool-versions file"
@@ -92,13 +93,16 @@ asdf_devbase_ensure() {
 
     # Install the version if it doesn't already exist
     if ! asdf list "$plugin" | grep -qE "$version$"; then
+      need_reshim=1
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
       asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi
   done
 
-  # Reshim to ensure that the correct versions are used
-  asdf reshim
+  if [ "$need_reshim" == 1 ]; then
+    # Reshim to ensure that the correct versions are used
+    asdf reshim
+  fi
 }
 
 # asdf_install installs a plugins/version required from a top-level
