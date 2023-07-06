@@ -202,7 +202,7 @@ docker-build:: pre-docker-build
 	@echo " ===> building docker image <==="
 	@ssh-add -L
 	@echo " ===> If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>) <==="
-	@./shell/ci/release/docker.sh
+	@./scripts/shell-wrapper.sh ci/release/docker.sh
 
 ## fmt:             run source code formatters
 .PHONY: fmt
