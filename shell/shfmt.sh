@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This is a wrapper around gobin.sh to run shfmt.
+# This is a wrapper around asdf to run shfmt.
 # Useful for using the correct version of shfmt
 # with your editor.
 set -e

@@ -109,6 +109,8 @@ build:: pre-build gobuild
 .PHONY: lint
 # Note: We run pre-test for compat. Remove on the next breaking change.
 lint:: pre-test pre-lint
+	# Note that this requires the ensure_asdf.sh invocation at the top of
+	# this file.
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
