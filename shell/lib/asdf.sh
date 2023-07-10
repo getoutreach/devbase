@@ -42,7 +42,8 @@ asdf_get_version_from_devbase() {
 }
 
 # asdf_devbase_exec executes a command with the versions from the devbase
-# .tool-versions file without influencing all versions of other tools
+# .tool-versions file. This will fail if the tool isn't installed, so callers
+# should invoke asdf_devbase_ensure first.
 asdf_devbase_exec() {
   local tool="$1"
   # Why: We're OK with this being the way it is.
@@ -58,9 +59,6 @@ asdf_devbase_exec() {
   fi
 
   export "ASDF_${tool_env_var}_VERSION"="${version}"
-
-  # Ensure that the tool and/or plugin is installed
-  asdf_devbase_ensure
 
   exec "$@"
 }
