@@ -56,11 +56,16 @@ func runGoCommand(log zerolog.Logger, args ...string) error {
 		return errors.Wrap(err, "failed to get determine org")
 	}
 
-	return sh.RunWith(map[string]string{
+	vars := map[string]string{
 		"GOFLAGS": goFlags,
 		// TODO(jaredallard): We may not always want to set GOPRIVATE...
-		"GOPRIVATE": fmt.Sprintf("github.com/%s/*", org),
-	}, "go", args...)
+		"GOPRIVATE": fmt.Sprintf("github.com/%s/*", org)}
+
+	if goos := os.Getenv("BUILD_FOR_GOOS"); goos != "" { // BUILD_FOR_GOOS is used when we build on macos for linux
+		vars["GOOS"] = goos
+	}
+
+	return sh.RunWith(vars, "go", args...)
 }
 
 // getLDFlagsStringFromMap returns a string of all the ldflags from the given map
