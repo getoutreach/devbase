@@ -34,13 +34,13 @@ LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
 FLY                 := $(CURDIR)/scripts/shell-wrapper.sh fly.sh
 BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
 CONCOURSE_URL       := $(shell $(BOX_CONFIG) '.cd.concourse.address')
-AIR   							:= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
+AIR                 := $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
-LOGFMT				?=
+LOGFMT              ?=
 GOLANGCI_LINT_CACHE ?= "$(HOME)/.outreach/.cache/.golangci-lint/$(APP)"
 
 # Outreach stuff, will be moved out... one day.
