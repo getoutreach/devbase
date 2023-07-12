@@ -62,6 +62,7 @@ func runGoCommand(log zerolog.Logger, args ...string) error {
 		"GOPRIVATE": fmt.Sprintf("github.com/%s/*", org)}
 
 	if goos := os.Getenv("BUILD_FOR_GOOS"); goos != "" { // BUILD_FOR_GOOS is used when we build on macos for linux
+		log.Info().Msgf("Building for GOOS %s", goos)
 		vars["GOOS"] = goos
 	}
 
