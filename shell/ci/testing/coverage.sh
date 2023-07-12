@@ -28,17 +28,4 @@ if [[ -z $file ]]; then
   show_help
 fi
 
-coverage_provider=$(yq -r '.arguments.coverage.provider' <"$(get_service_yaml)" 2>/dev/null)
-if [[ -z $coverage_provider ]] || [[ $coverage_provider == "null" ]]; then
-  info "No coverage provider configured (.arguments.coverage) is empty"
-  exit 0
-fi
-
-if [[ $coverage_provider == "codecov" ]]; then
-  "$DIR/codecov/upload-coverage.sh" "$file" "$group"
-elif [[ $coverage_provider == "coveralls" ]]; then
-  "$DIR/coveralls/upload-coverage.sh" "$file" "$group"
-else
-  error "Unknown coverage provider \"$coverage_provider\", skipping coverage upload"
-  exit 0
-fi
+"$DIR/coverbot/upload-coverage.sh" "$file" "$group"
