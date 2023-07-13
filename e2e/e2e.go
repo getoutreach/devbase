@@ -332,11 +332,18 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}(&wg)
 	}
 
-	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
 		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		}
+	} else {
+		// we want to build CLI application so that E2E tests can invoke it
+		log.Info().Msg("Building application")
+		if err := exec.CommandContext(ctx, "make", "build").Run(); err != nil {
+			log.Fatal().Err(err).Msg("Error building application")
+		} else {
+			log.Info().Msg("Build done")
 		}
 	}
 
