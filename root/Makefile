@@ -175,7 +175,7 @@ devspace-watch:
 .PHONY: devspace
 devspace:
 	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(MAGE_CMD) gobuild
-	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" $(MAGE_CMD) e2etestbuild
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" $(MAGE_CMD) e2etestbuild
 	@echo "Use 'devenv apps run --sync-binaries .' to sync binaries to devspace pod"
 
 ## dev:       run the service

@@ -31,6 +31,7 @@ func Version() {
 	fmt.Println(getAppVersion())
 }
 
+// E2etestbuild builds binaries of e2e tests
 func E2etestbuild(ctx context.Context) error {
 	cwd, err := os.Getwd()
 	if err != nil {
