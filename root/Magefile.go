@@ -42,7 +42,7 @@ func E2etestbuild(ctx context.Context) error {
 		return err
 	}
 
-	e2ePackages, err := GetE2eTestPaths(cwd + "/../../rms")
+	e2ePackages, err := GetE2eTestPaths(cwd)
 	if err != nil {
 		return errors.Wrap(err, "Unable to find e2e pacakges")
 	}
