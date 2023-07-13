@@ -49,9 +49,9 @@ func E2etestbuild(ctx context.Context) error {
 	fmt.Println(strings.Join(e2ePackages, ", "))
 
 	for _, e2ePackage := range e2ePackages {
-		log.Info().Msgf("Building e2e test package %s", e2ePackage)
 		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_")
 		binaryPath := filepath.Join(buildDir, binaryName)
+		log.Info().Msgf("Building e2e test package %s to bin dir. Name %s", e2ePackage, binaryName)
 		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, e2ePackage, "-ldflags",
 			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"); err != nil {
 			return errors.Wrap(err, "Unable to build e2e test package")
