@@ -20,6 +20,6 @@ if [ -n "$CIRCLE_PULL_REQUEST" ]; then
   PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F'/' '{print $NF}')
   echo "Parsed PR Number: $PR_NUMBER"
 
-  exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@jackallard17/prcommenting" \
+  exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@jackallard17/uploadCovFile" \
     upload --lang "go" --repo "$CIRCLE_PROJECT_REPONAME" --pr "$PR_NUMBER" "$coverage_file"
 fi
