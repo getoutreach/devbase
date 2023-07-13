@@ -22,7 +22,7 @@ func GetE2eTestPaths(rootDir string) ([]string, error) {
 			return nil
 		}
 
-		if strings.Contains(path, "/.") {
+		if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
 			return nil
 		}
 

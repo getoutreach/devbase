@@ -46,7 +46,6 @@ func E2etestbuild(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to find e2e pacakges")
 	}
-	fmt.Println(strings.Join(e2ePackages, ", "))
 
 	for _, e2ePackage := range e2ePackages {
 		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_", -1)
