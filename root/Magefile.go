@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -30,6 +31,43 @@ func Version() {
 	fmt.Println(getAppVersion())
 }
 
+func E2etestbuild(ctx context.Context) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	buildDir, err := ensureBinExists(cwd)
+	if err != nil {
+		return err
+	}
+
+	e2ePackages, err := GetE2eTestPaths(cwd + "/../../rms")
+	if err != nil {
+		return errors.Wrap(err, "Unable to find e2e pacakges")
+	}
+	fmt.Println(strings.Join(e2ePackages, ", "))
+
+	for _, e2ePackage := range e2ePackages {
+		if err := runGoCommand(log, "test", "-c", "-o", buildDir, e2ePackage); err != nil {
+			return errors.Wrap(err, "Unable to build e2e test package")
+		}
+
+	}
+
+	return nil
+}
+
+func ensureBinExists(cwd string) (string, error) {
+	buildDir := filepath.Join(cwd, "bin")
+	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
+		if err := os.Mkdir(buildDir, 0o755); err != nil {
+			return "", errors.Wrapf(err, "failed to mkdir %s", buildDir)
+		}
+	}
+	return buildDir, nil
+}
+
 // GoBuild builds a Go project
 func Gobuild(ctx context.Context) error {
 	cwd, err := os.Getwd()
@@ -45,12 +83,9 @@ func Gobuild(ctx context.Context) error {
 		log.Warn().Msg("This repository produces no artifacts (no 'cmd' or 'plugin' directory found)")
 		return nil
 	}
-
-	buildDir := filepath.Join(cwd, "bin")
-	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
-		if err := os.Mkdir(buildDir, 0o755); err != nil {
-			return errors.Wrapf(err, "failed to mkdir %s", buildDir)
-		}
+	buildDir, err := ensureBinExists(cwd)
+	if err != nil {
+		return err
 	}
 
 	honeycombKey, err := readSecret(ctx, "honeycomb/apiKey")
