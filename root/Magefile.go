@@ -49,6 +49,7 @@ func E2etestbuild(ctx context.Context) error {
 	fmt.Println(strings.Join(e2ePackages, ", "))
 
 	for _, e2ePackage := range e2ePackages {
+		log.Info().Msgf("Building e2e test package %s", e2ePackage)
 		if err := runGoCommand(log, "test", "-c", "-o", buildDir, e2ePackage); err != nil {
 			return errors.Wrap(err, "Unable to build e2e test package")
 		}
