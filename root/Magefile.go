@@ -49,7 +49,7 @@ func E2etestbuild(ctx context.Context) error {
 	fmt.Println(strings.Join(e2ePackages, ", "))
 
 	for _, e2ePackage := range e2ePackages {
-		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_")
+		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_", -1)
 		binaryPath := filepath.Join(buildDir, binaryName)
 		log.Info().Msgf("Building e2e test package %s to bin dir. Name %s", e2ePackage, binaryName)
 		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, e2ePackage, "-ldflags",
