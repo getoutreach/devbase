@@ -45,7 +45,7 @@ func E2etestbuild(ctx context.Context) error {
 
 	e2ePackages, err := GetE2eTestPaths(".")
 	if err != nil {
-		return errors.Wrap(err, "Unable to find e2e pacakges")
+		return errors.Wrap(err, "Unable to find e2e packages")
 	}
 
 	for _, e2ePackage := range e2ePackages {
