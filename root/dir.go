@@ -44,7 +44,7 @@ func GetE2eTestPaths(rootDir string) ([]string, error) {
 				}
 				content := string(contentBytes)
 
-				// We care fore packages that has at least one test entrypoint in file with or_e2e tag
+				// We care for packages that has at least one test entrypoint in file with or_e2e tag
 				if strings.Contains(content, "or_e2e") && strings.Contains(content, "func Test") {
 					e2ePackages = append(e2ePackages, path)
 					break // Exit the loop since we've found a matching file
