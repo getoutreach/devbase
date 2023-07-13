@@ -42,7 +42,7 @@ func E2etestbuild(ctx context.Context) error {
 		return err
 	}
 
-	e2ePackages, err := GetE2eTestPaths(cwd)
+	e2ePackages, err := GetE2eTestPaths(".")
 	if err != nil {
 		return errors.Wrap(err, "Unable to find e2e pacakges")
 	}
@@ -50,7 +50,8 @@ func E2etestbuild(ctx context.Context) error {
 
 	for _, e2ePackage := range e2ePackages {
 		log.Info().Msgf("Building e2e test package %s", e2ePackage)
-		binaryPath := filepath.Join(buildDir, filepath.Base(e2ePackage))
+		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_")
+		binaryPath := filepath.Join(buildDir, binaryName)
 		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, e2ePackage, "-ldflags",
 			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"); err != nil {
 			return errors.Wrap(err, "Unable to build e2e test package")
