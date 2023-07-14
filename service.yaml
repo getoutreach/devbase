@@ -18,6 +18,8 @@ arguments:
   reportingTeam: fnd-dt
   slack: ""
   tracing: opentelemetry
+  coverage:
+    provider: coverbot
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
