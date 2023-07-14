@@ -28,4 +28,13 @@ if [[ -z $file ]]; then
   show_help
 fi
 
-"$DIR/coverbot/upload-coverage.sh" "$file" "$group"
+coverage_provider=$(yq -r '.arguments.coverage.provider' <"$(get_service_yaml)" 2>/dev/null)
+
+case $coverage_provider in
+"coverbot")
+  exec "$DIR/coverbot/upload-coverage.sh" "$file" "$group"
+  ;;
+*)
+  echo "No coverage provider specified."
+  ;;
+esac
