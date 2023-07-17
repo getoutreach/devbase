@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getoutreach/devbase/v2/root/e2e"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	logger "github.com/rs/zerolog/log"
@@ -43,7 +44,7 @@ func E2etestbuild(ctx context.Context) error {
 		return err
 	}
 
-	e2ePackages, err := GetE2eTestPaths(".")
+	e2ePackages, err := e2e.GetE2eTestPaths(".", filepath.Walk, os.ReadDir, os.ReadFile)
 	if err != nil {
 		return errors.Wrap(err, "Unable to find e2e pacakges")
 	}

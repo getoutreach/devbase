@@ -1,18 +1,29 @@
-//go:build mage
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
 
-package main
+// Description: This file implements helpers for e2e test discovery.
+
+// Package e2e contains e2e test related build logic
+package e2e
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+// DirectoryWalker abstracts filepath.Walk
+type DirectoryWalker = func(string, filepath.WalkFunc) error
+
+// DirectoryReader abstracts os.ReadDir
+type DirectoryReader = func(name string) ([]os.DirEntry, error)
+
+// FileReader abstracts os.ReadFile
+type FileReader = func(name string) ([]byte, error)
+
 // GetE2eTestPaths returns list of paths of packages that contain at least one go file with or_e2e in it
-func GetE2eTestPaths(rootDir string) ([]string, error) {
+func GetE2eTestPaths(rootDir string, walk DirectoryWalker, readDir DirectoryReader, readFile FileReader) ([]string, error) {
 	e2ePackages := make([]string, 0)
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+	err := walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -22,11 +33,12 @@ func GetE2eTestPaths(rootDir string) ([]string, error) {
 			return nil
 		}
 
+		// ignore hidden (sub)directories
 		if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
 			return nil
 		}
 
-		files, err := ioutil.ReadDir(path)
+		files, err := readDir(path)
 		if err != nil {
 			return err
 		}
@@ -38,7 +50,7 @@ func GetE2eTestPaths(rootDir string) ([]string, error) {
 
 			if filepath.Ext(file.Name()) == ".go" {
 				filePath := filepath.Join(path, file.Name())
-				contentBytes, err := ioutil.ReadFile(filePath)
+				contentBytes, err := readFile(filePath)
 				if err != nil {
 					return err
 				}
