@@ -16,11 +16,16 @@ parameters:
     description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
     type: string
     default: 10m
+  go_test_timeout:
+    description: Maps to gotest -timeout parameter.
+    type: string
+    default: ""
 executor:
   name: testbed-machine
 environment:
   VAULT_ADDR: << parameters.vault_address >>
   DEVENV_PRE_RELEASE: << parameters.devenv_pre_release >>
+  GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
