@@ -14,6 +14,7 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	google.golang.org/grpc v1.53.0
 	gopkg.in/yaml.v2 v2.4.0
+	gotest.tools/v3 v3.4.0
 )
 
 require (
@@ -38,6 +39,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gosimple/slug v1.13.1 // indirect
