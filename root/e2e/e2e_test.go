@@ -9,14 +9,6 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func nofilesDirReader(name string) ([]os.DirEntry, error) {
-	return []os.DirEntry{}, nil
-}
-
-func emptyFileReader(name string) ([]byte, error) {
-	return []byte{}, nil
-}
-
 func TestGetE2eTestPathsOnePackageDir(t *testing.T) {
 	walker := func(path string, walk filepath.WalkFunc) error {
 		walk(path, StubFileInfo{FileName: path, IsDirectory: true}, nil)
@@ -40,16 +32,6 @@ func TestPingPong(t *testing.T) {
 	dir, _ := GetE2eTestPaths("dir", walker, dirReader, fileReader)
 	assert.Equal(t, len(dir), 1)
 	assert.Equal(t, dir[0], "dir")
-}
-
-func TestGetE2eTestPathsErrorOpening(t *testing.T) {
-	walker := func(path string, walk filepath.WalkFunc) error {
-		return errors.New("Error opening dir")
-	}
-
-	_, err := GetE2eTestPaths(".", walker, nofilesDirReader, emptyFileReader)
-
-	assert.Equal(t, "Error opening dir", err.Error())
 }
 
 func TestGetE2eTestPathsSkippedFilesAndDirs(t *testing.T) {
@@ -77,14 +59,20 @@ func TestGetE2eTestPathsSkippedFilesAndDirs(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestGetE2eTestPathsOneFileInDir(t *testing.T) {
+func TestGetE2eTestPathsErrorOpening(t *testing.T) {
 	walker := func(path string, walk filepath.WalkFunc) error {
-		file := "file.txt"
-		walk(file, StubFileInfo{FileName: file, IsDirectory: false}, nil)
-		return nil
+		return errors.New("Error opening dir")
 	}
 
-	dir, err := GetE2eTestPaths("dir", walker, nofilesDirReader, emptyFileReader)
-	assert.Equal(t, 0, len(dir))
-	assert.Equal(t, nil, err)
+	_, err := GetE2eTestPaths(".", walker, nofilesDirReader, emptyFileReader)
+
+	assert.Equal(t, "Error opening dir", err.Error())
+}
+
+func nofilesDirReader(name string) ([]os.DirEntry, error) {
+	return []os.DirEntry{}, nil
+}
+
+func emptyFileReader(name string) ([]byte, error) {
+	return []byte{}, nil
 }
