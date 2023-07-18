@@ -281,10 +281,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 			// TODO(jaredallard): outreach specific code
 			target := "base"
-			for _, d := range deps {
-				if d == "outreach" {
-					target = flagship
-					break
+			if os.Getenv("PROVISION_TARGET") != "" {
+				target = os.Getenv("PROVISION_TARGET")
+			} else {
+				for _, d := range deps {
+					if d == "outreach" {
+						target = flagship
+						break
+					}
 				}
 			}
 
