@@ -122,3 +122,10 @@ Installs all Go dependencies
 Runs tests marked with `or_e2e` build tags after provisioning a [devenv](github.com/getoutreach/devenv).
 If you have a file in your repository, `scripts/devenv/post-e2e-deploy.sh`, it
 will run it right after the devenv has been provisioned (before the tests run).
+
+#### Environment Variables
+
+* `SKIP_DEVENV_PROVISION`: Set "true" to skip provision step. Default false
+* `PROVISION_TARGET`: Maps to `devenv provision --snapshot-target $PROVISION_TARGET`, allowing to specify the provision target used. Otherwise, the default is either "flagship" or "base", latter being used when "outreach" is not included.
+* `SKIP_LOCALIZER`: Set "true" to skip creating a localizer tunnel before test start.
+* `REQUIRE_DEVCONFIG_AFTER_DEPLOY`: Set to "true" to run `devconfig.sh` after deploy. Otherwise, the step is executed before deploy.
