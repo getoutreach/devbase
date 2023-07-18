@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 // DirectoryWalker abstracts filepath.Walk
@@ -71,4 +73,31 @@ func GetE2eTestPaths(rootDir string, walk DirectoryWalker, readDir DirectoryRead
 		return nil, err
 	}
 	return e2ePackages, nil
+}
+
+// createFileNameFromPackagePath creates binary name for e2e test package
+func createFileNameFromPackagePath(path string) string {
+	prefix := "e2e"
+	separator := "_"
+	pathWithoutSlashes := strings.ReplaceAll(path, "/", separator)
+
+	return prefix + separator + pathWithoutSlashes
+}
+
+// RunGoCommand abstracts function that invokes go cmd
+type RunGoCommand = func(log zerolog.Logger, args ...string) error
+
+// BuildE2ETestPackages buils e2e packages for given package paths
+// nolint:gocritic // Why: hugeParam: 89 bytes is not "huge"
+func BuildE2ETestPackages(log zerolog.Logger, packagePaths []string, buildDir string, runGoCommand RunGoCommand) error {
+	for _, e2ePackage := range packagePaths {
+		binaryName := createFileNameFromPackagePath(e2ePackage)
+		binaryPath := filepath.Join(buildDir, binaryName)
+		log.Info().Msgf("Building e2e test package %s to bin dir. Name %s", e2ePackage, binaryName)
+		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, "./"+e2ePackage, "-ldflags",
+			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"); err != nil {
+			return err
+		}
+	}
+	return nil
 }

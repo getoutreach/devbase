@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gotest.tools/v3/assert"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetE2eTestPathsOnePackageDir(t *testing.T) {
@@ -75,4 +76,20 @@ func nofilesDirReader(name string) ([]os.DirEntry, error) {
 
 func emptyFileReader(name string) ([]byte, error) {
 	return []byte{}, nil
+}
+
+func TestBuildE2ETestPackages(t *testing.T) {
+	called := false
+	runGoCommand := func(log zerolog.Logger, args ...string) error {
+		called = true
+		expectedBinary := "bin/e2e_internal_e2e_prospects"
+		expectedPackage := "./internal/e2e/prospects"
+		assert.ElementsMatch(t, args, []string{"test", "-tags", "or_test,or_e2e", "-c", "-o", expectedBinary, expectedPackage, "-ldflags",
+			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"})
+		return nil
+	}
+
+	err := BuildE2ETestPackages(zerolog.Logger{}, []string{"internal/e2e/prospects"}, "./bin", runGoCommand)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, called, true)
 }

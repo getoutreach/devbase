@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/getoutreach/devbase/v2/root/e2e"
 	"github.com/pkg/errors"
@@ -32,8 +31,8 @@ func Version() {
 	fmt.Println(getAppVersion())
 }
 
-// E2etestbuild builds binaries of e2e tests
-func E2etestbuild(ctx context.Context) error {
+// E2ETestBuild builds binaries of e2e tests
+func E2ETestBuild(ctx context.Context) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -46,17 +45,11 @@ func E2etestbuild(ctx context.Context) error {
 
 	e2ePackages, err := e2e.GetE2eTestPaths(".", filepath.Walk, os.ReadDir, os.ReadFile)
 	if err != nil {
-		return errors.Wrap(err, "Unable to find e2e packages")
+		return errors.Wrap(err, "Error when searching e2e test packages")
 	}
 
-	for _, e2ePackage := range e2ePackages {
-		binaryName := "e2e_" + strings.Replace(e2ePackage, "/", "_", -1)
-		binaryPath := filepath.Join(buildDir, binaryName)
-		log.Info().Msgf("Building e2e test package %s to bin dir. Name %s", e2ePackage, binaryName)
-		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, "./"+e2ePackage, "-ldflags",
-			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"); err != nil {
-			return errors.Wrap(err, "Unable to build e2e test package")
-		}
+	if err := e2e.BuildE2ETestPackages(log, e2ePackages, buildDir, runGoCommand); err != nil {
+		return errors.Wrap(err, "Unable to build e2e test package")
 	}
 
 	return nil
