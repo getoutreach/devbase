@@ -48,6 +48,17 @@
           "to": "/home/dev/.asdf/installs/golang/1.19.8/go/src"
         }
       ]
+    },
+    {
+      "name": "Attach to dev container (in binary mode)",
+      "type": "go",
+      "debugAdapter": "dlv-dap",
+      "request": "attach",
+      "mode": "remote",
+      // <<Stencil::Block(vscodeRemoteDebugDevspaceBinary)>>
+      "host": "127.0.0.1",
+      "port": 42097
+      // <</Stencil::Block>>
     }
     // <<Stencil::Block(vscodeLaunchConfigs)>>
 
