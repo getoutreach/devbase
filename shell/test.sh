@@ -144,7 +144,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # If we have -v passed as a test flag, we use the standard-verbose
     # format which is equal to 'go test -v'. Without this, we would
     # silently ignore the flag.
-    if [[ "$flag" == "-v" ]]; then
+    if [[ $flag == "-v" ]]; then
       format="standard-verbose"
     fi
   done
@@ -154,7 +154,10 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
 
   # Convert TEST_TAGS into the expected format for `go test -tags`,
   # which is a comma-separated string.
-  test_tags_string=$(IFS=","; echo "${TEST_TAGS[*]}")
+  test_tags_string=$(
+    IFS=","
+    echo "${TEST_TAGS[*]}"
+  )
 
   if [[ -n $PACKAGE_TO_DEBUG ]]; then
     TESTBIN=$(mktemp)
