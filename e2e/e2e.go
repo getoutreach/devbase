@@ -292,7 +292,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				}
 			}
 
-			channel := "stable"
+			channel := "rc"
 			if os.Getenv("PROVISION_CHANNEL") != "" {
 				channel = os.Getenv("PROVISION_CHANNEL")
 			}
