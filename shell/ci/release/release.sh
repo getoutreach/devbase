@@ -61,7 +61,7 @@ if [[ $UPDATED == "false" ]]; then
 elif [[ $UPDATED == "true" ]]; then
   # Special logic to publish a node client to github packages while
   # we're dual writing. This will be removed soonish.
-  if [[ -e $nodeClientDir ]]; then
+  if [[ -e $nodeClientDir && "$(is_service)" == "true" ]]; then
     info "Publishing node client to Github Packages"
 
     info_sub "pointing package.json to Github Packages"
