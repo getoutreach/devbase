@@ -140,12 +140,12 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 }
 
 // provisionNew destroys and re-provisions a devenv
-func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
+func provisionNew(ctx context.Context, target, channel string) error { // nolint:unparam // Why: keeping in the interface for now
 	//nolint:errcheck // Why: Best effort remove existing cluster
 	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
 
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update",
-		"provision", "--snapshot-target", target)).Run(); err != nil {
+		"provision", "--snapshot-target", target, "--snapshot-channel", channel)).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
@@ -292,9 +292,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				}
 			}
 
-			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+			channel := "stable"
+			if os.Getenv("PROVISION_CHANNEL") != "" {
+				channel = os.Getenv("PROVISION_CHANNEL")
+			}
 
-			if err := provisionNew(ctx, target); err != nil {
+			log.Info().Strs("deps", deps).Str("target", target).Str("channel", channel).Msg("Provisioning devenv")
+
+			if err := provisionNew(ctx, target, channel); err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
