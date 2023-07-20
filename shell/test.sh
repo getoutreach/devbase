@@ -79,6 +79,12 @@ GO_TEST_TIMEOUT="${GO_TEST_TIMEOUT:-}"
 # will not be passed to 'go test'. Defaults to 'enabled'.
 RACE="${RACE:-enabled}"
 
+# TEST_OUTPUT_FORMAT is the format to pass to gotestsum. If not set,
+# the default value of "dots-v2" will be used. If CI is set, the default
+# value is "pkgname". If 'TEST_FLAGS' contains '-v', the default value
+# is "standard-verbose".
+TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
+
 if [[ -n $CI ]]; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
@@ -131,13 +137,16 @@ fi
 if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info "Running go test (${TEST_TAGS[*]})"
 
-  # If TEST_OUTPUT_FORMAT is set, we use it instead of the default value
-  # of "dots-v2"
-  format="${TEST_OUTPUT_FORMAT:-"dots-v2"}"
+  format="dots-v2"
   if [[ -n $CI ]]; then
     # When in CI, always use the pkgname format because it's easier to
     # read.
     format="pkgname"
+  fi
+
+  # If TEST_OUTPUT_FORMAT is set, we use it instead of the default value.
+  if [[ -n $TEST_OUTPUT_FORMAT ]]; then
+    format="$TEST_OUTPUT_FORMAT"
   fi
 
   for flag in "${TEST_FLAGS[@]}"; do
