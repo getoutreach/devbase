@@ -20,13 +20,13 @@ SAFE_CIRCLE_WORKFLOW_ID=$(echo "${CIRCLE_WORKFLOW_ID}" | tr -d -c '[:alnum:]=,.@
 SAFE_CIRCLE_JOB=$(echo "${CIRCLE_JOB}" | tr -d -c '[:alnum:]=,.@')
 
 # Use the OpenID Connect token to obtain AWS credentials
-read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<< "$(aws sts assume-role-with-web-identity \
-   --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
-   --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
-   --web-identity-token ${CIRCLE_OIDC_TOKEN} \
-   --duration-seconds 3600 \
-   --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-   --output text)"
+read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
+  --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
+  --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
+  --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
+  --duration-seconds 3600 \
+  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+  --output text)"
 
 # Export AWS credentials
 export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
