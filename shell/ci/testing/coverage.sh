@@ -29,12 +29,23 @@ if [[ -z $file ]]; then
 fi
 
 coverage_provider=$(yq -r '.arguments.coverage.provider' <"$(get_service_yaml)" 2>/dev/null)
+if [[ -z $coverage_provider ]] || [[ $coverage_provider == "null" ]]; then
+  info "No coverage provider configured (.arguments.coverage) is empty"
+  exit 0
+fi
 
 case $coverage_provider in
 "coverbot")
   exec "$DIR/coverbot/upload-coverage.sh" "$file" "$group"
   ;;
+"codecov")
+  "$DIR/codecov/upload-coverage.sh" "$file" "$group"
+  ;;
+"coveralls")
+  "$DIR/coveralls/upload-coverage.sh" "$file" "$group"
+  ;;
 *)
-  echo "No coverage provider specified."
+  error "Unknown coverage provider \"$coverage_provider\", skipping coverage upload"
+  exit 0
   ;;
 esac

@@ -10,32 +10,41 @@ LIB_DIR="$SHELL_DIR/lib"
 # shellcheck source=../../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
-coverage_file="$1"
+# Check if coverage file arg is empty
+if [[ -s $1 ]]; then
+  coverage_file="$1"
+else
+  echo "No coverage file provided."
+  exit 1
+fi
 
-echo "PR Repo Name: $CIRCLE_PROJECT_REPONAME"
-echo "Circle PR Number: $CIRCLE_PULL_REQUEST"
+if [[ -n $CIRCLE_PULL_REQUEST ]]; then
+  # Continue with uploading coverage file to S3
 
-# assume coverbot-ci-role for S3 bucket permisions
-SAFE_CIRCLE_WORKFLOW_ID=$(echo "${CIRCLE_WORKFLOW_ID}" | tr -d -c '[:alnum:]=,.@')
-SAFE_CIRCLE_JOB=$(echo "${CIRCLE_JOB}" | tr -d -c '[:alnum:]=,.@')
+  echo "PR Repo Name: $CIRCLE_PROJECT_REPONAME"
+  echo "Circle PR Number: $CIRCLE_PULL_REQUEST"
 
-# Use the OpenID Connect token to obtain AWS credentials
-read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
-  --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
-  --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
-  --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
-  --duration-seconds 3600 \
-  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-  --output text)"
+  # assume coverbot-ci-role for S3 bucket permisions
+  SAFE_CIRCLE_WORKFLOW_ID=$(echo "${CIRCLE_WORKFLOW_ID}" | tr -d -c '[:alnum:]=,.@')
+  SAFE_CIRCLE_JOB=$(echo "${CIRCLE_JOB}" | tr -d -c '[:alnum:]=,.@')
 
-# Export AWS credentials
-export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+  # Use the OpenID Connect token to obtain AWS credentials
+  read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
+    --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
+    --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
+    --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
+    --duration-seconds 3600 \
+    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+    --output text)"
 
-if [ -n "$CIRCLE_PULL_REQUEST" ]; then
+  # Export AWS credentials
+  export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
   # Extract PR number
-  PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F'/' '{print $NF}')
+  PR_NUMBER=$(awk -F'/' '{print $NF}' <<<"$CIRCLE_PULL_REQUEST")
   echo "Parsed PR Number: $PR_NUMBER"
 
   exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@jackallard17/uploadCovFile" \
     upload --lang "go" --repo "$CIRCLE_PROJECT_REPONAME" --pr "$PR_NUMBER" "$coverage_file"
+else
+  echo "Not on a pull request"
 fi
