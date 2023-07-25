@@ -18,33 +18,31 @@ else
   exit 1
 fi
 
-if [[ -n $CIRCLE_PULL_REQUEST ]]; then
-  # Continue with uploading coverage file to S3
-
-  echo "PR Repo Name: $CIRCLE_PROJECT_REPONAME"
-  echo "Circle PR Number: $CIRCLE_PULL_REQUEST"
-
-  # assume coverbot-ci-role for S3 bucket permisions
-  SAFE_CIRCLE_WORKFLOW_ID=$(echo "${CIRCLE_WORKFLOW_ID}" | tr -d -c '[:alnum:]=,.@')
-  SAFE_CIRCLE_JOB=$(echo "${CIRCLE_JOB}" | tr -d -c '[:alnum:]=,.@')
-
-  # Use the OpenID Connect token to obtain AWS credentials
-  read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
-    --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
-    --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
-    --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
-    --duration-seconds 3600 \
-    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-    --output text)"
-
-  # Export AWS credentials
-  export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-  # Extract PR number
-  PR_NUMBER=$(awk -F'/' '{print $NF}' <<<"$CIRCLE_PULL_REQUEST")
-  echo "Parsed PR Number: $PR_NUMBER"
-
-  exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@jackallard17/uploadCovFile" \
-    upload --lang "go" --repo "$CIRCLE_PROJECT_REPONAME" --pr "$PR_NUMBER" "$coverage_file"
-else
-  echo "Not on a pull request"
+if [[ -z $CIRCLE_PULL_REQUEST ]]; then
+  echo "Not on a pull request, aborting" >&2
+  exit 0
 fi
+
+# If we are on a PR, continue with uploading coverage file to S3
+
+# Regex to comply with what AWS cli expects for session name input
+SAFE_CIRCLE_WORKFLOW_ID=$(tr -d -c '[:alnum:]=,.@' <<<"${CIRCLE_WORKFLOW_ID}")
+SAFE_CIRCLE_JOB=$(tr -d -c '[:alnum:]=,.@' <<<"${CIRCLE_JOB}")
+
+# Export AWS credentials
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+
+# Extract PR number
+PR_NUMBER=$(awk -F'/' '{print $NF}' <<<"$CIRCLE_PULL_REQUEST")
+
+# Assume coverbot-ci-role for S3 bucket permisions
+read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
+  --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
+  --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
+  --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
+  --duration-seconds 3600 \
+  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+  --output text)"
+
+exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@jackallard17/uploadCovFile" \
+  upload --lang "go" --repo "$CIRCLE_PROJECT_REPONAME" --pr "$PR_NUMBER" "$coverage_file"
