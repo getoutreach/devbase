@@ -215,6 +215,35 @@ func shouldRunE2ETests() (bool, error) {
 	return runEndToEndTests, err
 }
 
+// runE2ETestsUsingDevspace uses devspace and binary sync to deploy application. There's no devconfing and docker build.
+func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
+	err := provisionDevenv(ctx, conf)
+	if err != nil {
+		return err
+	}
+	serviceName, err := config.ReadServiceName()
+	if err != nil {
+		return err
+	}
+
+	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
+	if err := osStdInOutErr(exec.CommandContext(
+		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
+		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
+	}
+	log.Info().Msg("Building binaries for devspace pod")
+	if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
+		return errors.Wrap(err, "Failed to build binaries for devspace")
+	}
+
+	log.Info().Msg("Starting devspace pod and running e2e tests")
+	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
+		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
+	}
+	return nil
+	//TODO(marekfexa-outreach): status code handling
+}
+
 func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -247,6 +276,15 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
+	useDevspace := os.Getenv("USE_DEVSPACE") == "true"
+	if useDevspace {
+		err := runE2ETestsUsingDevspace(ctx, conf)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error in running e2e tests using devspace")
+		}
+		return
+	}
+
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -272,31 +310,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				dockerBuilt = true
 			}(&wg)
 
-			deps, err := BuildDependenciesList(ctx, conf)
+			err := provisionDevenv(ctx, conf)
 			if err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				log.Fatal().Err(err).Msg("Failed to provision devenv")
 				return
-			}
-
-			// TODO(jaredallard): outreach specific code
-			target := "base"
-			if os.Getenv("PROVISION_TARGET") != "" {
-				target = os.Getenv("PROVISION_TARGET")
-			} else {
-				for _, d := range deps {
-					if d == "outreach" {
-						target = flagship
-						break
-					}
-				}
-			}
-
-			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
-
-			if err := provisionNew(ctx, target); err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
 
 			if !dockerBuilt {
@@ -383,4 +401,32 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
+}
+
+// provisionDevenv provisions devenv in correct target based on application dependencies
+func provisionDevenv(ctx context.Context, conf *box.Config) error {
+	deps, err := BuildDependenciesList(ctx, conf)
+	if err != nil {
+		return errors.Wrap(err, "Failed to build dependency tree")
+	}
+
+	// TODO(jaredallard): outreach specific code
+	target := "base"
+	if os.Getenv("PROVISION_TARGET") != "" {
+		target = os.Getenv("PROVISION_TARGET")
+	} else {
+		for _, d := range deps {
+			if d == "outreach" {
+				target = flagship
+				break
+			}
+		}
+	}
+
+	log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+
+	if err := provisionNew(ctx, target); err != nil {
+		return errors.Wrap(err, "Failed to create cluster")
+	}
+	return nil
 }
