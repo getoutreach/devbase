@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
-BUILDX_VERSION="v0.8.2"
-BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-amd64"
+# Installs 'docker buildx' if it doesn't already exist. On Linux,
+# creates a buildx instance and boots it.
+
+# BUILDX_VERSION is the version of 'docker buildx' we should use if not
+# already installed on the host system.
+BUILDX_VERSION="v0.11.2"
+
+# ARCH is the architecture of the host system. Matches the format,
+# loosely, of GOARCH.
+ARCH=$(uname -m)
+if [[ $ARCH == "x86_64" ]]; then
+  ARCH="amd64"
+elif [[ $ARCH == "aarch64" ]]; then
+  ARCH="arm64"
+fi
+
+# BUILDX_BINARY_URL is the URL to download the buildx binary from.
+BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/$BUILDX_VERSION/buildx-$BUILDX_VERSION.linux-$ARCH"
 
 # only install buildx when we don't already have it
 if ! docker buildx version >/dev/null 2>&1; then
@@ -14,7 +30,7 @@ if ! docker buildx version >/dev/null 2>&1; then
   chmod a+x ~/.docker/cli-plugins/docker-buildx
 fi
 
-# On macOS we don't need to create a builder or support QEMU
+# On macOS we don't need to create a builder or support QEMU.
 if [[ $OSTYPE == "linux-gnu"* ]]; then
   # Taken from setup-qemu Github Action
   echo "💎 Installing QEMU static binaries..."

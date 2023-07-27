@@ -129,6 +129,26 @@ build_and_push_image() {
     fi
     platformArgumentString+="$platform"
   done
+  args+=("--platform" "$platformArgumentString")
+
+  # tags are the tags to apply to the image. If we're on a git tag,
+  # we'll tag the image with that tag and latest. Otherwise, we'll just
+  # build a latest image for the name "$image" (the name of the image as
+  # shown in the manifest) instead.
+  tags=()
+  if [[ -n $CIRCLE_TAG ]]; then
+    tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
+  else
+    tags+=("$image")
+  fi
+  for tag in "${tags[@]}"; do
+    args+=("--tag" "$tag")
+  done
+
+  # When on a tag, we should push the image to the registry.
+  if [[ -n $CIRCLE_TAG ]]; then
+    args+=("--push")
+  fi
 
   # If we're not the main image, the build context should be
   # the image directory instead.
@@ -139,24 +159,26 @@ build_and_push_image() {
       buildContext="$(get_repo_directory)/deployments/$image"
     fi
   fi
+  args+=("$buildContext")
 
-  if [[ -n $CIRCLE_TAG ]]; then
-    echo "🔨 Building and Pushing Docker Image (production)"
-    (
-      set -x
-      docker buildx build "${args[@]}" --platform "$platformArgumentString" \
-        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push \
-        "$buildContext"
-    )
+  # Check if the arguments include --push, if so, we'll push
+  # the image after building it.
+  push=false
+  for arg in "${args[@]}"; do
+    if [[ $arg == "--push" ]]; then
+      push=true
+    fi
+  done
+
+  if [[ $push == true ]]; then
+    echo "🔨 Building and Pushing Docker Image"
   else
-    # When we're not on a tag, just build the docker image to verify
-    # that it is buildable.
-    info "Building Test Docker Image"
-    (
-      set -x
-      docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
-    )
+    echo "🔨 Building Docker Image for Validation"
   fi
+  (
+    set -x
+    docker buildx build "${args[@]}"
+  )
 }
 
 # HACK(jaredallard): Skips building images if TESTING_DO_NOT_BUILD is set. We
