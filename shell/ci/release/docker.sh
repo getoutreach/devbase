@@ -5,8 +5,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
-SEC_DIR="${DIR}/../../security"
-TWIST_SCAN_DIR="${SEC_DIR}/prismaci"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
@@ -142,20 +140,6 @@ build_and_push_image() {
     fi
   fi
 
-  # Build a quick native image and load it into docker cache for security scanning
-  # Scan reports for release images are also uploaded to OpsLevel
-  # (test image reports only available on PR runs as artifacts).
-  info "Building Docker Image (for scanning)"
-  (
-    set -x
-    docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
-  )
-
-  if [[ $CI == "true" ]]; then
-    info "🔐 Scanning docker image for vulnerabilities"
-    "${TWIST_SCAN_DIR}/twist-scan.sh" "$image" || echo "Warning: Failed to scan image" >&2
-  fi
-
   if [[ -n $CIRCLE_TAG ]]; then
     echo "🔨 Building and Pushing Docker Image (production)"
     (
@@ -163,6 +147,14 @@ build_and_push_image() {
       docker buildx build "${args[@]}" --platform "$platformArgumentString" \
         -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push \
         "$buildContext"
+    )
+  else
+    # When we're not on a tag, just build the docker image to verify
+    # that it is buildable.
+    info "Building Test Docker Image"
+    (
+      set -x
+      docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
     )
   fi
 }

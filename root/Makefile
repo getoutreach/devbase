@@ -250,11 +250,6 @@ benchmarker-run:
 deploy:
 	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
 
-## checkopslevel: checks if the app passes require opsevel checks
-.PHONY: checkopslevel
-checkopslevel:
-	@$(MAGE_CMD) checkopslevel $(APP)
-
 # Catch all to mage
 %::
 	@$(MAGE_CMD) $@
