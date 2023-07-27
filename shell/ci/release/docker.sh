@@ -63,6 +63,9 @@ get_image_field() {
 build_and_push_image() {
   local image="$1"
 
+  # push determines if we should push the image to the registry or not.
+  local push=false
+
   # Platforms to build this image for, expected format (in YAML):
   # platforms:
   #   - linux/arm64
@@ -138,6 +141,11 @@ build_and_push_image() {
   tags=()
   if [[ -n $CIRCLE_TAG ]]; then
     tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
+
+    # When on a tag, we should also push the image to the registry. Also
+    # set push to true so that we log the right message.
+    args+=("--push")
+    push=true
   else
     tags+=("$image")
   fi
@@ -145,14 +153,9 @@ build_and_push_image() {
     args+=("--tag" "$tag")
   done
 
-  # When on a tag, we should push the image to the registry.
-  if [[ -n $CIRCLE_TAG ]]; then
-    args+=("--push")
-  fi
-
   # If we're not the main image, the build context should be
   # the image directory instead.
-  buildContext="$(get_image_field "$image" "buildContext")"
+  local buildContext="$(get_image_field "$image" "buildContext")"
   if [[ -z $buildContext ]]; then
     buildContext="."
     if [[ $APPNAME != "$image" ]]; then
@@ -160,16 +163,6 @@ build_and_push_image() {
     fi
   fi
   args+=("$buildContext")
-
-  # Check if the arguments include --push, if so, we'll push
-  # the image after building it.
-  push=false
-  for arg in "${args[@]}"; do
-    if [[ $arg == "--push" ]]; then
-      push=true
-      break
-    fi
-  done
 
   if [[ $push == true ]]; then
     echo "🔨 Building and Pushing Docker Image"
