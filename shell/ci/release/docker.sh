@@ -63,6 +63,9 @@ get_image_field() {
 build_and_push_image() {
   local image="$1"
 
+  # push determines if we should push the image to the registry or not.
+  local push=false
+
   # Platforms to build this image for, expected format (in YAML):
   # platforms:
   #   - linux/arm64
@@ -111,7 +114,7 @@ build_and_push_image() {
     return
   fi
 
-  args=(
+  local args=(
     "--ssh" "default"
     "--progress=plain" "--file" "$dockerfile"
     "--build-arg" "VERSION=${VERSION}"
@@ -122,41 +125,54 @@ build_and_push_image() {
   done
 
   # Argument format: os/arch,os/arch
-  platformArgumentString=""
+  local platformArgumentString=""
   for platform in "${platforms[@]}"; do
     if [[ -n $platformArgumentString ]]; then
       platformArgumentString+=","
     fi
     platformArgumentString+="$platform"
   done
+  args+=("--platform" "$platformArgumentString")
+
+  # tags are the tags to apply to the image. If we're on a git tag,
+  # we'll tag the image with that tag and latest. Otherwise, we'll just
+  # build a latest image for the name "$image" (the name of the image as
+  # shown in the manifest) instead.
+  local tags=()
+  if [[ -n $CIRCLE_TAG ]]; then
+    tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
+
+    # When on a tag, we should also push the image to the registry. Also
+    # set push to true so that we log the right message.
+    args+=("--push")
+    push=true
+  else
+    tags+=("$image")
+  fi
+  for tag in "${tags[@]}"; do
+    args+=("--tag" "$tag")
+  done
 
   # If we're not the main image, the build context should be
   # the image directory instead.
-  buildContext="$(get_image_field "$image" "buildContext")"
+  local buildContext="$(get_image_field "$image" "buildContext")"
   if [[ -z $buildContext ]]; then
     buildContext="."
     if [[ $APPNAME != "$image" ]]; then
       buildContext="$(get_repo_directory)/deployments/$image"
     fi
   fi
+  args+=("$buildContext")
 
-  if [[ -n $CIRCLE_TAG ]]; then
-    echo "🔨 Building and Pushing Docker Image (production)"
-    (
-      set -x
-      docker buildx build "${args[@]}" --platform "$platformArgumentString" \
-        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push \
-        "$buildContext"
-    )
+  if [[ $push == true ]]; then
+    echo "🔨 Building and Pushing Docker Image"
   else
-    # When we're not on a tag, just build the docker image to verify
-    # that it is buildable.
-    info "Building Test Docker Image"
-    (
-      set -x
-      docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
-    )
+    echo "🔨 Building Docker Image for Validation"
   fi
+  (
+    set -x
+    docker buildx build "${args[@]}"
+  )
 }
 
 # HACK(jaredallard): Skips building images if TESTING_DO_NOT_BUILD is set. We
