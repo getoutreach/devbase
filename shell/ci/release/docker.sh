@@ -114,7 +114,7 @@ build_and_push_image() {
     return
   fi
 
-  args=(
+  local args=(
     "--ssh" "default"
     "--progress=plain" "--file" "$dockerfile"
     "--build-arg" "VERSION=${VERSION}"
@@ -125,7 +125,7 @@ build_and_push_image() {
   done
 
   # Argument format: os/arch,os/arch
-  platformArgumentString=""
+  local platformArgumentString=""
   for platform in "${platforms[@]}"; do
     if [[ -n $platformArgumentString ]]; then
       platformArgumentString+=","
@@ -138,7 +138,7 @@ build_and_push_image() {
   # we'll tag the image with that tag and latest. Otherwise, we'll just
   # build a latest image for the name "$image" (the name of the image as
   # shown in the manifest) instead.
-  tags=()
+  local tags=()
   if [[ -n $CIRCLE_TAG ]]; then
     tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
 
