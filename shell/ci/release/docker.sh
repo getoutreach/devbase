@@ -167,6 +167,7 @@ build_and_push_image() {
   for arg in "${args[@]}"; do
     if [[ $arg == "--push" ]]; then
       push=true
+      break
     fi
   done
 
