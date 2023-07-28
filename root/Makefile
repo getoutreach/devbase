@@ -205,7 +205,7 @@ docker-build:: pre-docker-build
 	@echo " ===> building docker image <==="
 	@ssh-add -L
 	@echo " ===> If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>) <==="
-	@./scripts/shell-wrapper.sh ci/release/docker.sh
+	DOCKER_BUILDKIT=1 docker build --ssh default -t gcr.io/outreach-docker/$(APP) -f deployments/$(APP)/Dockerfile . --build-arg VERSION=${APP_VERSION}
 
 ## fmt:             run source code formatters
 .PHONY: fmt
@@ -249,11 +249,6 @@ benchmarker-run:
 .PHONY: deploy
 deploy:
 	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
-
-## checkopslevel: checks if the app passes require opsevel checks
-.PHONY: checkopslevel
-checkopslevel:
-	@$(MAGE_CMD) checkopslevel $(APP)
 
 # Catch all to mage
 %::
