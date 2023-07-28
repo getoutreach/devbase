@@ -82,6 +82,17 @@ func Gobuild(ctx context.Context) error {
 		buildPath = "./plugin"
 	}
 
-	// Build with -trimpath to ensure we have consistent module filenames embedded.
-	return runGoCommand(log, "build", "-v", "-trimpath", "-o", buildDir, "-ldflags", ldFlags, buildPath+"/...")
+	args := []string{"build", "-v", "-o", buildDir, "-ldflags", ldFlags}
+
+	// SKIP_TRIMPATH is used for devspace binary sync, where you want to have same file paths for delve to work correctly
+	if os.Getenv("SKIP_TRIMPATH") == "true" {
+		log.Debug().Msg("Skipping trimpath argument for go build")
+	} else {
+		// Build with -trimpath to ensure we have consistent module filenames embedded.
+		args = append(args, "-trimpath")
+	}
+
+	args = append(args, buildPath+"/...")
+
+	return runGoCommand(log, args...)
 }

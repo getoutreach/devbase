@@ -7,9 +7,13 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# DEV_CONTAINER_EXECUTABLE is set by Devspace here: https://github.com/getoutreach/stencil-golang/blob/cb950f2fc050bb112492626d70c772dc15ffc4ae/templates/devspace.yaml.tpl#LL19C17-L19C17
+# If it is set, use it, otherwise use the application name.
+DEV_CONTAINER_EXECUTABLE="${DEV_CONTAINER_EXECUTABLE:-$(get_app_name)}"
+
 # PACKAGE_TO_DEBUG is the package to debug. If not set, it will default to the
-# main package, which is cmd/<app_name>.
-PACKAGE_TO_DEBUG="${PACKAGE_TO_DEBUG:-$(get_repo_directory)/cmd/$(get_app_name)}"
+# to `./cmd/$DEV_CONTAINER_EXECUTABLE`
+PACKAGE_TO_DEBUG="${PACKAGE_TO_DEBUG:-$(get_repo_directory)/cmd/${DEV_CONTAINER_EXECUTABLE}}"
 
 # IN_CONTAINER is a flag that indicates whether or not we are running in a
 # container or not. If not set, will be determined automatically.
@@ -58,9 +62,11 @@ echo "Starting debugger for package '$PACKAGE_TO_DEBUG' (headless: $HEADLESS)" >
 if [[ $HEADLESS == "true" ]]; then
   echo "Headless Information:" >&2
   echo "  - DLV_PORT: $DLV_PORT" >&2
-  echo "  - DEV_CONTAINER_LOGFILE: $DEV_CONTAINER_LOGFILE" >&2
 
-  mkdir -p "$(dirname "$DEV_CONTAINER_LOGFILE")" 2>/dev/null >&2 || true
+  if [[ $IN_CONTAINER == "true" ]]; then
+    echo "  - DEV_CONTAINER_LOGFILE: $DEV_CONTAINER_LOGFILE" >&2
+    mkdir -p "$(dirname "$DEV_CONTAINER_LOGFILE")" 2>/dev/null >&2 || true
+  fi
 fi
 echo
 
@@ -83,11 +89,36 @@ if [[ $HEADLESS == "true" ]]; then
   )
 fi
 
-# When not running in a container, we can start without logging.
-# Otherwise, we need to log to a file so that the output can be
-# processed by devspace.
-if [[ $IN_CONTAINER == "false" ]]; then
+function ctrl_c_trap() {
+  echo "killing delve with PID: $DLV_PID"
+  kill "$DLV_PID"
+  exit 0
+}
+trap ctrl_c_trap SIGINT
+
+if [[ $HEADLESS == "false" ]]; then
   exec "${delve[@]}"
 else
-  exec "${delve[@]}" | tee -ai "$DEV_CONTAINER_LOGFILE"
+
+  # Start headless delve in the background so we can kill it with ctrl-c.
+
+  if [[ $IN_CONTAINER == "false" ]]; then
+    # no need to log outside of a container
+    "${delve[@]}" &
+  else
+    # We only need to start logging if we are running in a
+    # a container so the output can be processed by devspace.
+    echo -e "\n\n\n\n\n\n\n\n" >>"$DEV_CONTAINER_LOGFILE"
+    "${delve[@]}" >>"$DEV_CONTAINER_LOGFILE" 2>&1 &
+  fi
+
+  DLV_PID=$!
+  echo "delve pid is: $DLV_PID"
+
+  if [[ $IN_CONTAINER != "false" ]]; then
+    # tail to watch logs here
+    tail -n 5 -f "$DEV_CONTAINER_LOGFILE"
+  fi
 fi
+
+wait

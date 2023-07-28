@@ -31,15 +31,16 @@ TOOL_DEPS           := ${GO}
 # formatters / misc
 JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.19.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
-FLY                 ?= fly
+FLY                 := $(CURDIR)/scripts/shell-wrapper.sh fly.sh
 BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
 CONCOURSE_URL       := $(shell $(BOX_CONFIG) '.cd.concourse.address')
+AIR                 := $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 # Testing options
 BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
-LOGFMT				?=
+LOGFMT              ?=
 GOLANGCI_LINT_CACHE ?= "$(HOME)/.outreach/.cache/.golangci-lint/$(APP)"
 
 # Outreach stuff, will be moved out... one day.
@@ -109,6 +110,8 @@ build:: pre-build gobuild
 .PHONY: lint
 # Note: We run pre-test for compat. Remove on the next breaking change.
 lint:: pre-test pre-lint
+	@# Note that this requires the ensure_asdf.sh invocation at the top of
+	@# this file.
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
@@ -163,10 +166,21 @@ grpcui:
 run:: pre-run build
 	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh air-runner.sh
 
+## devspace-watch:         watch source files and build them for linux. To be used with devspace using `devenv apps run --sync-binaries .`
+.PHONY: devspace-watch
+devspace-watch:
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(AIR)
+
+## devspace:               build sources for linux with debugging symbols. To be used with devspace using `devenv apps run --sync-binaries .`
+.PHONY: devspace
+devspace:
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(MAGE_CMD) gobuild
+	@echo "Use 'devenv apps run --sync-binaries .' to sync binaries to devspace pod"
+
 ## dev:       run the service
 .PHONY: dev
 dev:: pre-dev
-	@DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@f7ec5b5ac29540748772dd4deb24a39f81ba9a47 -c $(CURDIR)/.air.toml
+	@DEVBOX_LOGFMT="$(LOGFMT)" $(AIR)
 
 ## devconfig:       generates the required configuration to run the service locally
 .PHONY: devconfig
@@ -211,8 +225,6 @@ docs-publish:: pre-docs-publish
 ## fly-login:       log into concourse
 .PHONY: fly-login
 fly-login:
-	brew list fly >/dev/null 2>&1 || brew install fly
-	xattr -c $(shell brew --prefix)/bin/fly >/dev/null 2>&1 || true
 	${FLY} sync -c $(CONCOURSE_URL)
 	${FLY} -t devs userinfo || ${FLY} -t devs login -c $(CONCOURSE_URL) -n devs
 
@@ -237,11 +249,6 @@ benchmarker-run:
 .PHONY: deploy
 deploy:
 	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
-
-## checkopslevel: checks if the app passes require opsevel checks
-.PHONY: checkopslevel
-checkopslevel:
-	@$(MAGE_CMD) checkopslevel $(APP)
 
 # Catch all to mage
 %::

@@ -4,6 +4,10 @@ parameters:
     description: Vault Instance to use
     type: string
     default: ""
+  provision_target:
+    description: Snapshot target used for provision command
+    type: string
+    default: ""
   devenv_pre_release:
     description: Use devenv release candidate to provision the test cluster.
     type: boolean
@@ -16,11 +20,17 @@ parameters:
     description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
     type: string
     default: 10m
+  go_test_timeout:
+    description: Maps to gotest -timeout parameter.
+    type: string
+    default: ""
 executor:
   name: testbed-machine
 environment:
   VAULT_ADDR: << parameters.vault_address >>
   DEVENV_PRE_RELEASE: << parameters.devenv_pre_release >>
+  GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
+  PROVISION_TARGET: << parameters.provision_target >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:

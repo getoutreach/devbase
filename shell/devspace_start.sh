@@ -33,10 +33,11 @@ if [[ -n $GH_TOKEN ]]; then
   # shellcheck disable=SC1091
   . "$HOME/.asdf/asdf.sh"
 
-  # Bundler requires an expanded $GH_TOKEN so we use the variable directly here
-  # shellcheck disable=SC2016
-  # shellcheck disable=SC2086
-  bundle config set --global rubygems.pkg.github.com x-access-token:$GH_TOKEN
+  mkdir -p "$HOME/.bundle"
+  {
+    echo "---"
+    echo "BUNDLE_HTTPS://RUBYGEMS__PKG__GITHUB__COM/GETOUTREACH/: \"x-access-token:$GH_TOKEN\""
+  } >"$HOME/.bundle/config"
 fi
 
 # IDEA: Maybe do this in the image build?
@@ -49,6 +50,11 @@ if ! grep -q '. "$HOME/.asdf/asdf.sh"' "$HOME/.bashrc"; then
   # shellcheck disable=SC2086
   echo '. "$HOME/.asdf/asdf.sh"' >>"$HOME/.bashrc"
 fi
+
+echo "$(tput bold)Ensuring asdf plugins are installed$(tput sgr0)"
+pushd /home/dev/app >/dev/null || exit 1
+./.bootstrap/root/ensure_asdf.sh
+popd >/dev/null || exit 1
 
 COLOR_CYAN="\033[0;36m"
 COLOR_RESET="\033[0m"
@@ -74,7 +80,7 @@ This is how you can work with it:
 
 if [[ -z $DEV_CONTAINER_LOGFILE ]] || [[ $DEVENV_DEV_TERMINAL == "true" ]]; then
   echo -e "$BANNER"
-  bash
+  exec bash
 elif [[ -n $E2E ]]; then
   # We need to have a git repo test files added so that make test can see them
   git init >/dev/null 2>&1
@@ -82,5 +88,5 @@ elif [[ -n $E2E ]]; then
   make test-e2e | tee -ai "${DEV_CONTAINER_LOGFILE:-/tmp/app.log}"
   exit "${PIPESTATUS[0]}"
 else
-  make dev
+  exec make dev
 fi

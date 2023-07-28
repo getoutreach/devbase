@@ -8,7 +8,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 trap 'kill $(jobs -p)' EXIT
 
 # run in background so we can forward signals
-"$DIR/../lintroller.sh" "$@" &
+"$DIR/../lintroller.sh" ./... &
 
 # Wait for lintroller to finish
 wait

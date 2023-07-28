@@ -1,10 +1,14 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: This file has the package main.
+// Description: This is the entrypoint of the e2e runner for the devenv.
+
+// TODO(george-e-shaw-iv): Remove all calls to log.Fatal with graceful exits in mind.
+
 package main
 
 import (
 	"context"
+	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -149,10 +153,12 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 }
 
 // runDevconfig executes devconfig command
-func runDevconfig(ctx context.Context) {
-	if err := osStdOutErr(exec.CommandContext(ctx, ".bootstrap/shell/devconfig.sh")).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run devconfig")
+func runDevconfig(ctx context.Context) error {
+	out, err := exec.CommandContext(ctx, "./scripts/shell-wrapper.sh", "devconfig.sh").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s", out)
 	}
+	return nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
@@ -275,10 +281,14 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 			// TODO(jaredallard): outreach specific code
 			target := "base"
-			for _, d := range deps {
-				if d == "outreach" {
-					target = flagship
-					break
+			if os.Getenv("PROVISION_TARGET") != "" {
+				target = os.Getenv("PROVISION_TARGET")
+			} else {
+				for _, d := range deps {
+					if d == "outreach" {
+						target = flagship
+						break
+					}
 				}
 			}
 
@@ -314,22 +324,38 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
 			log.Info().Msg("Running devconfig in background")
-			runDevconfig(ctx)
+			if err := runDevconfig(ctx); err != nil {
+				// Call cancel to hopefully communicate a signal back to other currently running commands to stop
+				// doing what they're doing. If we just exit (implicitly via log.Fatal) they likely will continue
+				// running.
+				cancel()
+
+				log.Fatal().Err(err).Msg("failed to run devconfig")
+			}
 			log.Info().Msg("Running devconfig in background finished")
 		}(&wg)
 	}
 
-	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
 		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
+	} else {
+		// we want to build CLI application so that E2E tests can invoke it
+		log.Info().Msg("Building application")
+		if err := exec.CommandContext(ctx, "make", "build").Run(); err != nil {
+			log.Fatal().Err(err).Msg("Error building application")
+		} else {
+			log.Info().Msg("Build done")
+		}
 	}
 
 	if requireDevconfigAfterDeploy {
 		log.Info().Msg("Running devconfig")
-		runDevconfig(ctx)
+		if err := runDevconfig(ctx); err != nil {
+			log.Fatal().Err(err).Msg("failed to run devconfig")
+		}
 	} else {
 		wg.Wait() // Ensure that devconfig is done
 	}

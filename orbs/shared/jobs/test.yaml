@@ -8,6 +8,7 @@ parameters:
     description: Username to use when fetching images from a registry
     type: string
   pre_setup_script:
+    default: ""
     description: If set, the executable to run before running tests in CircleCI. This may not include arguments.
     type: string
   docker_password:
@@ -38,6 +39,9 @@ parameters:
     description: If this is set to true all steps in this job will be skipped
     type: boolean
     default: false
+  setup_remote_docker:
+    type: boolean
+    default: false
 
 resource_class: << parameters.resource_class >>
 
@@ -54,7 +58,8 @@ steps:
       condition:
         not: << parameters.skip >>
       steps:
-        - setup_environment
+        - setup_environment:
+            setup_remote_docker: << parameters.setup_remote_docker >>
         - run:
             name: Run tests
             command: make test
