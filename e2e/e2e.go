@@ -219,40 +219,6 @@ func shouldRunE2ETests() (bool, error) {
 	return runEndToEndTests, err
 }
 
-// runE2ETestsUsingDevspace uses devspace and binary sync to deploy application. There's no devconfig and docker build.
-func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
-	if isDevenvProvisioned(ctx) {
-		log.Info().Msgf(devenvAlreadyExists)
-	} else {
-		err := provisionDevenv(ctx, conf)
-		if err != nil {
-			return err
-		}
-	}
-
-	serviceName, err := config.ReadServiceName()
-	if err != nil {
-		return err
-	}
-
-	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
-	if err := osStdInOutErr(exec.CommandContext(
-		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
-		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
-	}
-	log.Info().Msg("Building binaries for devspace pod")
-	if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
-		return errors.Wrap(err, "Failed to build binaries for devspace")
-	}
-
-	log.Info().Msg("Starting devspace pod and running e2e tests")
-	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
-		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
-	}
-	return nil
-	//TODO(marekfexa-outreach): status code handling
-}
-
 func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -282,15 +248,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 	if !runE2ETests {
 		log.Info().Msg("found no occurrences of or_e2e build tags, skipping e2e tests")
-		return
-	}
-
-	useDevspace := os.Getenv("USE_DEVSPACE") == "true" // USE_DEVSPACE env var is used to onboard in cluster run of e2e tests using devspace
-	if useDevspace {
-		err := runE2ETestsUsingDevspace(ctx, conf)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("Error in running e2e tests using devspace")
-		}
 		return
 	}
 
