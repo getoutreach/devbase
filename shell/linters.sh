@@ -17,7 +17,7 @@ if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
   exit 0
 fi
 
-# add extra, per project, linters
+# add extra (per project) linters
 linters=("$DIR/linters"/*.sh)
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
