@@ -89,10 +89,10 @@ type RunGoCommand = func(log zerolog.Logger, args ...string) error
 
 // BuildE2ETestPackages buils e2e packages for given package paths
 // nolint:gocritic // Why: hugeParam: 89 bytes is not "huge"
-func BuildE2ETestPackages(log zerolog.Logger, packagePaths []string, buildDir string, runGoCommand RunGoCommand) error {
+func BuildE2ETestPackages(log zerolog.Logger, packagePaths []string, binDir string, runGoCommand RunGoCommand) error {
 	for _, e2ePackage := range packagePaths {
 		binaryName := createFileNameFromPackagePath(e2ePackage)
-		binaryPath := filepath.Join(buildDir, binaryName)
+		binaryPath := filepath.Join(binDir, binaryName)
 		log.Info().Msgf("Building e2e test package %s to bin dir. Name %s", e2ePackage, binaryName)
 		if err := runGoCommand(log, "test", "-tags", "or_test,or_e2e", "-c", "-o", binaryPath, "./"+e2ePackage, "-ldflags",
 			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"); err != nil {
