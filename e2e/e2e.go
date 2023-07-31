@@ -235,15 +235,24 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		log.Info().Msg("Building binaries for devspace pod")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
+			log.Error().Err(err).Msg("Error when building for devspace")
+			panic("ERROR")
+		}
+		wg.Done()
+	}()
 	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
 	if err := osStdInOutErr(exec.CommandContext(
 		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
 		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
 	}
-	log.Info().Msg("Building binaries for devspace pod")
-	if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
-		return errors.Wrap(err, "Failed to build binaries for devspace")
-	}
+
+	wg.Wait()
 
 	log.Info().Msg("Starting devspace pod and running e2e tests")
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
