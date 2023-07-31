@@ -104,8 +104,8 @@ github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5Kwzbycv
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBdXk=
 github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/getoutreach/gobox v1.70.5 h1:lRYCnnjf72aE79jtHbRBHFGcqvPvwoBBiU2/MoaupUE=
-github.com/getoutreach/gobox v1.70.5/go.mod h1:OUNenxrlCtCy3aWyRfWz78lcXQZU2gvTHWrMjyGS2eU=
+github.com/getoutreach/gobox v1.71.0 h1:5T3G94y6aG7lqnfzXzMhuR/hw0VnNGwU7VQLml+Lwsw=
+github.com/getoutreach/gobox v1.71.0/go.mod h1:NMFEug44bFUQnpGTS9vov/WsZK36fnQFLDl+3p/yeas=
 github.com/getoutreach/localizer v1.14.5 h1:YrVCdQ+mmFjLB8FR/rAIPKUjP4Vu/J40meVT1PjxpsQ=
 github.com/getoutreach/localizer v1.14.5/go.mod h1:hDN4ku3XiaDCED9sLxzg3Fagw4MySdmbRtrHQDHGZSg=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
@@ -351,6 +351,7 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tdewolff/minify/v2 v2.12.5 h1:s2KDBt/D/3ayE3gcqQF8VIgTmYgkx+btuLvVAeePzZM=
 github.com/tdewolff/parse/v2 v2.6.5 h1:lYvWBk55GkqKl0JJenGpmrgu/cPHQQ6/Mm1hBGswoGQ=
 github.com/whilp/git-urls v1.0.0 h1:95f6UMWN5FKW71ECsXRUd3FVYiXdrE7aX4NZKcPmIjU=

@@ -27,6 +27,10 @@ import (
 // flagship is the name of the flagship
 const flagship = "flagship"
 
+// devenvAlreadyExists contains message when devenv exists
+const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
+	"To ensure a clean operation, run `devenv destroy` before running tests"
+
 // osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
@@ -254,7 +258,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// Allow skipping provision, this is generally only useful for the devenv
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
-		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+		if !isDevenvProvisioned(ctx) {
 			var wg sync.WaitGroup
 			dockerBuilt := false
 			wg.Add(1)
@@ -272,31 +276,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				dockerBuilt = true
 			}(&wg)
 
-			deps, err := BuildDependenciesList(ctx, conf)
+			err := provisionDevenv(ctx, conf)
 			if err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				log.Fatal().Err(err).Msg("Failed to provision devenv")
 				return
-			}
-
-			// TODO(jaredallard): outreach specific code
-			target := "base"
-			if os.Getenv("PROVISION_TARGET") != "" {
-				target = os.Getenv("PROVISION_TARGET")
-			} else {
-				for _, d := range deps {
-					if d == "outreach" {
-						target = flagship
-						break
-					}
-				}
-			}
-
-			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
-
-			if err := provisionNew(ctx, target); err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
 
 			if !dockerBuilt {
@@ -307,7 +291,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
-				Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
+				Msg(devenvAlreadyExists)
 		}
 	}
 
@@ -383,4 +367,36 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
+}
+
+// provisionDevenv provisions devenv in correct target based on application dependencies
+func provisionDevenv(ctx context.Context, conf *box.Config) error {
+	deps, err := BuildDependenciesList(ctx, conf)
+	if err != nil {
+		return errors.Wrap(err, "Failed to build dependency tree")
+	}
+
+	// TODO(jaredallard): outreach specific code
+	target := "base"
+	if os.Getenv("PROVISION_TARGET") != "" {
+		target = os.Getenv("PROVISION_TARGET")
+	} else {
+		for _, d := range deps {
+			if d == "outreach" {
+				target = flagship
+				break
+			}
+		}
+	}
+
+	log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+
+	if err := provisionNew(ctx, target); err != nil {
+		return errors.Wrap(err, "Failed to create cluster")
+	}
+	return nil
+}
+
+func isDevenvProvisioned(ctx context.Context) bool {
+	return exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() == nil
 }
