@@ -23,7 +23,7 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 if [[ -d "$workspaceFolder"/scripts/linters ]]; then
-  linters+=("${workspaceFolder}"/scripts/linters/*.sh)
+  linters+=("$workspaceFolder/scripts/linters/"*.sh)
 fi
 
 info "Running linters"
