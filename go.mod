@@ -3,7 +3,7 @@ module github.com/getoutreach/devbase/v2
 go 1.19
 
 require (
-	github.com/getoutreach/gobox v1.70.5
+	github.com/getoutreach/gobox v1.71.0
 	github.com/getoutreach/localizer v1.14.5
 	github.com/google/go-github/v47 v47.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
