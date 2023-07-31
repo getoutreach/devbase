@@ -28,7 +28,8 @@ import (
 const flagship = "flagship"
 
 // devenvAlreadyExists contains message when devenv exists
-const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests)"
+const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
+	"To ensure a clean operation, run `devenv destroy` before running tests)"
 
 // osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
@@ -218,7 +219,7 @@ func shouldRunE2ETests() (bool, error) {
 	return runEndToEndTests, err
 }
 
-// runE2ETestsUsingDevspace uses devspace and binary sync to deploy application. There's no devconfing and docker build.
+// runE2ETestsUsingDevspace uses devspace and binary sync to deploy application. There's no devconfig and docker build.
 func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	if isDevenvProvisioned(ctx) {
 		log.Info().Msgf(devenvAlreadyExists)
@@ -284,7 +285,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
-	useDevspace := os.Getenv("USE_DEVSPACE") == "true"
+	useDevspace := os.Getenv("USE_DEVSPACE") == "true" // USE_DEVSPACE env var is used to onboard in cluster run of e2e tests using devspace
 	if useDevspace {
 		err := runE2ETestsUsingDevspace(ctx, conf)
 		if err != nil {
