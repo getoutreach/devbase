@@ -29,7 +29,7 @@ const flagship = "flagship"
 
 // devenvAlreadyExists contains message when devenv exists
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
-	"To ensure a clean operation, run `devenv destroy` before running tests)"
+	"To ensure a clean operation, run `devenv destroy` before running tests"
 
 // osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
