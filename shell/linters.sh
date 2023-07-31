@@ -19,19 +19,17 @@ fi
 
 # add extra, per project, linters
 linters=("$DIR/linters"/*.sh)
-if [[ -z $workspacefolder ]]; then
-    workspacefolder="$(get_repo_directory)"
+if [[ -z $workspaceFolder ]]; then
+  workspaceFolder="$(get_repo_directory)"
 fi
-if [[ -d "$workspacefolder"/scripts/linters ]]; then
-  linters+=("${workspacefolder}"/scripts/linters/*.sh)
+if [[ -d "$workspaceFolder"/scripts/linters ]]; then
+  linters+=("${workspaceFolder}"/scripts/linters/*.sh)
 fi
 
 info "Running linters"
 
 started_at="$(get_time_ms)"
 for linterScript in "${linters[@]}"; do
-  linterName="$(basename "${linterScript%.sh}")"
-
   # We use a sub-shell to prevent inheriting
   # the changes to functions/variables to the parent
   # (this) script
