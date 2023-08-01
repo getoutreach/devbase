@@ -239,13 +239,14 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	wg.Add(1)
 
 	go func() {
+		defer wg.Done()
 		log.Info().Msg("Building binaries for devspace pod")
 		if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
 			log.Error().Err(err).Msg("Error when building for devspace")
-			panic("ERROR")
+			panic(err)
 		}
-		wg.Done()
 	}()
+
 	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
 	if err := osStdInOutErr(exec.CommandContext(
 		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
