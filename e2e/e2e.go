@@ -265,12 +265,13 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 		return err
 	}
 	if !testsSuccess {
-		log.Info().Msg("E2E Tests failed, setting exit code 1")
-		os.Exit(1)
+		return errors.New("E2E Tests failed")
 	}
 	log.Info().Msg("E2E Tests succeeded.")
+	return nil
 }
 
+// parseResultFromJunitReport parses if tests succeeded from junit xml file
 func parseResultFromJunitReport() (bool, error) {
 	type Testsuite struct {
 		XMLName  xml.Name `xml:"testsuites"`
