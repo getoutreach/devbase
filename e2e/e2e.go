@@ -287,13 +287,11 @@ func parseResultFromJunitReport() (bool, error) {
 		Failures int      `xml:"failures,attr"`
 	}
 
-	// Read the XML file
 	data, err := os.ReadFile(junitTestResultPath)
 	if err != nil {
 		return false, errors.Wrap(err, "Unable to find e2e tests results")
 	}
 
-	// Parse the XML data
 	var testsuite Testsuite
 	err = xml.Unmarshal(data, &testsuite)
 	if err != nil {
