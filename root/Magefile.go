@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/getoutreach/devbase/v2/root/e2e"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	logger "github.com/rs/zerolog/log"
@@ -30,6 +31,40 @@ func Version() {
 	fmt.Println(getAppVersion())
 }
 
+// E2ETestBuild builds binaries of e2e tests
+func E2ETestBuild(ctx context.Context) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	binDir, err := ensureBinDirExists(cwd)
+	if err != nil {
+		return err
+	}
+
+	e2ePackages, err := e2e.GetE2eTestPaths(".", filepath.Walk, os.ReadDir, os.ReadFile)
+	if err != nil {
+		return errors.Wrap(err, "Error when searching e2e test packages")
+	}
+
+	if err := e2e.BuildE2ETestPackages(log, e2ePackages, binDir, runGoCommand); err != nil {
+		return errors.Wrap(err, "Unable to build e2e test package")
+	}
+
+	return nil
+}
+
+func ensureBinDirExists(cwd string) (string, error) {
+	binDir := filepath.Join(cwd, "bin")
+	if _, err := os.Stat(binDir); os.IsNotExist(err) {
+		if err := os.Mkdir(binDir, 0o755); err != nil {
+			return "", errors.Wrapf(err, "failed to mkdir %s", binDir)
+		}
+	}
+	return binDir, nil
+}
+
 // GoBuild builds a Go project
 func Gobuild(ctx context.Context) error {
 	cwd, err := os.Getwd()
@@ -45,12 +80,9 @@ func Gobuild(ctx context.Context) error {
 		log.Warn().Msg("This repository produces no artifacts (no 'cmd' or 'plugin' directory found)")
 		return nil
 	}
-
-	buildDir := filepath.Join(cwd, "bin")
-	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
-		if err := os.Mkdir(buildDir, 0o755); err != nil {
-			return errors.Wrapf(err, "failed to mkdir %s", buildDir)
-		}
+	binDir, err := ensureBinDirExists(cwd)
+	if err != nil {
+		return err
 	}
 
 	honeycombKey, err := readSecret(ctx, "honeycomb/apiKey")
@@ -82,7 +114,7 @@ func Gobuild(ctx context.Context) error {
 		buildPath = "./plugin"
 	}
 
-	args := []string{"build", "-v", "-o", buildDir, "-ldflags", ldFlags}
+	args := []string{"build", "-v", "-o", binDir, "-ldflags", ldFlags}
 
 	// SKIP_TRIMPATH is used for devspace binary sync, where you want to have same file paths for delve to work correctly
 	if os.Getenv("SKIP_TRIMPATH") == "true" {
