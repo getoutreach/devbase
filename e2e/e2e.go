@@ -28,6 +28,9 @@ import (
 // flagship is the name of the flagship
 const flagship = "flagship"
 
+// junitTestResultPath path to test results after we run (devenv apps e2e)
+const junitTestResultPath = ".bin/unit-tests.xml"
+
 // devenvAlreadyExists contains message when devenv exists
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
 	"To ensure a clean operation, run `devenv destroy` before running tests"
@@ -260,6 +263,12 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
 		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
 	}
+	if runningInCi() {
+		// Copy junit report to place where CircleCi expects it
+		if err := osStdInOutErr(exec.CommandContext(ctx, "cp", junitTestResultPath, "/tmp/test-results/")).Run(); err != nil {
+			return errors.Wrap(err, "Unable to copy tests results to CircleCI artifact path")
+		}
+	}
 	testsSuccess, err := parseResultFromJunitReport()
 	if err != nil {
 		return err
@@ -278,10 +287,8 @@ func parseResultFromJunitReport() (bool, error) {
 		Failures int      `xml:"failures,attr"`
 	}
 
-	xmlFile := "./unit-tests.xml"
-
 	// Read the XML file
-	data, err := os.ReadFile(xmlFile)
+	data, err := os.ReadFile(junitTestResultPath)
 	if err != nil {
 		return false, errors.Wrap(err, "Unable to find e2e tests results")
 	}
@@ -311,7 +318,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
 		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if os.Getenv("CI") == "true" { //nolint:goconst // Why: true == true
+		if runningInCi() {
 			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
 		}
 		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
@@ -485,4 +492,8 @@ func provisionDevenv(ctx context.Context, conf *box.Config) error {
 
 func isDevenvProvisioned(ctx context.Context) bool {
 	return exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() == nil
+}
+
+func runningInCi() bool {
+	return os.Getenv("CI") == "true" //nolint:goconst // Why: true == true
 }
