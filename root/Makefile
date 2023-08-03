@@ -55,6 +55,10 @@ E2E_CLUSTER         ?= development.us-west-2
 E2E_ENVIRONMENT     ?= development
 OSS                 ?= false
 
+# Docker build
+BASE_IMAGE          ?= gcr.io/outreach-docker/$(APP)
+DOCKERFILE          ?= deployments/$(APP)/Dockerfile
+
 .PHONY: default
 default: build
 
@@ -206,7 +210,7 @@ docker-build:: pre-docker-build
 	@echo " ===> building docker image <==="
 	@ssh-add -L
 	@echo " ===> If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>) <==="
-	DOCKER_BUILDKIT=1 docker build --ssh default -t gcr.io/outreach-docker/$(APP) -f deployments/$(APP)/Dockerfile . --build-arg VERSION=${APP_VERSION}
+	DOCKER_BUILDKIT=1 docker build --ssh default -t $(BASE_IMAGE) -f $(DOCKERFILE) . --build-arg VERSION=${APP_VERSION} $(DOCKER_BUILD_EXTRA_ARGS)
 
 ## fmt:             run source code formatters
 .PHONY: fmt
