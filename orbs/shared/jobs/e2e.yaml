@@ -24,6 +24,10 @@ parameters:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
+  use_devspace:
+    description: Use devspace to run e2e tests inside of k8s cluster. No devconfig or localizer needed.
+    type: boolean
+    default: false
 executor:
   name: testbed-machine
 environment:
@@ -31,6 +35,7 @@ environment:
   DEVENV_PRE_RELEASE: << parameters.devenv_pre_release >>
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
   PROVISION_TARGET: << parameters.provision_target >>
+  USE_DEVSPACE: << parameters.use_devspace >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
