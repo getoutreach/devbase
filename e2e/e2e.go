@@ -335,7 +335,8 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
-	useDevspace := os.Getenv("USE_DEVSPACE") == "true" // USE_DEVSPACE env var is used to onboard in cluster run of e2e tests using devspace
+	// USE_DEVSPACE env var is used to onboard in cluster run of e2e tests using devspace
+	useDevspace := os.Getenv("USE_DEVSPACE") == "true" //nolint:goconst // Why: true == true
 	if useDevspace {
 		err := runE2ETestsUsingDevspace(ctx, conf)
 		if err != nil {
