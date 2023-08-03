@@ -29,7 +29,7 @@ import (
 const flagship = "flagship"
 
 // junitTestResultPath path to test results after we run (devenv apps e2e)
-const junitTestResultPath = ".bin/unit-tests.xml"
+const junitTestResultPath = "./bin/unit-tests.xml"
 
 // devenvAlreadyExists contains message when devenv exists
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
