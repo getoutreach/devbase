@@ -13,7 +13,6 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 
-
 # add extra (per project) linters
 linters=("$DIR/linters"/*.sh)
 if [[ -z $workspaceFolder ]]; then
