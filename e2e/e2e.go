@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"go/build"
 	"os"
@@ -259,8 +260,39 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
 		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
 	}
-	return nil
-	//TODO(marekfexa-outreach): status code handling
+	testsSuccess, err := parseResultFromJunitReport()
+	if err != nil {
+		return err
+	}
+	if !testsSuccess {
+		log.Info().Msg("E2E Tests failed, setting exit code 1")
+		os.Exit(1)
+	}
+	log.Info().Msg("E2E Tests succeeded.")
+}
+
+func parseResultFromJunitReport() (bool, error) {
+	type Testsuite struct {
+		XMLName  xml.Name `xml:"testsuites"`
+		Failures int      `xml:"failures,attr"`
+	}
+
+	xmlFile := "./unit-tests.xml"
+
+	// Read the XML file
+	data, err := os.ReadFile(xmlFile)
+	if err != nil {
+		return false, errors.Wrap(err, "Unable to find e2e tests results")
+	}
+
+	// Parse the XML data
+	var testsuite Testsuite
+	err = xml.Unmarshal(data, &testsuite)
+	if err != nil {
+		return false, errors.Wrap(err, "Unable to parse junit e2e tests results")
+	}
+
+	return testsuite.Failures == 0, nil
 }
 
 func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
