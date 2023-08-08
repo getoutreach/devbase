@@ -15,7 +15,7 @@ if [[ -s $1 ]]; then
   coverage_file="$1"
 else
   echo "No coverage file provided."
-  exit 1
+  exit 0
 fi
 
 if [[ -z $CIRCLE_PULL_REQUEST ]]; then
