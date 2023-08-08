@@ -2,6 +2,9 @@
 # Ensure that deployments, if they exist, are able to be rendered by
 # kubecfg and are valid Kubernetes manifests.
 
+# shellcheck source=../lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
+
 BUILDJSONNETPATH="$DIR/build-jsonnet.sh"
 KUBECONFORM=("$DIR/gobin.sh" github.com/yannh/kubeconform/cmd/kubeconform@v0.6.3)
 
@@ -9,7 +12,14 @@ KUBECONFORM=("$DIR/gobin.sh" github.com/yannh/kubeconform/cmd/kubeconform@v0.6.3
 # shellcheck disable=SC2034
 extensions=(jsonnet)
 
+appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
+
 kubecfg_kubeconform() {
+  if [[ ! -f "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" ]]; then
+    echo "No jsonnet to be validated, skipping" >&2
+    return 0
+  fi
+
   tempFile=$(mktemp)
   if ! "$BUILDJSONNETPATH" show >"$tempFile"; then
     echo "Failed to render jsonnet" >&2
