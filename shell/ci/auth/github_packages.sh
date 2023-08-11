@@ -7,9 +7,12 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
-GH_TOKEN=$("$SHELL_DIR/gobin.sh" \
-  "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" \
-  --skip-update token --env-prefix "GHACCESSTOKEN_PAT")
+# Fetch the token from ghaccesstoken if not set.
+if [[ -z $GITHUB_TOKEN ]]; then
+  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" \
+    "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" \
+    --skip-update token --env-prefix "GHACCESSTOKEN_PAT")
+fi
 
 # Allow setting for using static auth
 if [[ -z $GITHUB_USERNAME ]]; then
@@ -23,13 +26,13 @@ ORG=getoutreach
 # Setup Ruby Authentication if bundle exists.
 if command -v bundle >/dev/null 2>&1; then
   # Configure bundler access
-  bundle config "https://rubygems.pkg.github.com/$ORG" "$GITHUB_USERNAME:$GH_TOKEN"
+  bundle config "https://rubygems.pkg.github.com/$ORG" "$GITHUB_USERNAME:$GITHUB_TOKEN"
 
   # Configure gem access
   mkdir -p "$HOME/.gem"
   cat >"$HOME/.gem/credentials" <<EOF
 ---
-:github: Bearer $GH_TOKEN
+:github: Bearer $GITHUB_TOKEN
 EOF
 
   chmod 0600 "$HOME/.gem/credentials"
@@ -40,7 +43,7 @@ EOF
 :bulk_threshold: 1000
 :sources:
 - https://rubygems.org/
-- https://$GITHUB_USERNAME:$GH_TOKEN@rubygems.pkg.github.com/$ORG
+- https://$GITHUB_USERNAME:$GITHUB_TOKEN@rubygems.pkg.github.com/$ORG
 :update_sources: true
 :verbose: true
 EOF
@@ -51,6 +54,6 @@ if command -v npm >/dev/null 2>&1; then
   # as something else.
   cat >>"$HOME/.npmrc" <<EOF
 
-//npm.pkg.github.com/:_authToken=$GH_TOKEN
+//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN
 EOF
 fi
