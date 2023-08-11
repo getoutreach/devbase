@@ -83,7 +83,7 @@ RACE="${RACE:-enabled}"
 # 'disabled', test order randomization will not be enabled and the flag will
 # not be passed to 'go test'. Note that `-shuffle` is incompatible with test
 # caching, so disabling it can result in a substantial speedup in development.
-# Defaults to 'enabled'.
+# Defaults to 'enabled' if the version of Go supports it (>=1.17).
 SHUFFLE="${SHUFFLE:-enabled}"
 
 # TEST_OUTPUT_FORMAT is the format to pass to gotestsum. If not set,
