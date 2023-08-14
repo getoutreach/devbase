@@ -1,35 +1,21 @@
 name: devbase
 arguments:
-  circleAPIKey: ""
   ciOptions:
     skipE2e: true
     skipDocker: true
-  commitGuard: false
   description: A collection of scripts and ci configuration
   lintroller: platinum
-  metrics: datadog
-  opslevel:
-    tier: 2
   oss: true
   releaseOptions:
     allowMajorVersions: true
     enablePrereleases: true
     prereleasesBranch: rc
   reportingTeam: fnd-dt
-  slack: ""
-  tracing: opentelemetry
-  vaultSecrets:
-    - deploy/honeycomb_new/%(environment)s/honeycomb
-    - deploy/launchdarkly/%(environment)s/launchdarkly
-    - deploy/mint/%(environment)s/validation/mint-validator-payload
-    - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
-    # Removes ruby requirement
-    version: ">=v1.8.0-rc.2"
+    channel: unstable # Need Go 1.20
   - name: github.com/getoutreach/devbase
 replacements:
   github.com/getoutreach/devbase: ./
-migrated: true
