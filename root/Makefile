@@ -5,7 +5,10 @@ BOOTSTRAP_DIR        := $(shell if [[ "$$(yq -r .name service.yaml 2>/dev/null |
 # This ensures that all of the devbase tool-versions have been installed before
 # running any of the targets. This is especially important for the mage,
 # which we execute as part of the Makefile.
-ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh") 
+#
+# We do 1>&2 here to ensure that output isn't swallowed by the
+# ENSURE_TOOL_VERSIONS variable. Otherwise, asdf tools are silently installed.
+ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh" 1>&2)
 
 # application information
 APP                 ?= unset
@@ -89,7 +92,7 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 >/dev/null || true
 	@git tag "$(APP_VERSION)" >&2
-	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.20.0 release --skip-announce --skip-publish --skip-validate --rm-dist
+	@GORELEASER_CURRENT_TAG=$(APP_VERSION) goreleaser release --skip-announce --skip-publish --skip-validate --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 

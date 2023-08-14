@@ -18,4 +18,5 @@ mage 1.14.0
 golangci-lint 1.53.3
 shellcheck 0.9.0
 shfmt 3.7.0
+goreleaser 1.20.0
 ## <</Stencil::Block>>
