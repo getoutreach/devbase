@@ -15,27 +15,46 @@ if [[ -z $workspaceFolder ]]; then
 fi
 
 # Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@"  "-v" "--fast" "--allow-parallel-runners")
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
+# Determine the version of go and golangci-lint to calculate compatibility.
+GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
+GOLANGCILINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
+GO_MINOR_VERSION_INT=${GO_MINOR_VERSION//./}
+GOLANGCI_LINT_VERSION_INT=${GOLANGCILINT_VERSION//./}
 
-asdf_devbase_exec golangci-lint --version
+# Go 1.20 requires >= golangci-lint 1.52.0
+if [[ $GO_MINOR_VERSION_INT == 120 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1520 ]]; then
+  echo "Error: Go 1.20 requires golangci-lint 1.52.0 or newer (detected $GOLANGCILINT_VERSION)" >&2
+  exit 1
+fi
+
+# Go 1.21 requires >= golangci-lint 1.54.1
+if [[ $GO_MINOR_VERSION_INT == 121 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1541 ]]; then
+  echo "Error: Go 1.21 requires golangci-lint 1.54.1 or newer (detected $GOLANGCILINT_VERSION)" >&2
+  exit 1
+fi
 
 # If we're on a system with free, set GOMEMLIMIT to a value that's less
 # than the max amount of RAM on the system. This helps ensure that we
 # don't go over the memory limit and get OOM killed. This is mostly
 # important for CI systems.
-if command -v free &>/dev/null; then
-  mem="$(free -m | awk '/^Mem:/{print $2}')"
+if (command -v free || command -v sysctl) &>/dev/null; then
+  if command -v free &>/dev/null; then
+    mem="$(free -m | awk '/^Mem:/{print $2}')"
+  elif command -v sysctl &>/dev/null; then
+    mem=$((($(sysctl -n hw.memsize) / 1024) / 1024))
+  fi
 
-  # Use mem as the memory target and ensure that we have 2GB of room.
-  export GOMEMLIMIT="$((mem - 2048))MiB"
-
-  echo "Note: Using $GOMEMLIMIT of memory for golangci-lint"
-else
-  # If we're on a system that doesn't include free, fallback to setting
-  # GOGC to a decently safe value. This isn't perfect, but should
-  # prevent us from getting OOMs in most cases.
-  export GOGC=20
+  if [[ $mem -lt 1024 ]] || [[ -z $mem ]]; then
+    # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
+    echo "Warning: Failed to determine system memory or under threshold. " \
+      "Falling back to GOGC" >&2
+    export GOGC=20
+  else
+    # Use mem as the memory target and ensure that we have 1GB of room.
+    export GOMEMLIMIT="$((mem - 1024))MiB"
+  fi
 fi
 
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
