@@ -62,7 +62,7 @@ for linterScript in "${linters[@]}"; do
 
     # Set by the language file
     if ! linter; then
-      error "Linter failed to run, run 'make fmt' to fix"
+      error "linter failed to run. Please check the logs, 'make fmt' may help in some cases."
       exit 1
     fi
   )
