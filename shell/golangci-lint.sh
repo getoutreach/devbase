@@ -15,8 +15,10 @@ if [[ -z $workspaceFolder ]]; then
 fi
 
 # Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@"  "-v" "--fast" "--allow-parallel-runners")
 
+
+asdf_devbase_exec golangci-lint --version
 
 # If we're on a system with free, set GOMEMLIMIT to a value that's less
 # than the max amount of RAM on the system. This helps ensure that we
