@@ -17,8 +17,24 @@ fi
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
-# trade memory for CPU when running the linters
-export GOGC=20
+
+# If we're on a system with free, set GOMEMLIMIT to a value that's less
+# than the max amount of RAM on the system. This helps ensure that we
+# don't go over the memory limit and get OOM killed. This is mostly
+# important for CI systems.
+if command -v free &>/dev/null; then
+  mem="$(free -m | awk '/^Mem:/{print $2}')"
+
+  # Use mem as the memory target and ensure that we have 2GB of room.
+  export GOMEMLIMIT="$((mem - 2048))MiB"
+
+  echo "Note: Using $GOMEMLIMIT of memory for golangci-lint"
+else
+  # If we're on a system that doesn't include free, fallback to setting
+  # GOGC to a decently safe value. This isn't perfect, but should
+  # prevent us from getting OOMs in most cases.
+  export GOGC=20
+fi
 
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
 # This helps with the "too many open files" error.
