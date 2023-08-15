@@ -35,6 +35,9 @@ parameters:
     description: If this is set to true all steps in this job will be skipped
     type: boolean
     default: false
+  setup_remote_docker:
+    type: boolean
+    default: false
 
 resource_class: << parameters.resource_class >>
 
@@ -63,6 +66,7 @@ steps:
             command: touch ~/cache-toggle && echo "true" > ~/cache-toggle
         - setup_environment:
             restore_cache: false
+            setup_remote_docker: << parameters.setup_remote_docker >>
         - run:
             name: Run tests
             command: make test
