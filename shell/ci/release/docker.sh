@@ -16,8 +16,10 @@ APPNAME="$(get_app_name)"
 VERSION="$(make --no-print-directory version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
-# shellcheck source=../../lib/buildx.sh
-source "${LIB_DIR}/buildx.sh"
+if [[ -z $TESTING_DO_NOT_BUILD ]]; then
+  # shellcheck source=../../lib/buildx.sh
+  source "${LIB_DIR}/buildx.sh"
+fi
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
