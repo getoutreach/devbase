@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs all files with _test.sh at the end of the filename
+# Runs all files with .bats at the end of the filename
 set -euo pipefail
 
 # DIR is the directory of this script.
