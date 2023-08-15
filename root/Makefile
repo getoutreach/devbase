@@ -92,7 +92,8 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 >/dev/null || true
 	@git tag "$(APP_VERSION)" >&2
-	@GORELEASER_CURRENT_TAG=$(APP_VERSION) goreleaser release --skip-announce --skip-publish --skip-validate --rm-dist
+	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ASDF_GORELEASER_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep goreleaser | awk '{ print $$2 }') \
+		goreleaser release --skip-announce --skip-publish --skip-validate --rm-dist
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
