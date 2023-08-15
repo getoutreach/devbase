@@ -5,7 +5,7 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
-extensions=(sh bash)
+extensions=(sh bash bats)
 
 shellcheck_linter() {
   find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
