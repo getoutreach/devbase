@@ -8,7 +8,7 @@ insert_final_newline = true
 [*.go,Makefile]
 indent_style = tab
 
-[*.{bash,rb,sh,slim,yml,yaml}]
+[*.{bash,rb,sh,slim,yml,yaml,bats}]
 indent_style = space
 indent_size  = 2
 

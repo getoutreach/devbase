@@ -11,7 +11,9 @@ asdf_plugins_list_regenerate() {
 }
 
 # Populate the list of plugins once
-asdf_plugins_list_regenerate
+if [[ -z $asdf_plugins_list ]]; then
+  asdf_plugins_list_regenerate
+fi
 
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.

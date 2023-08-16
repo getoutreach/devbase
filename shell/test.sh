@@ -2,8 +2,8 @@
 # Runs tests for the current project.
 set -euo pipefail
 
+# DIR is the directory that this scripts lives in.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-LINTER="${LINTER:-"$DIR/golangci-lint.sh"}"
 
 # CI denotes if we're in CI or not. When running in CI, certain
 # environment variables below behaviour may differ. Check each

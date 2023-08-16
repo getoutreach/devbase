@@ -19,7 +19,35 @@ To learn more about that, look at the documentation in the [`./rfcs`](./rfcs/) d
 This project uses devbase, which exposes the following build tooling: [devbase/docs/makefile.md](https://github.com/getoutreach/devbase/blob/main/docs/makefile.md)
 
 <!-- <<Stencil::Block(customBuildingAndTesting)>> -->
+### Shell Script Testing (with bats)
 
+We use [bats](https://github.com/bats-core/bats-core) to test our shell scripts. You can run the tests with:
+
+```bash
+make test
+```
+
+To write a test, simply created a `<name>_test.bats` file with `<name>`
+being replaced by the name of the shellscript you wish to test. A good
+starting point is to model it based off of this template:
+
+```bash
+#!/usr/bin/env bats
+
+bats_load_library "bats-support/load.bash"
+bats_load_library "bats-assert/load.bash"
+
+load <shellScriptHere>.sh
+
+@test "function_goes_here should do xyz" {
+  run function_goes_here
+  assert_output "expected output"
+}
+```
+
+For more information on how to write bats tests, see the [bats
+documentation](https://bats-core.readthedocs.io/en/stable/writing-tests.html)
+as well as existing tests in this repository (search for `*_test.bats` files!)
 <!-- <</Stencil::Block>> -->
 
 ### Replacing a Remote Version of the a Package with Local Version

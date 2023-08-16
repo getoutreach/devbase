@@ -17,7 +17,7 @@ source "$DIR/../../lib/github.sh"
 # enabled or not. If the value is "true", then the delibird log uploader
 # will be enabled. If the value is "false", then the delibird log
 # uploader will be disabled.
-DELIBIRD_ENABLED=$(get_box_field ".delibird.enabled")
+DELIBIRD_ENABLED=$(get_box_field "delibird.enabled")
 
 # install_delibird installs the delibird log uploader.
 install_delibird() {

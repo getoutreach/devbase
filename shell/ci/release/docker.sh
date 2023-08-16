@@ -16,8 +16,10 @@ APPNAME="$(get_app_name)"
 VERSION="$(make --no-print-directory version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
-# shellcheck source=../../lib/buildx.sh
-source "${LIB_DIR}/buildx.sh"
+if [[ -z $TESTING_DO_NOT_BUILD ]]; then
+  # shellcheck source=../../lib/buildx.sh
+  source "${LIB_DIR}/buildx.sh"
+fi
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
@@ -89,7 +91,7 @@ build_and_push_image() {
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
 
-  local imageRegistry="$(get_box_field '.devenv.imageRegistry')"
+  local imageRegistry="$(get_box_field 'devenv.imageRegistry')"
 
   # Where to push the image. This can be overridden in the manifest
   # with the field .pushTo. If not set, we'll use the imageRegistry
