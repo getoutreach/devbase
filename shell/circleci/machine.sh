@@ -3,6 +3,17 @@
 # These are usually already installed in a CircleCI docker image.
 set -e
 
+# ARCH is the current architecture of the machine. Valid values are:
+#   - amd64
+#   - arm64
+ARCH="amd64"
+if [[ "$(uname -m)" == "aarch64" ]]; then
+  ARCH="arm64"
+fi
+
+# GH_VERSION is the version of gh to install.
+export GH_VERSION=2.32.1
+
 # should_install_vault is a helper function that checks if the vault
 # binary is already installed, if so it returns false. Otherwise, it
 # returns true.
@@ -21,52 +32,41 @@ fi
 # Add APT repositories we do need.
 if should_install_vault; then
   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o hashicorp-archive-keyring.gpg
-
-  # 2023-02-22: Hashicorp updated their keyring but removed their older key, this reulted in no
-  # being able to fetch their repository. To make up for this, we fetch the older key on the
-  # fly and add it to their keyring. This can be removed once they have resolved the following
-  # issue: https://github.com/hashicorp/vault/issues/19292
-  #
-  # This is also best effort, so we ignore any errors.
-  gpg --no-default-keyring --keyring ./hashicorp-archive-keyring.gpg --keyserver keyserver.ubuntu.com --recv-keys DA418C88A3219F7B || true
-  echo " === Hashicorp Keyring ==="
-  gpg --no-default-keyring --keyring ./hashicorp-archive-keyring.gpg --list-keys || true
-  echo " === End Hashicorp Keyring ==="
   sudo mv hashicorp-archive-keyring.gpg /usr/share/keyrings/
-
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 fi
 
 # Rebuild the apt list
 sudo apt-get update -y
 
-# Install Python and pip
-if ! command -v pip3 >/dev/null; then
-  echo "Installing pip3"
-  sudo apt-get install --no-install-recommends -y python3-pip
-fi
-
 if ! command -v gh >/dev/null; then
   echo "Installing gh"
 
-  if [[ $(uname -m) == "aarch64" ]]; then
-    wget -O gh.deb https://github.com/cli/cli/releases/download/v2.20.0/gh_2.20.0_linux_arm64.deb
-  else
-    wget -O gh.deb https://github.com/cli/cli/releases/download/v2.20.0/gh_2.20.0_linux_amd64.deb
-  fi
-
+  wget -O gh.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb
   sudo apt install -yf ./gh.deb
-  rm gh.deb
+  rm ./gh.deb
 fi
 
 echo "Installing yq"
 # Remove the existing yq, if it already exists
 # (usually the Go Version we don't support)
-sudo rm "$(command -v yq)" || true
-sudo pip3 install yq
+sudo rm -f "$(command -v yq)"
 
-# Vault
+# Use apt to install yq, if available. Otherwise, fallback to pip3 which
+# older versions of Ubuntu/Debian support.
+if ! apt install -y yq; then
+  # Install Python and pip
+  if ! command -v pip3 >/dev/null; then
+    echo "Installing pip3"
+    sudo apt-get install --no-install-recommends -y python3-pip
+  fi
+
+  echo "Failed to install yq through apt, falling back to pip3 install (this only works on Ubuntu 22.04 and below)"
+  sudo pip3 install yq
+fi
+
 if should_install_vault; then
   echo "Installing Vault"
   sudo apt-get install -y vault
+  sudo rm -rf /opt/vault
 fi
