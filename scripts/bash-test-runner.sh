@@ -13,9 +13,31 @@ fi
 
 # shellcheck source=../shell/lib/shell.sh
 source "$DIR/../shell/lib/shell.sh"
+# shellcheck source=../shell/lib/bootstrap.sh
+source "$DIR/../shell/lib/bootstrap.sh"
 
 # Find all files with _test.sh at the end of the filename
 # and run them
 mapfile -t test_files < <(find_files_with_extensions "bats")
 
-BATS_LIB_PATH="$DIR/bats/test_helper" exec "$DIR/bats/bats/bin/bats" "${test_files[@]}"
+extraArgs=()
+if [[ -n $CI ]]; then
+  # If we're running in CI, we want to output junit test results.
+  junitOutputPath="$(get_repo_directory)/bin/junit-test-results"
+  mkdir -p "$junitOutputPath"
+
+  extraArgs+=("--report-formatter" "junit" "--output" "$junitOutputPath")
+fi
+
+BATS_LIB_PATH="$DIR/bats/test_helper" "$DIR/bats/bats/bin/bats" "${extraArgs[@]}" "${test_files[@]}"
+exitCode=$?
+
+# If we're running in CI, move the test-results to the path that gets
+# uploaded. See shell/test.sh.
+if [[ -n $CI ]]; then
+  mkdir -p /tmp/test-results
+  mv "$junitOutputPath/"*.xml /tmp/test-results
+fi
+
+# Exit with the exit code of the bats tests.
+exit $exitCode
