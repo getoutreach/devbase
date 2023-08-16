@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Interact with box configuration
+
+# BOXPATH is the default path that box configuration is stored on disk.
 BOXPATH="$HOME/.outreach/.config/box/box.yaml"
+
+# LIB_DIR is the directory that shell script libraries live in.
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=yaml.sh
+source "$LIB_DIR/yaml.sh"
 
 # download_box downloads the box configuration and
 # saves it to the box configuration file.
@@ -48,9 +56,9 @@ get_box_yaml() {
 
 # get_box_field returns the value of the field specified by the
 # field name from the box configuration.
-# Note: .config is automatically included. Format should start with
-# a dot. Example: .devenv.imageRegistry
+#
+# $1 - field name
 get_box_field() {
   local field="$1"
-  yq -r ".config$field" <<<"$(get_box_yaml)"
+  yaml_get_field ".config.$field" "$BOXPATH"
 }
