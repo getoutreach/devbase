@@ -11,7 +11,7 @@ if [[ ! -e "$DIR/bats/bats" ]]; then
   git submodule update --init --recursive
 fi
 
-# shellcheck source=shell/lib/shell.sh
+# shellcheck source=../shell/lib/shell.sh
 source "$DIR/../shell/lib/shell.sh"
 
 # Find all files with _test.sh at the end of the filename
