@@ -37,7 +37,7 @@ install_latest_github_release() {
   else
     # shellcheck disable=SC2155 # Why: We're OK with this being
     # potentially masked.
-    local tag=$(gh release -R "$slug" list --exclude-pre-releases --exclude-drafts --limit 1 | awk '{ print $1 }')
+    local tag=$(gh release -R "$slug" list --exclude-drafts | grep -v Pre-release | head -n1 | awk '{ print $1 }')
   fi
 
   # If we have an empty tag, something went wrong. Fail.
