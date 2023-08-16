@@ -9,46 +9,46 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 setup() {
-	YAML_FILE=$(mktemp)
+  YAML_FILE=$(mktemp)
 }
 
 teardown() {
-	rm -f "$YAML_FILE"
+  rm -f "$YAML_FILE"
 }
 
 @test "yaml_get_array should be able to get values from an array" {
-	{
-		echo "set:"
-		echo "  - bar"
-		echo "  - baz"
-	} >"$YAML_FILE"
+  {
+    echo "set:"
+    echo "  - bar"
+    echo "  - baz"
+  } >"$YAML_FILE"
 
-	run yaml_get_array ".set" "$YAML_FILE"
-	assert_output "$(echo -e "bar\nbaz")"
+  run yaml_get_array ".set" "$YAML_FILE"
+  assert_output "$(echo -e "bar\nbaz")"
 }
 
 @test "yaml_get_array should not error if a field is not set" {
-	# should not fail
-	run yaml_get_array ".not_set" "$YAML_FILE"
+  # should not fail
+  run yaml_get_array ".not_set" "$YAML_FILE"
 
-	# we expect no output when a field isn't set
-	assert_output ""
+  # we expect no output when a field isn't set
+  assert_output ""
 }
 
 # yaml_get_field tests
 
 @test "yaml_get_field should be able to get a string value" {
-	{
-		echo "foo: bar"
-	} >"$YAML_FILE"
+  {
+    echo "foo: bar"
+  } >"$YAML_FILE"
 
-	run yaml_get_field ".foo" "$YAML_FILE"
-	assert_output "bar"
+  run yaml_get_field ".foo" "$YAML_FILE"
+  assert_output "bar"
 }
 
 @test "yaml_get_field should not error if the field is not set" {
-	run yaml_get_field ".not_set" "$YAML_FILE"
+  run yaml_get_field ".not_set" "$YAML_FILE"
 
-	# we expect no output when a field isn't set
-	assert_output ""
+  # we expect no output when a field isn't set
+  assert_output ""
 }
