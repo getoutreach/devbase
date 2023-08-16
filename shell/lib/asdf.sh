@@ -26,6 +26,12 @@ read_all_asdf_tool_versions() {
 # .tool-versions file without influencing all versions of other tools
 asdf_get_version_from_devbase() {
   local tool_name="$1"
+
+  # Support executing Go from devbase.
+  if [[ $tool_name == "go" ]]; then
+    tool_name="golang"
+  fi
+
   # Why: We're OK with this being the way it is.
   # shellcheck disable=SC2155
   local devbase_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
