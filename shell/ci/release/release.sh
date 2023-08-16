@@ -33,6 +33,14 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/box.sh
 source "${LIB_DIR}/box.sh"
 
+# Make https://github.com/pvdlg/env-ci/blob/master/services/circleci.js
+# think we're not on a PR.
+unset CIRCLE_PR_NUMBER
+unset CIRCLE_PULL_REQUESTS
+unset CIRCLE_PULL_REQUEST
+unset CI_PULL_REQUEST
+unset CI_PULL_REQUESTS
+
 ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
