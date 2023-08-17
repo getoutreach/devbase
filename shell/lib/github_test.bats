@@ -1,8 +1,6 @@
 #!/usr/bin/env bats
 
 load github.sh
-load asdf.sh
-load logging.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
