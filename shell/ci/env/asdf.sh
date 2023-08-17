@@ -33,7 +33,7 @@ EOF
 # of plugins if configured to do so.
 init_asdf() {
   info "Installing asdf"
-  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.10.2
+  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
 
   # langauage specifics
   echo -e "npm\nyarn" >"$HOME/.default-npm-packages"
