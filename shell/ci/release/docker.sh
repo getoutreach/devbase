@@ -5,8 +5,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
-SEC_DIR="${DIR}/../../security"
-TWIST_SCAN_DIR="${SEC_DIR}/prismaci"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
@@ -15,11 +13,13 @@ source "${LIB_DIR}/bootstrap.sh"
 source "${LIB_DIR}/box.sh"
 
 APPNAME="$(get_app_name)"
-VERSION="$(make version)"
+VERSION="$(make --no-print-directory version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
-# shellcheck source=../../lib/buildx.sh
-source "${LIB_DIR}/buildx.sh"
+if [[ -z $TESTING_DO_NOT_BUILD ]]; then
+  # shellcheck source=../../lib/buildx.sh
+  source "${LIB_DIR}/buildx.sh"
+fi
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
@@ -65,6 +65,9 @@ get_image_field() {
 build_and_push_image() {
   local image="$1"
 
+  # push determines if we should push the image to the registry or not.
+  local push=false
+
   # Platforms to build this image for, expected format (in YAML):
   # platforms:
   #   - linux/arm64
@@ -88,7 +91,7 @@ build_and_push_image() {
     secrets=("id=npmtoken,env=NPM_TOKEN")
   fi
 
-  local imageRegistry="$(get_box_field '.devenv.imageRegistry')"
+  local imageRegistry="$(get_box_field 'devenv.imageRegistry')"
 
   # Where to push the image. This can be overridden in the manifest
   # with the field .pushTo. If not set, we'll use the imageRegistry
@@ -113,7 +116,7 @@ build_and_push_image() {
     return
   fi
 
-  args=(
+  local args=(
     "--ssh" "default"
     "--progress=plain" "--file" "$dockerfile"
     "--build-arg" "VERSION=${VERSION}"
@@ -124,53 +127,54 @@ build_and_push_image() {
   done
 
   # Argument format: os/arch,os/arch
-  platformArgumentString=""
+  local platformArgumentString=""
   for platform in "${platforms[@]}"; do
     if [[ -n $platformArgumentString ]]; then
       platformArgumentString+=","
     fi
     platformArgumentString+="$platform"
   done
+  args+=("--platform" "$platformArgumentString")
+
+  # tags are the tags to apply to the image. If we're on a git tag,
+  # we'll tag the image with that tag and latest. Otherwise, we'll just
+  # build a latest image for the name "$image" (the name of the image as
+  # shown in the manifest) instead.
+  local tags=()
+  if [[ -n $CIRCLE_TAG ]]; then
+    tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
+
+    # When on a tag, we should also push the image to the registry. Also
+    # set push to true so that we log the right message.
+    args+=("--push")
+    push=true
+  else
+    tags+=("$image")
+  fi
+  for tag in "${tags[@]}"; do
+    args+=("--tag" "$tag")
+  done
 
   # If we're not the main image, the build context should be
   # the image directory instead.
-  buildContext="$(get_image_field "$image" "buildContext")"
+  local buildContext="$(get_image_field "$image" "buildContext")"
   if [[ -z $buildContext ]]; then
     buildContext="."
     if [[ $APPNAME != "$image" ]]; then
       buildContext="$(get_repo_directory)/deployments/$image"
     fi
   fi
+  args+=("$buildContext")
 
-  # Build image with registry prefix for devenv
-  if [[ -n $DEVENV_DOCKER_BUILD ]]; then
-    info "Building Docker Image for devenv"
-    image="gcr.io/outreach-docker/$image"
+  if [[ $push == true ]]; then
+    echo "🔨 Building and Pushing Docker Image"
   else
-    # Build a quick native image and load it into docker cache for security scanning
-    # Scan reports for release images are also uploaded to OpsLevel
-    # (test image reports only available on PR runs as artifacts).
-    info "Building Docker Image (for scanning)"
+    echo "🔨 Building Docker Image for Validation"
   fi
   (
     set -x
-    docker buildx build "${args[@]}" -t "$image" --load "$buildContext"
+    docker buildx build "${args[@]}"
   )
-
-  if [[ $CI == "true" ]]; then
-    info "🔐 Scanning docker image for vulnerabilities"
-    "${TWIST_SCAN_DIR}/twist-scan.sh" "$image" || echo "Warning: Failed to scan image" >&2
-  fi
-
-  if [[ -n $CIRCLE_TAG ]]; then
-    echo "🔨 Building and Pushing Docker Image (production)"
-    (
-      set -x
-      docker buildx build "${args[@]}" --platform "$platformArgumentString" \
-        -t "$remote_image_name:$VERSION" -t "$remote_image_name:latest" --push \
-        "$buildContext"
-    )
-  fi
 }
 
 # HACK(jaredallard): Skips building images if TESTING_DO_NOT_BUILD is set. We

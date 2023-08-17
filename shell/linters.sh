@@ -17,23 +17,30 @@ if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
   exit 0
 fi
 
+# add extra (per project) linters
+linters=("$DIR/linters"/*.sh)
+if [[ -z $workspaceFolder ]]; then
+  workspaceFolder="$(get_repo_directory)"
+fi
+if [[ -d "$workspaceFolder"/scripts/linters ]]; then
+  linters+=("$workspaceFolder/scripts/linters/"*.sh)
+fi
+
 info "Running linters"
 
 started_at="$(get_time_ms)"
-for languageScript in "$DIR/linters"/*.sh; do
-  languageName="$(basename "${languageScript%.sh}")"
-
+for linterScript in "${linters[@]}"; do
   # We use a sub-shell to prevent inheriting
   # the changes to functions/variables to the parent
   # (this) script
   (
-    # Note: These are modified by the source'd language file
+    # Note: These are modified by the source'd linter file
     # extensions are the extensions this linter should run on
     extensions=()
 
     # Why: Dynamic
     # shellcheck disable=SC1090
-    source "$DIR/linters/$languageName.sh"
+    source "$linterScript"
 
     # If we don't find any files with the extension, skip the run.
     matched=false
@@ -55,7 +62,7 @@ for languageScript in "$DIR/linters"/*.sh; do
 
     # Set by the language file
     if ! linter; then
-      error "Linter failed to run, run 'make fmt' to fix"
+      error "linter failed to run. Please check the logs, 'make fmt' may help in some cases."
       exit 1
     fi
   )

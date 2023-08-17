@@ -22,7 +22,7 @@ source "$DIR/lib/box.sh"
 mkdir -p "$configDir"
 
 if [[ -z $VAULT_ADDR ]]; then
-  VAULT_ADDR="$(get_box_field .devenv.vault.address)"
+  VAULT_ADDR="$(get_box_field devenv.vault.address)"
   export VAULT_ADDR
 fi
 

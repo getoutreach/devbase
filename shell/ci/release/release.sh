@@ -33,11 +33,13 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/box.sh
 source "${LIB_DIR}/box.sh"
 
-OPSLEVEL_ENABLED="$(get_box_field '.ci.opslevelEnabled')"
-if [[ $OPSLEVEL_ENABLED == "true" && "$(is_service)" == "false" ]]; then
-  echo "checking opslevel"
-  make checkopslevel || send_failure_notification
-fi
+# Make https://github.com/pvdlg/env-ci/blob/master/services/circleci.js
+# think we're not on a PR.
+unset CIRCLE_PR_NUMBER
+unset CIRCLE_PULL_REQUESTS
+unset CIRCLE_PULL_REQUEST
+unset CI_PULL_REQUEST
+unset CI_PULL_REQUESTS
 
 ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
 
@@ -61,7 +63,7 @@ if [[ $UPDATED == "false" ]]; then
 elif [[ $UPDATED == "true" ]]; then
   # Special logic to publish a node client to github packages while
   # we're dual writing. This will be removed soonish.
-  if [[ -e $nodeClientDir ]]; then
+  if [[ -e $nodeClientDir && "$(is_service)" == "true" ]]; then
     info "Publishing node client to Github Packages"
 
     info_sub "pointing package.json to Github Packages"

@@ -11,7 +11,9 @@ asdf_plugins_list_regenerate() {
 }
 
 # Populate the list of plugins once
-asdf_plugins_list_regenerate
+if [[ -z $asdf_plugins_list ]]; then
+  asdf_plugins_list_regenerate
+fi
 
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.
@@ -26,6 +28,12 @@ read_all_asdf_tool_versions() {
 # .tool-versions file without influencing all versions of other tools
 asdf_get_version_from_devbase() {
   local tool_name="$1"
+
+  # Support executing Go from devbase.
+  if [[ $tool_name == "go" ]]; then
+    tool_name="golang"
+  fi
+
   # Why: We're OK with this being the way it is.
   # shellcheck disable=SC2155
   local devbase_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
@@ -41,26 +49,41 @@ asdf_get_version_from_devbase() {
   grep -E "^$tool_name " "$devbase_dir/.tool-versions" | head -n1 | awk '{print $2}'
 }
 
-# asdf_devbase_exec executes a command with the versions from the devbase
+# asdf_devbase_exec runs asdf_devbase_run but execs the command instead
+# of running it as a subprocess.
+asdf_devbase_exec() {
+  asdf_tool_env_var "$1"
+  exec "$@"
+}
+
+# asdf_devbase_run executes a command with the versions from the devbase
 # .tool-versions file. This will fail if the tool isn't installed, so callers
 # should invoke asdf_devbase_ensure first.
-asdf_devbase_exec() {
+asdf_devbase_run() {
+  asdf_tool_env_var "$1"
+  "$@"
+}
+
+# asdf_tool_env_var exports an environment variable to have the provided
+# tool version be used in asdf. This mutates the current shell's
+# environment variables by exporting the variable.
+#
+# See: https://asdf-vm.com/manage/versions.html#set-current-version
+asdf_tool_env_var() {
   local tool="$1"
   # Why: We're OK with this being the way it is.
   # shellcheck disable=SC2155
-  local tool_env_var="$(echo "$tool" | tr '[:lower:]-' '[:upper:]_')"
+  local tool_env_var="$(tr '[:lower:]-' '[:upper:]_' <<<"$tool")"
 
   # Why: We're OK with this being the way it is.
   # shellcheck disable=SC2155
   local version="$(asdf_get_version_from_devbase "$tool")"
   if [[ -z $version ]]; then
     echo "No version found for $tool in devbase .tool-versions file"
-    exit 1
+    return 1
   fi
 
   export "ASDF_${tool_env_var}_VERSION"="${version}"
-
-  exec "$@"
 }
 
 # asdf_devbase_ensure ensures that all versions of tools are installed from
@@ -90,8 +113,10 @@ asdf_devbase_ensure() {
     asdf_plugin_install "$plugin" || echo "Warning: Failed to install language '$name', may fail to invoke things using that language"
 
     # Install the version if it doesn't already exist
-    if ! asdf list "$plugin" | grep -qE "$version$"; then
+    if ! asdf list "$plugin" 2>/dev/null | grep -qE "$version$"; then
       need_reshim=1
+
+      echo "ensure_asdf: Installing $plugin $version"
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
       asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi

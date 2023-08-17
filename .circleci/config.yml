@@ -14,7 +14,6 @@ parameters:
 contexts: &contexts
   - aws-credentials
   - prismacloud-credentials
-  - opslevel-credentials
   - vault-dev
   - confluence
   - circleci-credentials

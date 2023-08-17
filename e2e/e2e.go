@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"go/build"
 	"os"
@@ -26,6 +27,13 @@ import (
 
 // flagship is the name of the flagship
 const flagship = "flagship"
+
+// junitTestResultPath path to test results after we run (devenv apps e2e)
+const junitTestResultPath = "./bin/unit-tests.xml"
+
+// devenvAlreadyExists contains message when devenv exists
+const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
+	"To ensure a clean operation, run `devenv destroy` before running tests"
 
 // osStdInOutErr is a helper function to use the os stdin/out/err
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
@@ -215,6 +223,84 @@ func shouldRunE2ETests() (bool, error) {
 	return runEndToEndTests, err
 }
 
+// runE2ETestsUsingDevspace uses devspace and binary sync to deploy application. There's no devconfig and docker build.
+func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
+	if isDevenvProvisioned(ctx) {
+		log.Info().Msgf(devenvAlreadyExists)
+	} else {
+		err := provisionDevenv(ctx, conf)
+		if err != nil {
+			return err
+		}
+	}
+
+	serviceName, err := config.ReadServiceName()
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		log.Info().Msg("Building binaries for devspace pod")
+		if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
+			log.Error().Err(err).Msg("Error when building for devspace")
+			panic(err)
+		}
+	}()
+
+	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
+	if err := osStdInOutErr(exec.CommandContext(
+		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
+		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
+	}
+
+	wg.Wait()
+
+	log.Info().Msg("Starting devspace pod and running e2e tests")
+	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
+		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
+	}
+	if runningInCi() {
+		// Copy junit report to place where CircleCi expects it
+		if err := osStdInOutErr(exec.CommandContext(ctx, "cp", junitTestResultPath, "/tmp/test-results/")).Run(); err != nil {
+			return errors.Wrap(err, "Unable to copy tests results to CircleCI artifact path")
+		}
+	}
+	testsSuccess, err := parseResultFromJunitReport()
+	if err != nil {
+		return err
+	}
+	if !testsSuccess {
+		return errors.New("E2E Tests failed")
+	}
+	log.Info().Msg("E2E Tests succeeded.")
+	return nil
+}
+
+// parseResultFromJunitReport parses if tests succeeded from junit xml file
+func parseResultFromJunitReport() (bool, error) {
+	type Testsuite struct {
+		XMLName  xml.Name `xml:"testsuites"`
+		Failures int      `xml:"failures,attr"`
+	}
+
+	data, err := os.ReadFile(junitTestResultPath)
+	if err != nil {
+		return false, errors.Wrap(err, "Unable to find e2e tests results")
+	}
+
+	var testsuite Testsuite
+	err = xml.Unmarshal(data, &testsuite)
+	if err != nil {
+		return false, errors.Wrap(err, "Unable to parse junit e2e tests results")
+	}
+
+	return testsuite.Failures == 0, nil
+}
+
 func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to extract
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -230,7 +316,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
 		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if os.Getenv("CI") == "true" { //nolint:goconst // Why: true == true
+		if runningInCi() {
 			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
 		}
 		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
@@ -247,6 +333,16 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
+	// USE_DEVSPACE env var is used to onboard in cluster run of e2e tests using devspace
+	useDevspace := os.Getenv("USE_DEVSPACE") == "true" //nolint:goconst // Why: true == true
+	if useDevspace {
+		err := runE2ETestsUsingDevspace(ctx, conf)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error in running e2e tests using devspace")
+		}
+		return
+	}
+
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -254,7 +350,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	// Allow skipping provision, this is generally only useful for the devenv
 	// which uses this framework -- but provisions itself.
 	if os.Getenv("SKIP_DEVENV_PROVISION") != "true" {
-		if exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() != nil {
+		if !isDevenvProvisioned(ctx) {
 			var wg sync.WaitGroup
 			dockerBuilt := false
 			wg.Add(1)
@@ -272,27 +368,11 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 				dockerBuilt = true
 			}(&wg)
 
-			deps, err := BuildDependenciesList(ctx, conf)
+			err := provisionDevenv(ctx, conf)
 			if err != nil {
 				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to build dependency tree")
+				log.Fatal().Err(err).Msg("Failed to provision devenv")
 				return
-			}
-
-			// TODO(jaredallard): outreach specific code
-			target := "base"
-			for _, d := range deps {
-				if d == "outreach" {
-					target = flagship
-					break
-				}
-			}
-
-			log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
-
-			if err := provisionNew(ctx, target); err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
-				log.Fatal().Err(err).Msg("Failed to create cluster")
 			}
 
 			if !dockerBuilt {
@@ -303,7 +383,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		} else {
 			log.Info().
 				//nolint:lll // Why: Message to user
-				Msg("Re-using existing cluster, this may lead to a non-reproducible failure/success. To ensure a clean operation, run `devenv destroy` before running tests")
+				Msg(devenvAlreadyExists)
 		}
 	}
 
@@ -332,11 +412,18 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}(&wg)
 	}
 
-	// if it's a library we don't need to deploy the application.
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
 		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
+		}
+	} else {
+		// we want to build CLI application so that E2E tests can invoke it
+		log.Info().Msg("Building application")
+		if err := exec.CommandContext(ctx, "make", "build").Run(); err != nil {
+			log.Fatal().Err(err).Msg("Error building application")
+		} else {
+			log.Info().Msg("Build done")
 		}
 	}
 
@@ -372,4 +459,40 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
+}
+
+// provisionDevenv provisions devenv in correct target based on application dependencies
+func provisionDevenv(ctx context.Context, conf *box.Config) error {
+	deps, err := BuildDependenciesList(ctx, conf)
+	if err != nil {
+		return errors.Wrap(err, "Failed to build dependency tree")
+	}
+
+	// TODO(jaredallard): outreach specific code
+	target := "base"
+	if os.Getenv("PROVISION_TARGET") != "" {
+		target = os.Getenv("PROVISION_TARGET")
+	} else {
+		for _, d := range deps {
+			if d == "outreach" {
+				target = flagship
+				break
+			}
+		}
+	}
+
+	log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
+
+	if err := provisionNew(ctx, target); err != nil {
+		return errors.Wrap(err, "Failed to create cluster")
+	}
+	return nil
+}
+
+func isDevenvProvisioned(ctx context.Context) bool {
+	return exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() == nil
+}
+
+func runningInCi() bool {
+	return os.Getenv("CI") == "true" //nolint:goconst // Why: true == true
 }

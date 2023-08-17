@@ -6,6 +6,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=../../lib/logging.sh
 source "$DIR/../../lib/logging.sh"
+# shellcheck source=../../lib/github.sh
+source "$DIR/../../lib/github.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
@@ -59,30 +61,7 @@ if [[ -n $CI ]]; then
   fi
 
   if ! command -v devenv >/dev/null; then
-    info "Setting up devenv"
-
-    tempDir=$(mktemp -d)
-    cp "$DIR/../../../.tool-versions" "$tempDir/" # Use the versions from devbase
-    pushd "$tempDir" >/dev/null || exit 1
-    # Ensure the versions we need are available
-    asdf install
-
-    # download the pre-release/latest version
-    REPO=getoutreach/devenv
-    if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
-      TAG=$(gh release -R "$REPO" list | grep Pre-release | head -n1 | awk '{ print $1 }')
-    else
-      TAG=$(gh release -R "$REPO" list | grep Latest | awk '{ print $1 }')
-    fi
-    info "Using devenv version: ($TAG)"
-    gh release -R "$REPO" download "$TAG" --pattern "devenv_*_$(go env GOOS)_$(go env GOARCH).tar.gz"
-
-    echo "" # Fixes issues with output being corrupted in CI
-    tar xf devenv**.tar.gz
-    sudo mv devenv /usr/local/bin/devenv
-    sudo chown circleci:circleci /usr/local/bin/devenv
-    rm -rf "$tempDir"
-    popd >/dev/null || exit
+    install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
   fi
 
   info "Setting up Git"

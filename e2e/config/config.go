@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/box"
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -46,6 +46,27 @@ func FromFile(confPath string) (*Devenv, error) {
 	}
 
 	return &dc, nil
+}
+
+// ReadServiceName reads service name from service.yaml
+func ReadServiceName() (string, error) {
+	configFileName := "service.yaml"
+	b, err := os.ReadFile(configFileName)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read %s", configFileName)
+	}
+
+	// conf is a partial of the configuration file for services configured with
+	// bootstrap (stencil).
+	var conf struct {
+		Name string `yaml:"name"`
+	}
+
+	if err := yaml.Unmarshal(b, &conf); err != nil {
+		return "", errors.Wrapf(err, "failed to parse %s", configFileName)
+	}
+
+	return conf.Name, nil
 }
 
 // FromGitHub reads and parses DevenvConfig from GitHub

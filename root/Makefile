@@ -5,7 +5,10 @@ BOOTSTRAP_DIR        := $(shell if [[ "$$(yq -r .name service.yaml 2>/dev/null |
 # This ensures that all of the devbase tool-versions have been installed before
 # running any of the targets. This is especially important for the mage,
 # which we execute as part of the Makefile.
-ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh") 
+#
+# We do 1>&2 here to ensure that output isn't swallowed by the
+# ENSURE_TOOL_VERSIONS variable. Otherwise, asdf tools are silently installed.
+ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh" 1>&2)
 
 # application information
 APP                 ?= unset
@@ -33,7 +36,7 @@ JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/go
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
 FLY                 := $(CURDIR)/scripts/shell-wrapper.sh fly.sh
 BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
-CONCOURSE_URL       := $(shell $(BOX_CONFIG) '.cd.concourse.address')
+CONCOURSE_URL       := $(shell $(BOX_CONFIG) 'cd.concourse.address')
 AIR                 := $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 # Testing options
@@ -54,6 +57,10 @@ E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 E2E_CLUSTER         ?= development.us-west-2
 E2E_ENVIRONMENT     ?= development
 OSS                 ?= false
+
+# Docker build
+BASE_IMAGE          ?= gcr.io/outreach-docker/$(APP)
+DOCKERFILE          ?= deployments/$(APP)/Dockerfile
 
 .PHONY: default
 default: build
@@ -85,7 +92,8 @@ release:: pre-release
 	@# Create a tag for our version
 	@git tag -d "$(APP_VERSION)" >&2 >/dev/null || true
 	@git tag "$(APP_VERSION)" >&2
-	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ./scripts/shell-wrapper.sh gobin.sh github.com/goreleaser/goreleaser@v1.6.2 release --skip-announce --skip-publish --skip-validate --rm-dist
+	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ASDF_GORELEASER_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep goreleaser | awk '{ print $$2 }') \
+		goreleaser release --skip-announce --skip-publish --skip-validate --clean
 	@# Delete the tag once we are done.
 	@git tag -d "$(APP_VERSION)" >&2
 
@@ -110,8 +118,8 @@ build:: pre-build gobuild
 .PHONY: lint
 # Note: We run pre-test for compat. Remove on the next breaking change.
 lint:: pre-test pre-lint
-	# Note that this requires the ensure_asdf.sh invocation at the top of
-	# this file.
+	@# Note that this requires the ensure_asdf.sh invocation at the top of
+	@# this file.
 	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
@@ -175,6 +183,7 @@ devspace-watch:
 .PHONY: devspace
 devspace:
 	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(MAGE_CMD) gobuild
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" $(MAGE_CMD) e2etestbuild
 	@echo "Use 'devenv apps run --sync-binaries .' to sync binaries to devspace pod"
 
 ## dev:       run the service
@@ -205,7 +214,7 @@ docker-build:: pre-docker-build
 	@echo " ===> building docker image <==="
 	@ssh-add -L
 	@echo " ===> If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>) <==="
-	@./scripts/shell-wrapper.sh ci/release/docker.sh
+	DOCKER_BUILDKIT=1 docker build --ssh default -t $(BASE_IMAGE) -f $(DOCKERFILE) . --build-arg VERSION=${APP_VERSION} $(DOCKER_BUILD_EXTRA_ARGS)
 
 ## fmt:             run source code formatters
 .PHONY: fmt
@@ -249,11 +258,6 @@ benchmarker-run:
 .PHONY: deploy
 deploy:
 	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
-
-## checkopslevel: checks if the app passes require opsevel checks
-.PHONY: checkopslevel
-checkopslevel:
-	@$(MAGE_CMD) checkopslevel $(APP)
 
 # Catch all to mage
 %::
