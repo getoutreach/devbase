@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Contains various helper functions for interacting with Github.
-#
-# Requires:
-# - asdf.sh
-# - logging.sh
+
+# LIB_DIR is the directory that shell script libraries live in.
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=asdf.sh
+source "$LIB_DIR/asdf.sh"
+# shellcheck source=logging.sh
+source "$LIB_DIR/logging.sh"
 
 # install_latest_github_release downloads the latest version of a tool
 # from Github. Requires the 'gh' cli to be installed.
