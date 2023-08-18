@@ -5,6 +5,9 @@ set -euo pipefail
 # DIR is the directory of this script.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+# CI determines if we're running in CI or not. Defaults to false.
+CI=${CI:-false}
+
 # Check if bats is installed and usable.
 if [[ ! -e "$DIR/bats/bats" ]]; then
   echo "Initializing bats submodule(s) ..."
