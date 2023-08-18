@@ -5,6 +5,6 @@ description: >
 steps:
   - run:
       name: Upload Telemetry (if enabled)
-      command: ./scripts/shell-wrapper.sh shell/ci/testing/delibird.sh
+      command: ./scripts/shell-wrapper.sh ci/testing/delibird.sh
   - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
       path: /tmp/test-results
