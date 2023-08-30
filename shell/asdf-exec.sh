@@ -10,6 +10,9 @@
 # invoke the right go version for that particular `some_project`.
 set -e
 
+
+echo "∆∆∆ joey ∆∆∆"
+
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./lib/bootstrap.sh
