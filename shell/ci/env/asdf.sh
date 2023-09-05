@@ -36,7 +36,7 @@ init_asdf() {
   git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.10.2
 
   # langauage specifics
-  echo -e "npm\nyarn" >"$HOME/.default-npm-packages"
+  echo -e "yarn" >"$HOME/.default-npm-packages"
   echo -e "bundler 2.2.17" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
