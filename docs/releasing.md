@@ -10,7 +10,7 @@ arguments:
   releaseOptions:
     enablePrereleases: true
     # It is idiomatic to use 'rc' here.
-    prereleasesBranch: <a-branch-other-than-the-default
+    prereleasesBranch: <a-branch-other-than-the-default>
 ```
 
 When a PR is created to the default branch (normally `main`), it will be
