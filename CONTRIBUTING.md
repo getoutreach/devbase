@@ -48,6 +48,17 @@ load <shellScriptHere>.sh
 For more information on how to write bats tests, see the [bats
 documentation](https://bats-core.readthedocs.io/en/stable/writing-tests.html)
 as well as existing tests in this repository (search for `*_test.bats` files!)
+
+### Building and testing the CircleCI orb
+
+If you want to test changes to the shared orb:
+
+1. Make the changes to the orb
+2. Run `make publish-orb`
+3. In a test service, change the orb version (after the `@`,
+   [example](https://github.com/getoutreach/devbase/blob/8f298fa86e5ff37afc75f6c6eeda14275f758f25/.circleci/config.yml#L5))
+   to `dev:first`
+
 <!-- <</Stencil::Block>> -->
 
 ### Replacing a Remote Version of the a Package with Local Version
