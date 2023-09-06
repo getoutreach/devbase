@@ -59,7 +59,7 @@ fi
 # If we didn't update, assume we're on a prerelease branch
 # and run the unstable-release code.
 if [[ $UPDATED == "false" ]]; then
-  "$DIR/unstable-release.sh"
+  exec "$DIR/unstable-release.sh"
 elif [[ $UPDATED == "true" ]]; then
   # Special logic to publish a node client to github packages while
   # we're dual writing. This will be removed soonish.
