@@ -38,7 +38,8 @@ run_unstable_include() {
   # Allow users to add custom steps at the end of an unstable release
   # being created (e.g., publish artifacts).
   echo "Calling $(basename "$INCLUDE_SCRIPT")"
-  exec DRYRUN=$DRYRUN "$INCLUDE_SCRIPT"
+  export DRYRUN
+  exec "$INCLUDE_SCRIPT"
 }
 
 # Set the DRYRUN flag if --dry-run is passed.
