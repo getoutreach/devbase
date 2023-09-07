@@ -24,6 +24,12 @@ source "$DIR/../../lib/box.sh"
 # shellcheck disable=SC2034
 DELIBIRD_ENABLED=$(get_box_field "delibird.enabled")
 
+# VAULT_ADDR is the address of the Vault instance to use for fetching
+# the delibird token during the installation of the delibird log
+# uploader.
+VAULT_ADDR=${VAULT_ADDR:-$(get_box_field devenv.vault.address)}
+export VAULT_ADDR
+
 # install_delibird installs the delibird log uploader.
 install_delibird() {
   # We enable pre-releases for now because we rely on the latest
