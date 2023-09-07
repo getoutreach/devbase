@@ -21,6 +21,7 @@ source "$DIR/../../lib/box.sh"
 # enabled or not. If the value is "true", then the delibird log uploader
 # will be enabled. If the value is "false", then the delibird log
 # uploader will be disabled.
+# shellcheck disable=SC2034
 DELIBIRD_ENABLED=$(get_box_field "delibird.enabled")
 
 # install_delibird installs the delibird log uploader.
@@ -42,13 +43,13 @@ install_delibird() {
     exit 1
   fi
 
-  echo -n "$DELIBIRD_TOKEN" > "$tokenPath"
+  echo -n "$DELIBIRD_TOKEN" >"$tokenPath"
 }
 
 # Exit if we're not enabled.
-if [[ $DELIBIRD_ENABLED != "true" ]]; then
-  exit 0
-fi
+#if [[ $DELIBIRD_ENABLED != "true" ]]; then
+#  exit 0
+#fi
 
 # Otherwise, check if the uploader is installed. If it isn't, attempt to
 # install it.
@@ -57,4 +58,10 @@ if ! command -v delibird &>/dev/null; then
 fi
 
 info "Running the delibird log uploader"
+
+# Ensure the logs directory exists.
+if [[ ! -e "$HOME/.outreach/logs" ]]; then
+  mkdir -p "$HOME/.outreach/logs"
+fi
+
 exec delibird --run-once start
