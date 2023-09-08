@@ -65,8 +65,6 @@ fi
 info "Running the delibird log uploader"
 
 # Ensure the logs directory exists.
-if [[ ! -e "$HOME/.outreach/logs" ]]; then
-  mkdir -p "$HOME/.outreach/logs"
-fi
+mkdir -p "$HOME/.outreach/logs"
 
 exec delibird --run-once start
