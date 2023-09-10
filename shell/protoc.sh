@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Generates code from proto files for Go, gRPC, and other languages if
+# configured (currently limited to Ruby and Javascript).
+set -euo pipefail
 
 # Generates proto types and clients from proto filess
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -8,12 +11,12 @@ GOBIN="$SCRIPTS_DIR/gobin.sh"
 source "$SCRIPTS_DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/yaml.sh
+source "$SCRIPTS_DIR/lib/yaml.sh"
 
-SUBDIR=""
-# check if SUBDIR passed as argument
-if [[ -n $1 ]]; then
-  SUBDIR="/$1"
-fi
+# SUBDIR is the directory to run protoc in relative to the current root
+# (normally /api). If not set, defaults to "" (no sub directory).
+SUBDIR=${1:-}
 
 # The script should be ran in the directory where the protobuf generation occurs.
 # We get the working directory here and then trim off of the repository directory
@@ -22,12 +25,14 @@ fi
 # Even when the script is ran using the go:generate directive, this still works.
 workDir="$(pwd)"
 workDir=${workDir#"$(get_repo_directory)"}
-info "Running protoc generation in $workDir"
+info "Running protoc generation in $workDir (protoc $(protoc --version))"
 
 PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
 PROTOC_IMPORTS_BASE_PATH="$HOME/.outreach/.protoc-imports"
 mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
 
+# get_package_prefix returns the directory that a specific node package
+# lives in based on the name and version.
 get_package_prefix() {
   local package_name="$1"
   local package_version="$2"
@@ -115,33 +120,47 @@ done
 info "Generating Go gRPC client"
 info_sub "Ensuring Go protoc plugins are installed"
 
-protoc_gen_go=$("$GOBIN" -p github.com/golang/protobuf/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
-protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
-
-# Whenever we go to the non-deprecated version of golang protobuf generation
-# these should be uncommented as well as the lines in the go_args array. Keep
-# in mind whenever this is done we will need to remove the duplicate protoc_gen_go
-# above and uncomment the versions commented out in versions.yaml.
-# ---
-# protoc_gen_go=$("$GOBIN" -p github.com/protocolbuffers/protobuf-go/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
-# protoc_gen_go_grpc=$(BUILD_DIR=cmd/protoc-gen-go-grpc BUILD_PATH=. "$GOBIN" -p github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc@v"$(get_application_version "protoc-gen-go-grpc")")
+latestGoProtobufModules=$(yaml_get_field ".arguments.grpcOptions.latestGoProtobufModules" "$(get_service_yaml)")
+if [[ $latestGoProtobufModules == "true" ]]; then
+  warn "!!! Using latest Go protobuf modules (this is ALPHA) !!!"
+  protoc_gen_go=$("$GOBIN" -p google.golang.org/protobuf/cmd/protoc-gen-go@v"$(get_application_version "protoc-gen-go-latest")")
+  protoc_gen_go_grpc=$(BUILD_DIR=cmd/protoc-gen-go-grpc BUILD_PATH=. "$GOBIN" -p google.golang.org/grpc/cmd/protoc-gen-go-grpc@"$(get_application_version "protoc-gen-go-grpc")")
+else
+  protoc_gen_go=$("$GOBIN" -p github.com/golang/protobuf/protoc-gen-go@v"$(get_application_version "protoc-gen-go")")
+  protoc_gen_doc=$("$GOBIN" -p github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v"$(get_application_version "protoc-gen-doc")")
+fi
 
 info_sub "Running Go protobuf generation"
 
 go_args=("${default_args[@]}")
-go_args+=(
-  --plugin=protoc-gen-go="$protoc_gen_go"
-  # --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
-  # --go_out=.
-  --go_out=plugins=grpc:".$SUBDIR" # Remove this line when we upgrade golang protobuf generation (and uncomment everything else).
-  --go_opt=paths=source_relative
-  # --go-grpc_out=.
-  # --go-grpc_opt=paths=source_relative
-  --plugin=protoc-gen-doc="$protoc_gen_doc"
-  --doc_out="$(get_repo_directory)$workDir/doc"
-  "--doc_opt=html,index.html"
-  --proto_path="$(get_repo_directory)$workDir$SUBDIR"
-)
+go_args+=(--plugin=protoc-gen-go="$protoc_gen_go")
+
+# Default behaviour.
+if [[ $latestGoProtobufModules != "true" ]]; then
+  go_args+=(
+    --go_out=plugins=grpc:".$SUBDIR"
+    --go_opt=paths=source_relative
+  )
+else
+  go_args+=(
+    --plugin=protoc-gen-go-grpc="$protoc_gen_go_grpc"
+    --go_out=.
+    --go_opt=paths=source_relative
+    --go-grpc_out=.
+    --go-grpc_opt=paths=source_relative
+  )
+fi
+
+disableDocGeneration=$(yaml_get_field ".arguments.grpcOptions.disableDocGeneration" "$(get_service_yaml)")
+if [[ $disableDocGeneration != "true" ]]; then
+  go_args+=(
+    --plugin=protoc-gen-doc="$protoc_gen_doc"
+    --doc_out="$(get_repo_directory)$workDir/doc"
+    --doc_opt="html,index.html"
+  )
+fi
+
+go_args+=(--proto_path="$(get_repo_directory)$workDir$SUBDIR")
 
 if has_feature "validation"; then
   protoc_gen_validate=$("$GOBIN" -p github.com/envoyproxy/protoc-gen-validate@v"$(get_application_version "protoc-gen-validate")")
@@ -157,14 +176,22 @@ delete_validate() {
 }
 
 # Make docs output directory if it doesn't exist.
-mkdir -p "$(get_repo_directory)$workDir/doc"
+if [[ $disableDocGeneration != "true" ]]; then
+  mkdir -p "$(get_repo_directory)$workDir/doc"
+fi
 
 # Run protoc for Go.
-protoc "${go_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+(
+  protoDir=$(get_repo_directory)$workDir$SUBDIR
+  set -x
+  protoc "${go_args[@]}" "$protoDir/"*.proto
+)
 
 # Move docs into the actual docs directory.
-mkdir -p "$PROTO_DOCS_DIR"
-mv "$(get_repo_directory)$workDir/doc/index.html" "$PROTO_DOCS_DIR"
+if [[ $disableDocGeneration != "true" ]]; then
+  mkdir -p "$PROTO_DOCS_DIR"
+  mv "$(get_repo_directory)$workDir/doc/index.html" "$PROTO_DOCS_DIR"
+fi
 
 if has_grpc_client "node"; then
   info "Generating Node gRPC client"
@@ -180,7 +207,6 @@ if has_grpc_client "node"; then
   mkdir -p "$(get_repo_directory)$workDir/clients/node/src/grpc$SUBDIR"
 
   info_sub "Running Node protobuf generation"
-
   grpc_path="$(get_repo_directory)$workDir/clients/node/src/grpc$SUBDIR"
 
   # Copy imported pb files.
@@ -194,7 +220,7 @@ if has_grpc_client "node"; then
   node_args=("${default_args[@]}")
   node_args+=(
     --plugin=protoc-gen-grpc="$grpc_tools_node_plugin"
-    "--js_out=import_style=commonjs,binary:$grpc_path"
+    --js_out=import_style="commonjs,binary:$grpc_path"
     --grpc_out=grpc_js:"$grpc_path"
     --proto_path "$(get_repo_directory)$workDir$SUBDIR"
   )
