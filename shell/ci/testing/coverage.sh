@@ -39,10 +39,10 @@ case $coverage_provider in
   exec "$DIR/coverbot/upload-coverage.sh" "$file" "$group"
   ;;
 "codecov")
-  "$DIR/codecov/upload-coverage.sh" "$file" "$group"
+  exec "$DIR/codecov/upload-coverage.sh" "$file" "$group"
   ;;
 "coveralls")
-  "$DIR/coveralls/upload-coverage.sh" "$file" "$group"
+  exec "$DIR/coveralls/upload-coverage.sh" "$file" "$group"
   ;;
 *)
   error "Unknown coverage provider \"$coverage_provider\", skipping coverage upload"
