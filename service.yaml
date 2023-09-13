@@ -11,6 +11,13 @@ arguments:
     enablePrereleases: true
     prereleasesBranch: rc
   reportingTeam: fnd-dt
+  coverage:
+    provider: coverbot
+  vaultSecrets:
+    - deploy/honeycomb_new/%(environment)s/honeycomb
+    - deploy/launchdarkly/%(environment)s/launchdarkly
+    - deploy/mint/%(environment)s/validation/mint-validator-payload
+    - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-base

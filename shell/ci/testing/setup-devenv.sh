@@ -8,6 +8,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/../../lib/logging.sh"
 # shellcheck source=../../lib/github.sh
 source "$DIR/../../lib/github.sh"
+# shellcheck source=../../lib/box.sh
+source "$DIR/../../lib/box.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
@@ -77,9 +79,10 @@ if [[ $PROVISION == "true" ]]; then
   fi
 
   if [[ -n $CI ]]; then
-    # Use the CI vault instance.
-    # TODO(jaredallard): Refactor when using box is available to CI.
-    export VAULT_ADDR="https://vault-dev.outreach.cloud"
+    if [[ -z $VAULT_ADDR ]]; then
+      VAULT_ADDR="$(get_box_field devenv.vault.address)"
+      export VAULT_ADDR
+    fi
   fi
 
   info "Provisioning developer environment"
