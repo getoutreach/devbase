@@ -11,8 +11,6 @@ arguments:
     enablePrereleases: true
     prereleasesBranch: rc
   reportingTeam: fnd-dt
-  slack: ""
-  tracing: opentelemetry
   coverage:
     provider: coverbot
   vaultSecrets:
