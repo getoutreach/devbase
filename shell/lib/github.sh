@@ -78,7 +78,7 @@ install_latest_github_release() {
   gh release -R "$slug" download "$tag" --pattern "$pattern"
 
   echo "" # Fixes issues with output being corrupted in CI
-  tar xf "${binary_name}"**.tar.*
+  tar xf "${repoName}"**.tar.*
 
   # If not writable, use sudo.
   baseArgs=()

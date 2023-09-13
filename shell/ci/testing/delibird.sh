@@ -6,12 +6,16 @@
 # is not already installed.
 set -euo pipefail
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
 # shellcheck source=../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "$DIR/../../lib/logging.sh"
 # shellcheck source=../../lib/github.sh
 source "$DIR/../../lib/github.sh"
+# shellcheck source=../../lib/box.sh
+source "$DIR/../../lib/box.sh"
 
 # DELIBIRD_ENABLED denotes if the delibird log uploader should be
 # enabled or not. If the value is "true", then the delibird log uploader
@@ -19,11 +23,32 @@ source "$DIR/../../lib/github.sh"
 # uploader will be disabled.
 DELIBIRD_ENABLED=$(get_box_field "delibird.enabled")
 
+# VAULT_ADDR is the address of the Vault instance to use for fetching
+# the delibird token during the installation of the delibird log
+# uploader.
+VAULT_ADDR=${VAULT_ADDR:-$(get_box_field devenv.vault.address)}
+export VAULT_ADDR
+
 # install_delibird installs the delibird log uploader.
 install_delibird() {
   # We enable pre-releases for now because we rely on the latest
   # unstable version of delibird to function.
   install_latest_github_release getoutreach/orc true delibird
+
+  # tokenPath is the path that the delibird token should be written to.
+  local tokenPath="$HOME/.outreach/.delibird/token"
+  mkdir -p "$(dirname "$tokenPath")"
+
+  # Fetch the delibird token from Vault.
+  DELIBIRD_TOKEN=$(vault kv get -format=json deploy/delibird/development/upload | jq -r '.data.data.token')
+  if [[ -z $DELIBIRD_TOKEN ]]; then
+    echo "Error: Failed to fetch delibird token from Vault." \
+      "Please ensure that the deploy/delibird/development/upload secret exists and" \
+      "that the shell/ci/auth/vault.sh script has been ran to configure Vault access." >&2
+    exit 1
+  fi
+
+  echo -n "$DELIBIRD_TOKEN" >"$tokenPath"
 }
 
 # Exit if we're not enabled.
@@ -38,4 +63,8 @@ if ! command -v delibird &>/dev/null; then
 fi
 
 info "Running the delibird log uploader"
+
+# Ensure the logs directory exists.
+mkdir -p "$HOME/.outreach/logs"
+
 exec delibird --run-once start

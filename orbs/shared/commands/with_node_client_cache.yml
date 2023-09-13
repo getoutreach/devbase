@@ -1,4 +1,4 @@
-description: Restore node client cache, running yarn after. Optionally build node client and save node client cache
+description: Restore Node.js client cache, running yarn after. Optionally build Node.js client and save Node.js client cache
 parameters:
   save:
     type: boolean
@@ -12,7 +12,7 @@ steps:
         - v1-node-client-cache-{{ checksum "cache-version.txt" }}-{{ checksum "api/clients/node/package.json" }}
         - v1-node-client-cache-{{ checksum "cache-version.txt" }}
   - run:
-      name: Install Node Client Dependencies
+      name: Install Node.js Client Dependencies
       working_directory: api/clients/node
       command: yarn --frozen-lockfile
   - when:

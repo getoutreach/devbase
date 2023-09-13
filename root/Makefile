@@ -177,13 +177,13 @@ run:: pre-run build
 ## devspace-watch:         watch source files and build them for linux. To be used with devspace using `devenv apps run --sync-binaries .`
 .PHONY: devspace-watch
 devspace-watch:
-	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(AIR)
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=0 SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(AIR)
 
 ## devspace:               build sources for linux with debugging symbols. To be used with devspace using `devenv apps run --sync-binaries .`
 .PHONY: devspace
 devspace:
-	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(MAGE_CMD) gobuild
-	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" $(MAGE_CMD) e2etestbuild
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=0 SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 $(MAGE_CMD) gobuild
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=0 $(MAGE_CMD) e2etestbuild
 	@echo "Use 'devenv apps run --sync-binaries .' to sync binaries to devspace pod"
 
 ## dev:       run the service
