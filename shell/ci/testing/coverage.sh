@@ -6,6 +6,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "$DIR/../../lib/logging.sh"
+# shellcheck source=../../lib/yaml.sh
+source "$DIR/../../lib/yaml.sh"
 
 # show_help shows the help message for this script
 show_help() {
@@ -28,8 +30,8 @@ if [[ -z $file ]]; then
   show_help
 fi
 
-coverage_provider=$(yq -r '.arguments.coverage.provider' <"$(get_service_yaml)" 2>/dev/null)
-if [[ -z $coverage_provider ]] || [[ $coverage_provider == "null" ]]; then
+coverage_provider=$(yaml_get_field ".arguments.coverage.provider" "$(get_service_yaml)")
+if [[ -z $coverage_provider ]]; then
   info "No coverage provider configured (.arguments.coverage) is empty"
   exit 0
 fi
