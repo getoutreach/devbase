@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generates code from proto files for Go, gRPC, and other languages if
-# configured (currently limited to Ruby and Javascript).
+# configured (currently limited to Ruby and JavaScript/TypeScript).
 set -euo pipefail
 
 # Generates proto types and clients from proto filess
@@ -31,7 +31,7 @@ PROTO_DOCS_DIR="$(get_repo_directory)/apidocs/proto"
 PROTOC_IMPORTS_BASE_PATH="$HOME/.outreach/.protoc-imports"
 mkdir -p "$PROTOC_IMPORTS_BASE_PATH"
 
-# get_package_prefix returns the directory that a specific node package
+# get_package_prefix returns the directory that a specific Node.js package
 # lives in based on the name and version.
 get_package_prefix() {
   local package_name="$1"
