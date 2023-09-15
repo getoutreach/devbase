@@ -24,7 +24,7 @@ DRYRUN=false
 # been created. This is primarily meant to be used with creating other
 # artifacts post-release.
 #
-# This is also ran if there is no .gorereleaser.yml file in the
+# This is also run if there is no .gorereleaser.yml file in the
 # repository but all other conditions are satisfied. This allows those
 # repositories to do their own logic for releasing an unstable release.
 INCLUDE_SCRIPT="$(get_repo_directory)/scripts/unstable-release.include.sh"
@@ -92,7 +92,7 @@ echo "Creating unstable release ($app_version)"
 
 make release APP_VERSION="$app_version"
 
-# If we're in a dryrun, skip creating the release.
+# If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
   exit 0
 fi

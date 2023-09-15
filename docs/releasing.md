@@ -15,7 +15,7 @@ arguments:
 
 When a PR is created to the default branch (normally `main`), it will be
 tested for an unstable release. By default, if a repo has a
-`.goreleaser.yml` file, binaries will be created an uploaded to the
+`.goreleaser.yml` file, binaries will be created and uploaded to the
 `unstable` tag on the repo once merged.
 
 ### Custom Release Logic
@@ -24,9 +24,9 @@ If a repo does not have a `.goreleaser.yml` file, nothing will happen by
 default.
 
 Optionally, a `scripts/unstable-release.include.sh` file can be created
-that will be ran instead. If a `.goreleaser.yml` file does exist, and
-the include file exists as well, it will be called after the github
-release has been created.
+that will be run instead. If both a `.goreleaser.yml` file and the
+include file exist, it will be called after the GitHub release has
+been created.
 
 A `DRYRUN` environment variable is passed to the include script to
 enable custom dry-run logic like the original release script.
