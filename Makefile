@@ -1,6 +1,6 @@
 APP := devbase
 OSS := true
-_ := $(shell ./scripts/devbase.sh) 
+_ := $(shell ./scripts/devbase.sh)
 
 include .bootstrap/root/Makefile
 
@@ -18,5 +18,5 @@ validate-orb: build-orb
 
 .PHONY: publish-orb
 publish-orb: validate-orb
-	circleci orb publish orb.yml getoutreach/shared@dev:first
+	circleci orb publish orb.yml getoutreach/shared@dev:jaredallard-feat-yarn-v3
 ## <</Stencil::Block>>
