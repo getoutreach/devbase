@@ -14,7 +14,7 @@ steps:
   - run:
       name: Install Node.js Client Dependencies
       working_directory: api/clients/node
-      command: yarn --frozen-lockfile
+      command: yarn --immutable --immutable-cache
   - when:
       condition: << parameters.save >>
       steps:

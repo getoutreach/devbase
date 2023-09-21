@@ -15,12 +15,18 @@ if [[ -z $asdf_plugins_list ]]; then
   asdf_plugins_list_regenerate
 fi
 
+# asdf_find_tool_versions returns all .tool-version files that could
+# be used in the current repository.
+asdf_find_tool_versions() {
+  find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
+    -name .tool-versions -print
+}
+
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
 # and the child directories minus node_modules and vendor.
 # This prints the plugin, then the version, each separated by a newline.
 read_all_asdf_tool_versions() {
-  find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
-    -name .tool-versions -exec cat {} \; |
+  asdf_find_tool_versions | xargs -n1 cat |
     grep -Ev "^#|^$" | sort | uniq | awk '{ print $1 } { print $2 }'
 }
 
@@ -47,6 +53,48 @@ asdf_get_version_from_devbase() {
 
   # Otherwise, use the version from devbase
   grep -E "^$tool_name " "$devbase_dir/.tool-versions" | head -n1 | awk '{print $2}'
+}
+
+# asdf_display_versions prints the versions of tools being used across
+# all .tool-versions in the current directory and all subdirectories.
+asdf_display_versions() {
+  readarray -t tool_versions < <(asdf_find_tool_versions)
+  readarray -t asdf_entries < <(read_all_asdf_tool_versions)
+
+  # When in CI, output the versions of tools being used.
+  echo "[asdf] Tool Versions"
+  for ((i = 0; i < "${#asdf_entries[@]}"; i = (i + 2))); do
+    # Why: We're OK not declaring separately here.
+    # shellcheck disable=SC2155
+    local plugin="${asdf_entries[$i]}"
+    # Why: We're OK not declaring separately here.
+    # shellcheck disable=SC2155
+    local version="${asdf_entries[i + 1]}"
+
+    # Search for the .tool-version files where this version is defined.
+    # This is a hacky way to get this information, ideally in the future
+    # Go-rewrite we would store this with the original lookup.
+    local source=()
+    for tv in "${tool_versions[@]}"; do
+      if ! grep -qE "^$plugin $version$" "$tv"; then
+        continue
+      fi
+
+      source+=("${tv##./}")
+    done
+
+    str="$plugin: $version"
+    if [[ ${#source[@]} -gt 0 ]]; then
+      fileNames="$(printf "%s," "${source[@]}")"
+      # Trim trailing comma
+      fileNames="${fileNames%,}"
+      str+=" ($fileNames)"
+    else
+      # Fallback to denoting we don't know where it came from. This is a bug.
+      str+=" (unknown source)"
+    fi
+    echo "$str"
+  done
 }
 
 # asdf_devbase_exec runs asdf_devbase_run but execs the command instead
@@ -132,12 +180,20 @@ asdf_devbase_ensure() {
 
   if [ "$need_reshim" == 1 ]; then
     # Reshim to ensure that the correct versions are used
+    echo "ensure_asdf: Reshimming"
     asdf reshim
+  fi
+
+  # When running in CI, display version information. This is useful for
+  # debugging issues with the CI environment.
+  if [[ -n $CI ]]; then
+    asdf_display_versions
   fi
 }
 
 # asdf_install installs a plugins/version required from a top-level
 # .tool-versions and all subdirectories.
+#
 # Deprecated: Use asdf_devbase_ensure instead.
 asdf_install() {
   asdf_devbase_ensure
