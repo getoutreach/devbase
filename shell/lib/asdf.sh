@@ -120,6 +120,14 @@ asdf_devbase_ensure() {
       # Install the language, retrying w/ AMD64 emulation if on macOS or just retrying on failure once.
       asdf install "$plugin" "$version" || asdf_install_retry "$plugin" "$version"
     fi
+
+    if [[ $plugin == "nodejs" ]]; then
+      # Ensure that yarn is installed.
+      if ! command -v yarn >/dev/null; then
+        corepack enable
+        need_reshim=1
+      fi
+    fi
   done
 
   if [ "$need_reshim" == 1 ]; then

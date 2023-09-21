@@ -7,13 +7,11 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/../lib/she
 yarn_install_if_needed() {
   local stateFile="node_modules/devbase.lock"
 
-  if ! yarn -v >/dev/null 2>&1; then
-    npm install -g yarn
-  fi
-
-  if [[ ! -e "node_modules" ]]; then
-    yarn_install "$stateFile"
-    return
+  if ! command -v yarn >/dev/null; then
+    corepack enable
+    if command -v asdf >/dev/null; then
+      asdf reshim
+    fi
   fi
 
   if [[ ! -e $stateFile ]]; then

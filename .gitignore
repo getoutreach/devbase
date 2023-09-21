@@ -67,4 +67,5 @@ Pulumi.*.yaml
 ## <<Stencil::Block(extras)>>
 orb.*
 .version
+.yarn
 ## <</Stencil::Block>>

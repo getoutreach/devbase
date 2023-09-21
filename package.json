@@ -12,5 +12,6 @@
     "prettier": "^2.8.8",
     "semantic-release": "^21.0.5",
     "semver": "^7.5.2"
-  }
+  },
+  "packageManager": "yarn@3.6.3"
 }
