@@ -170,7 +170,12 @@ asdf_devbase_ensure() {
     fi
 
     if [[ $plugin == "nodejs" ]]; then
-      # Ensure that yarn is installed.
+      # Ensure that yarn is install via corepack.
+      if npm list -g yarn >/dev/null; then
+        echo "ensure_asdf: Migrating to corepack-managed yarn"
+        npm uninstall -g yarn
+      fi
+
       if ! command -v yarn >/dev/null; then
         corepack enable
         need_reshim=1
