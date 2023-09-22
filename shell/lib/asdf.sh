@@ -189,9 +189,10 @@ asdf_devbase_ensure() {
     asdf reshim
   fi
 
-  # When running in CI, display version information. This is useful for
-  # debugging issues with the CI environment.
-  if [[ -n $CI ]]; then
+  # When DISPLAY_VERSIONS is set to true, we should print out the
+  # version information. This is mostly used for env/asdf.sh for
+  # displaying during CI setup.
+  if [[ $DISPLAY_VERSIONS == "true" ]]; then
     asdf_display_versions
   fi
 }

@@ -10,7 +10,7 @@ steps:
         - release-node-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Install semantic-release Dependencies
-      command: yarn --immutable --immutable-cache
+      command: yarn --immutable
   - when:
       condition: << parameters.save >>
       steps:
