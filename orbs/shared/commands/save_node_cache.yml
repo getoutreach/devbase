@@ -1,7 +1,7 @@
 description: Save the current node cache at a standard path
 steps:
   - save_cache:
-      key: release-node-cache-{{ checksum "cache-version.txt" }}-{{ checksum "package.json" }}
+      key: node-release-cache-{{ checksum "cache-version.txt" }}-{{ checksum "yarn.lock" }}
       paths:
         # Loosely based on a Github action Gist for caching yarn[^1].
         #

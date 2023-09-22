@@ -12,4 +12,4 @@ steps:
   - run:
       name: Test Node gRPC client
       working_directory: api/clients/node/
-      command: yarn --frozen-lockfile test-ci
+      command: yarn test-ci

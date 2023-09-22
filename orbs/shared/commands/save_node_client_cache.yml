@@ -1,6 +1,7 @@
 description: Save the node client's cache at a standard path
 steps:
   - save_cache:
-      key: v1-node-client-cache-{{ checksum "cache-version.txt" }}-{{ checksum "api/clients/node/package.json" }}
+      key: node-client-cache-{{ checksum "cache-version.txt" }}-{{ checksum "api/clients/node/yarn.lock" }}
       paths:
         - api/clients/node/node_modules
+        - api/clients/node/.yarn

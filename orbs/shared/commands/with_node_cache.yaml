@@ -6,8 +6,8 @@ parameters:
 steps:
   - restore_cache:
       keys:
-        - release-node-cache-{{ checksum "cache-version.txt" }}-{{ checksum "package.json" }}
-        - release-node-cache-{{ checksum "cache-version.txt" }}
+        - node-release-cache-{{ checksum "cache-version.txt" }}-{{ checksum "package.json" }}
+        - node-release-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Install semantic-release Dependencies
       command: yarn --immutable
