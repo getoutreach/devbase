@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Based off of:
+#
 # Original License:
 #
 # Copyright 2019 The Kubernetes Authors.
