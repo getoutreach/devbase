@@ -61,12 +61,12 @@ fi
 if [[ $UPDATED == "false" ]]; then
   "$DIR/unstable-release.sh"
 elif [[ $UPDATED == "true" ]]; then
-  # Special logic to publish a node client to github packages while
+  # Special logic to publish a Node.js client to GitHub packages while
   # we're dual writing. This will be removed soonish.
-  if [[ -e $nodeClientDir && "$(is_service)" == "true" ]]; then
-    info "Publishing node client to Github Packages"
+  if [[ -e $nodeClientDir && "$(is_service)" == "true" ]] && has_grpc_client "node"; then
+    info "Publishing Node.js client to GitHub Packages"
 
-    info_sub "pointing package.json to Github Packages"
+    info_sub "pointing package.json to GitHub Packages"
     pjson="$nodeClientDir/package.json"
     originalName="$(jq -r '.name' "$pjson")"
     newName="${originalName//@outreach/@getoutreach}"
@@ -75,7 +75,7 @@ elif [[ $UPDATED == "true" ]]; then
     echo "$newpjson" >"$pjson"
 
     pushd "$nodeClientDir" >/dev/null || exit 1
-    info_sub "pushing to github packages"
+    info_sub "pushing to GitHub packages"
     npm publish || send_failure_notification
     popd >/dev/null || exit 1
   fi
