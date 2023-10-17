@@ -55,6 +55,6 @@ if command -v npm >/dev/null 2>&1; then
   cat >>"$HOME/.npmrc" <<EOF
 
 //npm.pkg.github.com/:_authToken=$GITHUB_TOKEN
-@getoutreach:registry=https://npm.pkg.github.com
+@$ORG:registry=https://npm.pkg.github.com
 EOF
 fi
