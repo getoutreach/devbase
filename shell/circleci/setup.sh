@@ -17,7 +17,6 @@ authn=(
   "vault"
   "aws"
   "github"
-  "packagecloud"
   "github_packages"
 )
 
