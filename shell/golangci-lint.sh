@@ -22,6 +22,7 @@ GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,
 GOLANGCILINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
 GO_MINOR_VERSION_INT=${GO_MINOR_VERSION//./}
 GOLANGCI_LINT_VERSION_INT=${GOLANGCILINT_VERSION//./}
+GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
 
 # Check version compatibility for golangci-lint/go 1.X.
 if [[ ${GO_MINOR_VERSION_INT:0:1} -lt 2 ]] && [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]]; then
