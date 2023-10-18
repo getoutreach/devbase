@@ -28,7 +28,7 @@ TAGS                :=
 BINDIR              := $(CURDIR)/bin
 BIN_NAME            := $(APP)
 PKGDIR              := github.com/$(ORG)/$(APP)
-CGO_ENABLED         ?= 1
+CGO_ENABLED         ?= $(shell "$(CURDIR)/scripts/shell-wrapper.sh cgo-enabled.sh")
 TOOL_DEPS           := ${GO}
 
 # formatters / misc
