@@ -4,7 +4,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
-nodeClientDir="api/clients/node"
 
 # Read the GH_TOKEN from the file
 GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
