@@ -7,7 +7,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
-if [[ "$(yq -r ".arguments.enableCGo" <"$(get_service_yaml)")" == "true" ]]; then
+if [[ "$(yq -r ".arguments.enableCgo" <"$(get_service_yaml)")" == "true" ]]; then
   echo "1"
 else
   echo "0"

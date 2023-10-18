@@ -8,3 +8,7 @@ arguments:
     description: "Use non-deprecated protobuf modules for Go"
     schema:
       type: boolean
+  enableCgo:
+    description: "Enables compiling Go binaries with cgo."
+    schema:
+      type: boolean
