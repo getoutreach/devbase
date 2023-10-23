@@ -20,7 +20,7 @@ plugins:
   # Build the orb
   - - "@semantic-release/exec"
     - prepareCmd: make
-  - - "@outreach/semantic-release-circleci-orb"
+  - - "@getoutreach/semantic-release-circleci-orb"
     - orbName: "getoutreach/shared"
       orbPath: "orb.yml"
   ## <</Stencil::Block>>

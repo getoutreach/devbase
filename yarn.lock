@@ -54,6 +54,15 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
   integrity sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==
 
+"@getoutreach/semantic-release-circleci-orb@^1.1.9":
+  version "1.1.9"
+  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/1.1.9/7049c6130416c39b0cefa9d1be0c06ce0caeb3bd#7049c6130416c39b0cefa9d1be0c06ce0caeb3bd"
+  integrity sha512-bS9yALtUshWP4rZ+zcxIOsIuvtZINmKcz44i0UXjIvqnXSH2b7I2ZccFH28iMuKbwkaUimNv6R3Y0YivNcyexQ==
+  dependencies:
+    "@semantic-release/error" "^3.0.0"
+    aggregate-error "^3.1.0"
+    execa "^5.1.0"
+
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
   resolved "https://registry.yarnpkg.com/@isaacs/cliui/-/cliui-8.0.2.tgz#b37667b7bc181c168782259bab42474fbf52b550"
@@ -391,15 +400,6 @@
   integrity sha512-D4iHGTdAnEEVsB8fl95m1hiz7D5YiRdQ9b/OEb3BYRVwbLsGHcRVPz+u+BgRLNk0Q0/4iZCBqDN96j2XNxfXrA==
   dependencies:
     "@octokit/openapi-types" "^18.0.0"
-
-"@outreach/semantic-release-circleci-orb@^1.1.9":
-  version "1.1.9"
-  resolved "https://registry.yarnpkg.com/@outreach/semantic-release-circleci-orb/-/semantic-release-circleci-orb-1.1.9.tgz#187f9d71599f7e3f6b88cefa3b180d788e9be6cd"
-  integrity sha512-j3eFWSXa9kD3GIoDEpIlovCajxvUugt4mBROcB+a5X8kPMBFuDEqlNTNVA98AuvCtWsdzg7KokvGIVWJDTjHXQ==
-  dependencies:
-    "@semantic-release/error" "^3.0.0"
-    aggregate-error "^3.1.0"
-    execa "^5.1.0"
 
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
