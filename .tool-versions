@@ -18,4 +18,5 @@ golangci-lint 1.54.1
 shellcheck 0.9.0
 shfmt 3.7.0
 goreleaser 1.20.0
+terraform 1.4.4
 ## <</Stencil::Block>>
