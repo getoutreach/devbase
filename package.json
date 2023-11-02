@@ -13,5 +13,5 @@
     "semantic-release": "^22.0.6",
     "semver": "^7.5.4"
   },
-  "packageManager": "yarn@3.6.3"
+  "packageManager": "yarn@4.0.1"
 }
