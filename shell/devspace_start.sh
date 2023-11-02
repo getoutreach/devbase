@@ -27,6 +27,17 @@ if [[ -n $GH_TOKEN ]]; then
   # shellcheck disable=SC2016
   # shellcheck disable=SC2086
   echo '//npm.pkg.github.com/:_authToken=${GH_TOKEN}' >>"$HOME/.npmrc"
+  echo '@getoutreach:registry=https://npm.pkg.github.com' >>"$HOME/.npmrc"
+
+  # Support yarn v2+
+  cat >>"$HOME/.yarnrc.yml" <<EOF
+
+npmScopes:
+  "$ORG":
+    npmAlwaysAuth: true
+    npmAuthToken: "${GH_TOKEN}"
+    npmRegistryServer: "https://npm.pkg.github.com"
+EOF
 
   # We need bundler to be a thing so source ASDF
   # shellcheck disable=SC1090
