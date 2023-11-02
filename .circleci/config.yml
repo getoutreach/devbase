@@ -3,7 +3,7 @@
 version: 2.1
 orbs:
   shared: getoutreach/shared@dev:jaredallard-feat-yarn-v3
-  queue: eddiewebb/queue@1.8.4
+  queue: eddiewebb/queue@2.2.1
 
 parameters:
   rebuild_cache:
@@ -13,7 +13,6 @@ parameters:
 # Extra contexts to expose to all jobs below
 contexts: &contexts
   - aws-credentials
-  - prismacloud-credentials
   - vault-dev
   - confluence
   - circleci-credentials

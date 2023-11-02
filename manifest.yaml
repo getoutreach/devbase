@@ -1,1 +1,14 @@
 name: github.com/getoutreach/devbase
+arguments:
+  disableDocGeneration:
+    description: "Disables protobuf documentation generation."
+    schema:
+      type: boolean
+  latestGoProtobufModules:
+    description: "Use non-deprecated protobuf modules for Go"
+    schema:
+      type: boolean
+  enableCgo:
+    description: "Enables compiling Go binaries with cgo."
+    schema:
+      type: boolean

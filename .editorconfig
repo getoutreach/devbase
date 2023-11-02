@@ -8,7 +8,7 @@ insert_final_newline = true
 [*.go,Makefile]
 indent_style = tab
 
-[*.{bash,rb,sh,slim,yml,yaml,bats}]
+[*.{bash,rb,sh,slim,yml,yaml}]
 indent_style = space
 indent_size  = 2
 
@@ -19,6 +19,11 @@ indent_style = tab
 indent_size  = 2
 
 [*.{bash,rb,sh,slim,yml,yaml}.tpl]
+indent_style = space
+indent_size  = 2
+
+# Bats tests
+[*.bats]
 indent_style = space
 indent_size  = 2
 ## <</Stencil::Block>>

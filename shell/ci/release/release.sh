@@ -4,7 +4,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
-nodeClientDir="api/clients/node"
 
 # Read the GH_TOKEN from the file
 GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
@@ -60,23 +59,4 @@ fi
 # and run the unstable-release code.
 if [[ $UPDATED == "false" ]]; then
   exec "$DIR/unstable-release.sh"
-elif [[ $UPDATED == "true" ]]; then
-  # Special logic to publish a node client to github packages while
-  # we're dual writing. This will be removed soonish.
-  if [[ -e $nodeClientDir && "$(is_service)" == "true" ]]; then
-    info "Publishing node client to Github Packages"
-
-    info_sub "pointing package.json to Github Packages"
-    pjson="$nodeClientDir/package.json"
-    originalName="$(jq -r '.name' "$pjson")"
-    newName="${originalName//@outreach/@getoutreach}"
-
-    newpjson="$(jq ". + {\"name\":\"$newName\",\"publishConfig\":{\"registry\":\"https://npm.pkg.github.com/\"}}" "$pjson")"
-    echo "$newpjson" >"$pjson"
-
-    pushd "$nodeClientDir" >/dev/null || exit 1
-    info_sub "pushing to github packages"
-    npm publish || send_failure_notification
-    popd >/dev/null || exit 1
-  fi
 fi

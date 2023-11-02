@@ -22,7 +22,7 @@ modules:
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
-    channel: unstable # Need Go 1.20
+    channel: unstable # Easier to match versions if we always use unstable.
   - name: github.com/getoutreach/devbase
 replacements:
   github.com/getoutreach/devbase: ./
