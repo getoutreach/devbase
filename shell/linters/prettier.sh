@@ -11,13 +11,13 @@ extensions=(yaml yml json md ts)
 
 prettier_linter() {
   yarn_install_if_needed >/dev/null
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "node_modules/.bin/prettier" -l --loglevel log
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "node_modules/.bin/prettier" -l --log-level log
   return $?
 }
 
 prettier_formatter() {
   yarn_install_if_needed >/dev/null
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "node_modules/.bin/prettier" --write --loglevel warn
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "node_modules/.bin/prettier" --write --log-level warn
 }
 
 linter() {
