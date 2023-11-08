@@ -46,6 +46,8 @@ executor:
   docker_image: << parameters.docker_image >>
   docker_tag: << parameters.docker_tag >>
 
+environment:
+  PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
 steps:
   - when:
       condition:
