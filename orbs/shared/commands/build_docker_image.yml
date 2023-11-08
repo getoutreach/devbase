@@ -1,5 +1,9 @@
-description: Restore Docker cache to a standard path
+description: Build a Docker image for a given architecture.
 parameters:
+  arch:
+    type: string
+    description: the architecture of the generated Docker image (amd64 | arm64)
+    default: amd64
   save:
     type: boolean
     default: true
@@ -11,3 +15,5 @@ steps:
   - run:
       name: Build and Push Docker Image
       command: << parameters.script >>
+      environment:
+        IMAGE_ARCH: << parameters.arch >>

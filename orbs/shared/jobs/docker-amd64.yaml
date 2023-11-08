@@ -1,0 +1,8 @@
+description: Build and (optionally push) an AMD64 Docker image. Pushes only on release (or default) branches
+executor:
+  name: testbed-machine
+resource_class: xlarge
+steps:
+  - setup_environment:
+      machine: true
+  - build_docker_image

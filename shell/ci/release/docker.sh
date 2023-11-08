@@ -76,7 +76,11 @@ build_and_push_image() {
   # See buildkit docs: https://github.com/docker/buildx#building-multi-platform-images
   mapfile -t platforms < <(get_image_field "$image" "platforms" "array")
   if [[ -z $platforms ]]; then
-    platforms=("linux/arm64" "linux/amd64")
+    if [[ -z $IMAGE_ARCH ]]; then
+      platforms=("linux/arm64" "linux/amd64")
+    else
+      platforms=("linux/${IMAGE_ARCH}")
+    fi
   fi
 
   # Expose secrets to a docker container, expected format (in YAML):
