@@ -8,6 +8,8 @@ parameters:
     description: Script to run to stitch Docker image
     default: "./scripts/shell-wrapper.sh ci/release/docker-stitch.sh"
 steps:
+  - attach_workspace:
+      at: /home/circleci
   - run:
       name: Stitch and Push Docker Image
       command: << parameters.script >>
