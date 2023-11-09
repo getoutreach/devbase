@@ -173,7 +173,13 @@ build_and_push_image() {
   fi
   (
     set -x
-    docker buildx --builder devbase build "${args[@]}"
+
+    if [[ $OSTYPE == "linux-gnu"* ]]; then
+      docker buildx --builder devbase build "${args[@]}"
+    else
+      docker build "${args[@]}"
+    fi
+
   )
 }
 
