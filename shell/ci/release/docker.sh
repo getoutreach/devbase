@@ -173,7 +173,7 @@ build_and_push_image() {
   fi
   (
     set -x
-    docker buildx build "${args[@]}"
+    docker buildx --builder "$APPNAME" build "${args[@]}"
   )
 }
 
