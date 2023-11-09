@@ -18,7 +18,7 @@ MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 if [[ -z $TESTING_DO_NOT_BUILD ]]; then
   # shellcheck source=../../lib/buildx.sh
-  source "${LIB_DIR}/buildx.sh" "$APPNAME"
+  source "${LIB_DIR}/buildx.sh"
 fi
 
 # shellcheck source=../../lib/logging.sh
@@ -173,7 +173,7 @@ build_and_push_image() {
   fi
   (
     set -x
-    docker buildx --builder "$APPNAME" build "${args[@]}"
+    docker buildx --builder devbase build "${args[@]}"
   )
 }
 
