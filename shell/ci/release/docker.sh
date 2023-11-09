@@ -134,8 +134,9 @@ build_and_save_image() {
     args+=("--tag" "$tag")
   done
 
+  mkdir -p docker-images
+
   if [[ $artifact == true ]]; then
-    mkdir -p docker-images
     args+=("--output" "type=docker,dest=./docker-images/$arch.tar")
   fi
 
