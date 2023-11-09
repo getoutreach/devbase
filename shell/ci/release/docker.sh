@@ -64,8 +64,8 @@ get_image_field() {
 build_and_save_image() {
   local image="$1"
 
-  # push determines if we should push the image to the registry or not.
-  local push=false
+  # artifact determines if we should save the artifact to disk.
+  local artifact=false
 
   # Platforms to build this image for, expected format (in YAML):
   # platforms:
