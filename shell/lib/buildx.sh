@@ -5,6 +5,7 @@
 # BUILDX_VERSION is the version of 'docker buildx' we should use if not
 # already installed on the host system.
 BUILDX_VERSION="v0.11.2"
+APPNAME="$1"
 
 # ARCH is the architecture of the host system. Matches the format,
 # loosely, of GOARCH.
@@ -41,7 +42,7 @@ if [[ $OSTYPE == "linux-gnu"* ]]; then
 
   # Take from setup-buildx Github Action
   echo "� Creating a new builder instance"
-  docker buildx create --use
+  docker buildx create --use --name "$APPNAME"
 
   echo "🏃 Booting builder"
   docker buildx inspect --bootstrap

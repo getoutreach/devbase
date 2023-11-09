@@ -18,7 +18,7 @@ MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 if [[ -z $TESTING_DO_NOT_BUILD ]]; then
   # shellcheck source=../../lib/buildx.sh
-  source "${LIB_DIR}/buildx.sh"
+  source "${LIB_DIR}/buildx.sh" $APPNAME
 fi
 
 # shellcheck source=../../lib/logging.sh
