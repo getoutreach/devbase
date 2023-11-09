@@ -1,7 +1,7 @@
 description: Standard executor for machine runtimes
 machine:
   image: ubuntu-2204:2023.04.2
-  docker_layer_caching: false
+  docker_layer_caching: true
 environment:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/getoutreach/*

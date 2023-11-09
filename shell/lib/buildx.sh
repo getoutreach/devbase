@@ -41,7 +41,7 @@ if [[ $OSTYPE == "linux-gnu"* ]]; then
 
   # Take from setup-buildx Github Action
   echo "� Creating a new builder instance"
-  docker buildx create --use
+  docker buildx create --use --name devbase
 
   echo "🏃 Booting builder"
   docker buildx inspect --bootstrap
