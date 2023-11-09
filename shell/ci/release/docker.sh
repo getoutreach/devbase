@@ -60,9 +60,8 @@ get_image_field() {
   fi
 }
 
-# build_and_push_image builds and pushes a docker image to
-# the configured registry
-build_and_push_image() {
+# build_and_save_image builds and optionally saves the image to disk.
+build_and_save_image() {
   local image="$1"
 
   # push determines if we should push the image to the registry or not.
@@ -93,25 +92,6 @@ build_and_push_image() {
   mapfile -t secrets < <(get_image_field "$image" "secrets" "array")
   if [[ -z $secrets ]]; then
     secrets=("id=npmtoken,env=NPM_TOKEN")
-  fi
-
-  local imageRegistry="$(get_box_field 'devenv.imageRegistry')"
-
-  # Where to push the image. This can be overridden in the manifest
-  # with the field .pushTo. If not set, we'll use the imageRegistry
-  # from the box configuration and the name of the image in devenv.yaml
-  # as the repository. If this is not the main image (appName), we'll
-  # append the appName to the repository to keep the images isolated
-  # to this repository.
-  local remote_image_name=$(get_image_field "$image" "pushTo")
-  if [[ -z $remote_image_name ]]; then
-    local remote_image_name="$imageRegistry/$image"
-
-    # If we're not the main image, then we should prefix the image name with the
-    # app name, so that we can easily identify the image's source.
-    if [[ $image != "$APPNAME" ]]; then
-      remote_image_name="$imageRegistry/$APPNAME/$image"
-    fi
   fi
 
   local dockerfile="deployments/$image/Dockerfile"
@@ -146,18 +126,18 @@ build_and_push_image() {
   # shown in the manifest) instead.
   local tags=()
   if [[ -n $CIRCLE_TAG ]]; then
-    tags+=("$remote_image_name:$CIRCLE_TAG" "$remote_image_name:latest")
-
-    # When on a tag, we should also push the image to the registry. Also
-    # set push to true so that we log the right message.
-    args+=("--push")
-    push=true
+    artifact=true
   else
     tags+=("$image")
   fi
   for tag in "${tags[@]}"; do
     args+=("--tag" "$tag")
   done
+
+  if [[ $artifact == true ]]; then
+    mkdir -p docker-images
+    args+=("--output" "type=docker,dest=./docker-images/$arch.tar")
+  fi
 
   # If we're not the main image, the build context should be
   # the image directory instead.
@@ -170,10 +150,10 @@ build_and_push_image() {
   fi
   args+=("$buildContext")
 
-  if [[ $push == true ]]; then
-    echo "🔨 Building and Pushing Docker Image"
+  if [[ $artifact == true ]]; then
+    echo "🔨 Building and saving Docker image to disk"
   else
-    echo "🔨 Building Docker Image for Validation"
+    echo "🔨 Building Docker image for validation"
   fi
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
@@ -193,9 +173,9 @@ if [[ -z $TESTING_DO_NOT_BUILD ]]; then
     fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
   fi
 
-  # Build and (on tags: push) all images in the manifest
+  # Build and (on tags: save) all images in the manifest
   mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
   for image in "${images[@]}"; do
-    build_and_push_image "$image"
+    build_and_save_image "$image"
   done
 fi
