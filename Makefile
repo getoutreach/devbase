@@ -1,6 +1,8 @@
 APP := devbase
+ORB_DEV_TAG ?= first
 OSS := true
-_ := $(shell ./scripts/devbase.sh) 
+
+_ := $(shell ./scripts/devbase.sh)
 
 include .bootstrap/root/Makefile
 
@@ -18,5 +20,5 @@ validate-orb: build-orb
 
 .PHONY: publish-orb
 publish-orb: validate-orb
-	circleci orb publish orb.yml getoutreach/shared@dev:first
+	circleci orb publish orb.yml getoutreach/shared@dev:$(ORB_DEV_TAG)
 ## <</Stencil::Block>>
