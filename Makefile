@@ -1,12 +1,12 @@
 APP := devbase
-ORB_DEV_TAG ?= first
 OSS := true
-
-_ := $(shell ./scripts/devbase.sh)
+_ := $(shell ./scripts/devbase.sh) 
 
 include .bootstrap/root/Makefile
 
 ## <<Stencil::Block(targets)>>
+ORB_DEV_TAG ?= first
+
 .PHONY: build-orb
 pre-build:: build-orb
 
