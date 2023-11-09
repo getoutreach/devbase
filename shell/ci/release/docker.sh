@@ -172,14 +172,11 @@ build_and_push_image() {
     echo "🔨 Building Docker Image for Validation"
   fi
   (
-    set -x
-
     if [[ $OSTYPE == "linux-gnu"* ]]; then
       docker buildx --builder devbase build "${args[@]}"
     else
-      docker build "${args[@]}"
+      docker buildx build "${args[@]}"
     fi
-
   )
 }
 
