@@ -176,6 +176,7 @@ build_and_push_image() {
       docker buildx --builder devbase build "${args[@]}"
     else
       docker buildx build "${args[@]}"
+      docker buildx prune
     fi
   )
 }
