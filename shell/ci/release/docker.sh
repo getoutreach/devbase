@@ -162,7 +162,7 @@ if [[ -z $TESTING_DO_NOT_BUILD ]]; then
     fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
   fi
 
-  # Build and (on tags: save) all images in the manifest
+  # Build and save all images in the manifest
   mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
   for image in "${images[@]}"; do
     build_and_save_image "$image"
