@@ -174,6 +174,7 @@ build_and_push_image() {
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
       docker buildx --builder devbase build "${args[@]}"
+      docker buildx prune --force --keep-storage 6GB
     else
       docker buildx build "${args[@]}"
     fi
