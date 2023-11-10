@@ -5,6 +5,8 @@ _ := $(shell ./scripts/devbase.sh)
 include .bootstrap/root/Makefile
 
 ## <<Stencil::Block(targets)>>
+ORB_DEV_TAG ?= first
+
 .PHONY: build-orb
 pre-build:: build-orb
 
@@ -18,5 +20,5 @@ validate-orb: build-orb
 
 .PHONY: publish-orb
 publish-orb: validate-orb
-	circleci orb publish orb.yml getoutreach/shared@dev:first
+	circleci orb publish orb.yml getoutreach/shared@dev:$(ORB_DEV_TAG)
 ## <</Stencil::Block>>
