@@ -1,4 +1,4 @@
-description: Build and (optionally push) an ARM64 Docker image. Pushes only on release (or default) branches
+description: Build an ARM64 Docker image.
 executor:
   name: testbed-machine
 resource_class: arm.xlarge
