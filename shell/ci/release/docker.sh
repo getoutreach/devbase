@@ -174,7 +174,7 @@ build_and_push_image() {
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
       docker buildx --builder devbase build "${args[@]}"
-      docker buildx prune
+      docker buildx prune --force
     else
       docker buildx build "${args[@]}"
     fi
