@@ -38,6 +38,7 @@ environment:
   USE_DEVSPACE: << parameters.use_devspace >>
 resource_class: << parameters.resource_class >>
 steps:
+  - skip_on_chore_commit
   - setup_environment:
       machine: true
   - run:

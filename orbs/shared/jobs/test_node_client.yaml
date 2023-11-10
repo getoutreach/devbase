@@ -5,6 +5,7 @@ parameters:
 executor:
   name: testbed-docker
 steps:
+  - skip_on_chore_commit
   - setup_environment
   - with_node_client_cache:
       save: true
