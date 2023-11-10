@@ -64,9 +64,6 @@ get_image_field() {
 build_and_save_image() {
   local image="$1"
 
-  # artifact determines if we should save the artifact to disk.
-  local artifact=false
-
   # Platforms to build this image for, expected format (in YAML):
   # platforms:
   #   - linux/arm64
@@ -125,9 +122,7 @@ build_and_save_image() {
   # build a latest image for the name "$image" (the name of the image as
   # shown in the manifest) instead.
   local tags=()
-  if [[ -n $CIRCLE_TAG ]]; then
-    artifact=true
-  else
+  if [[ -z $CIRCLE_TAG ]]; then
     tags+=("$image")
   fi
   for tag in "${tags[@]}"; do
@@ -135,10 +130,7 @@ build_and_save_image() {
   done
 
   mkdir -p docker-images
-
-  if [[ $artifact == true ]]; then
-    args+=("--output" "type=docker,dest=./docker-images/$arch.tar")
-  fi
+  args+=("--output" "type=docker,dest=./docker-images/$arch.tar")
 
   # If we're not the main image, the build context should be
   # the image directory instead.
@@ -151,11 +143,7 @@ build_and_save_image() {
   fi
   args+=("$buildContext")
 
-  if [[ $artifact == true ]]; then
-    echo "🔨 Building and saving Docker image to disk"
-  else
-    echo "🔨 Building Docker image for validation"
-  fi
+  echo "🔨 Building and saving Docker image to disk"
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
       docker buildx --builder devbase build "${args[@]}"
