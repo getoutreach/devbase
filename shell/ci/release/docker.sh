@@ -130,7 +130,7 @@ build_and_save_image() {
   done
 
   mkdir -p docker-images
-  args+=("--output" "type=docker,dest=./docker-images/$arch.tar")
+  args+=("--output" "type=docker,dest=./docker-images/$(uname -m).tar")
 
   # If we're not the main image, the build context should be
   # the image directory instead.
