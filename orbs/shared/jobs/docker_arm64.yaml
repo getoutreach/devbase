@@ -1,7 +1,7 @@
 description: Build an ARM64 Docker image.
 executor:
   name: testbed-machine
-resource_class: arm.xlarge
+resource_class: arm.2xlarge
 steps:
   - setup_environment:
       machine: true
