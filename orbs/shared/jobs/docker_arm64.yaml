@@ -5,4 +5,5 @@ resource_class: arm.2xlarge
 steps:
   - setup_environment:
       machine: true
-  - build_docker_image
+  - build_docker_image:
+      arch: arm64
