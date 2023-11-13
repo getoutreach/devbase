@@ -172,8 +172,12 @@ build_and_push_image() {
     echo "🔨 Building Docker Image for Validation"
   fi
   (
-    set -x
-    docker buildx build "${args[@]}"
+    if [[ $OSTYPE == "linux-gnu"* ]]; then
+      docker buildx --builder devbase build "${args[@]}"
+      docker buildx prune --force --keep-storage 6GB
+    else
+      docker buildx build "${args[@]}"
+    fi
   )
 }
 
