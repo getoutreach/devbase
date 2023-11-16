@@ -55,7 +55,7 @@ steps:
       steps:
         - restore_cache:
             keys:
-              - v1-toggle-daily-cache-{{ .Revision }}
+              - v1-toggle-daily-cache-{{ arch }}-{{ .Revision }}
         - run:
             name: Check cache flag
             command: |
@@ -73,13 +73,13 @@ steps:
             name: Run tests
             command: make test
         - save_cache:
-            key: v1-daily-cache-{{ epoch }}
+            key: v1-daily-cache-{{ arch }}-{{ epoch }}
             paths:
               - "~/.cache"
               - "~/.asdf"
               - "~/.outreach/.cache"
         - save_cache:
-            key: v1-toggle-daily-cache-{{ .Revision }}
+            key: v1-toggle-daily-cache-{{ arch }}-{{ .Revision }}
             paths:
               - "~/cache-toggle"
 

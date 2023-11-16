@@ -1,0 +1,7 @@
+description: Stitch together (optionally push) a multi-arch Docker image. Pushes only on release (or default) branches
+executor:
+  name: testbed-machine
+resource_class: medium
+steps:
+  - setup_environment
+  - stitch_docker_image

@@ -1,13 +1,22 @@
-description: Restore Docker cache to a standard path
+description: Build a Docker image for a given architecture.
 parameters:
-  save:
-    type: boolean
-    default: true
+  arch:
+    type: string
+    description: the architecture of the generated Docker image (amd64 | arm64)
+    default: amd64
   script:
     type: string
     description: Script to run to build Docker image
     default: "./scripts/shell-wrapper.sh ci/release/docker.sh"
 steps:
+  - attach_workspace:
+      at: /home/circleci
   - run:
-      name: Build and Push Docker Image
+      name: Build Docker Image
       command: << parameters.script >>
+      environment:
+        IMAGE_ARCH: << parameters.arch >>
+  - persist_to_workspace:
+      root: docker-images
+      paths:
+        - "*.tar"

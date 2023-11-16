@@ -1,0 +1,15 @@
+description: Generate a multi-arch Docker image.
+parameters:
+  save:
+    type: boolean
+    default: true
+  script:
+    type: string
+    description: Script to run to stitch Docker image
+    default: "./scripts/shell-wrapper.sh ci/release/docker-stitch.sh"
+steps:
+  - attach_workspace:
+      at: /home/circleci
+  - run:
+      name: Stitch and Push Docker Image
+      command: << parameters.script >>

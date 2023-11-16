@@ -27,7 +27,7 @@ steps:
       steps:
         - restore_cache:
             keys:
-              - v1-daily-cache-
+              - v1-daily-cache-{{ arch }}-
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   - when:
