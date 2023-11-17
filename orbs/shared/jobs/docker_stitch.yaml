@@ -3,5 +3,6 @@ executor:
   name: testbed-machine
 resource_class: medium
 steps:
-  - setup_environment
+  - setup_environment:
+      machine: true
   - stitch_docker_image
