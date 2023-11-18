@@ -16,10 +16,8 @@ APPNAME="$(get_app_name)"
 VERSION="$(make --no-print-directory version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
-if [[ -z $TESTING_DO_NOT_BUILD ]]; then
-  # shellcheck source=../../lib/buildx.sh
-  source "${LIB_DIR}/buildx.sh"
-fi
+# shellcheck source=../../lib/buildx.sh
+source "${LIB_DIR}/buildx.sh"
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
@@ -121,17 +119,13 @@ build_and_save_image() {
   )
 }
 
-# HACK(jaredallard): Skips building images if TESTING_DO_NOT_BUILD is set. We
-# should break out the functions from this script instead.
-if [[ -z $TESTING_DO_NOT_BUILD ]]; then
-  if [[ ! -f $MANIFEST ]]; then
-    error "Manifest file '$MANIFEST' required for building Docker images"
-    fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
-  fi
-
-  # Build and save all images in the manifest
-  mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
-  for image in "${images[@]}"; do
-    build_and_save_image "$image"
-  done
+if [[ ! -f $MANIFEST ]]; then
+  error "Manifest file '$MANIFEST' required for building Docker images"
+  fatal "See https://github.com/getoutreach/devbase#building-docker-images for details"
 fi
+
+# Build and save all images in the manifest
+mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
+for image in "${images[@]}"; do
+  build_and_save_image "$image"
+done

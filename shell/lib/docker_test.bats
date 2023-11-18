@@ -3,10 +3,6 @@
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
-# This ensures that we don't do the build logic. Eventually this will be
-# removed in favor of testing real functions. Must come before the "load
-# docker.sh" statement.
-export TESTING_DO_NOT_BUILD=1
 load docker.sh
 
 setup() {
