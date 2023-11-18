@@ -24,41 +24,8 @@ fi
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-# shellcheck source=../../lib/yaml.sh
-source "${LIB_DIR}/yaml.sh"
-
-# get_image_field is a helper to return a field from the manifest
-# for a given image. It will return an empty string if the field
-# is not set.
-#
-# Arguments:
-#   $1 - image name
-#   $2 - field name
-#   $3 - type (array or string) (default: string)
-#   $4 - manifest file (default: $MANIFEST)
-get_image_field() {
-  local image="$1"
-  local field="$2"
-
-  # type can be 'array' or 'string'. Array values are
-  # returned as newline separated values, string values
-  # are returned as a single string. A string value can
-  # be strings, ints, bools, etc.
-  local type=${3:-string}
-  local manifest=${4:-$MANIFEST}
-
-  local filter="$(yaml_construct_object_filter "$image" "$field")"
-  if [[ $type == "array" ]]; then
-    yaml_get_array "$filter" "$manifest"
-    return
-  elif [[ $type == "string" ]]; then
-    yaml_get_field "$filter" "$manifest"
-    return
-  else
-    error "Unknown type '$type' for get_image_field"
-    fatal "Expected 'array' or 'string'"
-  fi
-}
+# shellcheck source=../../lib/docker.sh
+source "${LIB_DIR}/docker.sh"
 
 # build_and_save_image builds and optionally saves the image to disk.
 build_and_save_image() {
@@ -130,7 +97,7 @@ build_and_save_image() {
   done
 
   mkdir -p docker-images
-  args+=("--output" "type=docker,dest=./docker-images/$(uname -m).tar")
+  args+=("--output" "type=docker,dest=./docker-images/$image-$(uname -m).tar")
 
   # If we're not the main image, the build context should be
   # the image directory instead.
