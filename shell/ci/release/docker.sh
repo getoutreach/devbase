@@ -89,6 +89,9 @@ build_and_save_image() {
   local tags=()
   if [[ -z $CIRCLE_TAG ]]; then
     tags+=("$image")
+    if [[ -n $IMAGE_ARCH ]]; then
+      tags+=("latest-$IMAGE_ARCH")
+    fi
   fi
   for tag in "${tags[@]}"; do
     args+=("--tag" "$tag")
