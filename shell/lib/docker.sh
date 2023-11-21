@@ -42,3 +42,11 @@ get_image_field() {
     fatal "Expected 'array' or 'string'"
   fi
 }
+
+# run_docker is a wrapper for the docker command, but it prints out the
+# command (via set -x).
+run_docker() {
+  set -x
+  docker "$@"
+  set +x
+}

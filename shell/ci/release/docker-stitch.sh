@@ -53,7 +53,7 @@ stitch_and_push_image() {
 
   for img_filename in /home/circleci/"$image"-*.tar; do
     echo "Loading docker image: $img_filename"
-    docker load -i "$img_filename"
+    run_docker load -i "$img_filename"
   done
 
   if [[ -z $CIRCLE_TAG ]]; then
@@ -74,22 +74,16 @@ stitch_and_push_image() {
 
     for suffixedTag in "${suffixedTags[@]}"; do
       echo "Pushing suffixed tag: $suffixedTag"
-      set -x
-      docker push "$remote_image_name:$suffixedTag"
-      set +x
+      run_docker push "$remote_image_name:$suffixedTag"
     done
 
     echo "Creating Manifest for '$tag' from suffixed tags"
-    set -x
-    docker manifest create \
+    run_docker manifest create \
       "$remote_image_name:$tag" "${amendedArgs[@]}"
-    set +x
 
     for suffixedTag in "${suffixedTags[@]}"; do
       echo "Pushing Manifest: $tag"
-      set -x
-      docker manifest push "$remote_image_name:$tag"
-      set +x
+      run_docker manifest push "$remote_image_name:$tag"
     done
   done
 }

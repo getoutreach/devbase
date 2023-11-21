@@ -111,10 +111,10 @@ build_and_save_image() {
   echo "🔨 Building and saving Docker image to disk"
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
-      docker buildx --builder devbase build "${args[@]}"
-      docker buildx prune --force --keep-storage 6GB
+      run_docker buildx --builder devbase build "${args[@]}"
+      run_docker buildx prune --force --keep-storage 6GB
     else
-      docker buildx build "${args[@]}"
+      run_docker buildx build "${args[@]}"
     fi
   )
 }
