@@ -87,7 +87,7 @@ build_and_save_image() {
   # build a latest image for the name "$image" (the name of the image as
   # shown in the manifest) instead.
   local tags=()
-  if [[ -z $CIRCLE_TAG ]]; then
+  if [[ -n $CIRCLE_TAG ]]; then
     tags+=("$image")
     if [[ -n $IMAGE_ARCH ]]; then
       local remote_image_name
