@@ -32,24 +32,8 @@ tags=(latest "$VERSION")
 
 stitch_and_push_image() {
   local image="$1"
-  # Where to push the image. This can be overridden in the manifest
-  # with the field .pushTo. If not set, we'll use the imageRegistry
-  # from the box configuration and the name of the image in devenv.yaml
-  # as the repository. If this is not the main image (appName), we'll
-  # append the appName to the repository to keep the images isolated
-  # to this repository.
   local remote_image_name
-
-  remote_image_name=$(get_image_field "$image" "pushTo")
-  if [[ -z $remote_image_name ]]; then
-    remote_image_name="$imageRegistry/$image"
-
-    # If we're not the main image, then we should prefix the image name with the
-    # app name, so that we can easily identify the image's source.
-    if [[ $image != "$APPNAME" ]]; then
-      remote_image_name="$imageRegistry/$APPNAME/$image"
-    fi
-  fi
+  remote_image_name="$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")"
 
   for img_filename in /home/circleci/"$image"-*.tar; do
     echo "Loading docker image: $img_filename"

@@ -90,7 +90,9 @@ build_and_save_image() {
   if [[ -z $CIRCLE_TAG ]]; then
     tags+=("$image")
     if [[ -n $IMAGE_ARCH ]]; then
-      tags+=("latest-$IMAGE_ARCH")
+      local remote_image_name
+      remote_image_name="$(determine_remote_image_name "$APPNAME" "$(get_box_field 'devenv.imageRegistry')" "$image")"
+      tags+=("$remote_image_name:latest-$IMAGE_ARCH" "$remote_image_name:$VERSION-$IMAGE_ARCH")
     fi
   fi
   for tag in "${tags[@]}"; do
