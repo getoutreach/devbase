@@ -62,3 +62,66 @@ EOF
   MANIFEST="$YAML_FILE" run determine_remote_image_name "myservice" "example.com/registry" "secondary"
   assert_output "example.com/registry/myservice/secondary"
 }
+
+@test "docker_buildx_args defaults" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myservice" "foo/Dockerfile"
+  assert_output --partial " --file foo/Dockerfile "
+  assert_output --partial " --build-arg VERSION=0.10.0 "
+  assert_output --partial " --secret id=npmtoken,env=NPM_TOKEN "
+  assert_output --partial " --platform linux/arm64,linux/amd64 "
+  refute_output --partial " --tag "
+  assert_output --regexp ' \.$'
+}
+
+@test "docker_buildx_args uses the specified arch" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myservice" "foo/Dockerfile" "arm64"
+  assert_output --partial " --platform linux/arm64 "
+}
+
+@test "docker_buildx_args build context with a secondary image" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile"
+  assert_output --regexp '/deployments/myimage$'
+}
+
+@test "docker_buildx_args build context specified in manifest with a secondary image" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+myimage:
+  buildContext: foo/bar
+EOF
+
+  MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile"
+  assert_output --regexp ' foo/bar$'
+}
+
+@test "docker_buildx_args adds tags when CIRCLE_TAG exists" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  CIRCLE_TAG="0.10.0" MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile"
+  assert_output --partial " --tag myimage"
+  refute_output --partial " --tag myimage:latest"
+}
+
+@test "docker_buildx_args adds tags when CIRCLE_TAG exists and arch specified" {
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  CIRCLE_TAG="0.10.0" MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
+  assert_output --partial " --tag myimage"
+  assert_output --partial " --tag /myservice/myimage:latest-arm64"
+}
