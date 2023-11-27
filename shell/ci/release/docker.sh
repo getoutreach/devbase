@@ -43,10 +43,14 @@ build_and_save_image() {
   echo "🔨 Building and saving Docker image to disk"
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
-      run_docker buildx --builder devbase build "$args"
+      # We want globbing/word splitting on the args
+      # shellcheck disable=SC2086
+      run_docker buildx --builder devbase build $args
       run_docker buildx prune --force --keep-storage 6GB
     else
-      run_docker buildx build "$args"
+      # We want globbing/word splitting on the args
+      # shellcheck disable=SC2086
+      run_docker buildx build $args
     fi
   )
 }
