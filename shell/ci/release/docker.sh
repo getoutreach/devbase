@@ -6,6 +6,9 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
 # shellcheck source=../../lib/box.sh
 source "${LIB_DIR}/box.sh"
 
@@ -40,10 +43,14 @@ build_and_save_image() {
   echo "🔨 Building and saving Docker image to disk"
   (
     if [[ $OSTYPE == "linux-gnu"* ]]; then
-      run_docker buildx --builder devbase build "$args"
+      # We want globbing/word splitting on the args
+      # shellcheck disable=SC2086
+      run_docker buildx --builder devbase build $args
       run_docker buildx prune --force --keep-storage 6GB
     else
-      run_docker buildx build "$args"
+      # We want globbing/word splitting on the args
+      # shellcheck disable=SC2086
+      run_docker buildx build $args
     fi
   )
 }
