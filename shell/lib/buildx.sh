@@ -32,13 +32,6 @@ fi
 
 # On macOS we don't need to create a builder or support QEMU.
 if [[ $OSTYPE == "linux-gnu"* ]]; then
-  # Taken from setup-qemu Github Action
-  echo "💎 Installing QEMU static binaries..."
-  docker run --rm --privileged tonistiigi/binfmt:latest --install all
-
-  echo "� Extracting available platforms..."
-  docker run --rm --privileged tonistiigi/binfmt:latest
-
   # Take from setup-buildx Github Action
   echo "� Creating a new builder instance"
   docker buildx create --use --name devbase
