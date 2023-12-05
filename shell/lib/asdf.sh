@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
-if ((BASH_VERSINFO[0] < 5)); then
-  echo "Requires Bash 5 or greater" >&2
-  case "$(uname -s)" in # kernel name
-  "Darwin")
-    echo "Install the latest version of bash (brew install bash) and open a new terminal to try again" >&2
-    ;;
-  "Linux")
-    echo "Upgrade to the latest version of your Linux distro" >&2
-    ;;
-  *)
-    echo "Unsupported OS"
-    ;;
-  esac
-  exit 1
-fi
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=./shell.sh
+source "${DIR}/shell.sh"
+
+ensure_bash_5_or_greater
 
 # asdf_plugins_list stores a list of all asdf plugins
 # this is done to speed up the plugin install

@@ -3,6 +3,26 @@
 
 DEVBASE_CACHED_BINARY_STORAGE_PATH="$HOME/.outreach/.cache/devbase"
 
+# Exits with code 1 if the running shell is not bash or
+# the version is < 5.
+ensure_bash_5_or_greater() {
+  if ((BASH_VERSINFO[0] < 5)); then
+    echo "Requires Bash 5 or greater" >&2
+    case "$(uname -s)" in # kernel name
+    "Darwin")
+      echo "Install the latest version of bash (brew install bash) and open a new terminal to try again" >&2
+      ;;
+    "Linux")
+      echo "Upgrade to the latest version of your Linux distro" >&2
+      ;;
+    *)
+      echo "Unsupported OS"
+      ;;
+    esac
+    exit 1
+  fi
+}
+
 # retry calls a given command (must be wrapped in quotes)
 # syntax: retry <interval> <maxRetries> <command> [args...]
 retry() {
