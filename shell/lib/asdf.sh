@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=./shell.sh
+source "${DIR}/shell.sh"
+
+ensure_bash_5_or_greater
+
 # asdf_plugins_list stores a list of all asdf plugins
 # this is done to speed up the plugin install
 asdf_plugins_list=""

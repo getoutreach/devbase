@@ -7,15 +7,16 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="$DIR/../../lib"
 
 # shellcheck source=../../lib/bootstrap.sh
-source "$DIR/../../lib/bootstrap.sh"
+source "$LIB_DIR/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
-source "$DIR/../../lib/logging.sh"
+source "$LIB_DIR/logging.sh"
 # shellcheck source=../../lib/github.sh
-source "$DIR/../../lib/github.sh"
+source "$LIB_DIR/github.sh"
 # shellcheck source=../../lib/box.sh
-source "$DIR/../../lib/box.sh"
+source "$LIB_DIR/box.sh"
 
 # DELIBIRD_ENABLED denotes if the delibird log uploader should be
 # enabled or not. If the value is "true", then the delibird log uploader
