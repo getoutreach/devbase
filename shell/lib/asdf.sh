@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Utilities for working with asdf
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# LIB_DIR is the directory that shell script libraries live in.
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./shell.sh
-source "${DIR}/shell.sh"
+source "${LIB_DIR}/shell.sh"
 
 ensure_bash_5_or_greater
 
