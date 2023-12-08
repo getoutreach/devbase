@@ -31,6 +31,11 @@ download_box() {
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
 
+  if [[ ! -f "${tempDir}/box.yaml" ]]; then
+    echo "Cloning failed, cannot find box.yaml" >&2
+    return 1
+  fi
+
   # Stub for the below yq command if it doesn't exist
   mkdir -p "$(dirname "$BOXPATH")"
   if [[ ! -e $BOXPATH ]]; then
