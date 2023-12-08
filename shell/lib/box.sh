@@ -42,7 +42,7 @@ download_box() {
   local newBox=$(yq . "${BOXPATH}" |
     jq --slurpfile boxconf \
       <(yq -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
-    yq . --yaml-output)
+    yq --yaml-output .)
   echo "${newBox}" >"${BOXPATH}"
 }
 
