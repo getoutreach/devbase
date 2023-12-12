@@ -27,9 +27,14 @@ download_box() {
   # Why: OK with assigning without checking exit code.
   # shellcheck disable=SC2155
   local tempDir="$(mktemp -d)"
-  trap 'rm -rf "${TMPDIR}"' EXIT
+  trap 'rm -rf "${tempDir}"' EXIT
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
+
+  if [[ ! -f "${tempDir}/box.yaml" ]]; then
+    echo "Cloning failed, cannot find box.yaml" >&2
+    return 1
+  fi
 
   # Stub for the below yq command if it doesn't exist
   mkdir -p "$(dirname "$BOXPATH")"
@@ -42,7 +47,7 @@ download_box() {
   local newBox=$(yq . "${BOXPATH}" |
     jq --slurpfile boxconf \
       <(yq -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
-    yq . --yaml-output)
+    yq --yaml-output .)
   echo "${newBox}" >"${BOXPATH}"
 }
 
