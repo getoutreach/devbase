@@ -27,7 +27,7 @@ download_box() {
   # Why: OK with assigning without checking exit code.
   # shellcheck disable=SC2155
   local tempDir="$(mktemp -d)"
-  trap 'rm -rf "${TMPDIR}"' EXIT
+  trap 'rm -rf "${tempDir}"' EXIT
 
   git clone -q "${boxGitRepo}" "${tempDir}" --depth 1
 
