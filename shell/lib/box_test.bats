@@ -53,9 +53,9 @@ teardown() {
 }
 
 @test "get_box_yaml should fail if cloning the box repo fails" {
-  BOX_REPOSITORY_URL="https://github.com/getoutreach/notaboxrepo"
-
-  BOXPATH=/foo/bar/nonexistent run get_box_yaml
+  BOX_REPOSITORY_URL="https://github.com/getoutreach/notaboxrepo" \
+    BOXPATH=/foo/bar/nonexistent \
+    run get_box_yaml
   assert_failure
   assert_line "Cloning failed, cannot find box.yaml"
 }
