@@ -161,7 +161,7 @@ gogenerate:: pre-gogenerate
 ## gobuild:         build application binary
 .PHONY: gobuild
 gobuild:
-	@$(MAGE_CMD) gobuild
+	@CGO_ENABLED=$(CGO_ENABLED) $(MAGE_CMD) gobuild
 
 ## grpcui:          run grpcui for an already locally running service
 .PHONY: grpcui
