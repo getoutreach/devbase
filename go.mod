@@ -12,7 +12,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/stretchr/testify v1.8.4
 	github.com/whilp/git-urls v1.0.0
-	google.golang.org/grpc v1.60.0
+	google.golang.org/grpc v1.60.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
