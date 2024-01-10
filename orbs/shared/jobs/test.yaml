@@ -42,6 +42,10 @@ parameters:
   setup_remote_docker:
     type: boolean
     default: false
+  go_test_timeout:
+    description: Maps to gotest -timeout parameter.
+    type: string
+    default: ""
 
 resource_class: << parameters.resource_class >>
 
@@ -53,6 +57,7 @@ executor:
 environment:
   AWS_REGION: << parameters.aws_region >>
   PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
+  GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
 steps:
   - when:
       condition:
