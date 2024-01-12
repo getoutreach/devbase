@@ -1,0 +1,40 @@
+description: Releases a new version of the application
+parameters:
+  dryrun:
+    description: Don't actually release, just dryrun the release flow
+    type: boolean
+    default: true
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    default: "large"
+  release_failure_slack_channel:
+    description: The slack channel to notify if the release fails
+    type: string
+    default: ""
+  executor:
+    description: The executor to use for the release
+    type: executor
+    default: "testbed-docker"
+  need_approval:
+    description: If this workflow needs manual need_approval
+    type: boolean
+    default: false
+  prerelease:
+    description: If this workflow needs manual need_approval
+    type: boolean
+    default: true
+
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - run:
+      name: Release rc
+      prerelease: true
+      command: ./scripts/shell-wrapper.sh ci/release/dt-release.sh
