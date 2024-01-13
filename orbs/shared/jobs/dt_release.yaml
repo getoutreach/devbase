@@ -24,17 +24,21 @@ parameters:
     description: If this workflow needs manual need_approval
     type: boolean
     default: false
-  prerelease:
-    description: If this workflow needs manual need_approval
-    type: boolean
-    default: true
 
 resource_class: << parameters.resource_class >>
 executor: << parameters.executor >>
 steps:
   - setup_environment:
       machine: << parameters.machine >>
-  - run:
-      name: Release rc
-      prerelease: true
-      command: ./scripts/shell-wrapper.sh ci/release/dt-release.sh
+  - when:
+      condition: << parameters.dryrun >>
+      steps:
+        - run:
+            name: Release (Dry-run)
+            command: ./scripts/shell-wrapper.sh ci/release/dt-release.sh --dry-run
+  - unless:
+      condition: << parameters.dryrun >>
+      steps:
+        - run:
+            name: Release
+            command: ./scripts/shell-wrapper.sh ci/release/dt-release.sh
