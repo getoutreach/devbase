@@ -115,6 +115,9 @@ func Gobuild(ctx context.Context) error {
 	}
 
 	args := []string{"build", "-v", "-o", binDir, "-ldflags", ldFlags}
+	if gcFlags := os.Getenv("GC_FLAGS"); gcFlags != "" {
+		args = append(args, "-gcflags", gcFlags)
+	}
 
 	// SKIP_TRIMPATH is used for devspace binary sync, where you want to have same file paths for delve to work correctly
 	if os.Getenv("SKIP_TRIMPATH") == "true" {
