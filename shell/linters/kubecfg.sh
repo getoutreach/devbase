@@ -14,6 +14,8 @@ extensions=(jsonnet)
 
 appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
 
+kubernetesVersion=$(get_tool_version kubernetes)
+
 kubecfg_kubeconform() {
   if [[ ! -f "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" ]]; then
     echo "No jsonnet to be validated, skipping" >&2
@@ -30,7 +32,7 @@ kubecfg_kubeconform() {
     -schema-location default \
     -ignore-missing-schemas \
     -strict \
-    -kubernetes-version 1.25.16 \
+    -kubernetes-version "$kubernetesVersion" \
     -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
     <"$tempFile"; then
     echo "Failed to validate generated yaml" >&2
