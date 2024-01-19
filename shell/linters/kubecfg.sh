@@ -30,7 +30,7 @@ kubecfg_kubeconform() {
     -schema-location default \
     -ignore-missing-schemas \
     -strict \
-    -kubernetes-version 1.24.15 \
+    -kubernetes-version 1.25.16 \
     -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
     <"$tempFile"; then
     echo "Failed to validate generated yaml" >&2
