@@ -24,3 +24,6 @@ protoc-gen-go-grpc: cmd/protoc-gen-go-grpc/v1.3.0
 # confluence publishing tools
 getoutreach/markdowntools/visualizemd: v0.0.33
 kovetskiy/mark: 8.8
+
+# kubeconform
+kubernetes: 1.25.16
