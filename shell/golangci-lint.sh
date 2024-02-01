@@ -9,6 +9,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/asdf.sh
 source "$DIR/lib/asdf.sh"
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
 
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
@@ -28,21 +30,19 @@ GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
 if [[ ${GO_MINOR_VERSION_INT:0:1} -lt 2 ]] && [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]]; then
   # Go 1.20 requires >= golangci-lint 1.52.0
   if [[ $GO_MINOR_VERSION_INT == 120 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1520 ]]; then
-    echo "Error: Go 1.20 requires golangci-lint 1.52.0 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
+    fatal "Error: Go 1.20 requires golangci-lint 1.52.0 or newer (detected $GOLANGCILINT_VERSION)" >&2
   fi
 
   # Go 1.21 requires >= golangci-lint 1.54.1
   if [[ $GO_MINOR_VERSION_INT == 121 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1541 ]]; then
-    echo "Error: Go 1.21 requires golangci-lint 1.54.1 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
+    fatal "Error: Go 1.21 requires golangci-lint 1.54.1 or newer (detected $GOLANGCILINT_VERSION)" >&2
   fi
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
 # manage memory usage by golangci-lint in CI.
 if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
-  echo "Automatically determining the memory usage for golangci-lint"
+  info "Automatically determining the memory usage for golangci-lint"
   # RESERVED_MEMORY_IN_MIB is the amount of memory we want to reserve for
   # other processes or overheads. This will not be used by the linter.
   RESERVED_MEMORY_IN_MIB=2048
@@ -64,17 +64,17 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     # which is relative to the amount of memory we have.
     if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
       # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
-      echo "Warning: Failed to determine system memory or under threshold. " \
+      warn "Failed to determine system memory or under threshold. " \
         "Falling back to GOGC" >&2
       export GOGC=20
     else
       # Use mem as the memory target and ensure that we have 1GB of room.
       export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
-      echo "* GOMEMLIMIT calculated to be $GOMEMLIMIT"
+      info_sub "GOMEMLIMIT calculated to be $GOMEMLIMIT"
     fi
   fi
 else
-  echo "Custom value set for GOGC and/or GOMEMLIMIT, using those values"
+  info_sub "Custom value set for GOGC and/or GOMEMLIMIT, using those values"
 fi
 
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
