@@ -42,6 +42,7 @@ fi
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
 # manage memory usage by golangci-lint in CI.
 if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
+  echo -n "  "
   info "Automatically determining the memory usage for golangci-lint"
   # RESERVED_MEMORY_IN_MIB is the amount of memory we want to reserve for
   # other processes or overheads. This will not be used by the linter.
@@ -70,12 +71,15 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     else
       # Use mem as the memory target and ensure that we have 1GB of room.
       export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
+      echo -n "  "
       info_sub "GOMEMLIMIT calculated to be $GOMEMLIMIT"
     fi
   fi
 else
+  echo -n "  "
   info_sub "Custom value set for GOGC and/or GOMEMLIMIT, using those values"
 fi
+echo
 
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
 # This helps with the "too many open files" error.
