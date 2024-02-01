@@ -40,9 +40,9 @@ if [[ ${GO_MINOR_VERSION_INT:0:1} -lt 2 ]] && [[ ${GOLANGCI_LINT_VERSION_INT:0:1
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
-# manage memory usage by the golangci-linter in CI.
+# manage memory usage by golangci-lint in CI.
 if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
-
+  echo "Automatically determining the memory usage for golangci-lint"
   # RESERVED_MEMORY_IN_MIB is the amount of memory we want to reserve for
   # other processes or overheads. This will not be used by the linter.
   RESERVED_MEMORY_IN_MIB=2048
@@ -70,8 +70,11 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     else
       # Use mem as the memory target and ensure that we have 1GB of room.
       export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
+      echo "* GOMEMLIMIT calculated to be $GOMEMLIMIT"
     fi
   fi
+else
+  echo "Custom value set for GOGC and/or GOMEMLIMIT, using those values"
 fi
 
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
