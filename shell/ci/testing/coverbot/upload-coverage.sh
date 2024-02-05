@@ -8,7 +8,10 @@ SHELL_DIR="$DIR/../../.."
 LIB_DIR="$SHELL_DIR/lib"
 
 # shellcheck source=../../../lib/bootstrap.sh
-source "${LIB_DIR}/bootstrap.sh"
+source "$LIB_DIR/bootstrap.sh"
+
+# shellcheck source=../../../lib/box.sh
+source "$LIB_DIR/box.sh"
 
 # Check if coverage file arg is empty
 if [[ -s $1 ]]; then
@@ -37,7 +40,7 @@ PR_NUMBER=$(awk -F'/' '{print $NF}' <<<"$CIRCLE_PULL_REQUEST")
 
 # Assume coverbot-ci-role for S3 bucket permisions
 read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts assume-role-with-web-identity \
-  --role-arn arn:aws:iam::182192988802:role/coverbot-ci-role \
+  --role-arn arn:aws:iam::"$(get_box_field aws.defaultAccountID)":role/coverbot-ci-role \
   --role-session-name "CircleCI-${SAFE_CIRCLE_WORKFLOW_ID}-${SAFE_CIRCLE_JOB}" \
   --web-identity-token "${CIRCLE_OIDC_TOKEN}" \
   --duration-seconds 3600 \
