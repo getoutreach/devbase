@@ -34,9 +34,7 @@ TOOL_DEPS           := ${GO}
 # formatters / misc
 JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.19.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
-FLY                 := $(CURDIR)/scripts/shell-wrapper.sh fly.sh
 BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
-CONCOURSE_URL       := $(shell $(BOX_CONFIG) 'cd.concourse.address')
 AIR                 := $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 # Testing options
@@ -230,19 +228,6 @@ docs:: pre-docs
 .PHONY: docs-publish
 docs-publish:: pre-docs-publish
 	@./.bootstrap/shell/docs-publish.sh
-
-## fly-login:       log into concourse
-.PHONY: fly-login
-fly-login:
-	${FLY} sync -c $(CONCOURSE_URL)
-	${FLY} -t devs userinfo || ${FLY} -t devs login -c $(CONCOURSE_URL) -n devs
-
-## update-pipeline: update application pipeline in concourse
-.PHONY: update-pipeline
-update-pipeline: fly-login
-	@echo " ===> updating concourse pipeline <==="
-	@if [[ ! -e "concourse/jsonnet-libs" ]]; then git clone https://github.com/getoutreach/jsonnet-libs concourse/jsonnet-libs; else cd concourse/jsonnet-libs && git reset --hard origin/master && git pull; fi
-	cd concourse; rm -f /tmp/pipeline.yml; $(JSONNET) -J ./jsonnet-libs -y pipeline.jsonnet > /tmp/pipeline.yml && ${FLY} -t devs sp -c /tmp/pipeline.yml -p $(APP)
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
