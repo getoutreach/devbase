@@ -30,6 +30,8 @@ executor: << parameters.executor >>
 steps:
   - setup_environment:
       machine: << parameters.machine >>
+  - with_node_cache:
+      save: true
   - when:
       condition: << parameters.dryrun >>
       steps:
