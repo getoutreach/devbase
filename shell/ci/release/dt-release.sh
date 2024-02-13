@@ -58,17 +58,12 @@ if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
   exit 0
 fi
 
-echo "Creating release ($app_version)"
-
-make release APP_VERSION="$app_version"
-
 # If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
   echo "this is dryrun"
   exit 0
 fi
 
-# create release and upload assets to it
 prerelease=false
 if [[ $VERSION == "unstable" ]] || [[ $VERSION == "*rc*" ]]; then
   prerelease=true
@@ -76,6 +71,9 @@ fi
 
 # publish unstable release
 if [[ $VERSION == "unstable" ]]; then
+  echo "Creating unstable release ($app_version)"
+
+  make release APP_VERSION="$app_version"
   # delete unstable release and unstable tag if it exists
   gh release delete unstable -y || true
   git tag --delete unstable || true
