@@ -84,7 +84,8 @@ if [[ $VERSION == "unstable" ]]; then
   gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
 else
   # publish rc/stable release
-  gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+  # gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+  yarn --frozen-lockfile semantic-release
 fi
 
 run_unstable_include
