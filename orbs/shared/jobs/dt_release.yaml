@@ -1,5 +1,9 @@
 description: Releases a new version of the application
 parameters:
+  node_client:
+    description: Build and release a Node.JS gRPC client
+    type: boolean
+    default: false
   dryrun:
     description: Don't actually release, just dryrun the release flow
     type: boolean
@@ -30,6 +34,11 @@ executor: << parameters.executor >>
 steps:
   - setup_environment:
       machine: << parameters.machine >>
+  - when:
+      condition: << parameters.node_client >>
+      steps:
+        - with_node_client_cache:
+            build: true
   - with_node_cache:
       save: true
   - when:

@@ -10,13 +10,16 @@ source "$DIR/../../lib/yaml.sh"
 source "$DIR/../../lib/bootstrap.sh"
 
 # if tag found, use the tag as the build version
-if [ -n "$CIRCLE_TAG" ]; then
-  VERSION="$CIRCLE_TAG"
-  app_version="$VERSION"
-else
-  VERSION="unstable"
-  app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
-fi
+# if [ -n "$CIRCLE_TAG" ]; then
+#   VERSION="$CIRCLE_TAG"
+#   app_version="$VERSION"
+# else
+#   VERSION="unstable"
+#   app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
+# fi
+
+VERSION="v1.2.0-rc.3"
+app_version="$VERSION"
 
 # DRYRUN is a flag that can be passed to this script to prevent it from
 # actually creating a release in Github. Defaults to false and is
@@ -83,6 +86,8 @@ if [[ $VERSION == "unstable" ]]; then
 else
   # publish rc/stable release
   # gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+  # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
+  NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
   yarn --frozen-lockfile semantic-release
 fi
 
