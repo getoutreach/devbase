@@ -86,6 +86,10 @@ if [[ $VERSION == "unstable" ]]; then
 else
   # publish rc/stable release
   # gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+  if [[ -z $GH_TOKEN ]]; then
+    echo "Failed to read Github personal access token" >&2
+  fi
   # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
   NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
   yarn --frozen-lockfile semantic-release
