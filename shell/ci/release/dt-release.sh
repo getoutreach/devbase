@@ -84,6 +84,7 @@ if [[ $VERSION == "unstable" ]]; then
   gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
 else
   # publish release
+  make release APP_VERSION="$app_version"
   gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
   # GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
   # if [[ -z $GH_TOKEN ]]; then
