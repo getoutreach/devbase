@@ -46,6 +46,10 @@ parameters:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
+  skip_for_draft:
+    description: Skip this job running for Draft PRs
+    type: boolean
+    default: false
 
 resource_class: << parameters.resource_class >>
 
@@ -59,6 +63,8 @@ environment:
   PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
 steps:
+  - skip_for_draft:
+      skip_for_draft: << parameters.skip_for_draft >>
   - when:
       condition:
         not: << parameters.skip >>
