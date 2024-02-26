@@ -3,4 +3,4 @@ parameters:
 steps:
   - run:
       name: Getting info from GitHub
-      command: ./scripts/shell-wrapper.sh ci/pr/pr-info.sh
+      command: ./scripts/shell-wrapper.sh pr/pr-info.sh
