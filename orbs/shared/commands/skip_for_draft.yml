@@ -12,4 +12,6 @@ steps:
         if [[ -f "/tmp/pr_draft.txt" && $SKIP_FOR_DRAFT = "true" ]]; then
           echo "Skipping job for Draft PR"
           circleci-agent step halt
+        else
+          echo "Continue, no Draft"
         fi          

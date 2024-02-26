@@ -63,14 +63,14 @@ environment:
   PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
 steps:
-  - skip_for_draft:
-      skip_for_draft: << parameters.skip_for_draft >>
   - when:
       condition:
         not: << parameters.skip >>
       steps:
         - setup_environment:
             setup_remote_docker: << parameters.setup_remote_docker >>
+        - skip_for_draft:
+            skip_for_draft: << parameters.skip_for_draft >>
         - run:
             name: Run tests
             command: make test
