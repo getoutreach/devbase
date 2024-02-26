@@ -9,17 +9,6 @@ source "$DIR/../../lib/yaml.sh"
 # shellcheck source=./../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
 
-# if tag found, use the tag as the build version
-# use tag to trigger rc build
-if [ -n "$CIRCLE_TAG" ]; then
-  VERSION="$CIRCLE_TAG"
-  app_version="$VERSION"
-else
-  VERSION="unstable"
-  app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
-fi
-
-
 # DRYRUN is a flag that can be passed to this script to prevent it from
 # actually creating a release in Github. Defaults to false and is
 # configurable through the --dry-run CLI flag.
@@ -66,33 +55,35 @@ if [[ $DRYRUN == "true" ]]; then
   exit 0
 fi
 
-prerelease=false
-if [[ $VERSION == "unstable" ]] || [[ $VERSION == "*rc*" ]]; then
-  prerelease=true
+# check commit message on main branch
+COMMIT_MESSAGE=$(git log --format=%B -n 1)
+echo "getting commit message: $COMMIT_MESSAGE"
+if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
+  # run prerealse for release commit
+  echo "Running RC release"
+  # publish release by semantic-release
+
+  # Read the GH_TOKEN from the file
+  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+  if [[ -z $GH_TOKEN ]]; then
+    echo "Failed to read Github personal access token" >&2
+  fi
+  # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
+  NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
+  yarn --frozen-lockfile semantic-release
+  exit
 fi
 
 # publish unstable release
-if [[ $VERSION == "unstable" ]]; then
-  echo "Creating unstable release ($app_version)"
+app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
+echo "Creating unstable release ($app_version)"
 
-  make release APP_VERSION="$app_version"
-  # delete unstable release and unstable tag if it exists
-  gh release delete unstable -y || true
-  git tag --delete unstable || true
-  git push --delete origin unstable || true
-  # create release and upload assets to it
-  gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
-else
-  # publish release
-  make release APP_VERSION="$app_version"
-  gh release create "$app_version" --prerelease="$prerelease" --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
-  # GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
-  # if [[ -z $GH_TOKEN ]]; then
-  #   echo "Failed to read Github personal access token" >&2
-  # fi
-  # # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
-  # NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
-  # yarn --frozen-lockfile semantic-release
-fi
+make release APP_VERSION="$app_version"
+# delete unstable release and unstable tag if it exists
+gh release delete unstable -y || true
+git tag --delete unstable || true
+git push --delete origin unstable || true
+# create release and upload assets to it
+gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
 
 run_unstable_include
