@@ -1,0 +1,6 @@
+description: Load PR info from GitHub
+parameters:
+steps:
+  - run:
+      name: Getting info from GitHub
+      command: ./scripts/shell-wrapper.sh ci/pr/pr-info.sh
