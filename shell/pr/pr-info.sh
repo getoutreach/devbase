@@ -10,7 +10,7 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
-echo -n "🔨 Getting PR info"
+echo -n "🔨 Getting PR info "
 PR_NUMBER=${CIRCLE_PULL_REQUEST//[!0-9]/}
 RESPONSE=$(
   curl --silent \
