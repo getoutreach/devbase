@@ -1,0 +1,15 @@
+description: Checks if the PR is Draft and it's requested by pipeline to skip that step
+parameters:
+  skip_for_draft:
+    description: Should skip rest of the pipeline if this is draft PR
+    type: boolean
+    default: false
+steps:
+  - run:
+      name: Check being Draft PR
+      command: |-
+        SKIP_FOR_DRAFT="<< parameters.skip_for_draft >>"
+        if [[ -f "/tmp/pr_draft.txt" && $SKIP_FOR_DRAFT = "true" ]]; then
+          echo "Skipping job for Draft PR"
+          circleci-agent step halt
+        fi          
