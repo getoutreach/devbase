@@ -10,7 +10,7 @@ if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
 
-echo "🔨 Getting PR info"
+echo -n "🔨 Getting PR info"
 PR_NUMBER=${CIRCLE_PULL_REQUEST//[!0-9]/}
 RESPONSE=$(
   curl --silent \
@@ -30,5 +30,8 @@ else
   rm -f $DRAFT_FILE
 fi
 
-echo "PR INFO"
-echo "$RESPONSE"
+TITLE=$(echo "$RESPONSE" | jq ".title")
+TITLE_FILE="/tmp/pr_title.txt"
+echo "$TITLE" >$TITLE_FILE
+
+echo "OK"
