@@ -14,7 +14,7 @@ echo "🔨 Getting PR info"
 PR_NUMBER=${CIRCLE_PULL_REQUEST//[!0-9]/}
 RESPONSE=$(
   curl --silent \
-    -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Authorization: token $GH_TOKEN" \
     -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}"
 )
