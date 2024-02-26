@@ -51,3 +51,4 @@ steps:
       condition: << parameters.setup_devenv >>
       steps:
         - setup_devenv
+  - pr_info
