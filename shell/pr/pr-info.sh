@@ -30,7 +30,7 @@ else
   rm -f $DRAFT_FILE
 fi
 
-TITLE=$(echo "$RESPONSE" | jq ".title")
+TITLE=$(echo "$RESPONSE" | jq -r ".title")
 TITLE_FILE="/tmp/pr_title.txt"
 echo "$TITLE" >$TITLE_FILE
 
