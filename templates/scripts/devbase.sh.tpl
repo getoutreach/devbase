@@ -15,15 +15,16 @@ get_absolute_path() {
   "$python" -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"
 }
 
-# get_field_from_yaml reads a field from a yaml file
+# get_field_from_yaml reads a field from a yaml file via a JIT-downloaded gojq.
 get_field_from_yaml() {
   local field="$1"
   local file="$2"
 
-  local gjDir="$(mktemp -d)"
+  local gjDir platform arch
+  gjDir="$(mktemp -d)"
   local gojq="$gjDir/gojq"
-  local platform="$(uname -s | awk '{print tolower($0)}')"
-  local arch="$(uname -m)"
+  platform="$(uname -s | awk '{print tolower($0)}')"
+  arch="$(uname -m)"
   if [[ $arch == x86_64 ]]; then
     arch=amd64
   fi
