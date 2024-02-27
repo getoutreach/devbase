@@ -47,23 +47,11 @@ if ! command -v gh >/dev/null; then
   rm ./gh.deb
 fi
 
-echo "Installing yq"
+echo "Removing yq"
 # Remove the existing yq, if it already exists
 # (usually the Go Version we don't support)
+# We can use gojq via a yq wrapper which uses gobin.sh
 sudo rm -f "$(command -v yq)"
-
-# Use apt to install yq, if available. Otherwise, fallback to pip3 which
-# older versions of Ubuntu/Debian support.
-if ! apt install -y yq; then
-  # Install Python and pip
-  if ! command -v pip3 >/dev/null; then
-    echo "Installing pip3"
-    sudo apt-get install --no-install-recommends -y python3-pip
-  fi
-
-  echo "Failed to install yq through apt, falling back to pip3 install (this only works on Ubuntu 22.04 and below)"
-  sudo pip3 install yq
-fi
 
 if should_install_vault; then
   echo "Installing Vault"

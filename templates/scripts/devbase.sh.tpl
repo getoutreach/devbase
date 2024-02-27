@@ -6,6 +6,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 libDir="$DIR/../.bootstrap"
 lockfile="$DIR/../stencil.lock"
 serviceYaml="$DIR/../service.yaml"
+YQ="$libDir/shell/yq.sh"
 
 # get_absolute_path returns the absolute path of a file
 get_absolute_path() {
@@ -13,18 +14,12 @@ get_absolute_path() {
   "$python" -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"
 }
 
-# get_field_from_yaml reads a field from a yaml file using either go-yq or python-yq
+# get_field_from_yaml reads a field from a yaml file
 get_field_from_yaml() {
   field="$1"
   file="$2"
 
-  if [[ "$(yq e '.a' '-' <<<'{"a": "true"}' 2>&1)" == "true" ]]; then
-    # using golang version
-    yq e "$field" "$file"
-  else
-    # probably using python version
-    yq -r "$field" <"$file"
-  fi
+  "$YQ" -r "$field" <"$file"
 }
 
 # Use the version of devbase from stencil
