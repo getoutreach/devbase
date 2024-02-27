@@ -1,11 +1,6 @@
 description: Check if PR is in Draft state - if yes, fail the pipeline.
 executor:
   name: testbed-docker
-docker:
-  - image: gcr.io/outreach-docker/bootstrap/ci:stable
-    auth:
-      username: _json_key
-      password: $GCLOUD_SERVICE_ACCOUNT
 parameters:
   force_draft_run:
     description: Should run although it is a draft PR
