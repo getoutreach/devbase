@@ -7,7 +7,7 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 if [[ -z $GOJQ_VERSION ]]; then
-  GOJQ_VERSION="v0.12.14"
+  GOJQ_VERSION="$(grep ^gojq: "$DIR"/../versions.yaml | awk '{print $2}')"
 fi
 
 if [[ -n $YQ_USE_GOJQ ]]; then

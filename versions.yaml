@@ -7,6 +7,7 @@ lintroller: 1.17.0
 goveralls: 0.0.11
 getoutreach/ci: v1.3.0
 getoutreach/logfmt: v1.1.0
+gojq: v0.12.14
 
 # protobuf formatters/plugins/tools/etc
 buf: 1.8.0 # formatter
