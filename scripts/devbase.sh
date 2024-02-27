@@ -6,7 +6,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 libDir="$DIR/../.bootstrap"
 lockfile="$DIR/../stencil.lock"
 serviceYaml="$DIR/../service.yaml"
-YQ="$libDir/shell/yq.sh"
+gojqVersion="v0.12.14"
 
 # get_absolute_path returns the absolute path of a file
 get_absolute_path() {
@@ -16,10 +16,26 @@ get_absolute_path() {
 
 # get_field_from_yaml reads a field from a yaml file
 get_field_from_yaml() {
-  field="$1"
-  file="$2"
+  local field="$1"
+  local file="$2"
 
-  "$YQ" -r "$field" <"$file"
+  local gjDir="$(mktemp -d)"
+  local gojq="$gjDir/gojq"
+  local platform="$(uname -s | awk '{print tolower($0)}')"
+  local arch="$(uname -m)"
+  if [[ $arch == x86_64 ]]; then
+    arch=amd64
+  fi
+  local basename="gojq_${gojqVersion}_${platform}_${arch}"
+  local tgz="$basename.tar.gz"
+
+  curl --fail --location --silent --output "$gjDir/$tgz" \
+    "https://github.com/itchyny/gojq/releases/download/$gojqVersion/$tgz"
+  tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$tgz" "$basename/gojq"
+
+  "$gojq" --yaml-input -r "$field" <"$file"
+
+  rm -r "$gjDir"
 }
 
 # Use the version of devbase from stencil
