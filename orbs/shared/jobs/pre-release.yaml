@@ -1,4 +1,4 @@
-description: Pre-releases a new version of the application
+description: Releases a new version of the application
 parameters:
   node_client:
     description: Build and release a Node.JS gRPC client
@@ -40,13 +40,14 @@ steps:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Release (Dry-run)
+            name: Pre-elease (Dry-run)
             command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
   - unless:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Release
-            environment:
-              RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
-            command: ./scripts/shell-wrapper.sh ci/release/release.sh
+            name: Pre-release
+            # disable for testing
+            # environment:
+            # RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
+            command: ./scripts/shell-wrapper.sh ci/release/pre-release.sh
