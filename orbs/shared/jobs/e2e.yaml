@@ -28,10 +28,6 @@ parameters:
     description: Use devspace to run e2e tests inside of k8s cluster. No devconfig or localizer needed.
     type: boolean
     default: false
-  skip_for_draft:
-    description: Skip this job running for Draft PRs
-    type: boolean
-    default: false
 executor:
   name: testbed-machine
 environment:
@@ -42,8 +38,6 @@ environment:
   USE_DEVSPACE: << parameters.use_devspace >>
 resource_class: << parameters.resource_class >>
 steps:
-  - skip_for_draft:
-      skip_for_draft: << parameters.skip_for_draft >>
   - setup_environment:
       machine: true
   - run:

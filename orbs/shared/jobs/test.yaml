@@ -46,10 +46,6 @@ parameters:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
-  skip_for_draft:
-    description: Skip this job running for Draft PRs
-    type: boolean
-    default: false
 
 resource_class: << parameters.resource_class >>
 
@@ -69,8 +65,6 @@ steps:
       steps:
         - setup_environment:
             setup_remote_docker: << parameters.setup_remote_docker >>
-        - skip_for_draft:
-            skip_for_draft: << parameters.skip_for_draft >>
         - run:
             name: Run tests
             command: make test

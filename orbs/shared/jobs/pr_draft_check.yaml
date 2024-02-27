@@ -1,0 +1,16 @@
+description: Check if PR is in Draft state - if yes, fail the pipeline.
+executor:
+  name: testbed-docker
+parameters:
+  force_draft_run:
+    description: Should run although it is a draft PR
+    type: boolean
+    default: false
+steps:
+  - setup_environment:
+      machine: false
+      checkout: false
+      setup_devenv: false
+  - pr_draft:
+      should_fail: true
+      force_draft_run: << parameters.force_draft_run >>

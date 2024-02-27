@@ -1,9 +1,9 @@
 description: Checks if the PR is Draft and it's requested by pipeline to skip that step
 parameters:
-  skip_for_draft:
-    description: Should skip rest of the pipeline if this is draft PR
+  should_fail:
+    description: Should fail the step, otherwise just halt the remaining job
     type: boolean
-    default: false
+    default: true
   force_draft_run:
     description: Should run although it is a draft PR
     type: boolean
@@ -12,14 +12,18 @@ steps:
   - run:
       name: Check being Draft PR
       command: |-
-        SKIP_FOR_DRAFT="<< parameters.skip_for_draft >>"
+        SHOULD_FAIL="<< parameters.should_fail >>"
         FORCE_DRAFT_RUN="<< parameters.force_draft_run >>"
         if [[ $FORCE_DRAFT_RUN = "true" ]]; then
           echo "Forcing run for this PR"
-        elif [[ -f "/tmp/pr_draft.txt" && $SKIP_FOR_DRAFT = "true" ]]; then
-          echo "Skipping job for Draft PR"
+        elif [[ -f "/tmp/pr_draft.txt" ]]; then
           circleci-agent step halt
-          exit 1
+          if [[ $SHOULD_FAIL = "true" ]]; then
+            echo "Failing job for Draft PR"
+            exit 1
+          else 
+            echo "Halting the pipeline for Draft PR, remaining steps are not running."
+          fi
         else
           echo "Continue, no Draft"
         fi          
