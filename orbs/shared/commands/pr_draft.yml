@@ -26,4 +26,4 @@ steps:
           fi
         else
           echo "Continue, no Draft"
-        fi          
+        fi
