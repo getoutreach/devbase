@@ -4,14 +4,22 @@ parameters:
     description: Should skip rest of the pipeline if this is draft PR
     type: boolean
     default: false
+  force_draft_run:
+    description: Should run although it is a draft PR
+    type: boolean
+    default: false
 steps:
   - run:
       name: Check being Draft PR
       command: |-
         SKIP_FOR_DRAFT="<< parameters.skip_for_draft >>"
-        if [[ -f "/tmp/pr_draft.txt" && $SKIP_FOR_DRAFT = "true" ]]; then
+        FORCE_DRAFT_RUN="<< parameters.force_draft_run >>"
+        if [[ $FORCE_DRAFT_RUN = "true" ]]; then
+          echo "Forcing run for this PR"
+        elif [[ -f "/tmp/pr_draft.txt" && $SKIP_FOR_DRAFT = "true" ]]; then
           echo "Skipping job for Draft PR"
           circleci-agent step halt
+          exit 1
         else
           echo "Continue, no Draft"
         fi          
