@@ -1,6 +1,9 @@
 description: Load PR info from GitHub
 parameters:
 steps:
+  - restore_cache:
+      keys:
+        - v1-daily-cache-{{ arch }}-
   - add_ssh_keys
   - checkout
   - run:
@@ -38,8 +41,6 @@ steps:
             "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}"
         )
         
-        echo $RESPONSE
-
         echo "$RESPONSE" >/tmp/pr_info.json
 
         DRAFT=$(echo "$RESPONSE" | jq ".draft")
