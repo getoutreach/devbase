@@ -75,8 +75,6 @@ fi
 
 # If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
-  ## TODO: remove ater test
-  echo "this is dryrun"
   exit 0
 fi
 
