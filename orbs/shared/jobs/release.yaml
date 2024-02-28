@@ -29,6 +29,7 @@ executor: << parameters.executor >>
 steps:
   - setup_environment:
       machine: << parameters.machine >>
+  - skip_on_chore_pr
   - when:
       condition: << parameters.node_client >>
       steps:

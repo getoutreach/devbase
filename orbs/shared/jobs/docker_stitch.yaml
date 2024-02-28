@@ -5,4 +5,5 @@ resource_class: medium
 steps:
   - setup_environment:
       machine: true
+  - skip_on_chore_pr
   - stitch_docker_image

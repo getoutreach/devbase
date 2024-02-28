@@ -1,0 +1,48 @@
+description: Checks the PR title and if it's marked as a chore/ci/docs, the job is halted and marked as done
+parameters:
+  force_run:
+    description: Should run although it is a chore PR
+    type: boolean
+    default: false
+steps:
+  - run:
+      name: Check being chore PR
+      command: |-
+        FORCE_RUN="<< parameters.force_run >>"
+        if [[ -z $CIRCLE_PULL_REQUEST ]]; then
+          exit 0
+        fi
+        if [[ $FORCE_RUN = "true" ]]; then
+          echo "Forcing run for this PR"
+        elif [[ -f "/tmp/pr_title.txt" ]]; then
+          PR_TITLE=$(cat /tmp/pr_title.txt | tr -d '"')
+          PR_PREFIX="${PR_TITLE%%:*}"
+          PR_TYPE="${PR_PREFIX%%(*}"
+          echo "Identified PR type '$PR_TYPE' in the title '$PR_TITLE'"
+          if [[ $PR_TYPE =~ ^(chore|ci|docs)$ ]]; then
+            echo "Skipping job for '$PR_TYPE' commit type."
+            circleci-agent step halt
+            PR_NUMBER=${CIRCLE_PULL_REQUEST//[!0-9]/}
+            GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+            PR_COMMENT="This is $PR_TYPE PR, build pipeline (docker jobs) and e2e tests are skipped!"
+            if [[ -z $GH_TOKEN ]]; then
+              echo "Failed to read Github personal access token" >&2
+              exit 0
+            fi
+            curl --silent \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github.raw+json" \
+                "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${PR_NUMBER}/comments" | \
+              jq -r ".[].body" | \
+              grep "$PR_COMMENT" >/dev/null || curl --silent \
+                -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -d "{\"body\":\"${PR_COMMENT}\"}" \
+                "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${PR_NUMBER}/comments"                
+          else
+            echo "Running job for '$PR_TYPE' commit type."
+          fi
+        else
+          echo "Continue, no PR title found"
+        fi

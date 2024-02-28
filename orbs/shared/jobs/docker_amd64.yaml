@@ -5,4 +5,5 @@ resource_class: xlarge
 steps:
   - setup_environment:
       machine: true
+  - skip_on_chore_pr
   - build_docker_image
