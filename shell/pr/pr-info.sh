@@ -5,9 +5,10 @@ if [[ -z $CIRCLE_PULL_REQUEST ]]; then
   exit 0
 fi
 
-GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+GH_TOKEN="$GHACCESSTOKEN_GHAPP_1"
 if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
+  exit 1
 fi
 
 echo -n "🔨 Getting PR info"

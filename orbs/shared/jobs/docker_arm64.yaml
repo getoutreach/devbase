@@ -3,8 +3,8 @@ executor:
   name: testbed-machine
 resource_class: arm.xlarge
 steps:
+  - skip_on_chore_pr
   - setup_environment:
       machine: true
-  - skip_on_chore_pr
   - build_docker_image:
       arch: arm64

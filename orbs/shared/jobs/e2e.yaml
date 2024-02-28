@@ -38,9 +38,9 @@ environment:
   USE_DEVSPACE: << parameters.use_devspace >>
 resource_class: << parameters.resource_class >>
 steps:
+  - skip_on_chore_pr
   - setup_environment:
       machine: true
-  - skip_on_chore_pr
   - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
