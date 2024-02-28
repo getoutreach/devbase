@@ -26,7 +26,8 @@ steps:
               
         "$CI_DIR/auth/github.sh"        
 
-        GH_TOKEN=$(cat "$HOME/.outreach/github.token")
+        GH_TOKEN="$GHACCESSTOKEN_GHAPP_2"
+        #GH_TOKEN=$(cat "$HOME/.outreach/github.token")
         if [[ -z $GH_TOKEN ]]; then
           echo "Failed to read Github personal access token" >&2
           exit 1
@@ -40,6 +41,8 @@ steps:
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}"
         )
+        
+        echo $RESPONSE
         
         echo "$RESPONSE" >/tmp/pr_info.json
 
