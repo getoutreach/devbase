@@ -5,6 +5,7 @@ parameters:
     type: boolean
     default: false
 steps:
+  - pr_info
   - run:
       name: Check being chore PR
       command: |-

@@ -1,6 +1,58 @@
 description: Load PR info from GitHub
 parameters:
 steps:
+  - add_ssh_keys
+  - checkout
+  - run:
+      name: Checkout Submodules
+      command: git submodule sync && git submodule update --init
   - run:
       name: Getting info from GitHub
-      command: ./scripts/shell-wrapper.sh pr/pr-info.sh
+      command: |-
+        # Gets info about the PR from GitHub        
+        if [[ -z $CIRCLE_PULL_REQUEST ]]; then
+          exit 0
+        fi
+        
+        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/scripts"
+        libDir="$DIR/../.bootstrap"
+  
+        "$DIR/devbase.sh"
+        
+        CI_DIR="$libDir/ci"
+              
+        "$CI_DIR/auth/github.sh"        
+
+        GH_TOKEN=$(cat "$HOME/.outreach/github.token")
+        if [[ -z $GH_TOKEN ]]; then
+          echo "Failed to read Github personal access token" >&2
+          exit 1
+        fi
+
+        echo -n "🔨 Getting PR info "
+        PR_NUMBER=${CIRCLE_PULL_REQUEST//[!0-9]/}
+        RESPONSE=$(
+          curl --silent \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}"
+        )
+        
+        echo $RESPONSE
+
+        echo "$RESPONSE" >/tmp/pr_info.json
+
+        DRAFT=$(echo "$RESPONSE" | jq ".draft")
+        DRAFT_FILE="/tmp/pr_draft.txt"
+
+        if [[ $DRAFT == 'true' ]]; then
+          touch $DRAFT_FILE
+        else
+          rm -f $DRAFT_FILE
+        fi
+
+        TITLE=$(echo "$RESPONSE" | jq -r ".title")
+        TITLE_FILE="/tmp/pr_title.txt"
+        echo "$TITLE" >$TITLE_FILE
+
+        echo "OK"
