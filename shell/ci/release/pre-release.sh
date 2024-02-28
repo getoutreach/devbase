@@ -65,7 +65,6 @@ if [[ $CIRCLE_BRANCH != "$prereleasesBranch" ]] && [[ $DRYRUN == "false" ]]; the
   exit 0
 fi
 
-
 if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
   echo "No .goreleaser.yml, skipping creating unstable release"
 
@@ -96,7 +95,7 @@ if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
   fi
   # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
   NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
-  yarn --frozen-lockfile semantic-release
+    yarn --frozen-lockfile semantic-release
   exit
 fi
 
