@@ -1,31 +1,13 @@
 description: Load PR info from GitHub
 parameters:
 steps:
-  - restore_cache:
-      keys:
-        - v1-daily-cache-{{ arch }}-
-  - add_ssh_keys
-  - checkout
-  - run:
-      name: Checkout Submodules
-      command: git submodule sync && git submodule update --init
   - run:
       name: Getting info from GitHub
       command: |-
         # Gets info about the PR from GitHub        
         if [[ -z $CIRCLE_PULL_REQUEST ]]; then
           exit 0
-        fi
-        
-        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/scripts"
-        libDir="$DIR/../.bootstrap"
-  
-        "$DIR/devbase.sh"
-        
-        CI_DIR="$libDir/shell/ci"
-        
-        sudo apt install -y golang
-        "$CI_DIR/auth/github.sh"        
+        fi     
 
         GH_TOKEN=$(cat "$HOME/.outreach/github.token")
         if [[ -z $GH_TOKEN ]]; then
