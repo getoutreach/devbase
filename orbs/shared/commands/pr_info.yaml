@@ -24,7 +24,7 @@ steps:
         
         CI_DIR="$libDir/shell/ci"
         
-        "$CI_DIR/env/asdf.sh"
+        sudo apt install -y go
         "$CI_DIR/auth/github.sh"        
 
         GH_TOKEN=$(cat "$HOME/.outreach/github.token")
