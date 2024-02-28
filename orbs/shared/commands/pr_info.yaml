@@ -24,7 +24,7 @@ steps:
         
         CI_DIR="$libDir/shell/ci"
         
-        sudo apt install -y go
+        sudo apt install -y golang
         "$CI_DIR/auth/github.sh"        
 
         GH_TOKEN=$(cat "$HOME/.outreach/github.token")
