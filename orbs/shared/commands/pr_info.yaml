@@ -23,11 +23,11 @@ steps:
         "$DIR/devbase.sh"
         
         CI_DIR="$libDir/shell/ci"
-              
+        
+        "$CI_DIR/env/asdf.sh"
         "$CI_DIR/auth/github.sh"        
 
-        GH_TOKEN="$GHACCESSTOKEN_GHAPP_2"
-        #GH_TOKEN=$(cat "$HOME/.outreach/github.token")
+        GH_TOKEN=$(cat "$HOME/.outreach/github.token")
         if [[ -z $GH_TOKEN ]]; then
           echo "Failed to read Github personal access token" >&2
           exit 1
