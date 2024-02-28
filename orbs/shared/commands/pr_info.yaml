@@ -19,7 +19,7 @@ steps:
   
         "$DIR/devbase.sh"
         
-        CI_DIR="$libDir/ci"
+        CI_DIR="$libDir/shell/ci"
               
         "$CI_DIR/auth/github.sh"        
 
