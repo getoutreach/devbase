@@ -19,24 +19,29 @@ get_field_from_yaml() {
   local field="$1"
   local file="$2"
 
-  local gjDir platform arch
-  gjDir="$(mktemp -d)"
-  local gojq="$gjDir/gojq"
-  platform="$(uname -s | awk '{print tolower($0)}')"
-  arch="$(uname -m)"
-  if [[ $arch == x86_64 ]]; then
-    arch=amd64
-  fi
-  local basename="gojq_${gojqVersion}_${platform}_${arch}"
-  local tgz="$basename.tar.gz"
+  local gjDir
+  gjDir="${XDG_CACHE_HOME:-$HOME/.cache}/devbase/gojq"
+  local gojq="$gjDir/gojq-${gojqVersion}"
+  if [[ ! -x $gojq ]]; then
+    local platform arch
+    mkdir -p "$gjDir"
+    platform="$(uname -s | awk '{print tolower($0)}')"
+    arch="$(uname -m)"
+    if [[ $arch == x86_64 ]]; then
+      arch=amd64
+    fi
+    local basename="gojq_${gojqVersion}_${platform}_${arch}"
+    local tgz="$basename.tar.gz"
 
-  curl --fail --location --silent --output "$gjDir/$tgz" \
-    "https://github.com/itchyny/gojq/releases/download/$gojqVersion/$tgz"
-  tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$tgz" "$basename/gojq"
+    if [[ ! -e "$gjDir/$tgz" ]]; then
+      curl --fail --location --silent --output "$gjDir/$tgz" \
+        "https://github.com/itchyny/gojq/releases/download/$gojqVersion/$tgz"
+    fi
+    tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$tgz" "$basename/gojq"
+    mv "$gjDir"/gojq "$gojq"
+  fi
 
   "$gojq" --yaml-input -r "$field" <"$file"
-
-  rm -r "$gjDir"
 }
 
 # Use the version of devbase from stencil
