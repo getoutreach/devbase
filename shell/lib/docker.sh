@@ -176,7 +176,7 @@ run_docker() {
 
 # docker_manifest_images retrieves the list of images from a manifest file.
 docker_manifest_images() {
-  MANIFEST="$1"
+  local manifest="$1"
 
-  "$YQ" -r 'keys[]' "$MANIFEST"
+  "$YQ" -r 'keys[]' "$manifest"
 }
