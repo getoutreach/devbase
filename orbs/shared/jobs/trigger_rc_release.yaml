@@ -1,0 +1,34 @@
+description: Trigger release a new rc version of the application
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    # This is to trigger the release job, small should be enough
+    default: "small"
+  release_failure_slack_channel:
+    description: The slack channel to notify if the release fails
+    type: string
+    default: ""
+  executor:
+    description: The executor to use for the release
+    type: executor
+    default: "testbed-docker"
+
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - with_node_cache:
+      save: true
+  - checkout
+  - run:
+      name: Trigger RC Release
+      # disable for testing
+      # environment:
+      # RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
+      command: ./scripts/shell-wrapper.sh ci/release/trigger-rc-release.sh
