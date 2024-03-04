@@ -65,6 +65,11 @@ if [[ $CIRCLE_BRANCH != "$prereleasesBranch" ]] && [[ $DRYRUN == "false" ]]; the
   exit 0
 fi
 
+# If there's no .goreleaser.yml file, skip the unstable release process.
+# Otherwise, the 'make release' step would fail.
+#
+# IDEA(jaredallard): We should support a more customizable release
+# process for things that don't use goreleaser.
 if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
   echo "No .goreleaser.yml, skipping creating unstable release"
 
