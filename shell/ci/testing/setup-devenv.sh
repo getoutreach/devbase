@@ -36,7 +36,7 @@ if [[ -n $CI ]]; then
     tmpFile=$(mktemp)
     keyringLocation=/etc/apt/keyrings/kubernetes-archive-keyring.gpg
 
-    curl -fsSLo "$tmpFile" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    curl -fsSLo "$tmpFile" https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
 
     # 2023-05-23: GCP changed their key to be armored and changed the key location. Currently
     # the file extension is incorrect. So, we handle if it is armored or not in case
