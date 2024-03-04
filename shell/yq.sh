@@ -14,7 +14,7 @@ fi
 if [[ -n $YQ_USE_GOJQ ]]; then
   use_gojq=true
 elif command -v yq >/dev/null 2>&1; then
-  # Make sure it's the correct yq. The Go yq is not compatible jq syntax.
+  # Make sure it's the correct yq. The Go yq is not compatible with jq syntax.
   if [[ "$(yq --version)" =~ ^yq.3.* ]]; then
     use_gojq=false
   fi
