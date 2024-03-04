@@ -4,6 +4,7 @@
 # You can force using gojq by setting the environment variable YQ_USE_GOJQ=true.
 #
 
+set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 if [[ -z $GOJQ_VERSION ]]; then
