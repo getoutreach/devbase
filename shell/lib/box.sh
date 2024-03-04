@@ -44,13 +44,14 @@ download_box() {
     echo "{}" >"$BOXPATH"
   fi
 
-  # Why: OK with assigning without checking exit code.
-  # shellcheck disable=SC2155
-  local newBox=$("$YQ" . "${BOXPATH}" |
-    jq --slurpfile boxconf \
-      <("$YQ" -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
-    "$YQ" --yaml-output .)
-  echo "${newBox}" >"${BOXPATH}"
+  # Why: this isn't a shell variable, it's a yq variable
+  # shellcheck disable=SC2016
+  local boxconfQuery='. * { config: $boxconf[0] }'
+  local newBox
+  # Avoid reading and writing to the same file
+  newBox="$("$YQ" . "${BOXPATH}" |
+    "$YQ" --yaml-output --slurpfile boxconf <("$YQ" -r . "${tempDir}/box.yaml") "$boxconfQuery")"
+  echo "$newBox" >"$BOXPATH"
 }
 
 # get_box_yaml returns the box configuration as a yaml string
