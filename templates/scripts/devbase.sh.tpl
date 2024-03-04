@@ -15,11 +15,8 @@ get_absolute_path() {
   "$python" -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"
 }
 
-# get_field_from_yaml reads a field from a yaml file via a JIT-downloaded gojq.
-get_field_from_yaml() {
-  local field="$1"
-  local file="$2"
-
+# gojq returns the path to a JIT-downloaded gojq binary.
+gojq() {
   local gjDir
   gjDir="${XDG_CACHE_HOME:-$HOME/.cache}/devbase/gojq"
   local gojq="$gjDir/gojq-${gojqVersion}"
@@ -42,7 +39,15 @@ get_field_from_yaml() {
     mv "$gjDir"/gojq "$gojq"
   fi
 
-  "$gojq" --yaml-input -r "$field" <"$file"
+  echo "$gojq"
+}
+
+# get_field_from_yaml reads a field from a yaml file via a JIT-downloaded gojq.
+get_field_from_yaml() {
+  local field="$1"
+  local file="$2"
+
+  "$(gojq)" --yaml-input -r "$field" <"$file"
 }
 
 # Use the version of devbase from stencil
