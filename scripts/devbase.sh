@@ -33,7 +33,7 @@ gojq() {
     local tgz="$basename.tar.gz"
 
     if [[ ! -e "$gjDir/$tgz" ]]; then
-      curl --fail --location --silent --output "$gjDir/$tgz" \
+      curl --fail --location --output "$gjDir/$tgz" \
         "https://github.com/itchyny/gojq/releases/download/$gojqVersion/$tgz"
     fi
     tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$tgz" "$basename/gojq"
