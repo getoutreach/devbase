@@ -3,6 +3,7 @@
 
 REPODIR=""
 DEVBASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
+YQ="${DEVBASE_DIR}/shell/yq.sh"
 
 find_service_yaml() {
   local path="$1"
@@ -32,14 +33,14 @@ get_repo_directory() {
 }
 
 get_app_name() {
-  yq -r '.name' <"$(get_service_yaml)"
+  "$YQ" -r '.name' <"$(get_service_yaml)"
 }
 
 # get_tool_version reads a version from .bootstrap/versions.yaml
 # and returns it
 get_tool_version() {
   name="$1"
-  yq -r ".[\"$name\"]" <"$DEVBASE_DIR/versions.yaml"
+  "$YQ" -r ".[\"$name\"]" <"$DEVBASE_DIR/versions.yaml"
 }
 
 # get_application_version executes get_tool_version
@@ -53,7 +54,7 @@ get_application_version() {
 has_feature() {
   local feat="$1"
 
-  val=$(yq -r ".arguments[\"$feat\"]" <"$(get_service_yaml)")
+  val=$("$YQ" -r ".arguments[\"$feat\"]" <"$(get_service_yaml)")
 
   if [[ $val == "true" ]]; then
     return 0
@@ -84,21 +85,21 @@ has_resource() {
 get_resource_version() {
   local name="$1"
 
-  if [[ "$(yq -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)"
+    "$YQ" -r ".arguments.resources[\"$name\"]" <"$(get_service_yaml)"
   fi
 }
 
 has_grpc_client() {
   local name="$1"
 
-  if [[ "$(yq -r '.arguments.grpcClients' <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -r '.arguments.grpcClients' <"$(get_service_yaml)")" == "null" ]]; then
     return 1
   fi
 
-  if [[ -n "$(yq -r ".arguments.grpcClients[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
+  if [[ -n "$("$YQ" -r ".arguments.grpcClients[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
     return 0
   fi
 
@@ -108,11 +109,11 @@ has_grpc_client() {
 has_service_activity() {
   local name="$1"
 
-  if [[ "$(yq -r '.arguments.serviceActivities' <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -r '.arguments.serviceActivities' <"$(get_service_yaml)")" == "null" ]]; then
     return 1
   fi
 
-  if [[ -n "$(yq -r ".arguments.serviceActivities[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
+  if [[ -n "$("$YQ" -r ".arguments.serviceActivities[] | select(. == \"$name\")" <"$(get_service_yaml)")" ]]; then
     return 0
   fi
 
@@ -122,28 +123,28 @@ has_service_activity() {
 get_list() {
   local name="$1"
 
-  if [[ "$(yq -rc ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -rc ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -rc ".arguments.\"$name\"[]" <"$(get_service_yaml)"
+    "$YQ" -rc ".arguments.\"$name\"[]" <"$(get_service_yaml)"
   fi
 }
 
 get_keys() {
   local name="$1"
 
-  if [[ "$(yq -r ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -r ".arguments.\"$name\"" <"$(get_service_yaml)")" == "null" ]]; then
     echo ""
   else
-    yq -r ".arguments.\"$name\" | keys[]" <"$(get_service_yaml)"
+    "$YQ" -r ".arguments.\"$name\" | keys[]" <"$(get_service_yaml)"
   fi
 }
 
 # is_service checks if the repo is declared as a service inside service.yaml.
 is_service() {
-  if [[ "$(yq -r ".arguments.service" <"$(get_service_yaml)")" == "null" ]]; then
+  if [[ "$("$YQ" -r ".arguments.service" <"$(get_service_yaml)")" == "null" ]]; then
     echo "false"
   else
-    yq -r ".arguments.service" <"$(get_service_yaml)"
+    "$YQ" -r ".arguments.service" <"$(get_service_yaml)"
   fi
 }
