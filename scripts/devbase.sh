@@ -30,13 +30,32 @@ gojq() {
       arch=amd64
     fi
     local basename="gojq_${gojqVersion}_${platform}_${arch}"
-    local tgz="$basename.tar.gz"
-
-    if [[ ! -e "$gjDir/$tgz" ]]; then
-      curl --fail --location --output "$gjDir/$tgz" \
-        "https://github.com/itchyny/gojq/releases/download/$gojqVersion/$tgz"
+    local ext
+    if [[ "$platform" == linux ]]; then
+      ext="tar.gz"
+    else
+      ext="zip"
     fi
-    tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$tgz" "$basename/gojq"
+    local archive="$basename.$ext"
+
+    local gojqURL="https://github.com/itchyny/gojq/releases/download/$gojqVersion/$archive"
+    if [[ ! -e "$gjDir/$archive" ]]; then
+      curl --fail --location --silent --output "$gjDir/$archive" "$gojqURL"
+
+    fi
+
+    if [[ ! -e "$gjDir/$archive" ]]; then
+      echo "Failed to download gojq ($gojqURL)" >&2
+      exit 1
+    fi
+
+    if [[ "$ext" == "zip" ]]; then
+      # Explanation of flags:
+      # quiet, junk paths/dont make directories, extract to directory
+      unzip -q -j -d "$gjDir" "$gjDir/$archive" "$basename/gojq"
+    else
+      tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$archive" "$basename/gojq"
+    fi
     mv "$gjDir"/gojq "$gojq"
   fi
 
