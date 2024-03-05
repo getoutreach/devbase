@@ -11,6 +11,11 @@ source "$DIR/../../lib/yaml.sh"
 # shellcheck source=./../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
 
+# CIRCLE_BRANCH is the current branch we're on. If we're unable to
+# determine the current branch (e.g., not running in CI) we fallback to
+# attempting to parse the current branch from git.
+CIRCLE_BRANCH="${CIRCLE_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
+
 # DRYRUN is a flag that can be passed to this script to prevent it from
 # actually creating a release in Github. Defaults to false and is
 # configurable through the --dry-run CLI flag.

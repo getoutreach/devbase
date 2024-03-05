@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This file contains the logic for releasing code on CLI.
+# Release some code
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"

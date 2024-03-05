@@ -3,7 +3,6 @@ arguments:
   ciOptions:
     skipE2e: true
     skipDocker: true
-    autoPrerelease: false
   description: A collection of scripts and ci configuration
   lintroller: platinum
   oss: true
