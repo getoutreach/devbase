@@ -12,7 +12,9 @@ GOJQ_VERSION="${GOJQ_VERSION:-$(grep ^gojq: "$DIR"/../versions.yaml | awk '{prin
 
 use_gojq=false
 
-if [[ -n $YQ_USE_GOJQ ]]; then
+# YQ_USE_GOJQ is meant to be set externally, hence the workaround
+# for the unbound variable.
+if [[ -n ${YQ_USE_GOJQ:-} ]]; then
   use_gojq=true
 elif command -v yq >/dev/null 2>&1; then
   # Make sure it's the correct yq. The Go yq is not compatible with jq syntax.
