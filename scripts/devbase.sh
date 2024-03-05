@@ -31,7 +31,7 @@ gojq() {
     fi
     local basename="gojq_${gojqVersion}_${platform}_${arch}"
     local ext
-    if [[ "$platform" == linux ]]; then
+    if [[ $platform == linux ]]; then
       ext="tar.gz"
     else
       ext="zip"
@@ -49,7 +49,7 @@ gojq() {
       exit 1
     fi
 
-    if [[ "$ext" == "zip" ]]; then
+    if [[ $ext == "zip" ]]; then
       # Explanation of flags:
       # quiet, junk paths/dont make directories, extract to directory
       unzip -q -j -d "$gjDir" "$gjDir/$archive" "$basename/gojq"
