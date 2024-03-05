@@ -8,9 +8,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-if [[ -z $GOJQ_VERSION ]]; then
-  GOJQ_VERSION="$(grep ^gojq: "$DIR"/../versions.yaml | awk '{print $2}')"
-fi
+GOJQ_VERSION="${GOJQ_VERSION:-$(grep ^gojq: "$DIR"/../versions.yaml | awk '{print $2}')}"
 
 use_gojq=false
 
