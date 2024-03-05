@@ -16,6 +16,8 @@ get_absolute_path() {
 
 # gojq returns the path to a JIT-downloaded gojq binary.
 gojq() {
+  set -uo pipefail
+
   local gjDir
   gjDir="${XDG_CACHE_HOME:-$HOME/.cache}/devbase/gojq"
   local gojq="$gjDir/gojq-${gojqVersion}"
@@ -39,6 +41,8 @@ gojq() {
   fi
 
   echo "$gojq"
+
+  set +uo pipefail
 }
 
 # get_field_from_yaml reads a field from a yaml file via a JIT-downloaded gojq.
