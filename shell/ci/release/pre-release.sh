@@ -55,8 +55,6 @@ if [[ "$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$(get_ser
 fi
 
 # Ensure we are on the prerelease branch. The default is main branch.
-# It is intend to use same branch
-# to run unstale release and also create prerelease to rc
 prereleasesBranch="$(yaml_get_field '.arguments.releaseOptions.prereleasesBranch' "$(get_service_yaml)")"
 
 # If we're not on the prerelease branch, skip. This is to prevent
@@ -89,10 +87,8 @@ if [[ $DRYRUN == "true" ]]; then
 fi
 
 # Check commit message on current branch
+# Prerelease to rc if the latest commit is chore: Release.
 COMMIT_MESSAGE=$(git log --format=%B -n 1)
-## TODO: remove ater test
-echo "getting commit message: $COMMIT_MESSAGE"
-
 if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
   # Pre-release to rc
   echo "Creating prerelease to rc channel"
@@ -104,7 +100,7 @@ if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
   # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
   NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
     yarn --frozen-lockfile semantic-release
-  exit
+  exit 0
 fi
 
 # publish unstable release

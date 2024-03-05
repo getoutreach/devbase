@@ -28,7 +28,6 @@ steps:
   - checkout
   - run:
       name: Trigger RC Release
-      # disable for testing
-      # environment:
-      # RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
+      environment:
+        RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
       command: ./scripts/shell-wrapper.sh ci/release/trigger-rc-release.sh

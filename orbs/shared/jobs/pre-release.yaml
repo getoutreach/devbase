@@ -47,7 +47,6 @@ steps:
       steps:
         - run:
             name: Pre-release
-            # disable for testing
-            # environment:
-            # RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
+            environment:
+              RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
             command: ./scripts/shell-wrapper.sh ci/release/pre-release.sh
