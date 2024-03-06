@@ -33,7 +33,8 @@ git checkout $prereleaseBranch
 
 # Dryrun the semantic-release on prereleaseBranch to check if there is changes to release.
 # If not skip the release.
-releaseOutput=$(NPM_TOKEN='' yarn --frozen-lockfile semantic-release -d)
+GH_TOKEN=$(gh auth token)
+releaseOutput=$(NPM_TOKEN='' GH_TOKEN=$GH_TOKEN yarn --frozen-lockfile semantic-release -d)
 echo "$releaseOutput"
 
 if [[ $releaseOutput != *"Published release"* ]]; then
