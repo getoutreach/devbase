@@ -5,8 +5,8 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
-# Read the GH_TOKEN from the file
-GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+# Retrieve the GH_TOKEN
+GH_TOKEN="$(gh auth token)"
 if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi

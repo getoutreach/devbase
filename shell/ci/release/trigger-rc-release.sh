@@ -16,12 +16,12 @@ fi
 
 # Default it to use main branch, should this be configurable?
 prereleaseBranch="main"
-# TODO: allow to config release user in service.yaml
-releaseUsername="Outreach CI"
-releaseUseremail="outreach-ci@outreach.io"
 
-git config --global user.name "$releaseUsername"
-git config --global user.email "$releaseUseremail"
+# releaseUsername=$(get_box_field 'ci.circleci.username')
+# releaseUseremail=$(get_box_field 'ci.circleci.useremail')
+
+# git config --global user.name "$releaseUsername"
+# git config --global user.email "$releaseUseremail"
 git checkout $prereleaseBranch
 
 # Dryrun the semantic-release on prereleaseBranch to check if there is changes to release.
