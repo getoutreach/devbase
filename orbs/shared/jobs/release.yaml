@@ -1,4 +1,4 @@
-description: Pre-releases a new version of the application
+description: Releases a new version of the application
 parameters:
   node_client:
     description: Build and release a Node.JS gRPC client
@@ -44,7 +44,7 @@ steps:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Release (Dry-run)
+            name: Release (dry run)
             command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
             no_output_timeout: << parameters.no_output_timeout >>
   - unless:

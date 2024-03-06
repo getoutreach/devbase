@@ -92,8 +92,9 @@ COMMIT_MESSAGE=$(git log --format=%B -n 1)
 if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
   # Pre-release to rc
   echo "Creating prerelease to rc channel"
-  # Read the GH_TOKEN from the file
-  GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+
+  # Retrieve the GH_TOKEN
+  GH_TOKEN=$(gh auth token)
   if [[ -z $GH_TOKEN ]]; then
     echo "Failed to read Github personal access token" >&2
   fi

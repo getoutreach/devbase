@@ -44,6 +44,6 @@ fi
 
 GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
 
-# Handle prerelease releasing for CLIs, pre-conditions for this exist
+# Handle prereleases for CLIs, pre-conditions for this exist
 # in the script.
 "$DIR/pre-release.sh" --dry-run
