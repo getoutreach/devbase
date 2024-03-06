@@ -23,8 +23,8 @@ if [[ -n "$(yaml_get_field ".arguments.releaseOptions.releaseUser" "$(get_servic
   releaseUsername="$(yaml_get_field ".arguments.releaseOptions.releaseUser.name" "$(get_service_yaml)")"
   releaseUseremail="$(yaml_get_field ".arguments.releaseOptions.releaseUser.email" "$(get_service_yaml)")"
 else
-  releaseUsername=$(get_box_field 'ci.circleci.username')
-  releaseUseremail=$(get_box_field 'ci.circleci.useremail')
+  releaseUsername=$(get_box_field 'ci.circleci.releaseUser.name')
+  releaseUseremail=$(get_box_field 'ci.circleci.releaseUser.email')
 fi
 
 git config --global user.name "$releaseUsername"
