@@ -26,13 +26,13 @@ git checkout $prereleaseBranch
 
 # Dryrun the semantic-release on prereleaseBranch to check if there is changes to release.
 # If not skip the release.
-releaseOutput=$(NPM_TOKEN='' yarn --frozen-lockfile semantic-release -d)
-echo "$releaseOutput"
+# releaseOutput=$(NPM_TOKEN='' yarn --frozen-lockfile semantic-release -d)
+# echo "$releaseOutput"
 
-if [[ $releaseOutput != *"Published release"* ]]; then
-  echo "No release will be created, skipping..."
-  exit 0
-fi
+# if [[ $releaseOutput != *"Published release"* ]]; then
+#   echo "No release will be created, skipping..."
+#   exit 0
+# fi
 
 git commit -m "chore: Release" --allow-empty
 git push origin $prereleaseBranch
