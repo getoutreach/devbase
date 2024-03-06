@@ -8,6 +8,9 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+# We don't use get_tool_version from ./lib/bootstrap.sh here because it
+# uses this script to read versions.yaml, which would cause a
+# circular dependency.
 GOJQ_VERSION="${GOJQ_VERSION:-$(grep ^gojq: "$DIR"/../versions.yaml | awk '{print $2}')}"
 
 use_gojq=false
