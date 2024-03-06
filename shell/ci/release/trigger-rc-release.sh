@@ -11,7 +11,6 @@ source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=./../../lib/box.sh
 source "$DIR/../../lib/box.sh"
 
-
 if [[ "$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$(get_service_yaml)")" != "true" ]]; then
   echo "releaseOptions.enablePrereleases is not true, skipping rc release"
   exit 0
