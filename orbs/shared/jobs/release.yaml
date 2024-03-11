@@ -24,6 +24,10 @@ parameters:
     description: The executor to use for the release
     type: executor
     default: "testbed-docker"
+  dryrun_timeout:
+    description: The timeout that gets applied when CircleCI receives no output during the dryrun
+    type: string
+    default: 10m
 resource_class: << parameters.resource_class >>
 executor: << parameters.executor >>
 steps:
@@ -42,6 +46,7 @@ steps:
         - run:
             name: Release (Dry-run)
             command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
+            no_output_timeout: << parameters.dryrun_timeout >>
   - unless:
       condition: << parameters.dryrun >>
       steps:
