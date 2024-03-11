@@ -26,9 +26,14 @@ gojq() {
     mkdir -p "$gjDir"
     platform="$(uname -s | awk '{print tolower($0)}')"
     arch="$(uname -m)"
-    if [[ $arch == x86_64 ]]; then
+    case $arch in
+    x86_64)
       arch=amd64
-    fi
+      ;;
+    aarch64)
+      arch=arm64
+      ;;
+    esac
     local basename="gojq_${gojqVersion}_${platform}_${arch}"
     local ext
     if [[ $platform == linux ]]; then
