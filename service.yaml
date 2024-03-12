@@ -20,9 +20,11 @@ arguments:
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
   - name: github.com/getoutreach/stencil-circleci
+    channel: rc
   - name: github.com/getoutreach/stencil-base
+    channel: rc
   - name: github.com/getoutreach/stencil-golang
-    channel: unstable # Easier to match versions if we always use unstable.
+    channel: rc
   - name: github.com/getoutreach/devbase
 replacements:
   github.com/getoutreach/devbase: ./
