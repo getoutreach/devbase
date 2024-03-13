@@ -53,7 +53,9 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
   # This is mostly important for CI systems or other container
   # environments.
   if (command -v free || command -v sysctl) &>/dev/null; then
-    if command -v free &>/dev/null; then
+    if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+      mem=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) / 1024 / 1024 ))
+    elif command -v free &>/dev/null; then
       mem="$(free -m | awk '/^Mem:/{print $2}')"
     elif command -v sysctl &>/dev/null; then
       mem=$((($(sysctl -n hw.memsize) / 1024) / 1024))
