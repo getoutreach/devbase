@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/getoutreach/gobox v1.89.0
 	github.com/getoutreach/localizer v1.15.3
-	github.com/google/go-github/v53 v53.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
@@ -18,7 +17,7 @@ require (
 
 require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
-	github.com/google/go-github/v58 v58.0.0 // indirect
+	github.com/google/go-github/v58 v58.0.0
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 )
 
