@@ -54,7 +54,7 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
   # environments.
   if (command -v free || command -v sysctl) &>/dev/null; then
     if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
-      mem=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) / 1024 / 1024 ))
+      mem=$(($(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) / 1024 / 1024))
     elif command -v free &>/dev/null; then
       mem="$(free -m | awk '/^Mem:/{print $2}')"
     elif command -v sysctl &>/dev/null; then
