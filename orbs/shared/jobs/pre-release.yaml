@@ -1,4 +1,4 @@
-description: Releases a new version of the application
+description: Pre-releases a new version of the application
 parameters:
   node_client:
     description: Build and release a Node.JS gRPC client
@@ -24,10 +24,6 @@ parameters:
     description: The executor to use for the release
     type: executor
     default: "testbed-docker"
-  no_output_timeout:
-    description: The timeout that gets applied when CircleCI receives no output during the release
-    type: string
-    default: 10m
 resource_class: << parameters.resource_class >>
 executor: << parameters.executor >>
 steps:
@@ -44,15 +40,13 @@ steps:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Release (dry run)
+            name: Pre-elease (dry run)
             command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
-            no_output_timeout: << parameters.no_output_timeout >>
   - unless:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Release
+            name: Pre-release
             environment:
               RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
-            command: ./scripts/shell-wrapper.sh ci/release/release.sh
-            no_output_timeout: << parameters.no_output_timeout >>
+            command: ./scripts/shell-wrapper.sh ci/release/pre-release.sh
