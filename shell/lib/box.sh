@@ -7,6 +7,8 @@ BOXPATH="$HOME/.outreach/.config/box/box.yaml"
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+YQ="$LIB_DIR/../yq.sh"
+
 # shellcheck source=yaml.sh
 source "$LIB_DIR/yaml.sh"
 
@@ -21,7 +23,7 @@ download_box() {
     echo "No box repository URL provided, and no box configuration stub found at $BOXPATH to infer it from" >&2
     return 1
   elif [[ -z $boxGitRepo ]]; then
-    boxGitRepo="$(yq -r '.storageURL' "$BOXPATH")"
+    boxGitRepo="$("$YQ" -r '.storageURL' "$BOXPATH")"
   fi
 
   # Why: OK with assigning without checking exit code.
@@ -42,13 +44,14 @@ download_box() {
     echo "{}" >"$BOXPATH"
   fi
 
-  # Why: OK with assigning without checking exit code.
-  # shellcheck disable=SC2155
-  local newBox=$(yq . "${BOXPATH}" |
-    jq --slurpfile boxconf \
-      <(yq -r . "${tempDir}/box.yaml") '. * {config: $boxconf[0] }' |
-    yq --yaml-output .)
-  echo "${newBox}" >"${BOXPATH}"
+  # Why: this isn't a shell variable, it's a yq variable
+  # shellcheck disable=SC2016
+  local boxconfQuery='. * { config: $boxconf[0] }'
+  local newBox
+  # Avoid reading and writing to the same file
+  newBox="$("$YQ" . "${BOXPATH}" |
+    "$YQ" --yaml-output --slurpfile boxconf <("$YQ" -r . "${tempDir}/box.yaml") "$boxconfQuery")"
+  echo "$newBox" >"$BOXPATH"
 }
 
 # get_box_yaml returns the box configuration as a yaml string

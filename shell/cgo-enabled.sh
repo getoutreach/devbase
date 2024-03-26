@@ -4,10 +4,12 @@
 # value for the CGO_ENABLED environment variable. Defaults to disabled.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+YQ="$DIR/yq.sh"
+
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
-if [[ "$(yq -r ".arguments.enableCgo" <"$(get_service_yaml)")" == "true" ]]; then
+if [[ "$("$YQ" -r ".arguments.enableCgo" <"$(get_service_yaml)")" == "true" ]]; then
   echo "1"
 else
   echo "0"

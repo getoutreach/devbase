@@ -73,7 +73,7 @@ stitch_and_push_image() {
 }
 
 # stitch and push all images in the manifest
-mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
+mapfile -t images < <(docker_manifest_images "$MANIFEST")
 for image in "${images[@]}"; do
   stitch_and_push_image "$image"
 done

@@ -2,6 +2,7 @@
 # Helper functions for Docker image generation.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+YQ="${DIR}/../yq.sh"
 
 # shellcheck source=./logging.sh
 source "${DIR}/logging.sh"
@@ -171,4 +172,11 @@ run_docker() {
   set -x
   docker "$@"
   set +x
+}
+
+# docker_manifest_images retrieves the list of images from a manifest file.
+docker_manifest_images() {
+  local manifest="$1"
+
+  "$YQ" -r 'keys[]' "$manifest"
 }

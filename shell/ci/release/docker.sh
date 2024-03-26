@@ -61,7 +61,7 @@ if [[ ! -f $MANIFEST ]]; then
 fi
 
 # Build and save all images in the manifest
-mapfile -t images < <(yq -r 'keys[]' "$MANIFEST")
+mapfile -t images < <(docker_manifest_images "$MANIFEST")
 for image in "${images[@]}"; do
   build_and_save_image "$image"
 done
