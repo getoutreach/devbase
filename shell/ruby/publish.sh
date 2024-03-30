@@ -10,9 +10,12 @@ LIB_DIR="$SCRIPTS_DIR/lib"
 source "$LIB_DIR/bootstrap.sh"
 # shellcheck source=../lib/logging.sh
 source "$LIB_DIR/logging.sh"
+# shellcheck source=../lib/box.sh
+source "$LIB_DIR/box.sh"
 
 appName="$(get_app_name)"
 clientDir="$(get_repo_directory)/api/clients/ruby"
+githubOrg="$(get_box_field org)"
 
 newVersion="$1"
 if [[ -z $newVersion ]]; then
@@ -39,8 +42,7 @@ fi
 
 pushd "$clientDir" >/dev/null || exit 1
 info "Pushing package to Github Packages"
-# TODO(jaredallard): Read the org from box when this is in CI.
 gem push --key github \
-  --host https://rubygems.pkg.github.com/getoutreach \
+  --host https://rubygems.pkg.github.com/$githubOrg \
   "$gemFile"
 popd >/dev/null || exit 1

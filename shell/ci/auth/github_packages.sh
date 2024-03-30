@@ -6,6 +6,8 @@ LIB_DIR="${DIR}/../../lib"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
+# shellcheck source=../../lib/box.sh
+source "${LIB_DIR}/box.sh"
 
 # Fetch the token from ghaccesstoken if not set.
 if [[ -z $GITHUB_TOKEN ]]; then
@@ -20,8 +22,7 @@ if [[ -z $GITHUB_USERNAME ]]; then
   GITHUB_USERNAME="x-access-token"
 fi
 
-# TODO: Replace this with box config when CI has access.
-ORG=getoutreach
+ORG="$(get_box_field org)"
 
 # Setup Ruby Authentication if bundle exists.
 if command -v bundle >/dev/null 2>&1; then
