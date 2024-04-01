@@ -89,7 +89,7 @@ fi
 # Check commit message on current branch
 # Prerelease to rc if the latest commit is chore: Release.
 COMMIT_MESSAGE=$(git log --format=%B -n 1)
-if [[ $COMMIT_MESSAGE == "chore: Release" ]]; then
+if [[ $COMMIT_MESSAGE =~ "chore: Release" ]]; then
   # Pre-release to rc
   echo "Creating prerelease to rc channel"
 
