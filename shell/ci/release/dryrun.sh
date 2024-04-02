@@ -34,16 +34,21 @@ git checkout "$CIRCLE_BRANCH"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
-git merge --squash "$OLD_CIRCLE_BRANCH"
-git commit -m "$COMMIT_MESSAGE"
+if ! git diff --quiet "$OLD_CIRCLE_BRANCH" ; then
+    git merge --squash "$OLD_CIRCLE_BRANCH"
+    git commit -m "$COMMIT_MESSAGE"
+    GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+    if [[ -z $GH_TOKEN ]]; then
+      echo "Failed to read Github personal access token" >&2
+    fi
 
-GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
-if [[ -z $GH_TOKEN ]]; then
-  echo "Failed to read Github personal access token" >&2
+    GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
+
+    # Handle prereleases for CLIs, pre-conditions for this exist
+    # in the script.
+    "$DIR/pre-release.sh" --dry-run
+else
+    echo "No changes to release"
 fi
 
-GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
 
-# Handle prereleases for CLIs, pre-conditions for this exist
-# in the script.
-"$DIR/pre-release.sh" --dry-run
