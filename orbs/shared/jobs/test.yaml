@@ -46,6 +46,10 @@ parameters:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
+  gomemlimit:
+    description: Maps to GOMEMLIMIT environment variable
+    type: string
+    default: 6GiB
 
 resource_class: << parameters.resource_class >>
 
@@ -58,6 +62,7 @@ environment:
   AWS_REGION: << parameters.aws_region >>
   PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
+  GOMEMLIMIT: << parameters.gomemlimit >>
 steps:
   - when:
       condition:

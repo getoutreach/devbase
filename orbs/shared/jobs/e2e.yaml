@@ -28,10 +28,6 @@ parameters:
     description: Use devspace to run e2e tests inside of k8s cluster. No devconfig or localizer needed.
     type: boolean
     default: false
-  gomemlimit:
-    description: Maps to GOMEMLIMIT environment variable
-    type: string
-    default: 6GiB
 executor:
   name: testbed-machine
 environment:
@@ -40,7 +36,6 @@ environment:
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
   PROVISION_TARGET: << parameters.provision_target >>
   USE_DEVSPACE: << parameters.use_devspace >>
-  GOMEMLIMIT: << parameters.gomemlimit >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
