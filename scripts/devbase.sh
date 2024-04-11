@@ -44,12 +44,21 @@ gojq() {
     local archive="$basename.$ext"
 
     local gojqURL="https://github.com/itchyny/gojq/releases/download/$gojqVersion/$archive"
-    if [[ ! -e "$gjDir/$archive" ]]; then
-      curl --fail --location --silent --output "$gjDir/$archive" "$gojqURL"
-
+    local archivePath="$gjDir/$archive"
+    if [[ ! -e $archivePath ]]; then
+      if command -v busybox >/dev/null; then
+        busybox wget --quiet --output-document "$archivePath" "$gojqURL"
+      elif command -v wget >/dev/null; then
+        wget --quiet --output-document "$archivePath" "$gojqURL"
+      elif command -v curl >/dev/null; then
+        curl --fail --location --silent --output "$archivePath" "$gojqURL"
+      else
+        echo "No download tool found (looked for busybox, wget, curl)" >&2
+        exit 1
+      fi
     fi
 
-    if [[ ! -e "$gjDir/$archive" ]]; then
+    if [[ ! -e $archivePath ]]; then
       echo "Failed to download gojq ($gojqURL)" >&2
       exit 1
     fi
@@ -57,9 +66,9 @@ gojq() {
     if [[ $ext == "zip" ]]; then
       # Explanation of flags:
       # quiet, junk paths/dont make directories, extract to directory
-      unzip -q -j -d "$gjDir" "$gjDir/$archive" "$basename/gojq"
+      unzip -q -j -d "$gjDir" "$archivePath" "$basename/gojq"
     else
-      tar --strip-components=1 --directory="$gjDir" --extract --file="$gjDir/$archive" "$basename/gojq"
+      tar --strip-components=1 --directory="$gjDir" --extract --file="$archivePath" "$basename/gojq"
     fi
     mv "$gjDir"/gojq "$gojq"
   fi
