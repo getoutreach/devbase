@@ -23,6 +23,8 @@ elif command -v yq >/dev/null 2>&1; then
   # Make sure it's the correct yq. The Go yq is not compatible with jq syntax.
   if [[ "$(yq --version)" =~ ^yq.3.* ]]; then
     use_gojq=false
+  else
+    use_gojq=true
   fi
 else
   use_gojq=true
