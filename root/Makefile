@@ -238,7 +238,7 @@ stencil:: pre-stencil run-stencil post-stencil
 
 .PHONY: run-stencil
 run-stencil:
-	stencil
+	stencil --skip-update
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
