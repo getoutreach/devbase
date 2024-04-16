@@ -240,6 +240,13 @@ stencil:: pre-stencil run-stencil post-stencil
 run-stencil:
 	stencil --skip-update
 
+## restencil:       run stencil without updating module versions
+.PHONY: restencil
+restencil:: pre-stencil run-restencil post-stencil
+
+run-restencil:
+	stencil --skip-update --frozen-lockfile
+
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
 benchmarker-gen:
