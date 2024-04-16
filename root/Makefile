@@ -244,6 +244,7 @@ run-stencil:
 .PHONY: restencil
 restencil:: pre-stencil run-restencil post-stencil
 
+.PHONY: run-restencil
 run-restencil:
 	stencil --skip-update --frozen-lockfile
 
