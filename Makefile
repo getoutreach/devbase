@@ -5,6 +5,20 @@ _ := $(shell ./scripts/devbase.sh)
 include .bootstrap/root/Makefile
 
 ## <<Stencil::Block(targets)>>
+ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+	detectedOS := Windows
+else
+	detectedOS := $(shell uname -s)
+endif
+
+ifeq ($(detectedOS),Darwin)
+	# BSD sed
+	SED_I := sed -i ""
+else
+	# GNU sed
+	SED_I := sed -i
+endif
+
 ORB_DEV_TAG ?= first
 STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json name --jq '.[].name | ltrimstr("v")')
 
@@ -24,6 +38,6 @@ publish-orb: validate-orb
 	circleci orb publish orb.yml getoutreach/shared@dev:$(ORB_DEV_TAG)
 
 post-stencil::
-	sed -i "s/dev:first/$(STABLE_ORB_VERSION)/" .circleci/config.yml
+	$(SED_I) "s/dev:first/$(STABLE_ORB_VERSION)/" .circleci/config.yml
 	yarn add --dev @getoutreach/semantic-release-circleci-orb
 ## <</Stencil::Block>>
