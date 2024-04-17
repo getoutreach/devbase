@@ -40,4 +40,5 @@ publish-orb: validate-orb
 post-stencil::
 	$(SED_I) "s/dev:first/$(STABLE_ORB_VERSION)/" .circleci/config.yml
 	yarn add --dev @getoutreach/semantic-release-circleci-orb
+	./scripts/shell-wrapper.sh catalog-sync.sh
 ## <</Stencil::Block>>
