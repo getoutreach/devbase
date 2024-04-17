@@ -52,27 +52,27 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
   # ensure that we don't go over the memory limit and get OOM killed.
   # This is mostly important for CI systems or other container
   # environments.
-  if (command -v free || command -v sysctl) &>/dev/null; then
-    if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
-      mem=$(($(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) / 1024 / 1024))
-    elif command -v free &>/dev/null; then
+  if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+    mem=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) / 1024 / 1024 ))
+  elif (command -v free || command -v sysctl) &>/dev/null; then
+    if command -v free &>/dev/null; then
       mem="$(free -m | awk '/^Mem:/{print $2}')"
     elif command -v sysctl &>/dev/null; then
       mem=$((($(sysctl -n hw.memsize) / 1024) / 1024))
     fi
+  fi
 
-    # If we don't have enough memory to hit the reserve or we failed to
-    # determine how much memory we have, fall back to setting GOGC --
-    # which is relative to the amount of memory we have.
-    if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
-      # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
-      echo "Warning: Failed to determine system memory or under threshold. " \
-        "Falling back to GOGC" >&2
-      export GOGC=20
-    else
-      # Use mem as the memory target and ensure that we have 1GB of room.
-      export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
-    fi
+  # If we don't have enough memory to hit the reserve or we failed to
+  # determine how much memory we have, fall back to setting GOGC --
+  # which is relative to the amount of memory we have.
+  if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
+    # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
+    echo "Warning: Failed to determine system memory or under threshold. " \
+      "Falling back to GOGC" >&2
+    export GOGC=20
+  else
+    # Use mem as the memory target and ensure that we have 1GB of room.
+    export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
   fi
 fi
 
