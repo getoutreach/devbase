@@ -60,19 +60,19 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     elif command -v sysctl &>/dev/null; then
       mem=$((($(sysctl -n hw.memsize) / 1024) / 1024))
     fi
-  fi
 
-  # If we don't have enough memory to hit the reserve or we failed to
-  # determine how much memory we have, fall back to setting GOGC --
-  # which is relative to the amount of memory we have.
-  if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
-    # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
-    echo "Warning: Failed to determine system memory or under threshold. " \
-      "Falling back to GOGC" >&2
-    export GOGC=20
-  else
-    # Use mem as the memory target and ensure that we have 1GB of room.
-    export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
+    # If we don't have enough memory to hit the reserve or we failed to
+    # determine how much memory we have, fall back to setting GOGC --
+    # which is relative to the amount of memory we have.
+    if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
+      # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
+      echo "Warning: Failed to determine system memory or under threshold. " \
+        "Falling back to GOGC" >&2
+      export GOGC=20
+    else
+      # Use mem as the memory target and ensure that we have 1GB of room.
+      export GOMEMLIMIT="$((mem - RESERVED_MEMORY_IN_MIB))MiB"
+    fi
   fi
 fi
 
