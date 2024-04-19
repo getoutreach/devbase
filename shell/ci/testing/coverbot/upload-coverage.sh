@@ -47,5 +47,5 @@ read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$(aws sts 
   --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
   --output text)"
 
-exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@v1.0.1" \
+exec "$SHELL_DIR/gobin.sh" "github.com/getoutreach/coverbot/cmd/coverbot@v1.0.5" \
   upload --lang "go" --repo "$CIRCLE_PROJECT_REPONAME" --pr "$PR_NUMBER" "$coverage_file"
