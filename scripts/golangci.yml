@@ -6,6 +6,8 @@ lintroller:
 linters-settings:
   errcheck:
     check-blank: true
+  govet:
+    check-shadowing: true
   revive:
     rules:
       # Enable the default golint rules. We must include these because
@@ -83,7 +85,6 @@ linters:
     - lll
     # - misspell        # The reason we're disabling this right now is because it uses 1/2 of the memory of the run.
     - nakedret
-    - shadow
     - staticcheck
     - typecheck
     - unconvert
