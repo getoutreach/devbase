@@ -65,7 +65,7 @@ DOCKERFILE          ?= deployments/$(APP)/Dockerfile
 default: build
 
 # All the pre-action steps are bunched together here.
-.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devconfig pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish
+.PHONY: pre-release pre-build pre-lint pre-run pre-test pre-coverage pre-integration pre-e2e pre-benchmark pre-gogenerate pre-devconfig pre-devserver pre-dev pre-debug pre-docker-build pre-fmt pre-docs pre-docs-publish pre-stencil post-stencil
 pre-release::
 pre-build::
 pre-run::
@@ -84,6 +84,8 @@ pre-docker-build::
 pre-fmt::
 pre-docs::
 pre-docs-publish::
+pre-stencil::
+post-stencil::
 
 ## release:         tag a new release with goreleaser
 .PHONY: release
@@ -229,6 +231,22 @@ docs:: pre-docs
 .PHONY: docs-publish
 docs-publish:: pre-docs-publish
 	@./.bootstrap/shell/docs-publish.sh
+
+## stencil:         run stencil
+.PHONY: stencil
+stencil:: pre-stencil run-stencil post-stencil
+
+.PHONY: run-stencil
+run-stencil:
+	stencil --skip-update
+
+## restencil:       run stencil without updating module versions
+.PHONY: restencil
+restencil:: pre-stencil run-restencil post-stencil
+
+.PHONY: run-restencil
+run-restencil:
+	stencil --skip-update --frozen-lockfile
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen

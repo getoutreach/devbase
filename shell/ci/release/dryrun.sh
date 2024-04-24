@@ -4,9 +4,11 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# Setup git commands
-git config --global user.name "Devbase CI"
-git config --global user.email "devbase@outreach.io"
+# Setup git user name / email only in CI
+if [[ -n $CI ]]; then
+  git config --global user.name "Devbase CI"
+  git config --global user.email "devbase@outreach.io"
+fi
 
 # Make https://github.com/pvdlg/env-ci/blob/master/services/circleci.js
 # think we're not on a PR.
