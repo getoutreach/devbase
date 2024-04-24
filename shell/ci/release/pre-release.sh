@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # This file contains the logic for releasing unstable code on CLI
 # containing repositories that have also opted to enablePrereleases
 # _and_ not release from the default branch (e.g. main).
@@ -53,24 +54,17 @@ if [[ "$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$(get_ser
   exit 0
 fi
 
-# If our prereleasesBranch is empty, or equal to the default branch
-# skip this. This is to enable prereleases to be created from the `main`
-# branch thereby skipping the 'unstable' release process entirely.
+# Ensure we are on the prerelease branch. The default is main branch.
 prereleasesBranch="$(yaml_get_field '.arguments.releaseOptions.prereleasesBranch' "$(get_service_yaml)")"
-defaultBranch="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
-if [[ -z $prereleasesBranch ]] || [[ $prereleasesBranch == "$defaultBranch" ]]; then
-  echo "releaseOptions.prereleasesBranch is empty or equal to the default branch, skipping unstable release"
-  exit 0
-fi
 
-# If we're not on the default branch, skip. This is to prevent
+# If we're not on the prerelease branch, skip. This is to prevent
 # accidentally releasing from a branch that isn't mean to create
 # unstable releases that happened to fail releasing for whatever reason.
 #
 # Special case, skip this check if we're doing a dry-run since we will
 # short circuit before we actually create a release.
-if [[ $CIRCLE_BRANCH != "$defaultBranch" ]] && [[ $DRYRUN == "false" ]]; then
-  echo "\$CIRCLE_BRANCH ($CIRCLE_BRANCH) != \$defaultBranch ($defaultBranch), skipping unstable release"
+if [[ $CIRCLE_BRANCH != "$prereleasesBranch" ]] && [[ $DRYRUN == "false" ]]; then
+  echo "\$CIRCLE_BRANCH ($CIRCLE_BRANCH) != \$prereleaseBranch ($prereleasesBranch), skipping prerelease"
   exit 0
 fi
 
@@ -87,22 +81,39 @@ if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
   exit 0
 fi
 
-app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
-echo "Creating unstable release ($app_version)"
-
-make release APP_VERSION="$app_version"
-
 # If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
   exit 0
 fi
 
-# delete unstable release+tag if it exists
+# Check commit message on current branch
+# Prerelease to rc if the latest commit is chore: Release.
+COMMIT_MESSAGE=$(git log --format=%B -n 1)
+if [[ $COMMIT_MESSAGE =~ "chore: Release" ]]; then
+  # Pre-release to rc
+  echo "Creating prerelease to rc channel"
+
+  # Retrieve the GH_TOKEN
+  GH_TOKEN=$(gh auth token)
+  if [[ -z $GH_TOKEN ]]; then
+    echo "Failed to read Github personal access token" >&2
+  fi
+  # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
+  NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
+    yarn --frozen-lockfile semantic-release
+  exit 0
+fi
+
+# publish unstable release
+app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
+echo "Creating unstable release ($app_version)"
+
+make release APP_VERSION="$app_version"
+# delete unstable release and unstable tag if it exists
 gh release delete unstable -y || true
 git tag --delete unstable || true
 git push --delete origin unstable || true
-
-# create unstable release and upload assets to it
-gh release create unstable --prerelease --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+# create release and upload assets to it
+gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
 
 run_unstable_include
