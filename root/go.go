@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
+	giturls "github.com/chainguard-dev/git-urls"
 	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/magefile/mage/sh"
 	"github.com/pkg/errors"
-	giturls "github.com/whilp/git-urls"
 
 	"github.com/rs/zerolog"
 )
