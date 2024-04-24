@@ -1,4 +1,4 @@
-description: Trigger release a new rc version of the application
+description: Trigger release a new RC version of the application
 parameters:
   machine:
     description: Denotes that we're using a machine executor. Will need to set executor manually
