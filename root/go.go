@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -14,6 +15,22 @@ import (
 
 	"github.com/rs/zerolog"
 )
+
+func pathFromGitURL(origin string) (string, error) {
+	if strings.HasPrefix(origin, "https://") {
+		u, err := url.Parse(origin)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to parse HTTPS URL")
+		}
+		return strings.TrimPrefix(u.Path, "/"), nil
+	}
+
+	u, err := giturls.Parse(origin)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse SSH URL")
+	}
+	return u.Path, nil
+}
 
 // getOrg returns the Github organization name of the current repository
 func getOrg() (string, error) {
@@ -28,13 +45,13 @@ func getOrg() (string, error) {
 		return "", errors.Wrap(err, "failed to get git origin")
 	}
 
-	u, err := giturls.Parse(origin)
+	urlPath, err := pathFromGitURL(origin)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse git origin %q", origin)
 	}
 
 	// ["getoutreach", "gobox"]
-	spl := strings.Split(u.Path, "/")
+	spl := strings.Split(urlPath, "/")
 	if len(spl) != 2 {
 		return "", fmt.Errorf("failed to parse org from git origin %q", origin)
 	}
