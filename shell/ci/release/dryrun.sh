@@ -37,7 +37,7 @@ git checkout "$CIRCLE_BRANCH"
 if ! git diff --quiet "$OLD_CIRCLE_BRANCH" ; then
     git merge --squash "$OLD_CIRCLE_BRANCH"
     git commit -m "$COMMIT_MESSAGE"
-    GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+    GH_TOKEN="$(gh auth token)"
     if [[ -z $GH_TOKEN ]]; then
       echo "Failed to read Github personal access token" >&2
     fi
