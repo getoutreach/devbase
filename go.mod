@@ -3,6 +3,7 @@ module github.com/getoutreach/devbase/v2
 go 1.19
 
 require (
+	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.89.0
 	github.com/getoutreach/localizer v1.15.3
 	github.com/hashicorp/go-retryablehttp v0.7.5
@@ -10,7 +11,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.9.0
-	github.com/whilp/git-urls v1.0.0
 	google.golang.org/grpc v1.63.2
 	gopkg.in/yaml.v2 v2.4.0
 )
