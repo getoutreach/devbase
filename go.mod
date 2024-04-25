@@ -1,6 +1,6 @@
 module github.com/getoutreach/devbase/v2
 
-go 1.19
+go 1.21
 
 require (
 	github.com/chainguard-dev/git-urls v1.0.2
