@@ -68,19 +68,6 @@ if [[ $CIRCLE_BRANCH != "$prereleasesBranch" ]] && [[ $DRYRUN == "false" ]]; the
   exit 0
 fi
 
-# If there's no .goreleaser.yml file, skip the unstable release process.
-# Otherwise, the 'make release' step would fail.
-#
-# IDEA(jaredallard): We should support a more customizable release
-# process for things that don't use goreleaser.
-if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
-  echo "No .goreleaser.yml, skipping creating unstable release"
-
-  # Run the unstable include script if it exists.
-  run_unstable_include
-  exit 0
-fi
-
 # If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
   exit 0
@@ -101,6 +88,19 @@ if [[ $COMMIT_MESSAGE =~ "chore: Release" ]]; then
   # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
   NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
     yarn --frozen-lockfile semantic-release
+  exit 0
+fi
+
+# If there's no .goreleaser.yml file, skip the unstable release process.
+# Otherwise, the 'make release' step would fail.
+#
+# IDEA(jaredallard): We should support a more customizable release
+# process for things that don't use goreleaser.
+if [[ ! -e "$(get_repo_directory)/.goreleaser.yml" ]]; then
+  echo "No .goreleaser.yml, skipping creating unstable release"
+
+  # Run the unstable include script if it exists.
+  run_unstable_include
   exit 0
 fi
 
