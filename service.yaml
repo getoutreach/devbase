@@ -1,8 +1,10 @@
 name: devbase
 arguments:
   ciOptions:
-    skipE2e: true
     skipDocker: true
+    skipE2e: true
+  coverage:
+    provider: coverbot
   description: A collection of scripts and ci configuration
   lintroller: platinum
   oss: true
@@ -11,8 +13,6 @@ arguments:
     enablePrereleases: true
     prereleasesBranch: rc
   reportingTeam: fnd-dt
-  coverage:
-    provider: coverbot
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
@@ -20,9 +20,12 @@ arguments:
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
   - name: github.com/getoutreach/stencil-circleci
+    channel: rc
   - name: github.com/getoutreach/stencil-base
+    channel: rc
   - name: github.com/getoutreach/stencil-golang
-    channel: unstable # Easier to match versions if we always use unstable.
+    channel: unstable
   - name: github.com/getoutreach/devbase
+    channel: rc
 replacements:
   github.com/getoutreach/devbase: ./
