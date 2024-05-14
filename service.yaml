@@ -24,7 +24,7 @@ modules:
   - name: github.com/getoutreach/stencil-base
     channel: rc
   - name: github.com/getoutreach/stencil-golang
-    channel: unstable
+    channel: unstable # Easier to match versions if we always use unstable.
   - name: github.com/getoutreach/devbase
     channel: rc
 replacements:
