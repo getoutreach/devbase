@@ -1,17 +1,13 @@
 APP := devbase
 OSS := true
-_ := $(shell ./scripts/devbase.sh) 
+_ := $(shell ./scripts/devbase.sh)
 
 include .bootstrap/root/Makefile
 
-## <<Stencil::Block(targets)>>
 ORB_DEV_TAG ?= first
-STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json name --jq '.[].name | ltrimstr("v")')
 
 .PHONY: build-orb
 pre-build:: build-orb
-
-.PHONY: build-orb
 build-orb:
 	circleci orb pack orbs/shared > orb.yml
 
@@ -23,8 +19,11 @@ validate-orb: build-orb
 publish-orb: validate-orb
 	circleci orb publish orb.yml getoutreach/shared@dev:$(ORB_DEV_TAG)
 
+## <<Stencil::Block(targets)>>
+ORB_DEV_TAG ?= first
+STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json name --jq '.[].name | ltrimstr("v")')
+
 post-stencil::
 	perl -p -i -e "s/dev:first/$(STABLE_ORB_VERSION)/g" .circleci/config.yml
-	yarn add --dev @getoutreach/semantic-release-circleci-orb
 	./scripts/shell-wrapper.sh catalog-sync.sh
 ## <</Stencil::Block>>
