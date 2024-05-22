@@ -20,7 +20,6 @@ publish-orb: validate-orb
 	circleci orb publish orb.yml getoutreach/shared@dev:$(ORB_DEV_TAG)
 
 ## <<Stencil::Block(targets)>>
-ORB_DEV_TAG ?= first
 STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json name --jq '.[].name | ltrimstr("v")')
 
 post-stencil::
