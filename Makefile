@@ -25,6 +25,5 @@ STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclud
 
 post-stencil::
 	perl -p -i -e "s/dev:first/$(STABLE_ORB_VERSION)/g" .circleci/config.yml
-	yarn add --dev @getoutreach/semantic-release-circleci-orb
 	./scripts/shell-wrapper.sh catalog-sync.sh
 ## <</Stencil::Block>>
