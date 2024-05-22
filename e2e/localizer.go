@@ -25,8 +25,10 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	client, closer, err := localizer.Connect(ctx,
+		grpc.WithBlock(), //nolint:staticcheck // Why: This is deprecated but supported until grpc 2.0.
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 
 	// Made connection, ping it
 	if err == nil {
@@ -73,8 +75,10 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 		}
 	}
 
-	client, closer, err := localizer.Connect(ctx, grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	client, closer, err := localizer.Connect(ctx,
+		grpc.WithBlock(), //nolint:staticcheck // Why: This is deprecated but supported until grpc 2.0.
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to localizer")
 	}
