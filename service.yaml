@@ -14,7 +14,7 @@ arguments:
     enablePrereleases: true
     prereleasesBranch: main
     publishOrb: true
-    orbName: dev
+    orbName: getoutreach/shared
   reportingTeam: fnd-dt
   coverage:
     provider: coverbot
