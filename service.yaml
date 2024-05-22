@@ -10,9 +10,11 @@ arguments:
   oss: true
   releaseOptions:
     allowMajorVersions: true
+    autoPrereleases: true
     enablePrereleases: true
     prereleasesBranch: main
-    autoPrereleases: true
+    publishOrb: true
+    orbName: dev
   reportingTeam: fnd-dt
   coverage:
     provider: coverbot

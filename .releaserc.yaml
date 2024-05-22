@@ -14,6 +14,11 @@ plugins:
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
+  - - "@semantic-release/exec"
+    - prepareCmd: make build-orb
+  - - "@getoutreach/semantic-release-circleci-orb"
+    - orbName: dev
+      orbPath: orb.yml
 
   ## <<Stencil::Block(customReleasePlugins)>>
 
