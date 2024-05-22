@@ -34,7 +34,6 @@ else
 	SED_I := sed -i
 endif
 
-ORB_DEV_TAG ?= first
 STABLE_ORB_VERSION = $(shell gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json name --jq '.[].name | ltrimstr("v")')
 
 post-stencil::
