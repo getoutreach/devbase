@@ -40,7 +40,7 @@ steps:
       condition: << parameters.dryrun >>
       steps:
         - run:
-            name: Pre-elease (dry run)
+            name: Pre-release (dry run)
             command: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
   - unless:
       condition: << parameters.dryrun >>
