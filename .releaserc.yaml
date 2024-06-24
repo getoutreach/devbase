@@ -1,6 +1,6 @@
 preset: conventionalcommits
 branches:
-  - name: rc
+  - name: main
     prerelease: "rc"
   - name: release
 plugins:
@@ -14,13 +14,12 @@ plugins:
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
+  - - "@semantic-release/exec"
+    - prepareCmd: make build-orb
+  - - "@getoutreach/semantic-release-circleci-orb"
+    - orbName: getoutreach/shared
+      orbPath: orb.yml
 
   ## <<Stencil::Block(customReleasePlugins)>>
 
-  # Build the orb
-  - - "@semantic-release/exec"
-    - prepareCmd: make
-  - - "@getoutreach/semantic-release-circleci-orb"
-    - orbName: "getoutreach/shared"
-      orbPath: "orb.yml"
   ## <</Stencil::Block>>

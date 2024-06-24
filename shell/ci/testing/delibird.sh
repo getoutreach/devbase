@@ -32,9 +32,7 @@ export VAULT_ADDR
 
 # install_delibird installs the delibird log uploader.
 install_delibird() {
-  # We enable pre-releases for now because we rely on the latest
-  # unstable version of delibird to function.
-  install_latest_github_release getoutreach/orc true delibird
+  install_latest_github_release getoutreach/orc false delibird
 
   # tokenPath is the path that the delibird token should be written to.
   local tokenPath="$HOME/.outreach/.delibird/token"

@@ -30,13 +30,25 @@ sed_replace() {
 sync_cortex() {
   info "Syncing cortex.yaml"
   local golang_version lintroller reporting_team stencil_version
-  golang_version="$(grep -w ^golang .tool-versions | awk '{print $2}')"
+
   lintroller="$(yaml_get_field .arguments.lintroller service.yaml)"
-  reporting_team="$(yaml_get_field .arguments.reportingTeam service.yaml)"
-  stencil_version="$(yaml_get_field .version stencil.lock)"
-  sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
+  if [[ -z $lintroller ]]; then
+    fatal "lintroller field is missing in service.yaml"
+  fi
   sed_replace '\(lintroller:\) .\+' "\1 $lintroller" cortex.yaml
+
+  reporting_team="$(yaml_get_field .arguments.reportingTeam service.yaml)"
+  if [[ -z $reporting_team ]]; then
+    fatal "reportingTeam field is missing in service.yaml"
+  fi
   sed_replace '\(reporting_team:\) .\+' "\1 $reporting_team" cortex.yaml
+
+  golang_version="$(grep -w ^golang .tool-versions | awk '{print $2}')"
+  if [[ -n $golang_version ]]; then
+    sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
+  fi
+
+  stencil_version="$(yaml_get_field .version stencil.lock)"
   sed_replace '\(stencil_version:\) .\+' "\1 $stencil_version" cortex.yaml
 }
 

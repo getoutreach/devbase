@@ -6,7 +6,7 @@
 source "$DIR/lib/bootstrap.sh"
 
 BUILDJSONNETPATH="$DIR/build-jsonnet.sh"
-KUBECONFORM=("$DIR/gobin.sh" github.com/yannh/kubeconform/cmd/kubeconform@v0.6.3)
+KUBECONFORM=("$DIR/gobin.sh" github.com/yannh/kubeconform/cmd/kubeconform@v0.6.4)
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034

@@ -5,11 +5,16 @@ arguments:
     skipDocker: true
   description: A collection of scripts and ci configuration
   lintroller: platinum
+  notifications:
+    slackChannel: "#dt-notifications"
   oss: true
   releaseOptions:
     allowMajorVersions: true
+    autoPrereleases: true
     enablePrereleases: true
-    prereleasesBranch: rc
+    prereleasesBranch: main
+    publishOrb: true
+    orbName: getoutreach/shared
   reportingTeam: fnd-dt
   coverage:
     provider: coverbot

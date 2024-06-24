@@ -5,8 +5,8 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
-# Read the GH_TOKEN from the file
-GH_TOKEN="$(cat "$HOME/.outreach/github.token")"
+# Retrieve the GH_TOKEN
+GH_TOKEN="$(gh auth token)"
 if [[ -z $GH_TOKEN ]]; then
   echo "Failed to read Github personal access token" >&2
 fi
@@ -40,23 +40,6 @@ unset CIRCLE_PULL_REQUEST
 unset CI_PULL_REQUEST
 unset CI_PULL_REQUESTS
 
-ORIGINAL_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
-
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
 NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
   yarn --frozen-lockfile semantic-release || send_failure_notification
-
-NEW_VERSION=$(git describe --match 'v[0-9]*' --tags --always HEAD)
-
-# Determine if we updated by checking the original version from git
-# vs the new version (potentially) after we ran semantic-release.
-UPDATED=false
-if [[ $ORIGINAL_VERSION != "$NEW_VERSION" ]]; then
-  UPDATED=true
-fi
-
-# If we didn't update, assume we're on a prerelease branch
-# and run the unstable-release code.
-if [[ $UPDATED == "false" ]]; then
-  exec "$DIR/unstable-release.sh"
-fi
