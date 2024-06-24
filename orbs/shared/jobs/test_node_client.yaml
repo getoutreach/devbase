@@ -9,7 +9,8 @@ steps:
   - with_node_client_cache:
       save: true
   - steps: << parameters.steps >>
+  - build_node_client
   - run:
-      name: Test Node gRPC client
+      name: Test Node.js gRPC client
       working_directory: api/clients/node/
       command: yarn --frozen-lockfile test-ci
