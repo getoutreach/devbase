@@ -25,8 +25,8 @@ kubecfg \
   --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
   -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" \
-  -V cluster="development.us-west-2" \
-  -V region="us-west-2" \
+  -V cluster="development.us-dev-2" \
+  -V region="us-dev-2" \
   -V namespace="$namespace" \
   -V environment="$environment" \
   -V version="$version" \
