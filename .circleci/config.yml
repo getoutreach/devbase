@@ -43,7 +43,7 @@ test: &test
 
 # Branches used for releasing code, pre-release or not
 release_branches: &release_branches # Release branch
-  - release
+  - "release"
   # Pre-releases branch
   - "main"
 
