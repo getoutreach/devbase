@@ -25,7 +25,7 @@ prettier_linter() {
   local log_level_flag
   log_level_flag="$(prettier_log_level_flag)"
 
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$PRETTIER" --list-different "$log_level_flag" log
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$PRETTIER" --check "$log_level_flag" log
   return $?
 }
 
