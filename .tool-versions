@@ -14,7 +14,7 @@ protoc 21.5
 ## <<Stencil::Block(toolver)>>
 # The below tools are used by all repositories when using devbase
 mage 1.14.0
-golangci-lint 1.57.2
+golangci-lint 1.59.1
 shellcheck 0.9.0
 shfmt 3.7.0
 goreleaser 1.20.0
