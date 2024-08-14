@@ -212,10 +212,7 @@ debug:: pre-debug
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
 docker-build:: pre-docker-build
-	@echo " ===> building docker image <==="
-	@ssh-add -L
-	@echo " ===> If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>) <==="
-	DOCKER_BUILDKIT=1 docker build --ssh default -t $(BASE_IMAGE) -f $(DOCKERFILE) . --build-arg VERSION=${APP_VERSION} $(DOCKER_BUILD_EXTRA_ARGS)
+	@./scripts/shell-wrapper.sh docker-build.sh
 
 ## fmt:             run source code formatters
 .PHONY: fmt
