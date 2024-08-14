@@ -15,13 +15,18 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
-imageRegistry="$(get_box_field 'devenv.imageRegistry')"
+imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_field 'docker.imagePushRegistries')}"
+if [[ -z $imageRegistries ]]; then
+  # Fall back to the old box field
+  imageRegistries="$(get_box_field 'devenv.imageRegistry')"
+fi
 
 # setup docker authentication
-if [[ $imageRegistry =~ ^gcr.io/ ]]; then
+if [[ $imageRegistries =~ gcr.io/ ]]; then
   # shellcheck source=../auth/gcr.sh
   source "$CI_AUTH_DIR/gcr.sh"
 fi
+# TODO: add AWS auth source
 
 APPNAME="$(get_app_name)"
 VERSION="$(make --no-print-directory version)"
@@ -32,8 +37,10 @@ tags=(latest "$VERSION")
 
 stitch_and_push_image() {
   local image="$1"
-  local remote_image_name
-  remote_image_name="$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")"
+  local remoteImageNames=()
+  for imageRegistry in $imageRegistries; do
+    remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
+  done
 
   for img_filename in /home/circleci/"$image"-*.tar; do
     echo "Loading docker image: $img_filename"
@@ -51,23 +58,25 @@ stitch_and_push_image() {
       suffixedTags+=("$tag-$arch")
     done
 
-    amendedArgs=()
-    for suffixedTag in "${suffixedTags[@]}"; do
-      amendedArgs+=("--amend" "$remote_image_name:$suffixedTag")
-    done
+    for remoteImageName in "${remoteImageNames[@]}"; do
+      amendedArgs=()
+      for suffixedTag in "${suffixedTags[@]}"; do
+        amendedArgs+=("--amend" "$remoteImageName:$suffixedTag")
+      done
 
-    for suffixedTag in "${suffixedTags[@]}"; do
-      echo "Pushing suffixed tag: $suffixedTag"
-      run_docker push "$remote_image_name:$suffixedTag"
-    done
+      for suffixedTag in "${suffixedTags[@]}"; do
+        echo "Pushing suffixed tag: $suffixedTag"
+        run_docker push "$remoteImageName:$suffixedTag"
+      done
 
-    echo "Creating Manifest for '$tag' from suffixed tags"
-    run_docker manifest create \
-      "$remote_image_name:$tag" "${amendedArgs[@]}"
+      echo "Creating Manifest for '$tag' from suffixed tags"
+      run_docker manifest create \
+        "$remoteImageName:$tag" "${amendedArgs[@]}"
 
-    for suffixedTag in "${suffixedTags[@]}"; do
-      echo "Pushing Manifest: $tag"
-      run_docker manifest push "$remote_image_name:$tag"
+      for suffixedTag in "${suffixedTags[@]}"; do
+        echo "Pushing Manifest: $tag"
+        run_docker manifest push "$remoteImageName:$tag"
+      done
     done
   done
 }
