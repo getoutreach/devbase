@@ -10,6 +10,9 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=./lib/box.sh
 source "${LIB_DIR}/box.sh"
 
+# shellcheck source=./lib/docker.sh
+source "${LIB_DIR}/docker.sh"
+
 # shellcheck source=./lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
