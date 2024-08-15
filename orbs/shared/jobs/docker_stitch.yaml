@@ -2,7 +2,14 @@ description: Stitch together (optionally push) a multi-arch Docker image. Pushes
 executor:
   name: testbed-machine
 resource_class: medium
+parameters:
+  push_registries:
+    type: string
+    description: Space-separated list of registries to push the Docker image to
+    default: ""
 steps:
   - setup_environment:
       machine: true
-  - stitch_docker_image
+      push_registries: << parameters.push_registries >>
+  - stitch_docker_image:
+      push_registries: << parameters.push_registries >>

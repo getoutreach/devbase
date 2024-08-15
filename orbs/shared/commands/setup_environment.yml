@@ -13,6 +13,10 @@ parameters:
     description: Setup a fully provisioned devenv. Do not use for E2E, use setup_devenv with e2e instead.
     type: boolean
     default: false
+  push_registries:
+    type: string
+    description: Space-separated list of registries to push the Docker image to
+    default: ""
   restore_cache:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
@@ -47,6 +51,8 @@ steps:
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
+      environment:
+        DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
   - when:
       condition: << parameters.setup_devenv >>
       steps:
