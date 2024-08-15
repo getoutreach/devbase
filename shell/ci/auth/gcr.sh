@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configures CircleCI docker authentication
+# Configures CircleCI docker authentication for Google Cloud Registry (GCR).
 set -e
 
 if [[ -z $GCLOUD_SERVICE_ACCOUNT ]]; then

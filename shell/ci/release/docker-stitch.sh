@@ -26,7 +26,13 @@ if [[ $imageRegistries =~ gcr.io/ ]]; then
   # shellcheck source=../auth/gcr.sh
   source "$CI_AUTH_DIR/gcr.sh"
 fi
-# TODO: add AWS auth source
+
+if [[ $imageRegistries =~ amazonaws.com/ ]]; then
+  # The auth script uses $DOCKER_PUSH_REGISTRIES to determine which registries to authenticate.
+  DOCKER_PUSH_REGISTRIES="$imageRegistries"
+  # shellcheck source=../auth/aws-ecr.sh
+  source "$CI_AUTH_DIR/aws-ecr.sh"
+fi
 
 APPNAME="$(get_app_name)"
 VERSION="$(make --no-print-directory version)"
