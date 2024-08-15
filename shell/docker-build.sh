@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # shellcheck source=./lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
