@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Configures CircleCI Docker authentication for AWS Elastic Container Registry (ECR).
+# Assumes that the AWS CLI is installed and configured,
+# and that the `DOCKER_PUSH_REGISTRIES` environment variable is set.
 
 set -eo pipefail
 
