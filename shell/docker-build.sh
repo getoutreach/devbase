@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eo pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/lib"
 
@@ -13,13 +13,13 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=./lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-APPNAME="$(get_app_name)"
+appName="$(get_app_name)"
 
 if [[ -z $DOCKERFILE ]]; then
-  DOCKERFILE="deployments/$APPNAME/Dockerfile"
+  DOCKERFILE="deployments/$appName/Dockerfile"
 fi
 
-info "Building docker image for ${APPNAME} …"
+info "Building docker image for ${appName} …"
 
 warn "If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>)"
 
@@ -32,8 +32,8 @@ if [[ -z $imageRegistries ]]; then
 fi
 
 for imageRegistry in $imageRegistries; do
-  tags+=("-t" "$imageRegistry/$APPNAME")
-  remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
+  tags+=("-t" "$imageRegistry/$appName")
+  remoteImageNames+=("$(determine_remote_image_name "$appName" "$imageRegistry" "$image")")
 done
 
 # Assume that $APP_VERSION is set in the environment
