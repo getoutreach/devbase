@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Builds a Docker image for the current application in the dev environment.
 
 set -eo pipefail
 
