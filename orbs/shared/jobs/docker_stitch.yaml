@@ -5,7 +5,7 @@ resource_class: medium
 parameters:
   push_registries:
     type: string
-    description: Space-separated list of registries to push the Docker image to
+    description: Space-separated list of registries to push the Docker image to.
     default: ""
 steps:
   - setup_environment:
