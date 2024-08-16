@@ -42,6 +42,38 @@ teardown() {
   assert_output "baz"
 }
 
+@test "get_box_array should return a value if it exists" {
+  {
+    echo "config:"
+    echo "  foo:"
+    echo "    - bar"
+    echo "    - baz"
+  } >"$BOXPATH"
+
+  run get_box_array "foo"
+  assert_output "bar
+baz"
+}
+
+@test "get_box_array should return no data if a field doesn't exist" {
+  run get_box_array "baz"
+  assert_output ""
+}
+
+@test "get_box_array should support nested fields" {
+  {
+    echo "config:"
+    echo "  foo:"
+    echo "    bar:"
+    echo "      - baz"
+    echo "      - quux"
+  } >"$BOXPATH"
+
+  run get_box_array "foo.bar"
+  assert_output "baz
+quux"
+}
+
 @test "get_box_yaml should return the contents of the box file" {
   {
     echo "config:"
