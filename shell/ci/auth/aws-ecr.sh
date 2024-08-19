@@ -13,9 +13,10 @@ if [[ ! -f "$HOME/.aws/credentials" ]]; then
 fi
 
 for registry in $DOCKER_PUSH_REGISTRIES; do
-  if [[ $registry =~ amazonaws.com$ ]]; then
+  if [[ $registry =~ amazonaws.com($|/) ]]; then
     # Format: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
     region="$(echo "$registry" | cut -d. -f4)"
+    echo " -> Authenticating with AWS ECR in $registry"
     # See: https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html#registry-auth-token
     aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry"
   fi

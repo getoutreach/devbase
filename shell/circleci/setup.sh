@@ -61,6 +61,7 @@ download_box
 echo "$CACHE_VERSION" >cache-version.txt
 
 # Authenticate with AWS ECR now that we have the box config
+echo "🔒 Setting up AWS ECR access"
 DOCKER_PUSH_REGISTRIES="$(get_box_array 'docker.imagePushRegistries')"
 # shellcheck source=../ci/auth/aws-ecr.sh
 source "$CI_DIR/auth/aws-ecr.sh"
