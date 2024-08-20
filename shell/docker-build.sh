@@ -11,9 +11,6 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=./lib/box.sh
 source "${LIB_DIR}/box.sh"
 
-# shellcheck source=./lib/docker.sh
-source "${LIB_DIR}/docker.sh"
-
 # shellcheck source=./lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -36,8 +33,7 @@ if [[ -z $imageRegistries ]]; then
 fi
 
 for imageRegistry in $imageRegistries; do
-  tags+=("-t" "$imageRegistry/$appName")
-  remoteImageNames+=("$(determine_remote_image_name "$appName" "$imageRegistry" "$image")")
+  tags+=("--tag" "$imageRegistry/$appName")
 done
 
 # Assume that $APP_VERSION is set in the environment
