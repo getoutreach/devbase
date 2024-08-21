@@ -26,7 +26,7 @@ warn "If you run into credential issues, ensure that your key is in your SSH age
 
 tags=()
 
-imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_field 'docker.imagePushRegistries')}"
+imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
 if [[ -z $imageRegistries ]]; then
   # Fall back to the old box field
   imageRegistries="$(get_box_field 'devenv.imageRegistry')"
