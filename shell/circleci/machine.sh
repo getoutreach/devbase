@@ -70,3 +70,14 @@ if should_install_vault; then
   sudo apt-get install -y vault
   sudo rm -rf /opt/vault
 fi
+
+# install AWS CLI
+
+if ! command -v aws >/dev/null; then
+  awscliZip="awscli-exe-linux-$(uname -m).zip"
+  echo "Installing AWS CLI"
+  wget "https://awscli.amazonaws.com/$awscliZip"
+  unzip "$awscliZip"
+  sudo ./aws/install
+  rm -rf aws "$awscliZip"
+fi
