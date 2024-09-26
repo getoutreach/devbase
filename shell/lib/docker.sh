@@ -49,9 +49,9 @@ get_image_field() {
 
 # Generates Docker CLI arguments for building an image.
 #
-# docker_buildx_args(app_name, version, image, dockerfile[, arch]) -> arg string
+# docker_buildx_args(appName, version, image, dockerfile[, arch]) -> arg string
 docker_buildx_args() {
-  local app_name="$1"
+  local appName="$1"
   local version="$2"
   local image="$3"
   local dockerfile="$4"
@@ -112,9 +112,9 @@ docker_buildx_args() {
   if [[ -n $CIRCLE_TAG ]]; then
     tags+=("$image")
     if [[ -n $arch ]]; then
-      local remote_image_name
-      remote_image_name="$(determine_remote_image_name "$app_name" "$(get_box_field 'devenv.imageRegistry')" "$image")"
-      tags+=("$remote_image_name:latest-$arch" "$remote_image_name:$version-$arch")
+      local remoteImageName
+      remoteImageName="$(determine_remote_image_name "$appName" "$(get_box_field 'devenv.imageRegistry')" "$image")"
+      tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
     fi
   fi
   for tag in "${tags[@]}"; do
@@ -129,7 +129,7 @@ docker_buildx_args() {
   buildContext="$(get_image_field "$image" "buildContext")"
   if [[ -z $buildContext ]]; then
     buildContext="."
-    if [[ $app_name != "$image" ]]; then
+    if [[ $appName != "$image" ]]; then
       buildContext="$(get_repo_directory)/deployments/$image"
     fi
   fi
@@ -141,29 +141,29 @@ docker_buildx_args() {
 # Where to push the image. This can be overridden in the manifest
 # with the field .pushTo. If not set, we'll use the imageRegistry
 # from the box configuration and the name of the image in devenv.yaml
-# as the repository. If this is not the main image (app_name), we'll
-# append the app_name to the repository to keep the images isolated
+# as the repository. If this is not the main image (appName), we'll
+# append the appName to the repository to keep the images isolated
 # to this repository.
 #
-# determine_remote_image_name(app_name, image_registry, image) -> remote_image_name
+# determine_remote_image_name(appName, imageRegistry, image) -> remoteImageName
 determine_remote_image_name() {
-  local app_name="$1"
-  local image_registry="$2"
+  local appName="$1"
+  local imageRegistry="$2"
   local image="$3"
-  local remote_image_name
+  local remoteImageName
 
-  remote_image_name=$(get_image_field "$image" "pushTo")
-  if [[ -z $remote_image_name ]]; then
-    remote_image_name="$image_registry/$image"
+  remoteImageName=$(get_image_field "$image" "pushTo")
+  if [[ -z $remoteImageName ]]; then
+    remoteImageName="$imageRegistry/$image"
 
     # If we're not the main image, then we should prefix the image name with the
     # app name, so that we can easily identify the image's source.
-    if [[ $image != "$app_name" ]]; then
-      remote_image_name="$image_registry/$app_name/$image"
+    if [[ $image != "$appName" ]]; then
+      remoteImageName="$imageRegistry/$appName/$image"
     fi
   fi
 
-  echo "$remote_image_name"
+  echo "$remoteImageName"
 }
 
 # run_docker is a wrapper for the docker command, but it prints out the
