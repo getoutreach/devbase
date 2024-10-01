@@ -14,6 +14,9 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=./lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=./lib/docker.sh
+source "${LIB_DIR}/docker.sh"
+
 appName="$(get_app_name)"
 
 if [[ -z $DOCKERFILE ]]; then
@@ -26,11 +29,7 @@ warn "If you run into credential issues, ensure that your key is in your SSH age
 
 tags=()
 
-imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
-if [[ -z $imageRegistries ]]; then
-  # Fall back to the old box field
-  imageRegistries="$(get_box_field 'devenv.imageRegistry')"
-fi
+imageRegistries="$(get_docker_push_registries)"
 
 for imageRegistry in $imageRegistries; do
   tags+=("--tag" "$imageRegistry/$appName")
