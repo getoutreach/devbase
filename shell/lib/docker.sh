@@ -47,6 +47,38 @@ get_image_field() {
   fi
 }
 
+# Returns a space-separated list of image registries to push to.
+get_docker_push_registries() {
+  local imageRegistries
+  imageRegistries="${BOX_DOCKER_PUSH_IMAGE_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
+
+  if [[ -z $imageRegistries ]]; then
+    # Fall back to the old box field
+    imageRegistries="$(get_box_field 'devenv.imageRegistry')"
+  fi
+
+  echo "$imageRegistries"
+}
+
+# Returns the registry to pull images from. This is determined by either
+# the environment variable BOX_DOCKER_PULL_IMAGE_REGISTRY or one of the
+# following box fields:
+# * docker.imagePullRegistry
+# * devenv.imageRegistry
+get_docker_pull_registry() {
+  if [[ -n $BOX_DOCKER_PULL_IMAGE_REGISTRY ]]; then
+    echo "$BOX_DOCKER_PULL_IMAGE_REGISTRY"
+  else
+    local pullRegistry
+    pullRegistry="$(get_box_field 'docker.imagePullRegistry')"
+    if [[ -n $pullRegistry ]]; then
+      pullRegistry="$(get_box_field 'devenv.imageRegistry')"
+    fi
+
+    echo "$pullRegistry"
+  fi
+}
+
 # Generates Docker CLI arguments for building an image.
 #
 # docker_buildx_args(appName, version, image, dockerfile[, arch]) -> arg string
@@ -113,7 +145,9 @@ docker_buildx_args() {
     tags+=("$image")
     if [[ -n $arch ]]; then
       local remoteImageName
-      remoteImageName="$(determine_remote_image_name "$appName" "$(get_box_field 'devenv.imageRegistry')" "$image")"
+      local pullRegistry
+      pullRegistry="$(get_docker_pull_registry)"
+      remoteImageName="$(determine_remote_image_name "$appName" "$pullRegistry" "$image")"
       tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
     fi
   fi
