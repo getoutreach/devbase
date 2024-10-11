@@ -13,6 +13,9 @@ source "${DIR}/bootstrap.sh"
 # shellcheck source=./yaml.sh
 source "${DIR}/yaml.sh"
 
+# shellcheck source=./box.sh
+source "${DIR}/box.sh"
+
 # get_image_field is a helper to return a field from the manifest
 # for a given image. It will return an empty string if the field
 # is not set.
@@ -48,9 +51,18 @@ get_image_field() {
 }
 
 # Returns a space-separated list of image registries to push to.
+# `BOX_DOCKER_PUSH_IMAGE_REGISTRIES` is the environment variable that
+# takes preference over every other method of determining the registries.
+# `DOCKER_PUSH_REGISTRIES` is the environment variable that can be set
+# by the CircleCI job via the `push_registries` parameter. If none of
+# these are set, the box field `docker.imagePushRegistries`` is used.
 get_docker_push_registries() {
   local imageRegistries
-  imageRegistries="${BOX_DOCKER_PUSH_IMAGE_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
+  if [[ -n $BOX_DOCKER_PUSH_IMAGE_REGISTRIES ]]; then
+    imageRegistries="$BOX_DOCKER_PUSH_IMAGE_REGISTRIES"
+  else
+    imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
+  fi
 
   if [[ -z $imageRegistries ]]; then
     # Fall back to the old box field
