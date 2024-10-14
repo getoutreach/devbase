@@ -7,10 +7,12 @@ load docker.sh
 
 setup() {
   YAML_FILE=$(mktemp)
+  BOXPATH=$(mktemp)
 }
 
 teardown() {
   rm -f "$YAML_FILE"
+  rm -f "$BOXPATH"
 }
 
 @test "get_image_field should be able to get a string value" {
@@ -124,4 +126,48 @@ EOF
   CIRCLE_TAG="0.10.0" MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
   assert_output --partial " --tag myimage"
   assert_output --partial " --tag /myservice/myimage:latest-arm64"
+}
+
+@test "get_docker_push_registries from box config" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+      - example.org
+EOF
+
+  run get_docker_push_registries
+  assert_output <<EOF
+example.com
+example.org
+EOF
+}
+
+@test "get_docker_push_registries from DOCKER_PUSH_REGISTRIES" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+      - example.org
+EOF
+
+  DOCKER_PUSH_REGISTRIES="example.com/docker-push-registries" run get_docker_push_registries
+  assert_output example.com/docker-push-registries
+}
+
+@test "get_docker_push_registries from BOX_DOCKER_PUSH_IMAGE_REGISTRIES" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+      - example.org
+EOF
+
+  BOX_DOCKER_PUSH_IMAGE_REGISTRIES="example.com/box1 example.com/box2" \
+    DOCKER_PUSH_REGISTRIES="example.com/docker-push-registries" \
+    run get_docker_push_registries
+  assert_output "example.com/box1 example.com/box2"
 }

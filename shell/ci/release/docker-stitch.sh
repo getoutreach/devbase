@@ -15,11 +15,7 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
-imageRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_box_array 'docker.imagePushRegistries')}"
-if [[ -z $imageRegistries ]]; then
-  # Fall back to the old box field
-  imageRegistries="$(get_box_field 'devenv.imageRegistry')"
-fi
+imageRegistries="$(get_docker_push_registries)"
 
 # setup docker authentication
 if [[ $imageRegistries =~ gcr.io/ ]]; then
