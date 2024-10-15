@@ -59,3 +59,15 @@ download_box
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >cache-version.txt
+
+# Authenticate with AWS ECR now that we have the box config
+echo "🔒 Setting up AWS ECR access"
+
+# shellcheck source=../lib/docker.sh
+source "${LIB_DIR}/docker.sh"
+
+if [[ -z $DOCKER_PUSH_REGISTRIES ]]; then
+  DOCKER_PUSH_REGISTRIES="$(get_docker_push_registries)"
+fi
+# shellcheck source=../ci/auth/aws-ecr.sh
+"$CI_DIR/auth/aws-ecr.sh"

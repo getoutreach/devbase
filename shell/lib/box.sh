@@ -70,3 +70,12 @@ get_box_field() {
   local field="$1"
   yaml_get_field ".config.$field" "$BOXPATH"
 }
+
+# get_box_array returns the value of the array specified by the
+# field name from the box configuration.
+#
+# $1 - field name
+get_box_array() {
+  local field="$1"
+  yaml_get_array ".config.$field" "$BOXPATH"
+}

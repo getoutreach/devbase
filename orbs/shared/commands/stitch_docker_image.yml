@@ -3,6 +3,10 @@ parameters:
   save:
     type: boolean
     default: true
+  push_registries:
+    type: string
+    description: Space-separated list of registries to push the Docker image to.
+    default: ""
   script:
     type: string
     description: Script to run to stitch Docker image
@@ -13,3 +17,5 @@ steps:
   - run:
       name: Stitch and Push Docker Image
       command: << parameters.script >>
+      environment:
+        DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
