@@ -63,7 +63,7 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - copyloopvar # Checks for pointers to enclosing loop variables.
+    - copyloopvar # Detects places where loop variables are copied.
     - dogsled
     - errcheck
     - errorlint
