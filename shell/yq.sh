@@ -31,7 +31,11 @@ else
 fi
 
 if [[ $use_gojq == "true" ]]; then
-  "$DIR"/gobin.sh github.com/itchyny/gojq/cmd/gojq@"$GOJQ_VERSION" --yaml-input "$@"
+  if command -v gojq >/dev/null 2>&1; then
+    gojq --yaml-input "$@"
+  else
+    "$DIR"/gobin.sh github.com/itchyny/gojq/cmd/gojq@"$GOJQ_VERSION" --yaml-input "$@"
+  fi
 else
   yq "$@"
 fi
