@@ -24,10 +24,11 @@ if [[ -z $asdf_plugins_list ]]; then
 fi
 
 # read_all_asdf_tool_versions combines all .tool-versions found in this directory
-# and the child directories minus node_modules and vendor.
+# and the child directories minus node_modules and vendor, and in some cases
+# `.asdf` (when run within a Docker container).
 # This prints the plugin, then the version, each separated by a newline.
 read_all_asdf_tool_versions() {
-  find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules \) -prune -o \
+  find . -type d \( -path ./.git -o -path ./vendor -o -path ./node_modules -o -path "*/.asdf" \) -prune -o \
     -name .tool-versions -exec cat {} \; |
     grep -Ev "^#|^$" | sort | uniq | awk '{ print $1 } { print $2 }'
 }
