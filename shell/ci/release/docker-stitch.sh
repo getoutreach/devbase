@@ -31,7 +31,7 @@ if [[ $imageRegistries =~ amazonaws.com/ ]]; then
 fi
 
 APPNAME="$(get_app_name)"
-VERSION="$(make --no-print-directory version)"
+VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 archs=(amd64 arm64)
