@@ -13,7 +13,7 @@ source "${LIB_DIR}/bootstrap.sh"
 source "${LIB_DIR}/box.sh"
 
 APPNAME="$(get_app_name)"
-VERSION="$(make --no-print-directory version)"
+VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 # shellcheck source=../../lib/buildx.sh
