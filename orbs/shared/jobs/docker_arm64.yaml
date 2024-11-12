@@ -3,7 +3,6 @@ executor:
   name: testbed-machine
 resource_class: arm.xlarge
 steps:
-  - setup_environment:
-      machine: true
+  - setup_docker_auth
   - build_docker_image:
       arch: arm64
