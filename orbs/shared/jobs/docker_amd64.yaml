@@ -2,6 +2,12 @@ description: Build an AMD64 Docker image.
 executor:
   name: testbed-machine
 resource_class: xlarge
+parameters:
+  container_registries:
+    type: string
+    description: Space-separated list of registries to push the Docker image to.
+    default: ""
 steps:
-  - setup_docker_auth
+  - setup_docker_auth:
+      container_registries: << parameters.container_registries >>
   - build_docker_image

@@ -1,8 +1,8 @@
 description: Authenticate Docker for pushing/pulling images.
 parameters:
-  push_registries:
+  container_registries:
     type: string
-    description: Space-separated list of registries to push the Docker image to.
+    description: Space-separated list of container registries.
     default: ""
 steps:
   - checkout
@@ -13,4 +13,4 @@ steps:
       name: Authenticate Docker with ECR
       command: ./scripts/shell-wrapper.sh ci/auth/aws-ecr.sh
       environment:
-        DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
+        DOCKER_PUSH_REGISTRIES: << parameters.container_registries >>
