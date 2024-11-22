@@ -22,8 +22,11 @@ use_jit_gojq=false
 if [[ -n ${YQ_USE_JIT_GOJQ:-} ]]; then
   use_jit_gojq=true
 elif command -v yq >/dev/null 2>&1; then
-  # Make sure it's the correct yq. The Go yq is not compatible with jq syntax.
-  if [[ "$(yq --version)" =~ ^yq.3.* ]]; then
+  # Make sure it's the correct yq. The Go yq (github.com/mikefarah/yq) is not
+  # compatible with jq syntax.
+  # Checks for 0 in addition to 3 as the Debian package-installed version does
+  # not report the correct version (0.0.0).
+  if [[ "$(yq --version)" =~ ^yq.[03].* ]]; then
     use_jit_gojq=false
   else
     use_jit_gojq=true
