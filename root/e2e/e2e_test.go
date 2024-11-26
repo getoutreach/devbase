@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestGetE2eTestPathsOnePackageDir(t *testing.T) {
@@ -56,8 +56,8 @@ func TestGetE2eTestPathsSkippedFilesAndDirs(t *testing.T) {
 	}
 
 	dir, err := GetE2eTestPaths("dir", walker, dirReader, fileReader)
+	assert.NilError(t, err)
 	assert.Equal(t, 0, len(dir))
-	assert.Equal(t, nil, err)
 }
 
 func TestGetE2eTestPathsErrorOpening(t *testing.T) {
@@ -67,7 +67,7 @@ func TestGetE2eTestPathsErrorOpening(t *testing.T) {
 
 	_, err := GetE2eTestPaths(".", walker, nofilesDirReader, emptyFileReader)
 
-	assert.Equal(t, "Error opening dir", err.Error())
+	assert.Error(t, err, "Error opening dir")
 }
 
 func nofilesDirReader(name string) ([]os.DirEntry, error) {
@@ -84,12 +84,12 @@ func TestBuildE2ETestPackages(t *testing.T) {
 		called = true
 		expectedBinary := "bin/e2e_internal_e2e_prospects"
 		expectedPackage := "./internal/e2e/prospects"
-		assert.ElementsMatch(t, args, []string{"test", "-tags", "or_test,or_e2e", "-c", "-o", expectedBinary, expectedPackage, "-ldflags",
+		assert.DeepEqual(t, args, []string{"test", "-tags", "or_test,or_e2e", "-c", "-o", expectedBinary, expectedPackage, "-ldflags",
 			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"})
 		return nil
 	}
 
 	err := BuildE2ETestPackages(zerolog.Logger{}, []string{"internal/e2e/prospects"}, "./bin", runGoCommand)
-	assert.Equal(t, err, nil)
+	assert.NilError(t, err)
 	assert.Equal(t, called, true)
 }

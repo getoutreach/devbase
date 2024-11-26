@@ -13,9 +13,9 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
-	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.67.1
 	gopkg.in/yaml.v2 v2.4.0
+	gotest.tools/v3 v3.5.1
 )
 
 require (
@@ -31,7 +31,6 @@ require (
 	github.com/creack/pty v1.1.21 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -41,6 +40,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.0 // indirect
@@ -57,7 +57,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
