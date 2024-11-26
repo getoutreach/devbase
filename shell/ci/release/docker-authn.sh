@@ -16,6 +16,11 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/box.sh
+source "${LIB_DIR}/box.sh"
+
+download_box
+
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
