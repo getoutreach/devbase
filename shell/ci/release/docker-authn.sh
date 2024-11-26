@@ -24,6 +24,7 @@ source "${CIRCLECI_DIR}/install_gh.sh"
 # shellcheck source=../auth/github.sh
 source "${AUTH_DIR}/github.sh"
 
+git config --global --remove-section url."ssh://git@github.com"
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # shellcheck source=../../lib/box.sh
