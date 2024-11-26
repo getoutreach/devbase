@@ -51,6 +51,7 @@ for crURL in $registries; do
     ;;
   *.amazonaws.com | *.amazonaws.com/*)
     info_sub "AWS ECR"
+    DOCKER_PUSH_REGISTRIES="$crURL" # Set the registry for the auth script
     # shellcheck source=../auth/aws-ecr.sh
     source "${AUTH_DIR}/aws-ecr.sh"
     ;;
