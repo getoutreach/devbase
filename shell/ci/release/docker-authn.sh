@@ -20,11 +20,11 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../circleci/install_gh.sh
 source "${CIRCLECI_DIR}/install_gh.sh"
 
-GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
-
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
 source "${AUTH_DIR}/github.sh"
+
+GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # shellcheck source=../../lib/box.sh
 source "${LIB_DIR}/box.sh"
