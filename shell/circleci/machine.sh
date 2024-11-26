@@ -30,7 +30,7 @@ fi
 # Rebuild the apt list
 sudo apt-get update -y
 
-. "$DIR"/install_gh.sh
+source "$DIR"/install_gh.sh
 
 echo "Installing yq"
 # Remove the existing yq, if it already exists
