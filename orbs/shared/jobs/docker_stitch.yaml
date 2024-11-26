@@ -9,6 +9,6 @@ parameters:
     default: ""
 steps:
   - setup_docker_auth:
-      container_registries: << parameters.push_registries >>
+      push_registries: << parameters.push_registries >>
   - stitch_docker_image:
       push_registries: << parameters.push_registries >>
