@@ -11,10 +11,14 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 AUTH_DIR="${DIR}/../auth"
+CIRCLECI_DIR="${DIR}/../../circleci"
 LIB_DIR="${DIR}/../../lib"
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
+
+# shellcheck source=../../circleci/install_gh.sh
+source "${CIRCLECI_DIR}/install_gh.sh"
 
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
