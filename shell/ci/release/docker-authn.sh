@@ -16,6 +16,10 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# In order to get the box config, we need to authenticate with GitHub
+# shellcheck source=../auth/github.sh
+source "${AUTH_DIR}/github.sh"
+
 # shellcheck source=../../lib/box.sh
 source "${LIB_DIR}/box.sh"
 
