@@ -12,7 +12,7 @@ steps:
   - checkout
   - run:
       name: Authenticate to Docker registries
-      command: ./scripts/shell-wrapper.sh ci/auth/gcr.sh
+      command: ./scripts/shell-wrapper.sh ci/release/docker-authn.sh
       environment:
         DOCKER_PULL_REGISTRY: << parameters.pull_registry >>
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
