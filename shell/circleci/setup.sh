@@ -6,8 +6,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 CI_DIR="$DIR/../ci"
 LIB_DIR="$DIR/../lib"
 
+# shellcheck source=../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 # Ensure that asdf is ready to be used
-echo "🔨 Setting up asdf"
+info "🔨 Setting up asdf"
 "$CI_DIR/env/asdf.sh"
 
 authn=(
@@ -21,7 +24,7 @@ authn=(
 )
 
 for authName in "${authn[@]}"; do
-  echo "🔒 Setting up $authName access"
+  info "🔒 Setting up $authName access"
   "$CI_DIR/auth/$authName.sh"
 done
 
@@ -30,9 +33,9 @@ if [[ -n $TEST_RESULTS ]]; then
   mkdir -p "$TEST_RESULTS"
 fi
 
-# run prescript if user specified to install packages etc. before tests
+# run pre-script if user specified to install packages etc. before tests
 if [[ -n $PRE_SETUP_SCRIPT ]]; then
-  echo "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from pre_setup_script)"
+  info "⚙️ Running setup script \"${PRE_SETUP_SCRIPT}\" (from pre_setup_script)"
   # shellcheck source=/dev/null
   "${PRE_SETUP_SCRIPT}"
 fi
@@ -61,7 +64,7 @@ download_box
 echo "$CACHE_VERSION" >cache-version.txt
 
 # Authenticate with AWS ECR now that we have the box config
-echo "🔒 Setting up AWS ECR access"
+info "🔒 Setting up AWS ECR access"
 
 # shellcheck source=../lib/docker.sh
 source "${LIB_DIR}/docker.sh"

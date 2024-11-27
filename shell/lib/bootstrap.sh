@@ -36,6 +36,12 @@ get_app_name() {
   "$YQ" -r '.name' <"$(get_service_yaml)"
 }
 
+# get_app_version returns the version of the application
+# from git.
+get_app_version() {
+  git describe --match='v[0-9]+' --tags --always HEAD 2>/dev/null || echo "0.0.0-dev"
+}
+
 # get_tool_version reads a version from .bootstrap/versions.yaml
 # and returns it
 get_tool_version() {

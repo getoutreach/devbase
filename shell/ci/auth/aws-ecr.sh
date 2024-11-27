@@ -6,6 +6,14 @@
 set -eo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+AUTHN_DIR="${LIB_DIR}/docker/authn"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
+# shellcheck source=../../lib/docker/authn/aws-ecr.sh
+source "${AUTHN_DIR}/aws-ecr.sh"
 
 if [[ ! -f "$HOME/.aws/credentials" ]]; then
   # shellcheck source=./aws.sh
@@ -14,10 +22,6 @@ fi
 
 for registry in $DOCKER_PUSH_REGISTRIES; do
   if [[ $registry =~ amazonaws.com($|/) ]]; then
-    # Format: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
-    region="$(echo "$registry" | cut -d. -f4)"
-    echo " -> Authenticating with AWS ECR in $registry"
-    # See: https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html#registry-auth-token
-    aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry"
+    ecr_auth "$registry"
   fi
 done

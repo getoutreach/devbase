@@ -2,8 +2,13 @@ description: Build an ARM64 Docker image.
 executor:
   name: testbed-machine
 resource_class: arm.xlarge
+parameters:
+  push_registries:
+    type: string
+    description: Space-separated list of registries to push the Docker image to.
+    default: ""
 steps:
-  - setup_environment:
-      machine: true
+  - setup_docker_auth:
+      push_registries: << parameters.push_registries >>
   - build_docker_image:
       arch: arm64

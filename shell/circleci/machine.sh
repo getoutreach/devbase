@@ -3,16 +3,7 @@
 # These are usually already installed in a CircleCI docker image.
 set -e
 
-# ARCH is the current architecture of the machine. Valid values are:
-#   - amd64
-#   - arm64
-ARCH="amd64"
-if [[ "$(uname -m)" == "aarch64" ]]; then
-  ARCH="arm64"
-fi
-
-# GH_VERSION is the version of gh to install.
-export GH_VERSION=2.32.1
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # should_install_vault is a helper function that checks if the vault
 # binary is already installed, if so it returns false. Otherwise, it
@@ -39,13 +30,7 @@ fi
 # Rebuild the apt list
 sudo apt-get update -y
 
-if ! command -v gh >/dev/null; then
-  echo "Installing gh"
-
-  wget -O gh.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb
-  sudo apt install -yf ./gh.deb
-  rm ./gh.deb
-fi
+source "$DIR"/install_gh.sh
 
 echo "Installing yq"
 # Remove the existing yq, if it already exists

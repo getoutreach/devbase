@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Stitch together different manifests to be pulled as one
 # (multi-arch) manifest.
+#
+# Assumes that shell/ci/release/docker-authn.sh has been run in the same job.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-CI_AUTH_DIR="$DIR/../auth"
 LIB_DIR="${DIR}/../../lib"
+DOCKER_DIR="${LIB_DIR}/docker/authn"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
@@ -15,23 +17,13 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
+# shellcheck source=../../lib/docker/authn/aws-ecr.sh
+source "${DOCKER_DIR}/aws-ecr.sh"
+
 imageRegistries="$(get_docker_push_registries)"
 
-# setup docker authentication
-if [[ $imageRegistries =~ gcr.io/ ]]; then
-  # shellcheck source=../auth/gcr.sh
-  source "$CI_AUTH_DIR/gcr.sh"
-fi
-
-if [[ $imageRegistries =~ amazonaws.com/ ]]; then
-  # The auth script uses $DOCKER_PUSH_REGISTRIES to determine which registries to authenticate.
-  DOCKER_PUSH_REGISTRIES="$imageRegistries"
-  # shellcheck source=../auth/aws-ecr.sh
-  source "$CI_AUTH_DIR/aws-ecr.sh"
-fi
-
 APPNAME="$(get_app_name)"
-VERSION="$(make --no-print-directory version)"
+VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 archs=(amd64 arm64)
@@ -42,6 +34,9 @@ stitch_and_push_image() {
   local remoteImageNames=()
   for imageRegistry in $imageRegistries; do
     remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
+    if [[ -n $CIRCLE_TAG ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
+      ensure_ecr_repository "$imageRegistry/$APPNAME"
+    fi
   done
 
   for img_filename in /home/circleci/"$image"-*.tar; do

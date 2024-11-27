@@ -8,8 +8,7 @@ parameters:
     description: Space-separated list of registries to push the Docker image to.
     default: ""
 steps:
-  - setup_environment:
-      machine: true
+  - setup_docker_auth:
       push_registries: << parameters.push_registries >>
   - stitch_docker_image:
       push_registries: << parameters.push_registries >>

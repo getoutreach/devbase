@@ -2,12 +2,19 @@
 # Configures CircleCI docker authentication for Google Cloud Registry (GCR).
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+AUTHN_DIR="${LIB_DIR}/docker/authn"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
+# shellcheck source=../../lib/docker/authn/gcr.sh
+source "${AUTHN_DIR}/gcr.sh"
+
 if [[ -z $GCLOUD_SERVICE_ACCOUNT ]]; then
-  echo "Skipped: GCLOUD_SERVICE_ACCOUNT is not set."
+  warn "Skipped: GCLOUD_SERVICE_ACCOUNT is not set."
   exit 0
 fi
 
-docker login \
-  -u _json_key \
-  --password-stdin \
-  https://gcr.io <<<"${GCLOUD_SERVICE_ACCOUNT}"
+gcr_auth "$GCLOUD_SERVICE_ACCOUNT"

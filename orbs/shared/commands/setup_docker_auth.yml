@@ -1,0 +1,18 @@
+description: Authenticate Docker for pushing/pulling images.
+parameters:
+  pull_registry:
+    type: string
+    description: Container registry URL to pull from.
+    default: ""
+  push_registries:
+    type: string
+    description: Space-separated list of container registries to push to.
+    default: ""
+steps:
+  - checkout
+  - run:
+      name: Authenticate to Docker registries
+      command: ./scripts/shell-wrapper.sh ci/release/docker-authn.sh
+      environment:
+        DOCKER_PULL_REGISTRY: << parameters.pull_registry >>
+        DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
