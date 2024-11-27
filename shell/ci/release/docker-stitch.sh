@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Stitch together different manifests to be pulled as one
 # (multi-arch) manifest.
+#
+# Assumes that shell/ci/release/docker-authn.sh has been run in the same job.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-CI_AUTH_DIR="$DIR/../auth"
 LIB_DIR="${DIR}/../../lib"
 
 # shellcheck source=../../lib/bootstrap.sh
@@ -16,19 +17,6 @@ source "${LIB_DIR}/box.sh"
 source "${LIB_DIR}/docker.sh"
 
 imageRegistries="$(get_docker_push_registries)"
-
-# setup docker authentication
-if [[ $imageRegistries =~ gcr.io/ ]]; then
-  # shellcheck source=../auth/gcr.sh
-  source "$CI_AUTH_DIR/gcr.sh"
-fi
-
-if [[ $imageRegistries =~ amazonaws.com/ ]]; then
-  # The auth script uses $DOCKER_PUSH_REGISTRIES to determine which registries to authenticate.
-  DOCKER_PUSH_REGISTRIES="$imageRegistries"
-  # shellcheck source=../auth/aws-ecr.sh
-  source "$CI_AUTH_DIR/aws-ecr.sh"
-fi
 
 APPNAME="$(get_app_name)"
 VERSION="$(get_app_version)"

@@ -13,12 +13,17 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 AUTH_DIR="${DIR}/../auth"
 CIRCLECI_DIR="${DIR}/../../circleci"
 LIB_DIR="${DIR}/../../lib"
+DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+info "Ensuring that 'gh' is installed"
+
 # shellcheck source=../../circleci/install_gh.sh
 source "${CIRCLECI_DIR}/install_gh.sh"
+
+info "🔓 Authenticating to GitHub"
 
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
@@ -35,25 +40,27 @@ download_box
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
+# shellcheck source=../../lib/docker/authn/aws-ecr.sh
+source "${DOCKER_AUTH_DIR}/aws-ecr.sh"
+
+# shellcheck source=../../lib/docker/authn/gcr.sh
+source "${DOCKER_AUTH_DIR}/gcr.sh"
+
 pullRegistry="${DOCKER_PULL_REGISTRY:-$(get_docker_pull_registry)}"
 pushRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_docker_push_registries)}"
 
 registries=$(echo "$pullRegistry $pushRegistries" | tr ' ' '\n' | sort --unique | tr '\n' ' ')
 
-info "Authenticating with Docker registries"
+info "🔓 Authenticating to Docker registries"
 
 for crURL in $registries; do
   case $crURL in
   gcr.io/*)
-    info_sub "GCR"
-    # shellcheck source=../auth/gcr.sh
-    source "${AUTH_DIR}/gcr.sh"
+    info_sub "🔓 GCR ($crURL)"
+    gcr_auth "$GCLOUD_SERVICE_ACCOUNT"
     ;;
   *.amazonaws.com | *.amazonaws.com/*)
-    info_sub "AWS ECR"
-    DOCKER_PUSH_REGISTRIES="$crURL" # Set the registry for the auth script
-    # shellcheck source=../auth/aws-ecr.sh
-    source "${AUTH_DIR}/aws-ecr.sh"
+    ecr_auth "$crURL"
     ;;
   *)
     warn "No authentication script found for registry: $crURL"
