@@ -1,0 +1,20 @@
+description: >
+  If the first commit of the branch (where branch diverged from main/master)
+  starts with 'chore', 'ci' or 'docs' all the following steps of the job will be skipped
+  and the job finishes as succeeded.
+steps:
+  - checkout
+  - run:
+      name: Evaluate commit type
+      command: |
+        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | cut -f 4 -d /)
+        COMMIT_MESSAGE=$(git log "$DEFAULT_BRANCH..$CIRCLE_SHA1" --format=%s | tail -1)
+        COMMIT_PREFIX="${COMMIT_MESSAGE%%:*}"
+        COMMIT_TYPE="${COMMIT_PREFIX%%(*}"
+        echo "Identified commit type '$COMMIT_TYPE' in the first commit message '$COMMIT_MESSAGE'"
+        if [[ $COMMIT_TYPE =~ ^(chore|ci|docs)$ ]]; then
+         echo "Skipping job for '$COMMIT_TYPE' commit type."
+         circleci-agent step halt
+        else
+         echo "Running job for '$COMMIT_TYPE' commit type."
+        fi

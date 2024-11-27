@@ -3,6 +3,7 @@ executor:
   name: testbed-machine
 resource_class: xlarge
 steps:
+  - skip_on_chore_commit
   - setup_environment:
       machine: true
   - build_docker_image
