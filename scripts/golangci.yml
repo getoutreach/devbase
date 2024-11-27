@@ -6,6 +6,9 @@ lintroller:
 linters-settings:
   errcheck:
     check-blank: true
+  govet:
+    enable:
+      - shadow
   revive:
     rules:
       # Enable the default golint rules. We must include these because
