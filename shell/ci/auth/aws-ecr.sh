@@ -6,7 +6,11 @@
 set -eo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-AUTHN_DIR="${DIR}/../../lib/docker/authn"
+LIB_DIR="${DIR}/../../lib"
+AUTHN_DIR="${LIB_DIR}/docker/authn"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
 
 # shellcheck source=../../lib/docker/authn/aws-ecr.sh
 source "${AUTHN_DIR}/aws-ecr.sh"
