@@ -6,6 +6,7 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
+DOCKER_DIR="${LIB_DIR}/docker/authn"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
@@ -15,6 +16,9 @@ source "${LIB_DIR}/box.sh"
 
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
+
+# shellcheck source=../../lib/docker/authn/aws-ecr.sh
+source "${DOCKER_DIR}/aws-ecr.sh"
 
 imageRegistries="$(get_docker_push_registries)"
 
@@ -30,6 +34,9 @@ stitch_and_push_image() {
   local remoteImageNames=()
   for imageRegistry in $imageRegistries; do
     remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
+    if [[ -n $CIRCLE_TAG ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
+      ensure_ecr_repository "$imageRegistry/$APPNAME"
+    fi
   done
 
   for img_filename in /home/circleci/"$image"-*.tar; do
