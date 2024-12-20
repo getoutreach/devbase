@@ -11,7 +11,7 @@ setup() {
   REPOPATH=$(mktemp -p "$TMPDIR" -d devbase.bootstrapXXXXXXXXXX)
 
   git init --initial-branch=main "$REPOPATH"
-  cd "$REPOPATH"
+  cd "$REPOPATH" || exit 1
   git commit --allow-empty --message "Initial commit"
   git commit --allow-empty --message "Second commit"
   git switch --create username/feat/feature-branch
