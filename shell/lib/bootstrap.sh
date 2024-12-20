@@ -39,7 +39,7 @@ get_app_name() {
 # get_app_version returns the version of the application
 # from git.
 get_app_version() {
-  git describe --match='v[0-9]+' --tags --always HEAD 2>/dev/null || echo "0.0.0-dev"
+  git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
 }
 
 # get_tool_version reads a version from .bootstrap/versions.yaml
