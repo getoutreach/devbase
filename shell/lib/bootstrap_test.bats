@@ -12,6 +12,7 @@ setup() {
 
   git init --initial-branch=main "$REPOPATH"
   cd "$REPOPATH" || exit 1
+  git config user.email "bootstrap@devbase.test"
   git commit --allow-empty --message "Initial commit"
   git commit --allow-empty --message "Second commit"
   git switch --create username/feat/feature-branch
