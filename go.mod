@@ -13,7 +13,7 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
-	google.golang.org/grpc v1.69.2
+	google.golang.org/grpc v1.69.4
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.5.1
 )
