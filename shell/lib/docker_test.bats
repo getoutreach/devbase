@@ -119,13 +119,42 @@ EOF
 }
 
 @test "docker_buildx_args adds tags when CIRCLE_TAG exists and arch specified" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+EOF
+
   cat >"$YAML_FILE" <<EOF
 myservice:
 EOF
 
   CIRCLE_TAG="0.10.0" MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
   assert_output --partial " --tag myimage"
-  assert_output --partial " --tag /myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/myservice/myimage:latest-arm64"
+}
+
+@test "docker_buildx_args with BOX_DOCKER_PUSH_IMAGE_REGISTRIES" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+EOF
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  BOX_DOCKER_PUSH_IMAGE_REGISTRIES="example.com/box1 example.com/box2" \
+    CIRCLE_TAG="0.10.0" \
+    MANIFEST="$YAML_FILE" \
+    run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
+
+  assert_output --partial " --tag example.com/box1/myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/box1/myservice/myimage:0.10.0-arm64"
+  assert_output --partial " --tag example.com/box2/myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/box2/myservice/myimage:0.10.0-arm64"
 }
 
 @test "get_docker_push_registries from box config" {
