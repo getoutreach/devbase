@@ -157,10 +157,12 @@ docker_buildx_args() {
     tags+=("$image")
     if [[ -n $arch ]]; then
       local remoteImageName
-      local pullRegistry
-      pullRegistry="$(get_docker_pull_registry)"
-      remoteImageName="$(determine_remote_image_name "$appName" "$pullRegistry" "$image")"
-      tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
+      local pushRegistries
+      pushRegistries="$(get_docker_push_registries)"
+      for pushRegistry in $pushRegistries; do
+        remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
+        tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$CIRCLE_TAG-$arch")
+      done
     fi
   fi
   for tag in "${tags[@]}"; do
