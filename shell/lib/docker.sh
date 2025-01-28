@@ -83,7 +83,7 @@ get_docker_pull_registry() {
   else
     local pullRegistry
     pullRegistry="$(get_box_field 'docker.imagePullRegistry')"
-    if [[ -n $pullRegistry ]]; then
+    if [[ -z $pullRegistry ]]; then
       pullRegistry="$(get_box_field 'devenv.imageRegistry')"
     fi
 

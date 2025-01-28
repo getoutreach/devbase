@@ -200,3 +200,40 @@ EOF
     run get_docker_push_registries
   assert_output "example.com/box1 example.com/box2"
 }
+
+@test "get_docker_pull_registry prefers BOX_DOCKER_PULL_REGISTRY" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePullRegistry: docker.imagepullregistry.example
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  BOX_DOCKER_PULL_IMAGE_REGISTRY="box.env.example" run get_docker_pull_registry
+  assert_output "box.env.example"
+}
+
+@test "get_docker_pull_registry prefers docker.imagePullRegistry over devenv.imageRegistry" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePullRegistry: docker.imagepullregistry.example
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  run get_docker_pull_registry
+  assert_output "docker.imagepullregistry.example"
+}
+
+@test "get_docker_pull_registry falls back to devenv.imageRegistry" {
+  cat >"$BOXPATH" <<EOF
+config:
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  run get_docker_pull_registry
+  assert_output "devenv.imageregistry.example"
+}
