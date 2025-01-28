@@ -28,6 +28,10 @@ parameters:
     description: Use devspace to run e2e tests inside of k8s cluster. No devconfig or localizer needed.
     type: boolean
     default: false
+  test_flags:
+    description: Flags to pass to the e2e test runner
+    type: string
+    default: ""
 executor:
   name: testbed-machine
 environment:
@@ -36,6 +40,7 @@ environment:
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
   PROVISION_TARGET: << parameters.provision_target >>
   USE_DEVSPACE: << parameters.use_devspace >>
+  TEST_FLAGS: << parameters.test_flags >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
