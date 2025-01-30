@@ -11,6 +11,11 @@ parameters:
 steps:
   - checkout
   - run:
+      name: Update submodules
+      command: |
+        git submodule sync
+        git submodule update --init --recursive
+  - run:
       name: Authenticate to Docker registries
       command: ./scripts/shell-wrapper.sh ci/release/docker-authn.sh
       environment:
