@@ -1,9 +1,5 @@
 description: Authenticate Docker for pushing/pulling images.
 parameters:
-  checkout_submodules:
-    type: boolean
-    description: Whether to update submodules in the repo.
-    default: false
   pull_registry:
     type: string
     description: Container registry URL to pull from.
@@ -15,7 +11,6 @@ parameters:
 steps:
   - checkout
   - run:
-      if: << parameters.checkout_submodules >> == true
       name: Update submodules
       command: |
         git submodule sync
