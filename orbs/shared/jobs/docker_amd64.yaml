@@ -3,6 +3,10 @@ executor:
   name: testbed-machine
 resource_class: xlarge
 parameters:
+  checkout_submodules:
+    type: boolean
+    description: Whether to update submodules in the repo.
+    default: false
   push_registries:
     type: string
     description: Space-separated list of registries to push the Docker image to.
@@ -10,5 +14,6 @@ parameters:
 steps:
   - add_ssh_keys
   - setup_docker_auth:
+      checkout_submodules: << parameters.checkout_submodules >>
       push_registries: << parameters.push_registries >>
   - build_docker_image
