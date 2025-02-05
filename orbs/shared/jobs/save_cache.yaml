@@ -27,6 +27,11 @@ parameters:
     description: The docker image tag to use for running the test
     type: string
     default: stable
+  executor_name:
+    description: The executor to use for the job
+    type: enum
+    enum: [testbed-docker, testbed-docker-aws]
+    default: "testbed-docker"
   aws_region:
     description: AWS_REGION environment variable to set
     type: string
@@ -42,7 +47,7 @@ parameters:
 resource_class: << parameters.resource_class >>
 
 executor:
-  name: testbed-docker
+  name: << parameters.executor_name >>
   docker_image: << parameters.docker_image >>
   docker_tag: << parameters.docker_tag >>
 
