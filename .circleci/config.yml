@@ -22,6 +22,7 @@ parameters:
 # Extra contexts to expose to all jobs below
 contexts: &contexts
   - aws-credentials
+  - box
   - vault-dev
   - confluence
   - circleci-credentials
