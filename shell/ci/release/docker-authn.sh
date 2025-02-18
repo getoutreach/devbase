@@ -27,6 +27,8 @@ source "${CIRCLECI_DIR}/install_gh.sh"
 gojq_version="$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
 mise use --global "gojq@$gojq_version"
 
+mise reshim
+
 info "🔓 Authenticating to GitHub"
 
 # In order to get the box config, we need to authenticate with GitHub
