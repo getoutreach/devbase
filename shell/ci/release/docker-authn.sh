@@ -25,7 +25,7 @@ info "Ensuring that 'gh' is installed"
 source "${CIRCLECI_DIR}/install_gh.sh"
 
 gojq_version="$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
-mise install --global "gojq@$gojq_version"
+mise use --global "gojq@$gojq_version"
 
 info "🔓 Authenticating to GitHub"
 
