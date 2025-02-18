@@ -4,21 +4,20 @@
 
 set -e
 
-# ARCH is the current architecture of the machine. Valid values are:
-#   - amd64
-#   - arm64
-ARCH="amd64"
-if [[ "$(uname -m)" == "aarch64" ]]; then
-  ARCH="arm64"
-fi
-
 # GH_VERSION is the version of gh to install.
 export GH_VERSION=2.62.0
 
-if ! command -v gh >/dev/null; then
-  echo "Installing gh"
+if ! command -v mise >/dev/null; then
+  # Install mise
+  gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0x7413A06D
+  curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
+  # ensure the above is signed with the mise release key
+  sh /tmp/mise-install.sh
 
-  wget -O gh.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb
-  sudo apt-get install --assume-yes --fix-broken ./gh.deb
-  rm ./gh.deb
+  # shellcheck disable=SC2016
+  # Why: Appending a shell command to .bashrc
+  echo 'eval "$(mise activate bash)"' >>~/.bashrc
+  eval "$(mise activate bash)"
 fi
+
+mise use --global "gh@$GH_VERSION"

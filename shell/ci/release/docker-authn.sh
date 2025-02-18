@@ -14,14 +14,18 @@ AUTH_DIR="${DIR}/../auth"
 CIRCLECI_DIR="${DIR}/../../circleci"
 LIB_DIR="${DIR}/../../lib"
 DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
+ROOT_DIR="${DIR}/../../.."
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
 info "Ensuring that 'gh' is installed"
 
-# shellcheck source=../../circleci/install_gh.sh
-source "${CIRCLECI_DIR}/install_gh.sh"
+# shellcheck source=../../circleci/setup-docker-authn.sh
+source "${CIRCLECI_DIR}/setup-docker-authn.sh"
+
+gojq_version="$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
+mise install --global "gojq@$gojq_version"
 
 info "🔓 Authenticating to GitHub"
 
