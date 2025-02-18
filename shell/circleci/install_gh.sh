@@ -14,6 +14,8 @@ if ! command -v mise >/dev/null; then
   # ensure the above is signed with the mise release key
   sh /tmp/mise-install.sh
 
+  export PATH="$PATH:$HOME/.local/bin"
+
   # shellcheck disable=SC2016
   # Why: Appending a shell command to .bashrc
   echo 'eval "$(mise activate bash)"' >>~/.bashrc
