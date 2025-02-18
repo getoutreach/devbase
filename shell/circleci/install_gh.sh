@@ -14,6 +14,7 @@ if ! command -v mise >/dev/null; then
   # ensure the above is signed with the mise release key
   sh /tmp/mise-install.sh
 
+  export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
   export PATH="$PATH:$HOME/.local/bin"
 
   # shellcheck disable=SC2016
