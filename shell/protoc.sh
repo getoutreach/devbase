@@ -291,3 +291,37 @@ if has_grpc_client "ruby"; then
     popd || exit 1
   fi
 fi
+
+if has_grpc_client "python"; then
+  info "Generating Python gRPC client"
+  info_sub "Ensuring Python protoc plugins are installed"
+
+  # Determine the version of grpcio-tools to use from configuration.
+  python_grpc_tools_version=$(yaml_get_field '.arguments.grpcOptions["python-grpc-tools"]' "$(get_service_yaml)")
+  echo "Python grpcio-tools version: $python_grpc_tools_version"
+  if ! python -m pip show grpcio-tools | grep -q "$python_grpc_tools_version"; then
+    info_sub "Installing grpcio-tools version $python_grpc_tools_version"
+    python -m pip install "grpcio-tools==$python_grpc_tools_version"
+  fi
+
+  # Define the output directory for the Python generated code.
+  python_output_dir="$(get_repo_directory)$workDir/clients/python$SUBDIR"
+  mkdir -p "$python_output_dir"
+
+  info_sub "Running Python protobuf generation"
+
+  # Build the list of protoc arguments. We start with any imported proto paths,
+  # then add the output options for Python.
+  python_args=("${default_args[@]}")
+  python_args+=(
+    "--python_out=$python_output_dir"
+    "--grpc_python_out=$python_output_dir"
+    "--proto_path=$(get_repo_directory)$workDir$SUBDIR"
+  )
+
+  # Collect all proto files from the service's proto directory.
+  proto_files=( "$(get_repo_directory)$workDir$SUBDIR/"*.proto )
+
+  set -x
+  python -m grpc_tools.protoc "${python_args[@]}" "${proto_files[@]}"
+fi
