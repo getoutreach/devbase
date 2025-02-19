@@ -11,7 +11,6 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 AUTH_DIR="${DIR}/../auth"
-CIRCLECI_DIR="${DIR}/../../circleci"
 LIB_DIR="${DIR}/../../lib"
 DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
 ROOT_DIR="${DIR}/../../.."
@@ -19,13 +18,17 @@ ROOT_DIR="${DIR}/../../.."
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+source "${LIB_DIR}/mise.sh"
+
+tool_version() {
+  local tool="$1"
+  grep "^$tool:" "$ROOT_DIR"/versions.yaml | awk '{print $2}'
+}
+
 info "Ensuring that 'gh' is installed"
 
-# shellcheck source=../../circleci/install_gh.sh
-source "${CIRCLECI_DIR}/install_gh.sh"
-
-gojq_version="$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
-mise use --global "gojq@$gojq_version"
+install_tool_with_mise gh "$(tool_version gh)"
+install_tool_with_mise gojq "$(tool_version gojq)"
 
 info "🔓 Authenticating to GitHub"
 

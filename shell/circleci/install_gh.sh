@@ -4,15 +4,23 @@
 
 set -e
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-LIB_DIR="${DIR}/../lib"
+ROOT_DIR="$DIR/../.."
+
+# ARCH is the current architecture of the machine. Valid values are:
+#   - amd64
+#   - arm64
+ARCH="amd64"
+if [[ "$(uname -m)" == "aarch64" ]]; then
+  ARCH="arm64"
+fi
 
 # GH_VERSION is the version of gh to install.
-export GH_VERSION=2.62.0
+GH_VERSION="$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
 
-# shellcheck source=../lib/mise.sh
-source "$LIB_DIR/mise.sh"
+if ! command -v gh >/dev/null; then
+  echo "Installing gh"
 
-ensure_mise_installed
-
-mise use --global "gh@$GH_VERSION"
+  wget -O gh.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb
+  sudo apt-get install --assume-yes --fix-broken ./gh.deb
+  rm ./gh.deb
+fi
