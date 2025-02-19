@@ -9,6 +9,23 @@ source "$LIB_DIR/asdf.sh"
 # shellcheck source=logging.sh
 source "$LIB_DIR/logging.sh"
 
+ghCmd=""
+
+run_gh() {
+  if [[ -z $ghCmd ]]; then
+    ghCmd="$(command -v gh)"
+    if [[ -z $ghCmd ]]; then
+      if ! command -v mise >/dev/null; then
+        echo "Error: gh and mise not found (run_gh)" >&2
+        return 1
+      fi
+      ghCmd="$(mise which gh)"
+    fi
+  fi
+
+  "$ghCmd" "$@"
+}
+
 # install_latest_github_release downloads the latest version of a tool
 # from Github. Requires the 'gh' cli to be installed.
 #
@@ -30,7 +47,7 @@ install_latest_github_release() {
 
   # Ensure that the gh CLI is installed and accessible.
   if ! command -v gh &>/dev/null; then
-    echo "Error: gh cli not found (install_github_release)" >&2
+    echo "Error: gh cli not found (install_latest_github_release)" >&2
     return 1
   fi
 
