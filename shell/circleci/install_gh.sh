@@ -18,8 +18,13 @@ if ! command -v mise >/dev/null; then
   export PATH="$PATH:$HOME/.local/bin"
 
   # shellcheck disable=SC2016
-  # Why: Appending a shell command to BASH_ENV
-  echo 'eval "$(mise activate bash --shims)"' >>"$BASH_ENV"
+  # Why: Appending a PATH to BASH_ENV
+  {
+    echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
+    echo 'export PATH="$PATH:$HOME/.local/bin"'
+    echo 'eval "$(mise activate bash --shims)"'
+  } >>"$BASH_ENV"
+
   eval "$(mise activate bash --shims)"
 fi
 
