@@ -18,6 +18,7 @@ ROOT_DIR="${DIR}/../../.."
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/mise.sh
 source "${LIB_DIR}/mise.sh"
 
 tool_version() {

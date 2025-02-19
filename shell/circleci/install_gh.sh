@@ -20,7 +20,7 @@ GH_VERSION="$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
 if ! command -v gh >/dev/null; then
   echo "Installing gh"
 
-  wget -O gh.deb https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb
+  wget -O gh.deb "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb"
   sudo apt-get install --assume-yes --fix-broken ./gh.deb
   rm ./gh.deb
 fi
