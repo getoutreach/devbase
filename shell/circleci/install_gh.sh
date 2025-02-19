@@ -18,8 +18,8 @@ if ! command -v mise >/dev/null; then
   export PATH="$PATH:$HOME/.local/bin"
 
   # shellcheck disable=SC2016
-  # Why: Appending a shell command to .bashrc
-  echo 'eval "$(mise activate bash --shims)"' >>~/.bashrc
+  # Why: Appending a shell command to BASH_ENV
+  echo 'eval "$(mise activate bash --shims)"' >>"$BASH_ENV"
   eval "$(mise activate bash --shims)"
 fi
 
