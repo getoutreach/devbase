@@ -9,8 +9,25 @@ source "$LIB_DIR/asdf.sh"
 # shellcheck source=logging.sh
 source "$LIB_DIR/logging.sh"
 
+ghCmd=""
+
+run_gh() {
+  if [[ -z $ghCmd ]]; then
+    ghCmd="$(command -v gh)"
+    if [[ -z $ghCmd ]]; then
+      if ! command -v mise >/dev/null; then
+        echo "Error: gh and mise not found (run_gh)" >&2
+        return 1
+      fi
+      ghCmd="$(mise which gh)"
+    fi
+  fi
+
+  "$ghCmd" "$@"
+}
+
 # install_latest_github_release downloads the latest version of a tool
-# from Github. Requires the 'gh' cli to be installed.
+# from Github. Requires the 'gh' cli to be installed either directly or via mise.
 #
 # $1: The slug of the repo to download from. This is the same as the
 #     repo name, e.g. "github/hub".
@@ -28,20 +45,14 @@ install_latest_github_release() {
   local binary_name=${3:-$(basename "$slug")}
   local install_dir=${4:-/usr/local/bin}
 
-  # Ensure that the gh CLI is installed and accessible.
-  if ! command -v gh &>/dev/null; then
-    echo "Error: gh cli not found (install_github_release)" >&2
-    return 1
-  fi
-
   if [[ $use_pre_releases == "true" ]]; then
     # shellcheck disable=SC2155 # Why: We're OK with this being
     # potentially masked.
-    local tag=$(gh release -R "$slug" list --exclude-drafts | grep Pre-release | head -n1 | awk '{ print $1 }')
+    local tag=$(run_gh release -R "$slug" list --exclude-drafts | grep Pre-release | head -n1 | awk '{ print $1 }')
   else
     # shellcheck disable=SC2155 # Why: We're OK with this being
     # potentially masked.
-    local tag=$(gh release -R "$slug" list --exclude-drafts | grep -v Pre-release | head -n1 | awk '{ print $1 }')
+    local tag=$(run_gh release -R "$slug" list --exclude-drafts | grep -v Pre-release | head -n1 | awk '{ print $1 }')
   fi
 
   # If we have an empty tag, something went wrong. Fail.
@@ -75,7 +86,7 @@ install_latest_github_release() {
   local pattern="${repoName}_*_${GOOS}_$GOARCH.tar.gz"
 
   # Download the release through the Github CLI.
-  gh release -R "$slug" download "$tag" --pattern "$pattern"
+  run_gh release -R "$slug" download "$tag" --pattern "$pattern"
 
   echo "" # Fixes issues with output being corrupted in CI
   tar xf "${repoName}"**.tar.*
