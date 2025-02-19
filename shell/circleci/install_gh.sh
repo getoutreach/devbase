@@ -19,8 +19,8 @@ if ! command -v mise >/dev/null; then
 
   # shellcheck disable=SC2016
   # Why: Appending a shell command to .bashrc
-  echo 'eval "$(mise activate bash)"' >>~/.bashrc
-  eval "$(mise activate bash)"
+  echo 'eval "$(mise activate bash --shims)"' >>~/.bashrc
+  eval "$(mise activate bash --shims)"
 fi
 
 mise use --global "gh@$GH_VERSION"
