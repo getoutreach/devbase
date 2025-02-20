@@ -28,7 +28,7 @@ tool_version() {
 
 info "Ensuring that 'gh' is installed"
 
-install_tool_with_mise gh "$(tool_version gh)"
+install_tool_with_mise github-cli "$(tool_version gh)"
 install_tool_with_mise gojq "$(tool_version gojq)"
 
 info "🔓 Authenticating to GitHub"

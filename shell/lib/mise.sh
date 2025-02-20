@@ -12,8 +12,6 @@ ensure_mise_installed() {
     sh /tmp/mise-install.sh
     sudo mv ~/.local/bin/mise /usr/local/bin/
 
-    export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
-
     # shellcheck disable=SC2016
     # Why: Appending a PATH to BASH_ENV
     {
@@ -21,6 +19,8 @@ ensure_mise_installed() {
       echo 'eval "$(mise activate bash --shims)"'
     } >>"$BASH_ENV"
 
+    # Let asdf manage .tool-versions for now
+    export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     eval "$(mise activate bash --shims)"
   fi
 }
@@ -37,6 +37,8 @@ install_tool_with_mise() {
   fi
 
   ensure_mise_installed
+
+  info "Installing $tool via mise"
 
   if ! mise use --global "$tool"; then
     fatal "Error: failed to install $tool via mise" >&2
