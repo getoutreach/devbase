@@ -34,20 +34,23 @@ EOF
 init_asdf() {
   info "Installing asdf"
   git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
-
-  # langauage specifics
-  echo -e "yarn" >"$HOME/.default-npm-packages"
-  echo -e "bundler 2.2.17" >"$HOME/.default-gems"
-  cat >"$HOME/.default-golang-pkgs" <<EOF
-github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
-github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
-EOF
+  set_default_packages
 
   inject_bash_env
 
   # Setup asdf for our current terminal session
   # shellcheck disable=SC1090
   source "$BASH_ENV"
+}
+
+set_default_packages() {
+  # language specifics
+  echo -e "yarn" >"$HOME/.default-npm-packages"
+  echo -e "bundler 2.2.17" >"$HOME/.default-gems"
+  cat >"$HOME/.default-golang-pkgs" <<EOF
+github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
+github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
+EOF
 }
 
 installedAsdf=false
@@ -57,6 +60,8 @@ if [[ ! -e "$HOME/.asdf" ]]; then
   installedAsdf=true
   init_asdf
 else
+  set_default_packages
+
   # Ensure that we can use asdf in all steps
   inject_bash_env
 
