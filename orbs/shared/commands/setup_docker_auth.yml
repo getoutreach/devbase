@@ -9,6 +9,7 @@ parameters:
     description: Space-separated list of container registries to push to.
     default: ""
 steps:
+  - add_ssh_keys
   - checkout
   - run:
       name: Update submodules

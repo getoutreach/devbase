@@ -8,7 +8,6 @@ parameters:
     description: Space-separated list of registries to push the Docker image to.
     default: ""
 steps:
-  - add_ssh_keys
   - setup_docker_auth:
       push_registries: << parameters.push_registries >>
   - build_docker_image:
