@@ -26,6 +26,13 @@ APPNAME="$(get_app_name)"
 VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
+if [[ (-z "$VERSIONING" || "$VERSIONING" == "semver") && -n "$CIRCLE_TAG" ]] || \
+   [[ "$VERSIONING" == "sha" && (-z "$DRY_RUN" || "$DRY_RUN" == "false") ]]; then
+  WILL_PUSH=true
+else
+  WILL_PUSH=false
+fi
+
 archs=(amd64 arm64)
 tags=(latest "$VERSION")
 
@@ -34,7 +41,7 @@ stitch_and_push_image() {
   local remoteImageNames=()
   for imageRegistry in $imageRegistries; do
     remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
-    if [[ -n $CIRCLE_TAG ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
+    if [[ -n $WILL_PUSH ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
       ensure_ecr_repository "$imageRegistry/$APPNAME"
     fi
   done
@@ -44,7 +51,7 @@ stitch_and_push_image() {
     run_docker load -i "$img_filename"
   done
 
-  if [[ -z $CIRCLE_TAG ]]; then
+  if [[ -z $WILL_PUSH ]]; then
     echo "Skipping manifest creation, not pushing images ..."
     return
   fi

@@ -148,23 +148,20 @@ docker_buildx_args() {
   done
   args+=("--platform" "$platformArgumentString")
 
-  # tags are the tags to apply to the image. If we're on a git tag,
-  # we'll tag the image with that tag and latest. Otherwise, we'll just
-  # build a latest image for the name "$image" (the name of the image as
-  # shown in the manifest) instead.
-  local tags=()
-  if [[ -n $CIRCLE_TAG ]]; then
-    tags+=("$image")
+  # tags are the tags to apply to the image. We always tag the image with "latest" tag
+  # for each arch and the version tag the same.
+  local tags=("$image")
+
+  local remoteImageName
+  local pushRegistries
+  pushRegistries="$(get_docker_push_registries)"
+  for pushRegistry in $pushRegistries; do
+    remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
     if [[ -n $arch ]]; then
-      local remoteImageName
-      local pushRegistries
-      pushRegistries="$(get_docker_push_registries)"
-      for pushRegistry in $pushRegistries; do
-        remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
-        tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$CIRCLE_TAG-$arch")
-      done
+      tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
     fi
-  fi
+  done
+
   for tag in "${tags[@]}"; do
     args+=("--tag" "$tag")
   done
