@@ -29,6 +29,12 @@ teardown() {
   assert_output "v0.0.0-dev"
 }
 
+@test "get_app_version with VERSIONING=sha returns the commit hash" {
+  export VERSIONING=sha
+  run get_app_version
+  assert_output "$(git rev-parse HEAD)"
+}
+
 @test "get_app_version returns the latest version tag" {
   git switch main
   git tag v1.0.0
@@ -39,4 +45,8 @@ teardown() {
   git tag v1.1.0
   run get_app_version
   assert_output "v1.1.0"
+
+  export VERSIONING=sha
+  run get_app_version
+  assert_output "$(git rev-parse HEAD)"
 }

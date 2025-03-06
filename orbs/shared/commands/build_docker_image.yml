@@ -8,6 +8,10 @@ parameters:
     type: string
     description: Script to run to build Docker image
     default: "./scripts/shell-wrapper.sh ci/release/docker.sh"
+  versioning:
+    type: string
+    description: One of "sha" or "semver", depending on what versions are used for deployment.
+    default: semver
 steps:
   - attach_workspace:
       at: /home/circleci
@@ -16,6 +20,7 @@ steps:
       command: << parameters.script >>
       environment:
         IMAGE_ARCH: << parameters.arch >>
+        VERSIONING: << parameters.versioning >>
   - persist_to_workspace:
       root: docker-images
       paths:
