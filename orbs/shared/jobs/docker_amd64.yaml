@@ -8,9 +8,10 @@ parameters:
     description: Space-separated list of registries to push the Docker image to.
     default: ""
   versioning:
-    type: string
+    type: enum
     description: One of "sha" or "semver", depending on what versions are used for deployment.
     default: semver
+    enum: ["sha", "semver"]
 steps:
   - setup_docker_auth:
       push_registries: << parameters.push_registries >>
