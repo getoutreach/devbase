@@ -41,16 +41,16 @@ get_app_name() {
 # If the VERSIONING_SCHEME variable equals to "sha", uses the commit hash to determine version.
 get_app_version() {
   case "${VERSIONING_SCHEME:-}" in
-    ""|"semver")
-      git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
-      ;;
-    "sha")
-      git rev-parse HEAD
-      ;;
-    *)
-      echo "Error: VERSIONING_SCHEME variable must be either 'semver' or 'sha' if set. Found: '$VERSIONING_SCHEME'"
-      exit 1
-      ;;
+  "" | "semver")
+    git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
+    ;;
+  "sha")
+    git rev-parse HEAD
+    ;;
+  *)
+    echo "Error: VERSIONING_SCHEME variable must be either 'semver' or 'sha' if set. Found: '$VERSIONING_SCHEME'"
+    exit 1
+    ;;
   esac
 }
 
