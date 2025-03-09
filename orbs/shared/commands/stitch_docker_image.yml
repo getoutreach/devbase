@@ -30,4 +30,3 @@ steps:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
         DRY_RUN: << parameters.dry_run >>
         VERSIONING_SCHEME: << parameters.versioning_scheme >>
-
