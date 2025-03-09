@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+#!/usr/bin/env bash
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
@@ -30,8 +30,7 @@ teardown() {
 }
 
 @test "get_app_version with VERSIONING=sha returns the commit hash" {
-  export VERSIONING=sha
-  run get_app_version
+  VERSIONING=sha run get_app_version
   assert_output "$(git rev-parse HEAD)"
 }
 
@@ -46,7 +45,6 @@ teardown() {
   run get_app_version
   assert_output "v1.1.0"
 
-  export VERSIONING=sha
-  run get_app_version
+  VERSIONING=sha run get_app_version
   assert_output "$(git rev-parse HEAD)"
 }

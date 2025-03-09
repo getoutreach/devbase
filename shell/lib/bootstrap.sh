@@ -40,14 +40,18 @@ get_app_name() {
 # from git. If VERSIONING variable is unset or equals to "semver", uses tag to determine version.
 # If VERSIONING variable equals to "sha", uses commit hash to determine version.
 get_app_version() {
-  if [[ -z "$VERSIONING" || "$VERSIONING" == "semver" ]]; then
-    git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
-  elif [[ "$VERSIONING" == "sha" ]]; then
-    git rev-parse HEAD
-  else
-    echo "Error: VERSIONING variable must be either 'semver' or 'sha' if set. Found: '$VERSIONING'"
-    exit 1
-  fi
+  case "${VERSIONING:-}" in
+    ""|"semver")
+      git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
+      ;;
+    "sha")
+      git rev-parse HEAD
+      ;;
+    *)
+      echo "Error: VERSIONING variable must be either 'semver' or 'sha' if set. Found: '$VERSIONING'"
+      exit 1
+      ;;
+  esac
 }
 
 # get_tool_version reads a version from .bootstrap/versions.yaml
