@@ -225,3 +225,24 @@ docker_manifest_images() {
 
   "$YQ" -r 'keys[]' "$manifest"
 }
+
+# will_push_images determines if current pipeline is configured to actually push image to a registry.
+# Decision is made based on global variables "VERSIONING", "DRY_RUN" and "CIRCLE_TAG".
+will_push_images() {
+  local mode="$VERSIONING"
+  if [[ -z "$mode" ]]; then
+    mode="semver"
+  fi
+
+  local result="false"
+
+  # If we're in SemVer mode and CI is running off of a tag -- we push images
+  if [[ "$mode" == "semver" && -n "$CIRCLE_TAG" ]]; then
+    result="true"
+  # If we're in SHA release mode and DRY_RUN was not explicitly set to true -- we push images
+  elif [[ "$mode" == "sha" && (-z "$DRY_RUN" || "$DRY_RUN" == "false") ]]; then
+    result="true"
+  fi
+
+  echo "$result"
+}
