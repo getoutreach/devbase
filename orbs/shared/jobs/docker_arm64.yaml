@@ -7,7 +7,7 @@ parameters:
     type: string
     description: Space-separated list of registries to push the Docker image to.
     default: ""
-  versioning:
+  versioning_scheme:
     type: enum
     description: One of "sha" or "semver", depending on what versions are used for deployment.
     default: semver
@@ -17,4 +17,4 @@ steps:
       push_registries: << parameters.push_registries >>
   - build_docker_image:
       arch: arm64
-      versioning: << parameters.versioning >>
+      versioning_scheme: << parameters.versioning_scheme >>

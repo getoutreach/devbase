@@ -227,9 +227,9 @@ docker_manifest_images() {
 }
 
 # will_push_images determines if current pipeline is configured to actually push image to a registry.
-# Decision is made based on global variables "VERSIONING", "DRY_RUN" and "CIRCLE_TAG".
+# Decision is made based on global variables "VERSIONING_SCHEME", "DRY_RUN" and "CIRCLE_TAG".
 will_push_images() {
-  local mode="$VERSIONING"
+  local mode="$VERSIONING_SCHEME"
   if [[ -z "$mode" ]]; then
     mode="semver"
   fi

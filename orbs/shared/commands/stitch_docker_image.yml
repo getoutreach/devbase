@@ -11,14 +11,14 @@ parameters:
     type: string
     description: Script to run to stitch Docker image
     default: "./scripts/shell-wrapper.sh ci/release/docker-stitch.sh"
-  versioning:
+  versioning_scheme:
     type: enum
     description: One of "sha" or "semver", depending on what versions are used for deployment.
     default: semver
     enum: ["sha", "semver"]
   dry_run:
     type: boolean
-    description: Skip push to registries when versioning is "sha". Intended to use in test pipeline.
+    description: Skip push to registries when versioning_scheme is "sha". Intended to use in test pipeline.
     default: false
 steps:
   - attach_workspace:
@@ -29,5 +29,5 @@ steps:
       environment:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
         DRY_RUN: << parameters.dry_run >>
-        VERSIONING: << parameters.versioning >>
+        VERSIONING_SCHEME: << parameters.versioning_scheme >>
 

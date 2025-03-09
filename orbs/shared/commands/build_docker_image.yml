@@ -8,7 +8,7 @@ parameters:
     type: string
     description: Script to run to build Docker image
     default: "./scripts/shell-wrapper.sh ci/release/docker.sh"
-  versioning:
+  versioning_scheme:
     type: enum
     description: One of "sha" or "semver", depending on what versions are used for deployment.
     default: semver
@@ -21,7 +21,7 @@ steps:
       command: << parameters.script >>
       environment:
         IMAGE_ARCH: << parameters.arch >>
-        VERSIONING: << parameters.versioning >>
+        VERSIONING_SCHEME: << parameters.versioning_scheme >>
   - persist_to_workspace:
       root: docker-images
       paths:

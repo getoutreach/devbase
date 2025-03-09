@@ -248,22 +248,22 @@ EOF
   assert_output "true"
 }
 
-@test "will_push_image with CIRCLE_TAG set and VERSIONING=semver returns true" {
-  CIRCLE_TAG="abcd" VERSIONING="semver" run will_push_images
+@test "will_push_image with CIRCLE_TAG set and VERSIONING_SCHEME=semver returns true" {
+  CIRCLE_TAG="abcd" VERSIONING_SCHEME="semver" run will_push_images
   assert_output "true"
 }
 
-@test "will_push_image with CIRCLE_TAG set and VERSIONING=sha returns false" {
-  CIRCLE_TAG="abcd" VERSIONING="sha" run will_push_images
+@test "will_push_image with CIRCLE_TAG set and VERSIONING_SCHEME=sha returns false" {
+  CIRCLE_TAG="abcd" VERSIONING_SCHEME="sha" run will_push_images
   assert_output "true"
 }
 
-@test "will_push_image with only VERSIONING=sha returns true" {
-  VERSIONING="sha" run will_push_images
+@test "will_push_image with only VERSIONING_SCHEME=sha returns true" {
+  VERSIONING_SCHEME="sha" run will_push_images
   assert_output "true"
 }
 
-@test "will_push_image with VERSIONING=sha and DRY_RUN=true returns false" {
-  VERSIONING="sha" DRY_RUN="true" run will_push_images
+@test "will_push_image with VERSIONING_SCHEME=sha and DRY_RUN=true returns false" {
+  VERSIONING_SCHEME="sha" DRY_RUN="true" run will_push_images
   assert_output "false"
 }
