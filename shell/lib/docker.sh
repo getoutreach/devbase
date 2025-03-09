@@ -149,22 +149,25 @@ docker_buildx_args() {
   args+=("--platform" "$platformArgumentString")
 
   # tags are the tags to apply to the image. We always tag the image with "latest" tag
-  # for each arch and the version tag the same.
-  local tags=("$image")
+  # for each arch and the version tag the same. Tags are only applied if we intend to push
+  # the image to registries later.
+  if [[ $(will_push_images) == "true" ]]; then
+    local tags=("$image")
 
-  local remoteImageName
-  local pushRegistries
-  pushRegistries="$(get_docker_push_registries)"
-  for pushRegistry in $pushRegistries; do
-    remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
-    if [[ -n $arch ]]; then
-      tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
-    fi
-  done
+    local remoteImageName
+    local pushRegistries
+    pushRegistries="$(get_docker_push_registries)"
+    for pushRegistry in $pushRegistries; do
+      remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
+      if [[ -n $arch ]]; then
+        tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
+      fi
+    done
 
-  for tag in "${tags[@]}"; do
-    args+=("--tag" "$tag")
-  done
+    for tag in "${tags[@]}"; do
+      args+=("--tag" "$tag")
+    done
+  fi
 
   args+=("--output" "type=docker,dest=./docker-images/$image-$(uname -m).tar")
 
