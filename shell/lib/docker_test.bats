@@ -267,3 +267,8 @@ EOF
   VERSIONING_SCHEME="sha" DRY_RUN="true" run will_push_images
   assert_output "false"
 }
+
+@test "will_push_image with VERSIONING_SCHEME=sha and DRY_RUN=false returns true" {
+  VERSIONING_SCHEME="sha" DRY_RUN="false" run will_push_images
+  assert_output "true"
+}

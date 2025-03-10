@@ -243,7 +243,7 @@ will_push_images() {
   if [[ $mode == "semver" && -n $CIRCLE_TAG ]]; then
     result="true"
   # If we're in SHA release mode and DRY_RUN was not explicitly set to true -- we push images
-  elif [[ $mode == "sha" && (-z $DRY_RUN || $DRY_RUN == "false") ]]; then
+  elif [[ $mode == "sha" && $DRY_RUN != "true" ]]; then
     result="true"
   fi
 
