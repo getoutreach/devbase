@@ -17,9 +17,10 @@ parameters:
     default: semver
     enum: ["sha", "semver"]
   dry_run:
-    type: boolean
+    type: enum
     description: Skip push to registries when versioning_scheme is "sha". Intended to use in test pipeline.
-    default: false
+    enum: ["true", "false"]
+    default: "false"
 steps:
   - attach_workspace:
       at: /home/circleci
