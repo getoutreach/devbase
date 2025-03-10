@@ -35,7 +35,7 @@ stitch_and_push_image() {
   local remoteImageNames=()
   for imageRegistry in $imageRegistries; do
     remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
-    if [[ -n $will_push ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
+    if [[ $will_push == "true" ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
       ensure_ecr_repository "$imageRegistry/$APPNAME"
     fi
   done
@@ -45,7 +45,7 @@ stitch_and_push_image() {
     run_docker load -i "$img_filename"
   done
 
-  if [[ -z $will_push ]]; then
+  if [[ $will_push == "false" ]]; then
     echo "Skipping manifest creation, not pushing images ..."
     return
   fi
