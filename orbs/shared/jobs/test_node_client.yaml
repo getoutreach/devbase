@@ -3,7 +3,6 @@ parameters:
   docker_image:
     description: The docker image to use for running the test
     type: string
-    required: true
   docker_tag:
     description: The docker image tag to use for running the test
     type: string
