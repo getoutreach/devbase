@@ -18,7 +18,7 @@ version="${DEVENV_DEPLOY_VERSION:-"latest"}"
 environment="${DEVENV_DEPLOY_ENVIRONMENT:-"development"}"
 host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
 email="${DEV_EMAIL:-$(git config user.email)}"
-appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"gcr.io/outreach-docker"}"
+appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"182192988802.dkr.ecr.us-east-2.amazonaws.com/outreach-docker"}"
 
 kubecfg \
   --jurl http://k8s-clusters.outreach.cloud/ \

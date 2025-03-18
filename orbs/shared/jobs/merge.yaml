@@ -2,7 +2,7 @@ description: Merges the base (to merge into) branch into the head (current) bran
 executor:
   name: testbed-docker
 docker:
-  - image: gcr.io/outreach-docker/bootstrap/ci-slim:stable
+  - image: 182192988802.dkr.ecr.us-east-2.amazonaws.com/outreach-docker/bootstrap/ci-slim:stable
     auth:
       username: _json_key
       password: $GCLOUD_SERVICE_ACCOUNT
