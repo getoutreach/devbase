@@ -23,7 +23,7 @@ parameters:
   executor:
     description: The executor to use for the release
     type: executor
-    default: "testbed-docker"
+    default: "testbed-docker-aws"
   no_output_timeout:
     description: The timeout that gets applied when CircleCI receives no output during the release
     type: string
