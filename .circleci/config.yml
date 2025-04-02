@@ -181,7 +181,6 @@ workflows:
       - shared/publish_docs:
           context: *contexts
           docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
-          executor_name: $DOCKER_EXECUTOR_NAME
           filters:
             branches:
               only:
