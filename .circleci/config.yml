@@ -42,7 +42,8 @@ test: &test
   ### Start parameters inserted by other modules
   ### End parameters inserted by other modules
   ## <<Stencil::Block(circleTestExtra)>>
-
+  docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
+  executor_name: $DOCKER_EXECUTOR_NAME
   ## <</Stencil::Block>>
 
 # Branches used for releasing code, pre-release or not
@@ -180,8 +181,8 @@ workflows:
           ## <</Stencil::Block>>
       - shared/publish_docs:
           context: *contexts
-          docker_image: 182192988802.dkr.ecr.us-east-2.amazonaws.com/outreach-docker/bootstrap/ci-slim
-          executor_name: testbed-docker-aws
+          docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
+          executor_name: $DOCKER_EXECUTOR_NAME
           filters:
             branches:
               only:
