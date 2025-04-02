@@ -180,7 +180,6 @@ workflows:
           ## <</Stencil::Block>>
       - shared/publish_docs:
           context: *contexts
-          docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
           filters:
             branches:
               only:
