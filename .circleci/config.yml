@@ -43,7 +43,6 @@ test: &test
   ### End parameters inserted by other modules
   ## <<Stencil::Block(circleTestExtra)>>
   docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
-  executor_name: $DOCKER_EXECUTOR_NAME
   ## <</Stencil::Block>>
 
 # Branches used for releasing code, pre-release or not

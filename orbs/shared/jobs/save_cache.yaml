@@ -29,8 +29,8 @@ parameters:
   executor_name:
     description: The executor to use for the job
     type: enum
-    enum: [testbed-docker, testbed-docker-aws, $DOCKER_EXECUTOR_NAME]
-    default: $DOCKER_EXECUTOR_NAME
+    enum: [testbed-docker, testbed-docker-aws]
+    default: "testbed-docker-aws"
   aws_region:
     description: AWS_REGION environment variable to set
     type: string
