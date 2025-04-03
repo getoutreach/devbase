@@ -22,6 +22,7 @@ parameters:
   docker_image:
     description: The docker image to use for running the test
     type: string
+    default: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
   docker_tag:
     description: The docker image tag to use for running the test
     type: string
@@ -30,7 +31,7 @@ parameters:
     description: The executor to use for the job
     type: enum
     enum: [testbed-docker, testbed-docker-aws]
-    default: "testbed-docker"
+    default: "testbed-docker-aws"
   aws_region:
     description: AWS_REGION environment variable to set
     type: string

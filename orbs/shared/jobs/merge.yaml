@@ -21,7 +21,7 @@ parameters:
     description: The executor to use for the job
     type: enum
     enum: [testbed-docker, testbed-docker-aws]
-    default: "testbed-docker"
+    default: "testbed-docker-aws"
 executor:
   name: << parameters.executor_name >>
   docker_image: << parameters.docker_image >>

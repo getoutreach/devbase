@@ -5,6 +5,7 @@ parameters:
     default: stable
   docker_image:
     type: string
+    default: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-slim
 docker:
   - image: << parameters.docker_image >>:<< parameters.docker_tag >>
     aws_auth:
