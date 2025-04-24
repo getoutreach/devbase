@@ -44,3 +44,16 @@ install_tool_with_mise() {
     fatal "Error: failed to install $tool via mise" >&2
   fi
 }
+
+# mise_tool_config_set slug key value [...key value...]
+mise_tool_config_set() {
+  local slug="$1"
+  shift
+  while [[ $# -gt 0 ]]; do
+    local key="$1"
+    shift
+    local value="$1"
+    shift
+    MISE_VERBOSE=1 mise config set "tools.$slug.$key" "$value"
+  done
+}
