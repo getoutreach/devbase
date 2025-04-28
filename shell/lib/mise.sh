@@ -10,15 +10,16 @@ ensure_mise_installed() {
     curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
     # ensure the above is signed with the mise release key
     sh /tmp/mise-install.sh
-    sudo mv ~/.local/bin/mise /usr/local/bin/
 
     # shellcheck disable=SC2016
     # Why: Appending a PATH to BASH_ENV
     {
+      echo 'export PATH="$HOME/.local/bin:$PATH"'
       echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
       echo 'eval "$(mise activate bash --shims)"'
     } >>"$BASH_ENV"
 
+    export PATH="$HOME/.local/bin:$PATH"
     # Let asdf manage .tool-versions for now
     export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     eval "$(mise activate bash --shims)"
