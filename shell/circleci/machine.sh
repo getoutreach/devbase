@@ -7,14 +7,18 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="$DIR/../lib"
 ROOT_DIR="$DIR/../.."
 
+# shellcheck source=../lib/logging.sh
+source "$LIB_DIR"/logging.sh
+
 # shellcheck source=../lib/mise.sh
 source "$LIB_DIR"/mise.sh
 
 install_tool_with_mise github-cli "$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
 
-echo "Installing yq (Python)"
+info "Installing yq (Python)"
 # Remove the existing yq, if it already exists
 # (usually the Go Version we don't support)
+info_sub "Removing existing Go-based (incompatible) yq"
 sudo rm -f "$(command -v yq)"
 
 install_tool_with_mise pipx:yq
