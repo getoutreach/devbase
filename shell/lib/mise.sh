@@ -52,6 +52,12 @@ ensure_mise_installed() {
   fi
 }
 
+# install_tool_with_mise tool [version]
+#
+# Installs a tool using mise. If the version is not specified, the latest
+# version will be installed as detected by mise. Please note that if
+# you specify a version, it will override any tool-specific config
+# (e.g., exe for the ubi backend) that you may already have set.
 install_tool_with_mise() {
   local tool
   local name="$1"
@@ -73,6 +79,8 @@ install_tool_with_mise() {
 }
 
 # mise_tool_config_set slug key value [...key value...]
+#
+# Sets one or more mise config keys globally.
 mise_tool_config_set() {
   ensure_mise_installed
 
