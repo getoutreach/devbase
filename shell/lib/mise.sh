@@ -2,7 +2,9 @@
 #
 # mise related functions. Assumes logging.sh is sourced.
 
-# Installs `mise` if it isn't already found in PATH
+# Installs `mise` if it isn't already found in PATH.
+# If running as root, install to /usr/local/bin. Otherwise, install
+# to $HOME/.local/bin.
 ensure_mise_installed() {
   if ! command -v mise >/dev/null; then
     local is_root
