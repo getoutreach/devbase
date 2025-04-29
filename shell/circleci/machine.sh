@@ -21,6 +21,8 @@ info "Installing yq (Python)"
 info_sub "Removing existing Go-based (incompatible) yq"
 sudo rm -f "$(command -v yq)"
 
+install_tool_with_mise uv
+mise config set settings.pipx.uvx true
 install_tool_with_mise pipx:yq
 
 if ! command -v vault >/dev/null 2>&1; then
