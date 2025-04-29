@@ -84,7 +84,7 @@ install_tool_with_mise() {
 mise_tool_config_set() {
   ensure_mise_installed
 
-  local config_file="$HOME/.config/mise/config.toml"
+  local config_file="${MISE_GLOBAL_CONFIG_FILE:-$HOME/.config/mise/config.toml}"
 
   # A config file is required to set the config.
   if [[ ! -f $config_file ]]; then
