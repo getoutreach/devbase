@@ -5,23 +5,40 @@
 # Installs `mise` if it isn't already found in PATH
 ensure_mise_installed() {
   if ! command -v mise >/dev/null; then
+    local is_root
+    if [[ $EUID -eq 0 ]]; then
+      is_root=true
+    else
+      is_root=
+    fi
+
+    if [[ -n $is_root ]]; then
+      export MISE_INSTALL_PATH=/usr/local/bin/mise
+    fi
+
     # Install mise
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0x7413A06D
     curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
     # ensure the above is signed with the mise release key
     sh /tmp/mise-install.sh
 
+    unset MISE_INSTALL_PATH
+
     # shellcheck disable=SC2016
     # Why: Appending a PATH to BASH_ENV
     {
-      echo 'export PATH="$HOME/.local/bin:$PATH"'
+      if [[ -z $is_root ]]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"'
+      fi
       if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
         echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
       fi
       echo 'eval "$(mise activate bash --shims)"'
     } >>"$BASH_ENV"
 
-    export PATH="$HOME/.local/bin:$PATH"
+    if [[ -z $is_root ]]; then
+      export PATH="$HOME/.local/bin:$PATH"
+    fi
     if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
