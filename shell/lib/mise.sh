@@ -6,6 +6,7 @@
 ensure_mise_installed() {
   if ! command -v mise >/dev/null; then
     local is_root
+    # From: https://askubuntu.com/a/15856
     if [[ $EUID -eq 0 ]]; then
       is_root=true
     else
