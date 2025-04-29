@@ -74,6 +74,11 @@ install_tool_with_mise() {
 mise_tool_config_set() {
   ensure_mise_installed
 
+  # A config file is required to set the config.
+  if [[ ! -f mise.toml ]]; then
+    touch mise.toml
+  fi
+
   local slug="$1"
   shift
   while [[ $# -gt 0 ]]; do
