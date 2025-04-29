@@ -25,13 +25,15 @@ ensure_mise_installed() {
 
     unset MISE_INSTALL_PATH
 
+    local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
+
     # shellcheck disable=SC2016
     # Why: Appending a PATH to BASH_ENV
     {
       if [[ -z $is_root ]]; then
         echo 'export PATH="$HOME/.local/bin:$PATH"'
       fi
-      if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+      if [[ -z $mise_manages_tool_versions ]]; then
         echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
       fi
       echo 'eval "$(mise activate bash --shims)"'
@@ -40,7 +42,7 @@ ensure_mise_installed() {
     if [[ -z $is_root ]]; then
       export PATH="$HOME/.local/bin:$PATH"
     fi
-    if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+    if [[ -z $mise_manages_tool_versions ]]; then
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     fi
