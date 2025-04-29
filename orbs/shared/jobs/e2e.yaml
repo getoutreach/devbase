@@ -19,7 +19,7 @@ parameters:
   no_output_timeout:
     description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
     type: string
-    default: 10m
+    default: 20m
   go_test_timeout:
     description: Maps to gotest -timeout parameter.
     type: string
