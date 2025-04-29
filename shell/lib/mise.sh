@@ -70,6 +70,8 @@ install_tool_with_mise() {
 
 # mise_tool_config_set slug key value [...key value...]
 mise_tool_config_set() {
+  ensure_mise_installed
+
   local slug="$1"
   shift
   while [[ $# -gt 0 ]]; do
