@@ -15,13 +15,17 @@ ensure_mise_installed() {
     # Why: Appending a PATH to BASH_ENV
     {
       echo 'export PATH="$HOME/.local/bin:$PATH"'
-      echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
+      if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+        echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
+      fi
       echo 'eval "$(mise activate bash --shims)"'
     } >>"$BASH_ENV"
 
     export PATH="$HOME/.local/bin:$PATH"
-    # Let asdf manage .tool-versions for now
-    export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
+    if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+      # Let asdf manage .tool-versions for now
+      export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
+    fi
     eval "$(mise activate bash --shims)"
   fi
 }
