@@ -42,8 +42,6 @@ if [[ -n $CI ]]; then
   fi
 
   if ! command -v devenv >/dev/null; then
-    # TODO: add support for pre-releases
-    # install_tool_with_mise ubi:getoutreach/devenv latest
     install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
   fi
 
