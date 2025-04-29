@@ -6,12 +6,14 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 setup() {
-  # shellcheck disable=SC2155 # Why: don't care about masking the return value
-  export MISE_CONFIG_DIR="$(mktemp -d mise-config-XXXXXX)"
-  # shellcheck disable=SC2155 # Why: don't care about masking the return value
-  export MISE_DATA_DIR="$(mktemp -d mise-data-XXXXXX)"
-  # shellcheck disable=SC2155 # Why: don't care about masking the return value
-  export MISE_STATE_DIR="$(mktemp -d mise-state-XXXXXX)"
+  local MISE_CONFIG_DIR MISE_DATA_DIR MISE_STATE_DIR
+  local tmpdir="${TMPDIR:-/tmp}"
+
+  MISE_CONFIG_DIR="$(mktemp -d "$tmpdir"/mise-config-XXXXXX)"
+  MISE_DATA_DIR="$(mktemp -d "$tmpdir"/mise-data-XXXXXX)"
+  MISE_STATE_DIR="$(mktemp -d "$tmpdir"/mise-state-XXXXXX)"
+  export MISE_CONFIG_DIR MISE_DATA_DIR MISE_STATE_DIR
+
   export MISE_GLOBAL_CONFIG_ROOT="$MISE_CONFIG_DIR"
   export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG_DIR/global.toml"
   export MISE_OVERRIDE_CONFIG_FILENAMES="global.toml"
