@@ -61,6 +61,7 @@ install_latest_github_release() {
   # If binary_name is not the default value, set the exe parameter in
   # the mise config.
   if [[ -n $3 ]]; then
+    info_sub "Setting version and exe in mise config for $mise_identifier"
     mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
     # Empty the tag here, otherwise we'll override the config we just set when installing.
     tag=
