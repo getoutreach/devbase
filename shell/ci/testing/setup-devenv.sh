@@ -34,7 +34,7 @@ if [[ -n $CI ]]; then
   fi
 
   if ! command -v kubectl >/dev/null; then
-    install_tool_with_mise kubectl latest
+    install_tool_with_mise kubectl 1.29
   fi
 
   if ! command -v kubecfg >/dev/null; then
