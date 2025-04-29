@@ -74,9 +74,11 @@ install_tool_with_mise() {
 mise_tool_config_set() {
   ensure_mise_installed
 
+  local config_file="$HOME/.config/mise/config.toml"
+
   # A config file is required to set the config.
-  if [[ ! -f mise.toml ]]; then
-    touch mise.toml
+  if [[ ! -f "$config_file" ]]; then
+    touch "$config_file"
   fi
 
   local slug="$1"
@@ -86,6 +88,6 @@ mise_tool_config_set() {
     shift
     local value="$1"
     shift
-    MISE_VERBOSE=1 mise config set "tools.$slug.$key" "$value"
+    mise config set --verbose --file="$config_file" "tools.$slug.$key" "$value"
   done
 }
