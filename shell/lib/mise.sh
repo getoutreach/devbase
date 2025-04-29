@@ -87,7 +87,7 @@ mise_tool_config_set() {
   local config_file="$HOME/.config/mise/config.toml"
 
   # A config file is required to set the config.
-  if [[ ! -f "$config_file" ]]; then
+  if [[ ! -f $config_file ]]; then
     mkdir -p "$(dirname "$config_file")"
     touch "$config_file"
   fi
