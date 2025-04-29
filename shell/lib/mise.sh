@@ -99,6 +99,8 @@ mise_tool_config_set() {
     shift
     local value="$1"
     shift
-    mise config set --file="$config_file" "tools.$slug.$key" "$value"
+    local config_key="tools.$slug.$key"
+    info_sub "Mise: setting '$config_key' to '$value' in $config_file"
+    mise config set --file="$config_file" "$config_key" "$value"
   done
 }
