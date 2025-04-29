@@ -62,6 +62,7 @@ install_latest_github_release() {
   # the mise config.
   if [[ -n $3 ]]; then
     mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
+    tag=
   fi
   GITHUB_TOKEN="$(gh auth token)" install_tool_with_mise "$mise_identifier" "$tag"
 }
