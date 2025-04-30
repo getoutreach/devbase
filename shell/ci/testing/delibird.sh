@@ -57,7 +57,7 @@ fi
 
 # Otherwise, check if the uploader is installed. If it isn't, attempt to
 # install it.
-if ! command -v delibird &>/dev/null; then
+if ! mise which delibird &>/dev/null; then
   install_delibird
 fi
 
@@ -66,4 +66,4 @@ info "Running the delibird log uploader"
 # Ensure the logs directory exists.
 mkdir -p "$HOME/.outreach/logs"
 
-exec delibird --run-once start
+exec "$(mise which delibird)" --run-once start
