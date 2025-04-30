@@ -291,3 +291,36 @@ if has_grpc_client "ruby"; then
     popd || exit 1
   fi
 fi
+
+if has_grpc_client "python"; then
+  info "Generating Python gRPC client"
+  info_sub "Ensuring Python protoc plugins are installed"
+
+  set -ex
+
+  python_grpcio_tools_version="$(get_application_version "python-grpcio-tools")"
+
+  if ! python -m pip list | grep "grpcio-tools" | grep "$python_grpcio_tools_version" >/dev/null 2>&1; then
+    echo "INSTALLING"
+    python -m pip install grpcio-tools=="$python_grpcio_tools_version"
+  fi
+
+  # Make python output directory if it doesn't exist.
+  mkdir -p "$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+
+  info_sub "Running Python protobuf generation"
+
+  python_args=("${default_args[@]}")
+  python_args+=(
+    --python_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+    --grpc_python_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+    --pyi_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
+  )
+
+  python -m pip list
+  python -m pip show grpcio-tools
+
+  echo python -m grpc_tools.protoc "${python_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+  python -m grpc_tools.protoc "${python_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+fi

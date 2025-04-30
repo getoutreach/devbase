@@ -19,6 +19,7 @@ protoc-gen-doc: 1.5.1
 node-grpc-tools: 1.11.2
 ruby-grpc-tools: 1.62.0
 node-ts-grpc-tools: 5.3.2
+python-grpcio-tools: 1.71.0
 
 # latest Go protobuf modules
 protoc-gen-go-latest: 1.31.0
