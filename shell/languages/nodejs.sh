@@ -7,6 +7,11 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/../lib/she
 yarn_install_if_needed() {
   local stateFile="node_modules/devbase.lock"
 
+  if [[ ! -e "package.json" ]]; then
+    echo "No package.json found, skipping yarn install"
+    return
+  fi
+
   if ! yarn -v >/dev/null 2>&1; then
     npm install -g yarn
   fi

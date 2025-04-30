@@ -10,6 +10,13 @@ source "$DIR/languages/nodejs.sh"
 extensions=(yaml yml json md ts)
 
 PRETTIER="node_modules/.bin/prettier"
+if [[ ! -f "$PRETTIER" ]]; then
+  # Try to find prettier installed via mise
+  PRETTIER="$(mise which prettier)"
+  if [[ -z $PRETTIER ]]; then
+    fatal "prettier not found in repo"
+  fi
+fi
 
 prettier_log_level_flag() {
   if [[ $("$PRETTIER" --version) =~ ^2 ]]; then
