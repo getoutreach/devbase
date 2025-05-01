@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Helpers for node.js
 
+# shellcheck source=../lib/logging.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/../lib/logging.sh"
+
 # shellcheck source=../lib/shell.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/../lib/shell.sh"
 
@@ -8,7 +11,7 @@ yarn_install_if_needed() {
   local stateFile="node_modules/devbase.lock"
 
   if [[ ! -e "package.json" ]]; then
-    echo "No package.json found, skipping yarn install"
+    warn "No package.json found, skipping yarn install"
     return
   fi
 
