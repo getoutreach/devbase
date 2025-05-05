@@ -14,7 +14,7 @@ if [[ ! -f $PRETTIER ]] && [[ ! -f package.json ]]; then
   # Try to find prettier installed via mise
   PRETTIER="$(mise which prettier)"
   if [[ -z $PRETTIER ]]; then
-    fatal "prettier not found in repo"
+    fatal "prettier not found in repo, make sure 'npx:prettier' is defined in 'mise.toml' and you have run 'mise install'"
   fi
 fi
 
