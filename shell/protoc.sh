@@ -306,15 +306,15 @@ if has_grpc_client "python"; then
   fi
 
   # Make python output directory if it doesn't exist.
-  mkdir -p "$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+  mkdir -p "$(get_repo_directory)$workDir/clients/python/$(get_app_name)_grpc_client$SUBDIR"
 
   info_sub "Running Python protobuf generation"
 
   python_args=("${default_args[@]}")
   python_args+=(
-    --python_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
-    --grpc_python_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
-    --pyi_out="$(get_repo_directory)$workDir/clients/python/lib/$(get_app_name)_client$SUBDIR"
+    --python_out="$(get_repo_directory)$workDir/clients/python/$(get_app_name)_grpc_client$SUBDIR"
+    --grpc_python_out="$(get_repo_directory)$workDir/clients/python/$(get_app_name)_grpc_client$SUBDIR"
+    --pyi_out="$(get_repo_directory)$workDir/clients/python/$(get_app_name)_grpc_client$SUBDIR"
     --proto_path "$(get_repo_directory)$workDir$SUBDIR"
   )
 
