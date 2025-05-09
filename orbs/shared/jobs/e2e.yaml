@@ -27,7 +27,7 @@ parameters:
   provision_timeout:
     description: The timeout for completing a devenv provision, post-snapshot restore.
     type: string
-    default: 30m
+    default: 20m
   snapshot_restore_timeout:
     description: The timeout for restoring a devenv snapshot.
     type: string
