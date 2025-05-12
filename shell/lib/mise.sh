@@ -29,17 +29,19 @@ ensure_mise_installed() {
 
     local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
 
-    # shellcheck disable=SC2016
-    # Why: Appending a PATH to BASH_ENV
-    {
-      if [[ -z $is_root ]]; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"'
-      fi
-      if [[ -z $mise_manages_tool_versions ]]; then
-        echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
-      fi
-      echo 'eval "$(mise activate bash --shims)"'
-    } >>"$BASH_ENV"
+    if [[ -n $BASH_ENV ]]; then
+      # shellcheck disable=SC2016
+      # Why: Appending a PATH to BASH_ENV
+      {
+        if [[ -z $is_root ]]; then
+          echo 'export PATH="$HOME/.local/bin:$PATH"'
+        fi
+        if [[ -z $mise_manages_tool_versions ]]; then
+          echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
+        fi
+        echo 'eval "$(mise activate bash --shims)"'
+      } >>"$BASH_ENV"
+    fi
 
     if [[ -z $is_root ]]; then
       export PATH="$HOME/.local/bin:$PATH"
