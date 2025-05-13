@@ -6,18 +6,28 @@
 
 set -euo pipefail
 
-find_gojq() {
-  local
-  if command -v gojq >/dev/null 2>&1; then
-    command -v gojq
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/lib"
+
+# shellcheck source=./lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+# shellcheck source=./lib/mise.sh
+source "${LIB_DIR}/mise.sh"
+
+find_bin() {
+  local bin_name="$1"
+  local mise_path
+  if command -v "$bin_name" >/dev/null 2>&1; then
+    command -v "$bin_name"
   else
-    mise which gojq
+    mise_path="$(find_mise)"
+    "$mise_path" which "$bin_name"
   fi
 }
 
-gojq_path="$(find_gojq)"
+gojq_path="$(find_bin gojq)"
 if [[ -n $gojq_path ]]; then
   "$gojq_path" --yaml-input "$@"
 else
-  yq "$@"
+  "$(find_bin yq)" "$@"
 fi

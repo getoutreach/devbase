@@ -107,3 +107,16 @@ mise_tool_config_set() {
     mise config set --file="$config_file" "$config_key" "$value"
   done
 }
+
+# find_mise returns the path to the mise binary if it is installed.
+find_mise() {
+  if command -v mise >/dev/null 2>&1; then
+    command -v mise
+  elif [[ -x $HOME/.local/bin/mise ]]; then
+    echo "$HOME/.local/bin/mise"
+  elif [[ -x /usr/local/bin/mise ]]; then
+    echo "/usr/local/bin/mise"
+  else
+    return 1
+  fi
+}
