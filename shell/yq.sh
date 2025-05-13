@@ -14,6 +14,8 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=./lib/mise.sh
 source "${LIB_DIR}/mise.sh"
 
+# find_bin looks for a binary in the PATH or in the mise environment.
+# If found, returns the path to the binary.
 find_bin() {
   local bin_name="$1"
   if command -v "$bin_name" >/dev/null 2>&1; then
