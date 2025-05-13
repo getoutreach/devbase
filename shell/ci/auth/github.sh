@@ -18,7 +18,7 @@ if [[ -z $GITHUB_TOKEN ]]; then
   ghaccesstoken_version="$(get_tool_version getoutreach/ci)"
   mise_tool_config_set ubi:getoutreach/ci version "$ghaccesstoken_version" exe ghaccesstoken
   install_tool_with_mise ubi:getoutreach/ci "$ghaccesstoken_version"
-  GITHUB_TOKEN="$(ghaccesstoken --skip-update token)"
+  GITHUB_TOKEN="$("$(mise which ghaccesstoken)" --skip-update token)"
 fi
 
 # Configure the gh CLI, and tools that depend on it
