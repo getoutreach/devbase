@@ -2,15 +2,20 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-SHELL_DIR="$DIR/../.."
 LIB_DIR="${DIR}/../../lib"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/mise.sh
+source "$LIB_DIR/mise.sh"
+
 # Fetch the token from ghaccesstoken if not set.
 if [[ -z $GITHUB_TOKEN ]]; then
-  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" --skip-update token)
+  ghaccesstoken_version="$(get_tool_version getoutreach/ci)"
+  mise_tool_config_set ubi:getoutreach/ci version "$ghaccesstoken_version" exe ghaccesstoken
+  install_tool_with_mise ubi:getoutreach/ci "$ghaccesstoken_version"
+  GITHUB_TOKEN="$(ghaccesstoken --skip-update token)"
 fi
 
 # Configure the gh CLI, and tools that depend on it
