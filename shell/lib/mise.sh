@@ -6,15 +6,19 @@
 # If running as root, install to /usr/local/bin. Otherwise, install
 # to $HOME/.local/bin.
 ensure_mise_installed() {
-  if ! command -v mise >/dev/null; then
-    local is_root
-    # From: https://askubuntu.com/a/15856
-    if [[ $EUID -eq 0 ]]; then
-      is_root=true
-    else
-      is_root=
-    fi
+  local is_root
+  # From: https://askubuntu.com/a/15856
+  if [[ $EUID -eq 0 ]]; then
+    is_root=true
+  else
+    is_root=
+  fi
+  local local_bin="$HOME/.local/bin"
+  if [[ -z $is_root ]] && ! echo "$PATH" | grep -qF "$local_bin"; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
 
+  if ! command -v mise >/dev/null; then
     if [[ -n $is_root ]]; then
       export MISE_INSTALL_PATH=/usr/local/bin/mise
     fi
@@ -29,21 +33,20 @@ ensure_mise_installed() {
 
     local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
 
-    # shellcheck disable=SC2016
-    # Why: Appending a PATH to BASH_ENV
-    {
-      if [[ -z $is_root ]]; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"'
-      fi
-      if [[ -z $mise_manages_tool_versions ]]; then
-        echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
-      fi
-      echo 'eval "$(mise activate bash --shims)"'
-    } >>"$BASH_ENV"
-
-    if [[ -z $is_root ]]; then
-      export PATH="$HOME/.local/bin:$PATH"
+    if [[ -n $BASH_ENV ]]; then
+      # shellcheck disable=SC2016
+      # Why: Appending a PATH to BASH_ENV
+      {
+        if [[ -z $is_root ]]; then
+          echo 'export PATH="$HOME/.local/bin:$PATH"'
+        fi
+        if [[ -z $mise_manages_tool_versions ]]; then
+          echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
+        fi
+        echo 'eval "$(mise activate bash --shims)"'
+      } >>"$BASH_ENV"
     fi
+
     if [[ -z $mise_manages_tool_versions ]]; then
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
