@@ -6,8 +6,18 @@
 
 set -euo pipefail
 
-if command -v gojq >/dev/null 2>&1; then
-  gojq --yaml-input "$@"
+find_gojq() {
+  local
+  if command -v gojq >/dev/null 2>&1; then
+    command -v gojq
+  else
+    mise which gojq
+  fi
+}
+
+gojq_path="$(find_gojq)"
+if [[ -n $gojq_path ]]; then
+  "$gojq_path" --yaml-input "$@"
 else
   yq "$@"
 fi
