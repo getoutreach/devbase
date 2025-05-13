@@ -25,6 +25,11 @@ install_tool_with_mise uv
 mise config set settings.pipx.uvx true
 install_tool_with_mise pipx:yq
 
+# Install gojq as that's preferred over yq
+if ! command -v gojq >/dev/null 2>&1; then
+  install_tool_with_mise gojq "$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
+fi
+
 if ! command -v vault >/dev/null 2>&1; then
   install_tool_with_mise vault
   sudo rm -rf /opt/vault

@@ -44,12 +44,21 @@ init_asdf() {
 }
 
 set_default_packages() {
+  local protoc_go_version protoc_doc_version
+  protoc_go_version="$(get_tool_version protoc-gen-go)"
+  protoc_doc_version="$(get_tool_version protoc-gen-doc)"
+  if [[ -z $protoc_go_version ]]; then
+    fatal "protoc-gen-go version not found"
+  fi
+  if [[ -z $protoc_doc_version ]]; then
+    fatal "protoc-gen-doc version not found"
+  fi
   # language specifics
   echo -e "yarn" >"$HOME/.default-npm-packages"
   echo -e "bundler 2.2.17" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
-github.com/golang/protobuf/protoc-gen-go@v$(get_tool_version protoc-gen-go)
-github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(get_tool_version protoc-gen-doc)
+github.com/golang/protobuf/protoc-gen-go@v$protoc_go_version
+github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$protoc_doc_version
 EOF
 }
 

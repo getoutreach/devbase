@@ -7,7 +7,7 @@ libDir="$DIR/../.bootstrap"
 lockfile="$DIR/../stencil.lock"
 serviceYaml="$DIR/../service.yaml"
 {{- /* This needs to be synced with versions.yaml since the template can't read that file. */}}
-gojqVersion="v0.12.16"
+gojqVersion="v0.12.17"
 
 # get_absolute_path returns the absolute path of a file
 get_absolute_path() {
