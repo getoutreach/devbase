@@ -16,12 +16,14 @@ source "${LIB_DIR}/mise.sh"
 
 find_bin() {
   local bin_name="$1"
-  local mise_path
   if command -v "$bin_name" >/dev/null 2>&1; then
     command -v "$bin_name"
   else
+    local mise_path
     mise_path="$(find_mise)"
-    "$mise_path" which "$bin_name"
+    if "$mise_path" which "$bin_name" >/dev/null 2>&1; then
+      "$mise_path" which "$bin_name"
+    fi
   fi
 }
 
