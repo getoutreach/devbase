@@ -9,7 +9,7 @@ getoutreach/ci: v1.3.0
 getoutreach/logfmt: v1.1.0
 gh: 2.62.0
 ## Sync with templates/scripts/devbase.sh.tpl
-gojq: v0.12.16
+gojq: v0.12.17
 
 # protobuf formatters/plugins/tools/etc
 buf: 1.8.0 # formatter
