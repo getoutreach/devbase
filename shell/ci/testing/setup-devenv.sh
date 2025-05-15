@@ -33,6 +33,9 @@ if [[ -n $CI ]]; then
     fatal "Vault must be configured to setup a devenv"
   fi
 
+  mise_path="$(find_mise)"
+  eval "$("$mise_path" activate bash --shims)"
+
   if ! command -v kubectl >/dev/null; then
     install_tool_with_mise kubectl 1.29
   fi
