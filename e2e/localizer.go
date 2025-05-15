@@ -61,7 +61,11 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 		}
 
 		log.Info().Msg("Starting devenv tunnel")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "tunnel")).Start(); err != nil {
+		devenv, err := newDevenvCmd(ctx, "tunnel")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create devenv tunnel command")
+		}
+		if err := osStdInOutErr(devenv).Start(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start devenv tunnel")
 		}
 

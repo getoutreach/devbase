@@ -149,11 +149,14 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 
 // provisionNew destroys and re-provisions a devenv
 func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
+	devenv, err := newDevenvCmd(ctx, "destroy")
+	if err != nil {
+		return errors.Wrap(err, "Failed to create devenv destroy command")
+	}
 	//nolint:errcheck // Why: Best effort remove existing cluster
-	exec.CommandContext(ctx, "devenv", "--skip-update", "destroy").Run()
+	devenv.Run()
 
-	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update",
-		"provision", "--snapshot-target", target)).Run(); err != nil {
+	if err := runDevenvPassthrough(ctx, "provision", "--snapshot-target", target); err != nil {
 		log.Fatal().Err(err).Msg("Failed to provision devenv")
 	}
 
@@ -252,18 +255,17 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	}()
 
 	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
-	if err := osStdInOutErr(exec.CommandContext(
-		ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", serviceName)).Run(); err != nil {
+	if err := runDevenvPassthrough(ctx, "apps", "deploy", "--with-deps", serviceName); err != nil {
 		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
 	}
 
 	wg.Wait()
 
 	log.Info().Msg("Starting devspace pod and running e2e tests")
-	if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "e2e", "--sync-binaries", ".")).Run(); err != nil {
+	if err := runDevenvPassthrough(ctx, "apps", "e2e", "--sync-binaries", "."); err != nil {
 		return errors.Wrapf(err, "Failed to deploy %s into devenv", serviceName)
 	}
-	if runningInCi() {
+	if runningInCI() {
 		// Copy junit report to place where CircleCi expects it
 		if err := osStdInOutErr(exec.CommandContext(ctx, "cp", junitTestResultPath, "/tmp/test-results/")).Run(); err != nil {
 			return errors.Wrap(err, "Unable to copy tests results to CircleCI artifact path")
@@ -316,7 +318,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	if conf.DeveloperEnvironmentConfig.VaultConfig.Enabled {
 		vaultAddr := conf.DeveloperEnvironmentConfig.VaultConfig.Address
-		if runningInCi() {
+		if runningInCI() {
 			vaultAddr = conf.DeveloperEnvironmentConfig.VaultConfig.AddressCI
 		}
 		log.Info().Str("vault-addr", vaultAddr).Msg("Set Vault Address")
@@ -414,7 +416,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
-		if err := osStdInOutErr(exec.CommandContext(ctx, "devenv", "--skip-update", "apps", "deploy", "--with-deps", ".")).Run(); err != nil {
+		if err := runDevenvPassthrough(ctx, "apps", "deploy", "--with-deps", "."); err != nil {
 			log.Fatal().Err(err).Msg("Failed to deploy current application into devenv")
 		}
 	} else {
@@ -490,9 +492,69 @@ func provisionDevenv(ctx context.Context, conf *box.Config) error {
 }
 
 func isDevenvProvisioned(ctx context.Context) bool {
-	return exec.CommandContext(ctx, "devenv", "--skip-update", "status").Run() == nil
+	devenv, err := newDevenvCmd(ctx, "status")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create devenv status command")
+	}
+	return devenv.Run() == nil
 }
 
-func runningInCi() bool {
+func runningInCI() bool {
 	return os.Getenv("CI") == "true" //nolint:goconst // Why: true == true
+}
+
+// devenvPath is the cached path to the devenv binary.
+var devenvPath = ""
+
+// findDevenv finds the path to the devenv binary, via mise or PATH.
+// It caches the path for future use.
+func findDevenv(ctx context.Context) (string, error) {
+	if devenvPath != "" {
+		return devenvPath, nil
+	}
+
+	cmd := exec.CommandContext(ctx, "mise", "which", "devenv")
+	bPath, err := cmd.Output()
+	if err != nil {
+		// Continue on if mise itself is not found
+		if !errors.Is(err, exec.ErrNotFound) {
+			var exitError *exec.ExitError
+			if ok := errors.As(err, &exitError); ok {
+				return "", errors.Wrapf(err, "mise which devenv failed: %s", string(exitError.Stderr))
+			}
+			return "", errors.Wrapf(err, "failed to find mise")
+		}
+	}
+
+	if len(bPath) > 0 {
+		devenvPath = strings.TrimSpace(string(bPath))
+		return devenvPath, nil
+	}
+
+	path, err := exec.LookPath("devenv")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to find devenv binary")
+	}
+
+	devenvPath = path
+	return devenvPath, nil
+}
+
+// newDevenvCmd creates a new devenv command with the given arguments.
+func newDevenvCmd(ctx context.Context, args ...string) (*exec.Cmd, error) {
+	devenv, err := findDevenv(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to find devenv binary")
+	}
+	devenvArgs := append([]string{"--skip-update"}, args...)
+	return exec.CommandContext(ctx, devenv, devenvArgs...), nil
+}
+
+// runDevenvPassthrough runs the devenv command with the given arguments and passes through the output.
+func runDevenvPassthrough(ctx context.Context, args ...string) error {
+	devenv, err := newDevenvCmd(ctx, args...)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create devenv command")
+	}
+	return errors.Wrap(osStdInOutErr(devenv).Run(), "Failed to run devenv command")
 }
