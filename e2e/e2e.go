@@ -527,7 +527,7 @@ func findDevenv(ctx context.Context) (string, error) {
 	}
 
 	if len(bPath) > 0 {
-		devenvPath = string(bPath)
+		devenvPath = strings.TrimSpace(string(bPath))
 		return devenvPath, nil
 	}
 
