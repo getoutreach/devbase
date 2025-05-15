@@ -15,11 +15,13 @@ run_gh() {
   if [[ -z $ghCmd ]]; then
     ghCmd="$(command -v gh)"
     if [[ -z $ghCmd ]]; then
-      if ! command -v mise >/dev/null; then
-        echo "Error: gh and mise not found (run_gh)" >&2
+      local mise_path
+      mise_path="$(find_mise)"
+      if [[ -z $mise_path ]]; then
+        error "gh and mise not found (run_gh)" >&2
         return 1
       fi
-      ghCmd="$(mise which gh)"
+      ghCmd="$("$mise_path" which gh)"
     fi
   fi
 
@@ -63,5 +65,5 @@ install_latest_github_release() {
   if [[ -n $3 ]]; then
     mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
   fi
-  GITHUB_TOKEN="$(gh auth token)" install_tool_with_mise "$mise_identifier" "$tag"
+  GITHUB_TOKEN="$(run_gh auth token)" install_tool_with_mise "$mise_identifier" "$tag"
 }
