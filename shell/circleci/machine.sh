@@ -14,7 +14,7 @@ source "$LIB_DIR"/logging.sh
 source "$LIB_DIR"/mise.sh
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  brew install gnupg
+  brew install bash gnupg
 fi
 
 install_tool_with_mise github-cli "$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
