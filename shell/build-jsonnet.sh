@@ -11,17 +11,19 @@ source "$SCRIPTS_DIR/lib/docker.sh"
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
 
-# Cache a local copy of the `jsonnet-libs` directory on disk if it doesn't yet exist. We use the SHA
-# of the latest HEAD for invalidation; as HEAD changes with new commits, so will our cache. Do this
+# Cache a local copy of the `jsonnet-libs` directory on disk if it doesn't yet exist. Do this
 # because it helps us avoid accessing jsonnet-libs via raw.githubusercontent.com, which has
 # aggressive rate limits that we can easily hit. Estimated API usage reduction is +10x since before
 # we'd make 1 request per file (15+ *sonnet files), now we clone at most once per run.
-JSONNET_LIBS_SHA="$(git ls-remote 'https://github.com/getoutreach/jsonnet-libs.git' HEAD | cut -f1)"
-JSONNET_LIBS_CACHE="$HOME/.outreach/.cache/jsonnet-libs/${JSONNET_LIBS_SHA}"
+JSONNET_LIBS_REPO="$HOME/.outreach/.cache/jsonnet-libs"
 
-mkdir -p "$(dirname "$JSONNET_LIBS_CACHE")"
-if [[ ! -f "$JSONNET_LIBS_CACHE" ]]; then
-  git clone -q --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_CACHE" >/dev/null
+if [[ -d "$JSONNET_LIBS_REPO" ]]; then
+  pushd "$JSONNET_LIBS_REPO" || fatal "Could not find jsonnet-libs cache dir"
+  git pull
+  popd || fatal "Could not change directory out of jsonnet-libs cache dir"
+else
+  mkdir -p "$(dirname "$JSONNET_LIBS_REPO)"
+  git clone --quiet --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_CACHE" >/dev/null
 fi
 
 action=$1
