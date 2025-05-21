@@ -17,13 +17,13 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 # we'd make 1 request per file (15+ *sonnet files), now we clone at most once per run.
 JSONNET_LIBS_REPO="$HOME/.outreach/.cache/jsonnet-libs"
 
-if [[ -d "$JSONNET_LIBS_REPO" ]]; then
+if [[ -d $JSONNET_LIBS_REPO ]]; then
   pushd "$JSONNET_LIBS_REPO" || fatal "Could not find jsonnet-libs cache dir"
   git pull
   popd || fatal "Could not change directory out of jsonnet-libs cache dir"
 else
-  mkdir -p "$(dirname "$JSONNET_LIBS_REPO)"
-  git clone --quiet --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_CACHE" >/dev/null
+  mkdir -p "$(dirname "$JSONNET_LIBS_REPO")"
+  git clone --quiet --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_REPO" >/dev/null
 fi
 
 action=$1
