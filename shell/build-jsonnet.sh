@@ -39,7 +39,7 @@ email="${DEV_EMAIL:-$(git config user.email)}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
 
 kubecfg \
-  --jpath "$JSONNET_LIBS_CACHE" \
+  --jpath "$JSONNET_LIBS_REPO" \
   --jurl http://k8s-clusters.outreach.cloud/ \
   -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" \
