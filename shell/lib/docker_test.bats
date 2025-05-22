@@ -119,13 +119,42 @@ EOF
 }
 
 @test "docker_buildx_args adds tags when CIRCLE_TAG exists and arch specified" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+EOF
+
   cat >"$YAML_FILE" <<EOF
 myservice:
 EOF
 
   CIRCLE_TAG="0.10.0" MANIFEST="$YAML_FILE" run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
   assert_output --partial " --tag myimage"
-  assert_output --partial " --tag /myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/myservice/myimage:latest-arm64"
+}
+
+@test "docker_buildx_args with BOX_DOCKER_PUSH_IMAGE_REGISTRIES" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePushRegistries:
+      - example.com
+EOF
+  cat >"$YAML_FILE" <<EOF
+myservice:
+EOF
+
+  BOX_DOCKER_PUSH_IMAGE_REGISTRIES="example.com/box1 example.com/box2" \
+    CIRCLE_TAG="0.10.0" \
+    MANIFEST="$YAML_FILE" \
+    run docker_buildx_args "myservice" "0.10.0" "myimage" "foo/Dockerfile" "arm64"
+
+  assert_output --partial " --tag example.com/box1/myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/box1/myservice/myimage:0.10.0-arm64"
+  assert_output --partial " --tag example.com/box2/myservice/myimage:latest-arm64"
+  assert_output --partial " --tag example.com/box2/myservice/myimage:0.10.0-arm64"
 }
 
 @test "get_docker_push_registries from box config" {
@@ -170,4 +199,76 @@ EOF
     DOCKER_PUSH_REGISTRIES="example.com/docker-push-registries" \
     run get_docker_push_registries
   assert_output "example.com/box1 example.com/box2"
+}
+
+@test "get_docker_pull_registry prefers BOX_DOCKER_PULL_REGISTRY" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePullRegistry: docker.imagepullregistry.example
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  BOX_DOCKER_PULL_IMAGE_REGISTRY="box.env.example" run get_docker_pull_registry
+  assert_output "box.env.example"
+}
+
+@test "get_docker_pull_registry prefers docker.imagePullRegistry over devenv.imageRegistry" {
+  cat >"$BOXPATH" <<EOF
+config:
+  docker:
+    imagePullRegistry: docker.imagepullregistry.example
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  run get_docker_pull_registry
+  assert_output "docker.imagepullregistry.example"
+}
+
+@test "get_docker_pull_registry falls back to devenv.imageRegistry" {
+  cat >"$BOXPATH" <<EOF
+config:
+  devenv:
+    imageRegistry: devenv.imageregistry.example
+EOF
+
+  run get_docker_pull_registry
+  assert_output "devenv.imageregistry.example"
+}
+
+@test "will_push_image with no related variables set returns false" {
+  run will_push_images
+  assert_output "false"
+}
+
+@test "will_push_image with only CIRCLE_TAG set returns true" {
+  CIRCLE_TAG="abcd" run will_push_images
+  assert_output "true"
+}
+
+@test "will_push_image with CIRCLE_TAG set and VERSIONING_SCHEME=semver returns true" {
+  CIRCLE_TAG="abcd" VERSIONING_SCHEME="semver" run will_push_images
+  assert_output "true"
+}
+
+@test "will_push_image with CIRCLE_TAG set and VERSIONING_SCHEME=sha returns false" {
+  CIRCLE_TAG="abcd" VERSIONING_SCHEME="sha" run will_push_images
+  assert_output "true"
+}
+
+@test "will_push_image with only VERSIONING_SCHEME=sha returns true" {
+  VERSIONING_SCHEME="sha" run will_push_images
+  assert_output "true"
+}
+
+@test "will_push_image with VERSIONING_SCHEME=sha and DRY_RUN=true returns false" {
+  VERSIONING_SCHEME="sha" DRY_RUN="true" run will_push_images
+  assert_output "false"
+}
+
+@test "will_push_image with VERSIONING_SCHEME=sha and DRY_RUN=false returns true" {
+  VERSIONING_SCHEME="sha" DRY_RUN="false" run will_push_images
+  assert_output "true"
 }

@@ -83,7 +83,7 @@ get_docker_pull_registry() {
   else
     local pullRegistry
     pullRegistry="$(get_box_field 'docker.imagePullRegistry')"
-    if [[ -n $pullRegistry ]]; then
+    if [[ -z $pullRegistry ]]; then
       pullRegistry="$(get_box_field 'devenv.imageRegistry')"
     fi
 
@@ -148,24 +148,26 @@ docker_buildx_args() {
   done
   args+=("--platform" "$platformArgumentString")
 
-  # tags are the tags to apply to the image. If we're on a git tag,
-  # we'll tag the image with that tag and latest. Otherwise, we'll just
-  # build a latest image for the name "$image" (the name of the image as
-  # shown in the manifest) instead.
-  local tags=()
-  if [[ -n $CIRCLE_TAG ]]; then
-    tags+=("$image")
-    if [[ -n $arch ]]; then
-      local remoteImageName
-      local pullRegistry
-      pullRegistry="$(get_docker_pull_registry)"
-      remoteImageName="$(determine_remote_image_name "$appName" "$pullRegistry" "$image")"
-      tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
-    fi
+  # tags are the tags to apply to the image. We always tag the image with "latest" tag
+  # for each arch and the version tag the same. Tags are only applied if we intend to push
+  # the image to registries later.
+  if [[ $(will_push_images) == "true" ]]; then
+    local tags=("$image")
+
+    local remoteImageName
+    local pushRegistries
+    pushRegistries="$(get_docker_push_registries)"
+    for pushRegistry in $pushRegistries; do
+      remoteImageName="$(determine_remote_image_name "$appName" "$pushRegistry" "$image")"
+      if [[ -n $arch ]]; then
+        tags+=("$remoteImageName:latest-$arch" "$remoteImageName:$version-$arch")
+      fi
+    done
+
+    for tag in "${tags[@]}"; do
+      args+=("--tag" "$tag")
+    done
   fi
-  for tag in "${tags[@]}"; do
-    args+=("--tag" "$tag")
-  done
 
   args+=("--output" "type=docker,dest=./docker-images/$image-$(uname -m).tar")
 
@@ -225,4 +227,25 @@ docker_manifest_images() {
   local manifest="$1"
 
   "$YQ" -r 'keys[]' "$manifest"
+}
+
+# will_push_images determines if current pipeline is configured to actually push image to a registry.
+# Decision is made based on global variables "VERSIONING_SCHEME", "DRY_RUN" and "CIRCLE_TAG".
+will_push_images() {
+  local mode="$VERSIONING_SCHEME"
+  if [[ -z $mode ]]; then
+    mode="semver"
+  fi
+
+  local result="false"
+
+  # If we're in SemVer mode and CI is running off of a tag -- we push images
+  if [[ $mode == "semver" && -n $CIRCLE_TAG ]]; then
+    result="true"
+  # If we're in SHA release mode and DRY_RUN was not explicitly set to true -- we push images
+  elif [[ $mode == "sha" && $DRY_RUN != "true" ]]; then
+    result="true"
+  fi
+
+  echo "$result"
 }

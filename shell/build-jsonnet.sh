@@ -5,6 +5,9 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
+# shellcheck source=./lib/docker.sh
+source "$SCRIPTS_DIR/lib/docker.sh"
+
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
 
@@ -18,7 +21,7 @@ version="${DEVENV_DEPLOY_VERSION:-"latest"}"
 environment="${DEVENV_DEPLOY_ENVIRONMENT:-"development"}"
 host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
 email="${DEV_EMAIL:-$(git config user.email)}"
-appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"gcr.io/outreach-docker"}"
+appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
 
 kubecfg \
   --jurl http://k8s-clusters.outreach.cloud/ \

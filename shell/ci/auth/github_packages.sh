@@ -50,7 +50,7 @@ EOF
 fi
 
 if command -v npm >/dev/null 2>&1; then
-  # Do not remove the empy newline, this ensures we never write to the same line
+  # Do not remove the empty newline, this ensures we never write to the same line
   # as something else.
   cat >>"$HOME/.npmrc" <<EOF
 
@@ -58,3 +58,5 @@ if command -v npm >/dev/null 2>&1; then
 @$ORG:registry=https://npm.pkg.github.com
 EOF
 fi
+
+echo "$GITHUB_TOKEN" | docker login ghcr.io --username="$ORG" --password-stdin

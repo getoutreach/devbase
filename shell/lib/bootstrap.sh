@@ -37,9 +37,21 @@ get_app_name() {
 }
 
 # get_app_version returns the version of the application
-# from git.
+# from git. If the VERSIONING_SCHEME variable is unset or equal to "semver", use the tag to determine version.
+# If the VERSIONING_SCHEME variable equals to "sha", uses the commit hash to determine version.
 get_app_version() {
-  git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
+  case "${VERSIONING_SCHEME:-}" in
+  "" | "semver")
+    git describe --match='v[0-9]*' --tags HEAD 2>/dev/null || echo "v0.0.0-dev"
+    ;;
+  "sha")
+    git rev-parse HEAD
+    ;;
+  *)
+    echo "Error: VERSIONING_SCHEME variable must be either 'semver' or 'sha' if set. Found: '$VERSIONING_SCHEME'"
+    exit 1
+    ;;
+  esac
 }
 
 # get_tool_version reads a version from .bootstrap/versions.yaml

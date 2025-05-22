@@ -19,15 +19,27 @@ parameters:
   no_output_timeout:
     description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
     type: string
-    default: 10m
+    default: 20m
   go_test_timeout:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
+  provision_timeout:
+    description: The timeout for completing a devenv provision, post-snapshot restore.
+    type: string
+    default: 20m
+  snapshot_restore_timeout:
+    description: The timeout for restoring a devenv snapshot.
+    type: string
+    default: 30m
   use_devspace:
     description: Use devspace to run e2e tests inside of k8s cluster. No devconfig or localizer needed.
     type: boolean
     default: false
+  test_flags:
+    description: Flags to pass to the e2e test runner
+    type: string
+    default: ""
 executor:
   name: testbed-machine
 environment:
@@ -35,7 +47,10 @@ environment:
   DEVENV_PRE_RELEASE: << parameters.devenv_pre_release >>
   GO_TEST_TIMEOUT: << parameters.go_test_timeout >>
   PROVISION_TARGET: << parameters.provision_target >>
+  PROVISION_TIMEOUT: << parameters.provision_timeout >>
+  RESTORE_TIMEOUT: << parameters.snapshot_restore_timeout >>
   USE_DEVSPACE: << parameters.use_devspace >>
+  TEST_FLAGS: << parameters.test_flags >>
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:

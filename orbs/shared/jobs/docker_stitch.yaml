@@ -7,8 +7,20 @@ parameters:
     type: string
     description: Space-separated list of registries to push the Docker image to.
     default: ""
+  versioning_scheme:
+    type: enum
+    description: One of "sha" or "semver", depending on what versions are used for deployment.
+    default: semver
+    enum: ["sha", "semver"]
+  dry_run:
+    type: enum
+    description: Skip push to registries when versioning_scheme is "sha". Intended to use in test pipeline.
+    enum: ["true", "false"]
+    default: "false"
 steps:
   - setup_docker_auth:
       push_registries: << parameters.push_registries >>
   - stitch_docker_image:
       push_registries: << parameters.push_registries >>
+      versioning_scheme: << parameters.versioning_scheme >>
+      dry_run: << parameters.dry_run >>

@@ -9,14 +9,18 @@ LIB_DIR="$DIR/../lib"
 # shellcheck source=../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../lib/logging.sh
+source "${LIB_DIR}/mise.sh"
+
 # Ensure that asdf is ready to be used
 info "🔨 Setting up asdf"
 "$CI_DIR/env/asdf.sh"
 
+ensure_mise_installed
+
 authn=(
   "npm"
   "ssh"
-  "gcr"
   "vault"
   "aws"
   "github"

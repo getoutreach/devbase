@@ -10,6 +10,8 @@ source "$DIR/../../lib/logging.sh"
 source "$DIR/../../lib/github.sh"
 # shellcheck source=../../lib/box.sh
 source "$DIR/../../lib/box.sh"
+# shellcheck source=../../lib/mise.sh
+source "$DIR/../../lib/mise.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
@@ -31,36 +33,15 @@ if [[ -n $CI ]]; then
     fatal "Vault must be configured to setup a devenv"
   fi
 
+  mise_path="$(find_mise)"
+  eval "$("$mise_path" activate bash --shims)"
+
   if ! command -v kubectl >/dev/null; then
-    info "Installing kubectl"
-    tmpFile=$(mktemp)
-    keyringLocation=/etc/apt/keyrings/kubernetes-archive-keyring.gpg
-    k8sAptSourceLocation="https://pkgs.k8s.io/core:/stable:/v1.29/deb/"
-
-    curl -fsSLo "$tmpFile" "${k8sAptSourceLocation}Release.key"
-
-    # 2023-05-23: GCP changed their key to be armored and changed the key location. Currently
-    # the file extension is incorrect. So, we handle if it is armored or not in case
-    # they end up fixing it.
-    if grep -q -- "-----BEGIN" "$tmpFile"; then
-      # Output is armored, convert to binary
-      gpg --output - --dearmor "$tmpFile" | sudo tee "$keyringLocation" >/dev/null
-      rm "$tmpFile"
-    else
-      echo "Warning: GCP apt-key is not armored. We can remove this workaround now."
-      # Otherwise, just copy the file
-      sudo cp "$tmpFile" "$keyringLocation"
-    fi
-    echo "deb [signed-by=$keyringLocation] ${k8sAptSourceLocation} /" | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
-    sudo apt-get update -y
-    sudo apt-get install -y kubectl
+    install_tool_with_mise kubectl 1.29
   fi
 
   if ! command -v kubecfg >/dev/null; then
-    info "Installing kubecfg"
-    curl -fsSL https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-amd64 >kubecfg
-    chmod +x kubecfg
-    sudo mv kubecfg /usr/local/bin/kubecfg
+    install_tool_with_mise ubi:getoutreach/kubecfg v0.28.1
   fi
 
   if ! command -v devenv >/dev/null; then

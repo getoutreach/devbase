@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+#!/usr/bin/env bash
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
@@ -29,6 +29,11 @@ teardown() {
   assert_output "v0.0.0-dev"
 }
 
+@test "get_app_version with VERSIONING_SCHEME=sha returns the commit hash" {
+  VERSIONING_SCHEME=sha run get_app_version
+  assert_output "$(git rev-parse HEAD)"
+}
+
 @test "get_app_version returns the latest version tag" {
   git switch main
   git tag v1.0.0
@@ -39,4 +44,7 @@ teardown() {
   git tag v1.1.0
   run get_app_version
   assert_output "v1.1.0"
+
+  VERSIONING_SCHEME=sha run get_app_version
+  assert_output "$(git rev-parse HEAD)"
 }

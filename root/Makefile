@@ -58,7 +58,6 @@ E2E_ENVIRONMENT     ?= development
 OSS                 ?= false
 
 # Docker build
-BASE_IMAGE          ?= gcr.io/outreach-docker/$(APP)
 DOCKERFILE          ?= deployments/$(APP)/Dockerfile
 
 .PHONY: default
