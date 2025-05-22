@@ -24,7 +24,7 @@ ensure_mise_installed() {
     fi
 
     # Install mise
-    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0x7413A06D
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
     curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
     # ensure the above is signed with the mise release key
     sh /tmp/mise-install.sh

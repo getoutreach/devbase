@@ -13,6 +13,12 @@ source "$LIB_DIR"/logging.sh
 # shellcheck source=../lib/mise.sh
 source "$LIB_DIR"/mise.sh
 
+if [[ $OSTYPE == "darwin"* ]]; then
+  brew install bash docker gnupg
+  # Rosetta is required for awscli installed by mise
+  softwareupdate --install-rosetta --agree-to-license
+fi
+
 install_tool_with_mise github-cli "$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
 
 info "Installing yq (Python)"
