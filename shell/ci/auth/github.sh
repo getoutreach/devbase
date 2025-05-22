@@ -13,6 +13,9 @@ source "$LIB_DIR/logging.sh"
 # shellcheck source=../../lib/mise.sh
 source "$LIB_DIR/mise.sh"
 
+# shellcheck source=../../lib/shell.sh
+source "$LIB_DIR/shell.sh"
+
 # Fetch the token from ghaccesstoken if not set.
 if [[ -z $GITHUB_TOKEN ]]; then
   ghaccesstoken_version="$(get_tool_version getoutreach/ci)"
