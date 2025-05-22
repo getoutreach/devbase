@@ -22,7 +22,7 @@ appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"gcr.io/outreach-docker"}"
 
 kubecfg \
   --jurl http://k8s-clusters.outreach.cloud/ \
-  --jurl https://raw.githubusercontent.com/getoutreach/jsonnet-libs/master \
+  --jurl https://jsonnet-libs.outreach.cloud/ \
   -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" \
   -V cluster="development.us-west-2" \
