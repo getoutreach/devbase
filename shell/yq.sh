@@ -13,6 +13,8 @@ LIB_DIR="${DIR}/lib"
 source "${LIB_DIR}/logging.sh"
 # shellcheck source=./lib/mise.sh
 source "${LIB_DIR}/mise.sh"
+# shellcheck source=./lib/shell.sh
+source "${LIB_DIR}/shell.sh"
 
 # find_bin looks for a binary in the PATH or in the mise environment.
 # If found, returns the path to the binary.

@@ -8,6 +8,8 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$LIB_DIR/logging.sh"
 # shellcheck source=mise.sh
 source "$LIB_DIR/mise.sh"
+# shellcheck source=shell.sh
+source "$LIB_DIR/shell.sh"
 
 ghCmd=""
 
