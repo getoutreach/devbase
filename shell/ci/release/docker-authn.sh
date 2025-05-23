@@ -21,6 +21,9 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/mise.sh
 source "${LIB_DIR}/mise.sh"
 
+# shellcheck source=../../lib/shell.sh
+source "${LIB_DIR}/shell.sh"
+
 tool_version() {
   local tool="$1"
   grep "^$tool:" "$ROOT_DIR"/versions.yaml | awk '{print $2}'

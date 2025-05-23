@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 #
 # wrapper around jsonnet for rendering files
+
+set -eo pipefail
+
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
@@ -18,9 +21,9 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 JSONNET_LIBS_REPO="$HOME/.outreach/.cache/jsonnet-libs"
 
 if [[ -d $JSONNET_LIBS_REPO ]]; then
-  pushd "$JSONNET_LIBS_REPO" || fatal "Could not find jsonnet-libs cache dir"
-  git pull
-  popd || fatal "Could not change directory out of jsonnet-libs cache dir"
+  pushd "$JSONNET_LIBS_REPO" >/dev/null || fatal "Could not find jsonnet-libs cache dir"
+  git pull --quiet
+  popd >/dev/null || fatal "Could not change directory out of jsonnet-libs cache dir"
 else
   mkdir -p "$(dirname "$JSONNET_LIBS_REPO")"
   git clone --quiet --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_REPO" >/dev/null

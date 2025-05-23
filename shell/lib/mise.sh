@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# mise related functions. Assumes logging.sh is sourced.
+# mise related functions. Assumes logging.sh and shell.sh are sourced.
 
 # Installs `mise` if it isn't already found in PATH.
 # If running as root, install to /usr/local/bin. Otherwise, install
@@ -24,10 +24,10 @@ ensure_mise_installed() {
     fi
 
     # Install mise
-    gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
-    curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
+    retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
+    retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
     # ensure the above is signed with the mise release key
-    sh /tmp/mise-install.sh
+    retry 5 5 sh /tmp/mise-install.sh
 
     unset MISE_INSTALL_PATH
 
