@@ -21,7 +21,6 @@ ensure_mise_installed
 authn=(
   "npm"
   "ssh"
-  "gcr"
   "vault"
   "aws"
   "github"
