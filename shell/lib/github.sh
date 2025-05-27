@@ -13,6 +13,7 @@ source "$LIB_DIR/shell.sh"
 
 ghCmd=""
 
+# Looks for gh in the PATH or in the mise environment.
 run_gh() {
   if [[ -z $ghCmd ]]; then
     ghCmd="$(command -v gh)"
@@ -24,6 +25,11 @@ run_gh() {
         return 1
       fi
       ghCmd="$("$mise_path" which gh)"
+
+      if [[ -z $ghCmd ]]; then
+        error "gh not found in mise environment (run_gh)" >&2
+        return 1
+      fi
     fi
   fi
 
@@ -61,11 +67,18 @@ install_latest_github_release() {
 
   info "Using $slug:${binary_name} version: ($tag)"
 
+  # Need to export GITHUB_TOKEN so that future calls to `mise`
+  # continue to use it for the configured private repos.
+  if [[ -z ${GITHUB_TOKEN:-} ]]; then
+    GITHUB_TOKEN="$(run_gh auth token)"
+    export GITHUB_TOKEN
+  fi
+
   local mise_identifier="ubi:$slug"
   # If binary_name is not the default value, set the exe parameter in
   # the mise config.
   if [[ -n $3 ]]; then
     mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
   fi
-  GITHUB_TOKEN="$(run_gh auth token)" install_tool_with_mise "$mise_identifier" "$tag"
+  install_tool_with_mise "$mise_identifier" "$tag"
 }
