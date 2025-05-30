@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/box"
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v71/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"

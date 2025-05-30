@@ -8,7 +8,6 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.107.1
 	github.com/getoutreach/localizer v1.15.11
-	github.com/google/go-github/v62 v62.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
@@ -21,7 +20,7 @@ require (
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
-	github.com/google/go-github/v71 v71.0.0 // indirect
+	github.com/google/go-github/v71 v71.0.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 )
 
