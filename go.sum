@@ -47,8 +47,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/getoutreach/gobox v1.107.1 h1:ZtZTBEDr2gjhUbtMLv9LFOjYw2YxFUMzpcuJTlC+hfY=
 github.com/getoutreach/gobox v1.107.1/go.mod h1:U50/CUzbSV/w0fzH3LZI7YBdsNc4ZRngiWOSN9WBzoA=
-github.com/getoutreach/localizer v1.15.11 h1:V+HlybtLVNxQZEJG+baE/sWKWNvdVcrdz91JeAv80sU=
-github.com/getoutreach/localizer v1.15.11/go.mod h1:kZHE7u0wDI8FyYLVPBSMHGL3eIUxTq32ckDvQn6TN9Y=
+github.com/getoutreach/localizer v1.15.12 h1:CMYIPzApU1d71yfyoUAYQ5k4XeMNgIpFcI3l4RE8xEY=
+github.com/getoutreach/localizer v1.15.12/go.mod h1:vic5L6mA2dnIpPcvNHBzOp9ECYFw5GuOCxHRk0f6D2Q=
 github.com/gliderlabs/ssh v0.3.8 h1:a4YXD1V7xMF9g5nTkdfnja3Sxy1PVDCj1Zg4Wb8vY6c=
 github.com/gliderlabs/ssh v0.3.8/go.mod h1:xYoytBv1sV0aL3CavoDuJIQNURXkkfPA/wxQ1pL1fAU=
 github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 h1:+zs/tPmkDkHx3U66DAb0lQFJrpS6731Oaa12ikc+DiI=

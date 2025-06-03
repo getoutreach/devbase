@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.107.1
-	github.com/getoutreach/localizer v1.15.11
+	github.com/getoutreach/localizer v1.15.12
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
