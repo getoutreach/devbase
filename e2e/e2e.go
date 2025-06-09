@@ -513,27 +513,26 @@ func findDevenv(ctx context.Context) (string, error) {
 		return devenvPath, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "mise", "which", "devenv")
-	bPath, err := cmd.Output()
-	if err != nil {
-		// Continue on if mise itself is not found
-		if !errors.Is(err, exec.ErrNotFound) {
-			var exitError *exec.ExitError
-			if ok := errors.As(err, &exitError); ok {
-				return "", errors.Wrapf(err, "mise which devenv failed: %s", string(exitError.Stderr))
-			}
-			return "", errors.Wrapf(err, "failed to find mise")
-		}
-	}
-
-	if len(bPath) > 0 {
-		devenvPath = strings.TrimSpace(string(bPath))
+	path, err := exec.LookPath("devenv")
+	if err == nil {
+		devenvPath = path
 		return devenvPath, nil
 	}
 
-	path, err := exec.LookPath("devenv")
+	cmd := exec.CommandContext(ctx, "mise", "which", "devenv")
+	bPath, err := cmd.Output()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to find devenv binary")
+		var exitError *exec.ExitError
+		if ok := errors.As(err, &exitError); ok {
+			return "", errors.Wrapf(err, "mise which devenv failed: %s", string(exitError.Stderr))
+		}
+		return "", errors.Wrapf(err, "failed to execute mise")
+	}
+
+	path = strings.TrimSpace(string(bPath))
+
+	if path == "" {
+		return "", errors.New("devenv binary not found in PATH or via mise")
 	}
 
 	devenvPath = path
