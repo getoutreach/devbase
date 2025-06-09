@@ -1,4 +1,4 @@
-version: v1.42.0-rc.2
+version: v1.42.0-rc.3
 modules:
     - name: github.com/getoutreach/devbase
       url: file://./
