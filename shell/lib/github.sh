@@ -21,13 +21,13 @@ run_gh() {
       local mise_path
       mise_path="$(find_mise)"
       if [[ -z $mise_path ]]; then
-        error "gh and mise not found (run_gh)" >&2
+        error "gh and mise not found (run_gh)"
         return 1
       fi
       ghCmd="$("$mise_path" which gh)"
 
       if [[ -z $ghCmd ]]; then
-        error "gh not found in mise environment (run_gh)" >&2
+        error "gh not found in mise environment (run_gh)"
         return 1
       fi
     fi
