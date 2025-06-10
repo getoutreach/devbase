@@ -112,10 +112,10 @@ echo "Creating unstable release ($app_version)"
 
 make release APP_VERSION="$app_version"
 # delete unstable release and unstable tag if it exists
-gh release delete unstable -y || true
+run_gh release delete unstable -y || true
 git tag --delete unstable || true
 git push --delete origin unstable || true
 # create release and upload assets to it
-gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
+run_gh release create unstable --prerelease=true --generate-notes ./dist/*.tar.gz ./dist/checksums.txt
 
 run_unstable_include
