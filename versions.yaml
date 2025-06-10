@@ -17,7 +17,10 @@ protoc-gen-validate: 0.6.7
 protoc-gen-go: 1.5.2
 protoc-gen-doc: 1.5.1
 node-grpc-tools: 1.11.2
-ruby-grpc-tools: 1.62.0
+# When updating this version, make sure that it's compatible and/or in sync with the
+# Ruby gRPC API client gem's `grpc` dependency:
+# https://github.com/getoutreach/stencil-golang/blob/main/templates/api/clients/ruby/client.gemspec.tpl
+ruby-grpc-tools: 1.72.0
 node-ts-grpc-tools: 5.3.2
 
 # latest Go protobuf modules
