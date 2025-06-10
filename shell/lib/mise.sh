@@ -23,6 +23,8 @@ ensure_mise_installed() {
       export MISE_INSTALL_PATH=/usr/local/bin/mise
     fi
 
+    info "Installing mise to ${MISE_INSTALL_PATH:-$HOME/.local/bin/mise}"
+
     # Install mise
     retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
     retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
@@ -34,6 +36,7 @@ ensure_mise_installed() {
     local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
 
     if [[ -n $BASH_ENV ]]; then
+      info_sub "Adding mise to BASH_ENV: $BASH_ENV"
       # shellcheck disable=SC2016
       # Why: Appending a PATH to BASH_ENV
       {
@@ -51,6 +54,7 @@ ensure_mise_installed() {
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     fi
+    info_sub "Activating mise in current shell"
     eval "$(mise activate bash --shims)"
   fi
 }
