@@ -36,6 +36,11 @@ run_gh() {
   "$ghCmd" "$@"
 }
 
+# github_token is a convenience wrapper around `gh auth token`.
+github_token() {
+  run_gh auth token
+}
+
 # install_latest_github_release downloads the latest version of a tool
 # from Github. Requires the 'gh' cli to be installed either directly or via mise.
 #
@@ -70,7 +75,7 @@ install_latest_github_release() {
   # Need to export GITHUB_TOKEN so that future calls to `mise`
   # continue to use it for the configured private repos.
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
-    GITHUB_TOKEN="$(run_gh auth token)"
+    GITHUB_TOKEN="$(github_token)"
     export GITHUB_TOKEN
   fi
 

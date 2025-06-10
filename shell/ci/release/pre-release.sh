@@ -10,6 +10,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/../../lib/yaml.sh"
 # shellcheck source=./../../lib/bootstrap.sh
 source "$DIR/../../lib/bootstrap.sh"
+# shellcheck source=./../../lib/github.sh
+source "$DIR/../../lib/github.sh"
 
 # CIRCLE_BRANCH is the current branch we're on. If we're unable to
 # determine the current branch (e.g., not running in CI) we fallback to
@@ -81,7 +83,7 @@ if [[ $COMMIT_MESSAGE =~ "chore: Release" ]]; then
   echo "Creating prerelease to rc channel"
 
   # Retrieve the GH_TOKEN
-  GH_TOKEN=$(gh auth token)
+  GH_TOKEN=$(github_token)
   if [[ -z $GH_TOKEN ]]; then
     echo "Failed to read Github personal access token" >&2
   fi

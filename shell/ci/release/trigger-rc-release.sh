@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This script is to add chore: Release comit to the default pre-release
-# branch to trigger pre-release.
+# This script is to add a "chore: Release" commit to the default pre-release
+# branch, to trigger a pre-release.
 set -eo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
@@ -10,6 +10,8 @@ source "$DIR/../../lib/yaml.sh"
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=./../../lib/box.sh
 source "$DIR/../../lib/box.sh"
+# shellcheck source=./../../lib/github.sh
+source "$DIR/../../lib/github.sh"
 
 if [[ "$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$(get_service_yaml)")" != "true" ]]; then
   echo "releaseOptions.enablePrereleases is not true, skipping rc release"
@@ -33,7 +35,7 @@ git checkout $prereleaseBranch
 
 # Dryrun the semantic-release on prereleaseBranch to check if there is changes to release.
 # If not skip the release.
-GH_TOKEN=$(gh auth token)
+GH_TOKEN=$(github_token)
 releaseOutput=$(NPM_TOKEN='' GH_TOKEN=$GH_TOKEN yarn --frozen-lockfile semantic-release -d)
 echo "$releaseOutput"
 

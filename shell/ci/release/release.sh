@@ -5,10 +5,13 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # Retrieve the GH_TOKEN
-GH_TOKEN="$(gh auth token)"
+GH_TOKEN="$(github_token)"
 if [[ -z $GH_TOKEN ]]; then
-  echo "Failed to read Github personal access token" >&2
+  echo "Failed to read GitHub personal access token" >&2
 fi
 
 send_failure_notification() {
