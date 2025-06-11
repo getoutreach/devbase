@@ -3,6 +3,10 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
 
 # Setup git user name / email only in CI
 if [[ -n $CI ]]; then
@@ -39,7 +43,7 @@ git checkout "$CIRCLE_BRANCH"
 if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
   git merge --squash "$OLD_CIRCLE_BRANCH"
   git commit -m "$COMMIT_MESSAGE"
-  GH_TOKEN="$(gh auth token)"
+  GH_TOKEN="$(github_token)"
   if [[ -z $GH_TOKEN ]]; then
     echo "Failed to read Github personal access token" >&2
   fi

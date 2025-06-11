@@ -21,19 +21,24 @@ run_gh() {
       local mise_path
       mise_path="$(find_mise)"
       if [[ -z $mise_path ]]; then
-        error "gh and mise not found (run_gh)" >&2
+        error "gh and mise not found (run_gh)"
         return 1
       fi
       ghCmd="$("$mise_path" which gh)"
 
       if [[ -z $ghCmd ]]; then
-        error "gh not found in mise environment (run_gh)" >&2
+        error "gh not found in mise environment (run_gh)"
         return 1
       fi
     fi
   fi
 
   "$ghCmd" "$@"
+}
+
+# github_token is a convenience wrapper around `gh auth token`.
+github_token() {
+  run_gh auth token
 }
 
 # install_latest_github_release downloads the latest version of a tool
@@ -70,7 +75,7 @@ install_latest_github_release() {
   # Need to export GITHUB_TOKEN so that future calls to `mise`
   # continue to use it for the configured private repos.
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
-    GITHUB_TOKEN="$(run_gh auth token)"
+    GITHUB_TOKEN="$(github_token)"
     export GITHUB_TOKEN
   fi
 
