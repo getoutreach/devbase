@@ -13,6 +13,8 @@ source "$SCRIPTS_DIR/lib/logging.sh"
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/yaml.sh
 source "$SCRIPTS_DIR/lib/yaml.sh"
+# shellcheck source=./lib/sed.sh
+source "$SCRIPTS_DIR/lib/sed.sh"
 
 # SUBDIR is the directory to run protoc in relative to the current root
 # (normally /api). If not set, defaults to "" (no sub directory).
@@ -172,7 +174,7 @@ if has_feature "validation"; then
 fi
 
 delete_validate() {
-  sed -i '' '/validate_pb/d' "$1" 2>/dev/null || sed -i '/validate_pb/d' "$1"
+  sed_in_place '/validate_pb/d' "$1"
 }
 
 # Make docs output directory if it doesn't exist.

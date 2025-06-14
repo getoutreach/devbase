@@ -10,6 +10,8 @@ LIB_DIR="$SCRIPTS_DIR/lib"
 source "$LIB_DIR/bootstrap.sh"
 # shellcheck source=../lib/logging.sh
 source "$LIB_DIR/logging.sh"
+# shellcheck source=../lib/sed.sh
+source "$LIB_DIR/sed.sh"
 
 appName="$(get_app_name)"
 clientDir="$(get_repo_directory)/api/clients/ruby"
@@ -17,14 +19,13 @@ versionFile="$clientDir/lib/${appName}_client/version.rb"
 
 newVersion="$1"
 if [[ -z $newVersion ]]; then
-  echo "Error: Must pass in version" >&2
-  exit 1
+  fatal "Must pass in version"
 fi
 
-echo "Setting package version to $newVersion" >&2
-sed -i.bak "/VERSION /s/=.*/= \"$newVersion\"/" "$versionFile" && rm "$versionFile.bak"
+info "Setting package version to $newVersion"
+sed_in_place "/VERSION /s/=.*/= \"$newVersion\"/" "$versionFile"
 
-echo "Building ruby package"
+info "Building ruby package"
 pushd "$clientDir" >/dev/null || exit 1
 bundle install
 bundle exec rake build
