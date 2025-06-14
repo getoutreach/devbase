@@ -8,24 +8,10 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
+# shellcheck source=./lib/sed.sh
+source "$DIR/lib/sed.sh"
 # shellcheck source=./lib/yaml.sh
 source "$DIR/lib/yaml.sh"
-
-sed_replace() {
-  local pattern=$1
-  local replacement=$2
-  local file=$3
-  local SED
-  case "$OSTYPE" in
-  darwin*)
-    SED="sed -i ''"
-    ;;
-  linux*)
-    SED="sed -i"
-    ;;
-  esac
-  $SED "s|$pattern|$replacement|g" "$file"
-}
 
 sync_cortex() {
   info "Syncing cortex.yaml"
