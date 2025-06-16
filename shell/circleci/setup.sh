@@ -24,10 +24,10 @@ ensure_mise_installed
 authn=(
   "npm"
   "ssh"
-  "vault"
   "aws"
   "github"
   "github_packages"
+  "vault"
 )
 
 for authName in "${authn[@]}"; do
