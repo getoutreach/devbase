@@ -27,7 +27,6 @@ authn=(
   "aws"
   "github"
   "github_packages"
-  "vault"
 )
 
 for authName in "${authn[@]}"; do
@@ -47,7 +46,7 @@ if [[ -n $PRE_SETUP_SCRIPT ]]; then
   "${PRE_SETUP_SCRIPT}"
 fi
 
-# Setup a box stub
+# Set up a box stub
 boxPath="$HOME/.outreach/.config/box/box.yaml"
 mkdir -p "$(dirname "$boxPath")"
 cat >"$boxPath" <<EOF
@@ -66,6 +65,12 @@ source "${LIB_DIR}/box.sh"
 
 # Ensure we have the latest box config
 download_box
+
+# Authenticate with Vault now that we have the box config
+info "🔒 Setting up Vault access"
+
+# shellcheck source=../ci/auth/vault.sh
+"$CI_DIR/auth/vault.sh"
 
 # Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
 echo "$CACHE_VERSION" >cache-version.txt
