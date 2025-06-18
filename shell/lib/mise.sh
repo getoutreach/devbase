@@ -124,3 +124,20 @@ find_mise() {
     return 1
   fi
 }
+
+# find_tool TOOL_NAME
+#
+# Prints the path to a tool from either PATH or in the
+# mise environment.
+find_tool() {
+  local tool_name="$1"
+  if ! command -v "$tool_name" 2>/dev/null; then
+    local mise_path
+    mise_path="$(find_mise)"
+    if [[ -z $mise_path ]]; then
+      error "mise not found (find_tool)"
+      return 1
+    fi
+    "$mise_path" which "$tool_name"
+  fi
+}

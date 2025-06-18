@@ -16,20 +16,10 @@ ghCmd=""
 # Looks for gh in the PATH or in the mise environment.
 run_gh() {
   if [[ -z $ghCmd ]]; then
-    ghCmd="$(command -v gh)"
+    ghCmd="$(find_tool gh)"
     if [[ -z $ghCmd ]]; then
-      local mise_path
-      mise_path="$(find_mise)"
-      if [[ -z $mise_path ]]; then
-        error "gh and mise not found (run_gh)"
-        return 1
-      fi
-      ghCmd="$("$mise_path" which gh)"
-
-      if [[ -z $ghCmd ]]; then
-        error "gh not found in mise environment (run_gh)"
-        return 1
-      fi
+      error "gh not found in mise environment (run_gh)"
+      return 1
     fi
   fi
 

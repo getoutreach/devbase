@@ -14,6 +14,9 @@ source "$SCRIPTS_DIR/lib/docker.sh"
 # shellcheck source=./lib/logging.sh
 source "$SCRIPTS_DIR/lib/logging.sh"
 
+# shellcheck source=./lib/mise.sh
+source "$SCRIPTS_DIR/lib/mise.sh"
+
 # Cache a local copy of the `jsonnet-libs` directory on disk if it doesn't yet exist. Do this
 # because it helps us avoid accessing jsonnet-libs via raw.githubusercontent.com, which has
 # aggressive rate limits that we can easily hit. Estimated API usage reduction is +10x since before
@@ -41,7 +44,7 @@ host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
 email="${DEV_EMAIL:-$(git config user.email || echo 'devbase@outreach.io')}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
 
-kubecfg \
+"$(find_tool kubecfg)" \
   --jpath "$JSONNET_LIBS_REPO" \
   --jurl http://k8s-clusters.outreach.cloud/ \
   -n "$namespace" \
