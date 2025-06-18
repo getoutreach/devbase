@@ -17,6 +17,8 @@ source "$LIB_DIR/logging.sh"
 source "$LIB_DIR/github.sh"
 # shellcheck source=../../lib/box.sh
 source "$LIB_DIR/box.sh"
+# shellcheck source=../../lib/mise.sh
+source "$LIB_DIR/mise.sh"
 
 # DELIBIRD_ENABLED denotes if the delibird log uploader should be
 # enabled or not. If the value is "true", then the delibird log uploader
@@ -32,11 +34,7 @@ export VAULT_ADDR
 
 find_vault() {
   local vault_path
-  vault_path="$(command -v vault)"
-  if [[ -z $vault_path ]]; then
-    # If the vault command is not found, try to find it in the PATH.
-    vault_path="$(mise which vault)"
-  fi
+  vault_path="$(find_tool vault)"
 
   if [[ -z $vault_path ]]; then
     fatal "Vault command not found. Please install Vault or ensure it is in your PATH."
