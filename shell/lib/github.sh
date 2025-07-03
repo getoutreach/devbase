@@ -77,3 +77,25 @@ install_latest_github_release() {
   fi
   install_tool_with_mise "$mise_identifier" "$tag"
 }
+
+# Fetch the token from getoutreach/ci:ghaccesstoken if not set.
+bootstrap_github_token() {
+  local version
+  if [[ -z $GITHUB_TOKEN ]]; then
+    version="$(get_tool_version getoutreach/ci)"
+    if ghaccesstoken_exists "$version"; then
+      mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
+      install_tool_with_mise ubi:getoutreach/ci "$version"
+    fi
+    GITHUB_TOKEN="$("$(find_tool ghaccesstoken)" --skip-update token "$@")"
+    export GITHUB_TOKEN
+  fi
+}
+
+ghaccesstoken_exists() {
+  local version="$1"
+  local ghaccesstoken_path
+  ghaccesstoken_path="$(find_tool ghaccesstoken)"
+  test -n "$ghaccesstoken_path" -a "$("$ghaccesstoken_path" --skip-update --version)" -eq "$version"
+  return $?
+}

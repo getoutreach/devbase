@@ -16,13 +16,12 @@ source "$LIB_DIR/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "$LIB_DIR/shell.sh"
 
-# Fetch the token from ghaccesstoken if not set.
-if [[ -z $GITHUB_TOKEN ]]; then
-  ghaccesstoken_version="$(get_tool_version getoutreach/ci)"
-  mise_tool_config_set ubi:getoutreach/ci version "$ghaccesstoken_version" exe ghaccesstoken
-  install_tool_with_mise ubi:getoutreach/ci "$ghaccesstoken_version"
-  GITHUB_TOKEN="$("$(mise which ghaccesstoken)" --skip-update token)"
-fi
+# shellcheck source=../../lib/github.sh
+source "$LIB_DIR/github.sh"
+
+# shellcheck disable=SC2119
+# Why: no extra args needed to pass to ghaccesstoken in this case.
+bootstrap_github_token
 
 # Configure the gh CLI, and tools that depend on it
 mkdir -p "$HOME/.config/gh"

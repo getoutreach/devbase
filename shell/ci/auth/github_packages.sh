@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 # Sets up Github Packages for a variety of languages.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-SHELL_DIR="$DIR/../.."
 LIB_DIR="${DIR}/../../lib"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
-# Fetch the token from ghaccesstoken if not set.
-if [[ -z $GITHUB_TOKEN ]]; then
-  GITHUB_TOKEN=$("$SHELL_DIR/gobin.sh" \
-    "github.com/getoutreach/ci/cmd/ghaccesstoken@$(get_tool_version "getoutreach/ci")" \
-    --skip-update token --env-prefix "GHACCESSTOKEN_PAT")
-fi
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
+bootstrap_github_token --env-prefix GHACCESSTOKEN_PAT
 
 # Allow setting for using static auth
 if [[ -z $GITHUB_USERNAME ]]; then
