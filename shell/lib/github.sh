@@ -83,7 +83,7 @@ bootstrap_github_token() {
   local version
   if [[ -z $GITHUB_TOKEN ]]; then
     version="$(get_tool_version getoutreach/ci)"
-    if ghaccesstoken_exists "$version"; then
+    if ! ghaccesstoken_exists "$version"; then
       mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
       install_tool_with_mise ubi:getoutreach/ci "$version"
     fi
