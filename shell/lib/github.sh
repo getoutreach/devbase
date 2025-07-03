@@ -95,7 +95,12 @@ bootstrap_github_token() {
 ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
-  ghaccesstoken_path="$(find_tool ghaccesstoken)"
-  test -n "$ghaccesstoken_path" -a "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" -eq "$version"
-  return $?
+  ghaccesstoken_path="$(mise which ghaccesstoken 2>/dev/null)"
+  if [[ -z $ghaccesstoken_path ]]; then
+    return 1
+  fi
+  if [[ "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" != "$version" ]]; then
+    return 1
+  fi
+  return 0
 }
