@@ -96,6 +96,6 @@ ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
   ghaccesstoken_path="$(find_tool ghaccesstoken)"
-  test -n "$ghaccesstoken_path" -a "$("$ghaccesstoken_path" --skip-update --version)" -eq "$version"
+  test -n "$ghaccesstoken_path" -a "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" -eq "$version"
   return $?
 }
