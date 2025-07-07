@@ -22,10 +22,12 @@ stencil_module_version() {
   "$DIR/yq.sh" --raw-output ".modules[] | select(.name == \"$module_name\").version" stencil.lock
 }
 
-stencilCircleCIVersion="$(stencil_module_version github.com/getoutreach/stencil-circleci)"
-if [[ -n $stencilCircleCIVersion ]]; then
-  echo "stencil-circleci is in use, skipping CircleCI orb sync"
-  exit 0
+if [[ $# == 0 ]]; then
+  stencilCircleCIVersion="$(stencil_module_version github.com/getoutreach/stencil-circleci)"
+  if [[ -n $stencilCircleCIVersion ]]; then
+    echo "stencil-circleci is in use, skipping CircleCI orb sync"
+    exit 0
+  fi
 fi
 
 devbaseVersion="$(stencil_module_version github.com/getoutreach/devbase)"
@@ -41,5 +43,7 @@ fi
 org="$(get_box_field org)"
 for config in .circleci/config.yml "$@"; do
   sed_replace "$org/shared@.\+" "$org/shared@$replaceVersion" "$config"
-  circleci config validate --org-slug="github/$org" "$config"
+  if [[ -z $SKIP_VALIDATE ]]; then
+    circleci config validate --org-slug="github/$org" "$config"
+  fi
 done
