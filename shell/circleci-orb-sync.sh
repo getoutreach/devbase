@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 #
 # Syncs the CircleCI orb definition with the version of devbase in the
-# stencil.lock file.  This is only necessary for repositories which do
-# not use stencil-circleci to manage the CircleCI config.
+# stencil.lock file.  By default, it only updates .circleci/config.yml
+# (the default config file), but this is only necessary for repositories
+# which do not use stencil-circleci to manage the CircleCI config.
+# The default config file is validated, others are not (as they may not
+# be config files per se, such as orb definitions).
 
 set -euo pipefail
 
@@ -41,9 +44,11 @@ else
 fi
 
 org="$(get_box_field org)"
+skipValidate=
 for config in .circleci/config.yml "$@"; do
   sed_replace "$org/shared@.\+" "$org/shared@$replaceVersion" "$config"
-  if [[ -z $SKIP_VALIDATE ]]; then
+  if [[ -z $skipValidate ]]; then
     circleci config validate --org-slug="github/$org" "$config"
   fi
+  skipValidate=true
 done
