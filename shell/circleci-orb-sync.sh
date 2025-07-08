@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 #
 # Syncs the CircleCI orb definition with the version of devbase in the
-# stencil.lock file.  This is only necessary for repositories which do
-# not use stencil-circleci to manage the CircleCI config.
+# stencil.lock file.  By default, it only updates .circleci/config.yml
+# (the default config file), but this is only necessary for repositories
+# which do not use stencil-circleci to manage the CircleCI config.
+# The default config file is validated, others are not (as they may not
+# be config files per se, such as orb definitions).
 
 set -euo pipefail
 
@@ -22,10 +25,12 @@ stencil_module_version() {
   "$DIR/yq.sh" --raw-output ".modules[] | select(.name == \"$module_name\").version" stencil.lock
 }
 
-stencilCircleCIVersion="$(stencil_module_version github.com/getoutreach/stencil-circleci)"
-if [[ -n $stencilCircleCIVersion ]]; then
-  echo "stencil-circleci is in use, skipping CircleCI orb sync"
-  exit 0
+if [[ $# == 0 ]]; then
+  stencilCircleCIVersion="$(stencil_module_version github.com/getoutreach/stencil-circleci)"
+  if [[ -n $stencilCircleCIVersion ]]; then
+    echo "stencil-circleci is in use, skipping CircleCI orb sync"
+    exit 0
+  fi
 fi
 
 devbaseVersion="$(stencil_module_version github.com/getoutreach/devbase)"
@@ -39,7 +44,11 @@ else
 fi
 
 org="$(get_box_field org)"
+skipValidate=
 for config in .circleci/config.yml "$@"; do
   sed_replace "$org/shared@.\+" "$org/shared@$replaceVersion" "$config"
-  circleci config validate --org-slug="github/$org" "$config"
+  if [[ -z $skipValidate ]]; then
+    circleci config validate --org-slug="github/$org" "$config"
+  fi
+  skipValidate=true
 done
