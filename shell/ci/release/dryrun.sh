@@ -34,8 +34,8 @@ git checkout "$CIRCLE_BRANCH"
 git pull
 
 git checkout "$OLD_CIRCLE_BRANCH"
-# Grab the first commit's message
-COMMIT_MESSAGE=$(git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --oneline | tail -1 | sed -E 's/^[a-zA-Z0-9]+ //')
+# Merge all of the commit messages from the branch into a single commit message.
+COMMIT_MESSAGE="$(git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --reverse --format=%B)"
 git checkout "$CIRCLE_BRANCH"
 
 # Squash our branch onto the HEAD (default) branch to mimic
