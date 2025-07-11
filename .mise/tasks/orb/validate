@@ -13,4 +13,4 @@ source "$LIB_DIR/box.sh"
 
 org="$(get_box_field org)"
 
-exec circleci org validate orb.yml --org-slug "github/$org"
+exec circleci orb validate orb.yml --org-slug "github/$org"
