@@ -6,17 +6,25 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(sh bash bats)
+shebang_paths=(.mise/tasks)
+
+find_shell_files() {
+  (
+    find_files_with_extensions "${extensions[@]}"
+    find_files_with_shebang "/usr/bin/env bash" "${shebang_paths[@]}"
+  ) | sort | uniq
+}
 
 shellcheck_linter() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
+  find_shell_files | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
 }
 
 shellfmt_linter() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLFMTPATH" -s -d
+  find_shell_files | xargs -n40 "$SHELLFMTPATH" -s -d
 }
 
 shellfmt_formatter() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$SHELLFMTPATH" -w -l
+  find_shell_files | xargs -n40 "$SHELLFMTPATH" -w -l
 }
 
 linter() {
