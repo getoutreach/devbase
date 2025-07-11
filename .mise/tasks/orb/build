@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Build the CircleCI orb."
+#MISE sources=["{{ get_env(name="CIRCLECI_ORB_PATH")}}/**/*"]
+#MISE outputs=["orb.yml"]
+
+set -euo pipefail
+
+if [[ -z ${CIRCLECI_ORB_PATH:-} ]]; then
+  echo "CIRCLECI_ORB_PATH is not set. Please set it to the name of your CircleCI orb."
+  exit 1
+fi
+
+exec circleci orb pack "$CIRCLECI_ORB_PATH" >orb.yml

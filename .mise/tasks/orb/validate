@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Validate the CircleCI orb."
+#MISE tools.circleci="latest"
+#MISE depends=["orb:build"]
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/box.sh
+source "$LIB_DIR/box.sh"
+
+org="$(get_box_field org)"
+
+exec circleci org validate orb.yml --org-slug "github/$org"
