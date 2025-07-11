@@ -11,7 +11,7 @@ bats_load_library "bats-assert/load.bash"
 setup() {
   TMP_GITDIR=$(mktemp -d)
   git init --quiet "$TMP_GITDIR"
-  pushd "$TMP_GITDIR" || exit 1
+  pushd "$TMP_GITDIR" >/dev/null || exit 1
   git config user.name "Test User"
   git config user.email "test@example.com"
 
@@ -22,18 +22,21 @@ setup() {
   # Add and commit the script
   git add .mise/tasks/foo/bash_script
   git add .mise/tasks/foo/python_script
-  git commit -m "Initial commit"
+  git commit --quiet -m "Initial commit"
 
   echo -e "#!/usr/bin/env bash\n\necho 'Untracked file!'" >.mise/tasks/foo/untracked_bash_script
 }
 
 teardown() {
-  popd || exit 1
+  popd >/dev/null || exit 1
   rm -rf "$TMP_GITDIR"
 }
 
 @test "find_files_with_shebang should find extension-less bash scripts in a git repo" {
   run find_files_with_shebang "/usr/bin/env bash" ".mise/tasks"
   assert_success
-  assert_output ".mise/tasks/foo/bash_script\n.mise/tasks/foo/untracked_bash_script"
+  assert_output - <<EOF
+.mise/tasks/foo/bash_script
+.mise/tasks/foo/untracked_bash_script
+EOF
 }

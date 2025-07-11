@@ -212,5 +212,5 @@ find_files_with_shebang() {
     if [[ "$(head -n 1 "$file")" == "#!$shebang" ]]; then
       echo "$file"
     fi
-  done
+  done | sort | uniq
 }
