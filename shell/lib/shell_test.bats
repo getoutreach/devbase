@@ -12,6 +12,8 @@ setup() {
   TMP_GITDIR=$(mktemp -d)
   git init --quiet "$TMP_GITDIR"
   pushd "$TMP_GITDIR" || exit 1
+  git config user.name "Test User"
+  git config user.email "test@example.com"
 
   mkdir -p .mise/tasks/foo
   echo -e "#!/usr/bin/env bash\n\necho 'Hello, World!'" >.mise/tasks/foo/bash_script
