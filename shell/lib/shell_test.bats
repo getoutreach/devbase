@@ -3,7 +3,7 @@
 # - SC2155: Declare and assign separately to avoid masking return values.
 # shellcheck disable=SC2155
 
-load yaml.sh
+load shell.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
