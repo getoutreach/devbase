@@ -10,7 +10,7 @@ source "$DIR/languages/nodejs.sh"
 extensions=(yaml yml json md ts)
 
 PRETTIER="node_modules/.bin/prettier"
-if [[ ! -f $PRETTIER ]] && [[ ! -f package.json ]]; then
+if [[ ! -f $PRETTIER ]] && ([[ ! -f package.json ]] || ! grep -qw prettier package.json); then
   # Try to find prettier installed via mise
   PRETTIER="$(mise which prettier)"
   if [[ -z $PRETTIER ]]; then
