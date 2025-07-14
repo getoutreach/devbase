@@ -11,4 +11,4 @@ if ! command -v circleci &>/dev/null; then
   echo "Hint: brew install circleci" >&2
   exit 1
 fi
-make validate-orb || exit 1
+mise run orb:validate || exit 1
