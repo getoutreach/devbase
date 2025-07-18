@@ -29,7 +29,7 @@ ensure_mise_installed() {
     retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
     retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >/tmp/mise-install.sh
     # ensure the above is signed with the mise release key
-    retry 5 5 sh -c "MISE_VERSION=\"2025.7.12\" /tmp/mise-install.sh"
+    retry 5 5 sh -c 'MISE_VERSION="2025.7.12" /tmp/mise-install.sh'
 
     unset MISE_INSTALL_PATH
 
