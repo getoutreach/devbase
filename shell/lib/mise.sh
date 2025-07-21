@@ -62,9 +62,13 @@ install_mise() {
   local install_script=/tmp/mise-install.sh
 
   if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
-    retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
+    if ! retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d; then
+      fatal "Could not import mise GPG release key"
+    fi
     # ensure the install script is signed with the mise release key
-    retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >"$install_script"
+    if ! retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >"$install_script"; then
+      fatal "Could not download or verify mise install script"
+    fi
   fi
   (
     set +e
