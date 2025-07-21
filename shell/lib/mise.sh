@@ -61,7 +61,7 @@ ensure_mise_installed() {
 install_mise() {
   local install_script=/tmp/mise-install.sh
 
-  if [[ ! -f "$install_script" || "$(wc -c "$install_script")" -eq 0 ]]; then
+  if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
     retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d
     # ensure the install script is signed with the mise release key
     retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >"$install_script"
@@ -75,7 +75,7 @@ install_mise() {
       fi
       set -e
       distro="$(grep ^ID= /etc/os-release | cut -d= -f2-)"
-      if [[ "$distro" != "ubuntu" ]]; then
+      if [[ $distro != "ubuntu" ]]; then
         fatal "Could not install mise"
       fi
       warn "Installing mise via apt, mise will be installed to /usr/bin/mise instead"
@@ -90,7 +90,7 @@ install_mise() {
 install_mise_via_apt() {
   local keyrings_dir=/etc/apt/keyrings
   sudo install --directory --mode=755 "$keyrings_dir"
-  wget --quiet --output-document - https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee "$keyrings_dir"/mise-archive-keyring.gpg 1> /dev/null
+  wget --quiet --output-document - https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee "$keyrings_dir"/mise-archive-keyring.gpg 1>/dev/null
   echo "deb [signed-by=$keyrings_dir/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
   sudo apt update
   sudo apt install --yes mise
