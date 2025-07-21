@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#MISE description="Validate the CircleCI orb."
+#MISE tools.circleci="latest"
+#MISE depends=["orb:build"]
+#
+# This script validates the CircleCI orb using the CircleCI CLI.
+# If the orb requires a private orb, it requires:
+# * the CIRCLECI_ORB_REQUIRES_PRIVATE_ORB environment variable to be
+#   set to any non-empty value
+# * Running locally, `circleci` to be installed and logged into CircleCI
+# * Running inside CircleCI, the CIRCLECI_API_TOKEN environment variable
+#   to be set to your CircleCI API token, usually via the appropriate context
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/box.sh
+source "$LIB_DIR/box.sh"
+
+# shellcheck source=../../../shell/lib/logging.sh
+source "$LIB_DIR/logging.sh"
+
+args=()
+
+if [[ -n ${CIRCLECI_ORB_REQUIRES_PRIVATE_ORB:-} ]]; then
+  if [[ -n ${CI:-} ]]; then
+    if [[ -z ${CIRCLECI_API_TOKEN:-} ]]; then
+      fatal "CIRCLECI_API_TOKEN is not set. Please set it to your CircleCI API token."
+    fi
+    args+=(--token "$CIRCLECI_API_TOKEN")
+  fi
+  org="$(get_box_field org)"
+  args+=(--org-slug "github/$org")
+fi
+
+exec circleci orb validate orb.yml "${args[@]}"
