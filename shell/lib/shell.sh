@@ -197,3 +197,20 @@ find_files_with_extensions() {
     # Remove deleted files from the list.
     grep -vE "^$(git ls-files --deleted | paste -sd "|" -)$"
 }
+
+# find_files_with_shebang <shebang> <path_prefixes...>
+#
+# Finds all files via `git ls-files` that start with the given shebang.
+# Useful for finding executable scripts without file extensions, of a
+# certain file type.
+find_files_with_shebang() {
+  local shebang="$1"
+  shift
+
+  # Find all files that start with the given shebang and one of the given path prefixes.
+  git ls-files --cached --others --modified --exclude-standard "$@" | while read -r file; do
+    if [[ "$(head -n 1 "$file")" == "#!$shebang" ]]; then
+      echo "$file"
+    fi
+  done | sort | uniq
+}

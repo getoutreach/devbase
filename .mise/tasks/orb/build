@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Build the CircleCI orb."
+#MISE sources=["{{ get_env(name="CIRCLECI_ORB_PATH")}}/**/*"]
+#MISE outputs=["orb.yml"]
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/logging.sh
+source "$LIB_DIR/logging.sh"
+
+if [[ -z ${CIRCLECI_ORB_PATH:-} ]]; then
+  fatal "CIRCLECI_ORB_PATH is not set. Please set it to the path of your CircleCI orb."
+fi
+
+exec circleci orb pack "$CIRCLECI_ORB_PATH" >orb.yml
