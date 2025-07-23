@@ -9,14 +9,16 @@ source "$DIR/languages/nodejs.sh"
 # shellcheck disable=SC2034
 extensions=(yaml yml json md ts)
 
-PRETTIER="node_modules/.bin/prettier"
-if [[ ! -f $PRETTIER && (! -f package.json || "$(gojq --raw-output .devDependencies.prettier package.json)" == "null") ]]; then
-  # Try to find prettier installed via mise
-  PRETTIER="$(mise which prettier)"
-  if [[ -z $PRETTIER ]]; then
-    fatal "prettier not found in repo, make sure 'npm:prettier' is defined in 'mise.toml' and you have run 'mise install'"
+find_prettier() {
+  PRETTIER="node_modules/.bin/prettier"
+  if [[ ! -f $PRETTIER && (! -f package.json || "$(gojq --raw-output .devDependencies.prettier package.json)" == "null") ]]; then
+    # Try to find prettier installed via mise
+    PRETTIER="$(mise which prettier)"
+    if [[ -z $PRETTIER ]]; then
+      fatal "prettier not found in repo, make sure 'npm:prettier' is defined in 'mise.toml' and you have run 'mise install'"
+    fi
   fi
-fi
+}
 
 prettier_log_level_flag() {
   if [[ $("$PRETTIER" --version) =~ ^2 ]]; then
@@ -29,6 +31,8 @@ prettier_log_level_flag() {
 prettier_linter() {
   yarn_install_if_needed >/dev/null
 
+  find_prettier
+
   local log_level_flag
   log_level_flag="$(prettier_log_level_flag)"
 
@@ -38,6 +42,8 @@ prettier_linter() {
 
 prettier_formatter() {
   yarn_install_if_needed >/dev/null
+
+  find_prettier
 
   local log_level_flag
   log_level_flag="$(prettier_log_level_flag)"
