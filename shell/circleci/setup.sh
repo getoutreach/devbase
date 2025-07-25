@@ -24,10 +24,8 @@ fi
 info "🔨 Setting up mise 🧑‍🍳"
 ensure_mise_installed
 
-if [[ -n $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
-  info_sub "🧑‍🍳 installing tool versions via mise"
-  "$CI_DIR/env/mise.sh"
-fi
+info_sub "🧑‍🍳 installing tool versions via mise"
+"$CI_DIR/env/mise.sh"
 
 authn=(
   "npm"
