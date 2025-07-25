@@ -89,6 +89,14 @@ get_service_yaml() {
   fi
 }
 
+get_stencil_lock() {
+  if [[ -e "stencil.lock" ]]; then
+    echo "stencil.lock"
+  else
+    echo "$REPODIR/stencil.lock"
+  fi
+}
+
 has_resource() {
   local name="$1"
 
@@ -165,4 +173,25 @@ is_service() {
   else
     "$YQ" -r ".arguments.service" <"$(get_service_yaml)"
   fi
+}
+
+# stencil_version returns the version of stencil last used to generate the stencil.lock file.
+stencil_version() {
+  "$YQ" --raw-output '.version' "$(get_stencil_lock)"
+}
+
+# stencil_module_version parses the version of the given module
+# from stencil.lock.
+stencil_module_version() {
+  local module_name="$1"
+  "$YQ" --raw-output ".modules | select(.name == \"$module_name\").version" "$(get_stencil_lock)"
+}
+
+# managed_by_stencil checks if the given file is managed by stencil.
+managed_by_stencil() {
+  local file="$1"
+  if [[ $("$YQ" --raw-output ".files | map(select(.name == \"$file\")) | length" "$(get_stencil_lock)") -gt 0 ]]; then
+    return 0
+  fi
+  return 1
 }
