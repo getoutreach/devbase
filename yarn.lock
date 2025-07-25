@@ -21,14 +21,14 @@
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
-"@getoutreach/semantic-release-circleci-orb@^1.1.10":
-  version "1.1.10"
-  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/1.1.10/69c22a329bf5847681bd1e3c44cd27cf1cede293#69c22a329bf5847681bd1e3c44cd27cf1cede293"
-  integrity sha512-r7eHRqfbgyikjo7CHiCwe+FiIDyLhOxlz39FM+h5Rqc3/zmCtSul2pyPJLXJwA2iKqKbl5z5i8KAvLrHjzEbdg==
+"@getoutreach/semantic-release-circleci-orb@^2.0.1":
+  version "2.0.1"
+  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/2.0.1/3915cdc4b84a2bbced6c416ac4d2acc0c88a38ec#3915cdc4b84a2bbced6c416ac4d2acc0c88a38ec"
+  integrity sha512-/8vEfn1xP6ft1xPmN1YfdRJX7MVUBsiP3KftRESw+WfP/NXuYXnEffx7EN8QSU9ctQzM5bXPG69Veuh2AwelvA==
   dependencies:
-    "@semantic-release/error" "^3.0.0"
-    aggregate-error "^3.1.0"
-    execa "^5.1.0"
+    "@semantic-release/error" "^4.0.0"
+    aggregate-error "^5.0.0"
+    execa "^9.6.0"
 
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
@@ -580,7 +580,7 @@ agent-base@^7.1.0, agent-base@^7.1.2:
   resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-7.1.4.tgz#e3cd76d4c548ee895d3c3fd8dc1f6c5b9032e7a8"
   integrity sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==
 
-aggregate-error@^3.0.0, aggregate-error@^3.1.0:
+aggregate-error@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/aggregate-error/-/aggregate-error-3.1.0.tgz#92670ff50f5359bdb7a3e0d40d0ec30c5737687a"
   integrity sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==
@@ -1080,7 +1080,7 @@ escape-string-regexp@^1.0.5:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
   integrity sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==
 
-execa@^5.0.0, execa@^5.1.0:
+execa@^5.0.0:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/execa/-/execa-5.1.1.tgz#f80ad9cbf4298f7bd1d4c9555c21e93741c411dd"
   integrity sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==
@@ -1110,7 +1110,7 @@ execa@^8.0.0:
     signal-exit "^4.1.0"
     strip-final-newline "^3.0.0"
 
-execa@^9.0.0:
+execa@^9.0.0, execa@^9.6.0:
   version "9.6.0"
   resolved "https://registry.yarnpkg.com/execa/-/execa-9.6.0.tgz#38665530e54e2e018384108322f37f35ae74f3bc"
   integrity sha512-jpWzZ1ZhwUmeWRhS7Qv3mhpOhLfwI+uAX4e5fOcXqwMR7EcJ0pj2kV1CVzHVMX/LphnKWD3LObjZCoJ71lKpHw==
@@ -2558,11 +2558,6 @@ postcss-selector-parser@^7.0.0:
   dependencies:
     cssesc "^3.0.0"
     util-deprecate "^1.0.2"
-
-prettier@^2.8.8:
-  version "2.8.8"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.8.tgz#e8c5d7e98a4305ffe3de2e1fc4aca1a71c28b1da"
-  integrity sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==
 
 pretty-ms@^9.2.0:
   version "9.2.0"
