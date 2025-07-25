@@ -9,7 +9,9 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+repo="$(get_repo_directory)"
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
-if [[ -f "$REPODIR"/mise.toml ]]; then
-  mise install --yes
+if [[ -f "$repo"/mise.toml ]]; then
+  mise install --cd "$repo" --yes
 fi
