@@ -17,15 +17,15 @@ source "$DIR/lib/yaml.sh"
 
 sync_cortex() {
   info "Syncing cortex.yaml"
-  local golang_version lintroller reporting_team stencil_version
+  local golang_version lintroller reporting_team
 
-  lintroller="$(yaml_get_field .arguments.lintroller "$(get_service_yaml)")"
+  lintroller="$(stencil_arg lintroller)"
   if [[ -z $lintroller ]]; then
     fatal "lintroller field is missing in service.yaml"
   fi
   sed_replace '\(lintroller:\) .\+' "\1 $lintroller" cortex.yaml
 
-  reporting_team="$(yaml_get_field .arguments.reportingTeam service.yaml)"
+  reporting_team="$(stencil_arg reportingTeam)"
   if [[ -z $reporting_team ]]; then
     fatal "reportingTeam field is missing in service.yaml"
   fi

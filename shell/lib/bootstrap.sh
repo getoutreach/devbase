@@ -180,6 +180,12 @@ stencil_version() {
   "$YQ" --raw-output '.version' "$(get_stencil_lock)"
 }
 
+# stencil_arg is the shell equivalent of Stencil's `stencil.Arg` function.
+stencil_arg() {
+  local name="$1"
+  yaml_get_field ".arguments.$name" "$(get_service_yaml)"
+}
+
 # stencil_module_version parses the version of the given module
 # from stencil.lock.
 stencil_module_version() {
