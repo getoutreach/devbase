@@ -21,6 +21,7 @@ if [[ -f "$repo"/mise.toml ]]; then
     info_sub "🧑‍🍳 ignoring .tool-versions"
     MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="none" mise install --cd "$repo" --yes
   else
+    info_sub "🧑‍🍳 allowing mise to manage .tool-versions"
     mise install --cd "$repo" --yes
   fi
 fi
