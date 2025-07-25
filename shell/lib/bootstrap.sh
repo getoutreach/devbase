@@ -183,7 +183,7 @@ stencil_version() {
 # stencil_arg is the shell equivalent of Stencil's `stencil.Arg` function.
 stencil_arg() {
   local name="$1"
-  yaml_get_field ".arguments.$name" "$(get_service_yaml)"
+  "$YQ" --raw-output ".arguments.$name" <"$(get_service_yaml)"
 }
 
 # stencil_module_version parses the version of the given module

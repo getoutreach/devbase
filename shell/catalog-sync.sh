@@ -12,8 +12,6 @@ source "$DIR/lib/bootstrap.sh"
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/sed.sh
 source "$DIR/lib/sed.sh"
-# shellcheck source=./lib/yaml.sh
-source "$DIR/lib/yaml.sh"
 
 sync_cortex() {
   info "Syncing cortex.yaml"
