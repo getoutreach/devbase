@@ -3,5 +3,13 @@
 # or other CI platforms with that notion.
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
-mise install --yes
+if [[ -f "$REPODIR"/mise.toml ]]; then
+  mise install --yes
+fi
