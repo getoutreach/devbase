@@ -16,6 +16,9 @@ repo="$(get_repo_directory)"
 
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repo"/mise.toml ]]; then
+  if [[ -n $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+    export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="none"
+  fi
   info_sub "🧑‍🍳 installing tool versions via mise"
   mise install --cd "$repo" --yes
 fi

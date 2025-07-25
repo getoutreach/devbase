@@ -24,7 +24,7 @@ fi
 info "🔨 Setting up mise 🧑‍🍳"
 ensure_mise_installed
 
-"$CI_DIR/env/mise.sh"
+ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS="$ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS" "$CI_DIR/env/mise.sh"
 
 authn=(
   "npm"
