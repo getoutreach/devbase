@@ -24,7 +24,6 @@ fi
 info "🔨 Setting up mise 🧑‍🍳"
 ensure_mise_installed
 
-info_sub "🧑‍🍳 installing tool versions via mise"
 "$CI_DIR/env/mise.sh"
 
 authn=(

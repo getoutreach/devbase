@@ -9,9 +9,13 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 repo="$(get_repo_directory)"
 
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repo"/mise.toml ]]; then
+  info_sub "🧑‍🍳 installing tool versions via mise"
   mise install --cd "$repo" --yes
 fi
