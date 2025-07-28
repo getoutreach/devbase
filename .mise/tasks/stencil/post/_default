@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Discover and run tasks meant to be run after Stencil completes."
+#MISE tools={"ubi:getoutreach/stencil" = "latest"}
+
+set -euo pipefail
+
+# Why: word splitting is not an issue with task names.
+# shellcheck disable=SC2046
+exec mise run $(mise tasks ls --json | gojq --raw-output '. | map(select(.name | startswith("stencil:post:")).name) | join(" ::: ")')
