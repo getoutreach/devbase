@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 #MISE description="Sync service catalog values if it is not managed by a Stencil module."
 #MISE tools={"gojq" = "latest"}
+#
+# Syncs the service catalog manifest for the given repository with
+# the metadata present in the repository.
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEVBASE_LIB_DIR="$DIR/../../../../shell/lib"
+
 # shellcheck source=../../../../shell/lib/bootstrap.sh
 source "$DEVBASE_LIB_DIR/bootstrap.sh"
 # shellcheck source=../../../../shell/lib/logging.sh
