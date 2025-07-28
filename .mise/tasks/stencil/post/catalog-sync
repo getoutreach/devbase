@@ -13,6 +13,9 @@ source "$DEVBASE_LIB_DIR/logging.sh"
 # shellcheck source=../../../../shell/lib/sed.sh
 source "$DEVBASE_LIB_DIR/sed.sh"
 
+# Syncs cortex.yaml with the values from service.yaml.
+# This uses sed instead of gojq because the latter does not support
+# roundtripping comments or maintaining the order of fields.
 sync_cortex() {
   info "Syncing cortex.yaml"
   local golang_version lintroller reporting_team
