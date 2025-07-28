@@ -5,10 +5,10 @@ modules:
       version: local
     - name: github.com/getoutreach/stencil-base
       url: https://github.com/getoutreach/stencil-base
-      version: v0.16.5
+      version: v0.17.0-rc.1
     - name: github.com/getoutreach/stencil-circleci
       url: https://github.com/getoutreach/stencil-circleci
-      version: v1.16.1
+      version: v1.16.2-rc.2
     - name: github.com/getoutreach/stencil-golang
       url: https://github.com/getoutreach/stencil-golang
       version: unstable
@@ -70,6 +70,9 @@ files:
     - name: go.mod
       template: go.mod.tpl
       module: github.com/getoutreach/stencil-golang
+    - name: mise.toml
+      template: mise.toml.tpl
+      module: github.com/getoutreach/stencil-base
     - name: package.json
       template: package.json.tpl
       module: github.com/getoutreach/stencil-base

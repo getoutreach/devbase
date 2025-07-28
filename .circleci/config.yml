@@ -65,7 +65,6 @@ jobs:
   ### End jobs inserted by other modules
 
 workflows:
-  version: 2
   ## <<Stencil::Block(circleWorkflows)>>
 
   ## <</Stencil::Block>>

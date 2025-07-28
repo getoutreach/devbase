@@ -65,9 +65,9 @@ Pulumi.*.yaml
 .terraform.lock.hcl
 
 ### Start ignores inserted by other modules
+/orb.yml
 ### End ignores inserted by other modules
 
 ## <<Stencil::Block(extras)>>
-orb.*
 .version
 ## <</Stencil::Block>>
