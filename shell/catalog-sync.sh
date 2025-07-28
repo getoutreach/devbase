@@ -6,24 +6,24 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/sed.sh
 source "$DIR/lib/sed.sh"
-# shellcheck source=./lib/yaml.sh
-source "$DIR/lib/yaml.sh"
 
 sync_cortex() {
   info "Syncing cortex.yaml"
-  local golang_version lintroller reporting_team stencil_version
+  local golang_version lintroller reporting_team
 
-  lintroller="$(yaml_get_field .arguments.lintroller service.yaml)"
+  lintroller="$(stencil_arg lintroller)"
   if [[ -z $lintroller ]]; then
     fatal "lintroller field is missing in service.yaml"
   fi
   sed_replace '\(lintroller:\) .\+' "\1 $lintroller" cortex.yaml
 
-  reporting_team="$(yaml_get_field .arguments.reportingTeam service.yaml)"
+  reporting_team="$(stencil_arg reportingTeam)"
   if [[ -z $reporting_team ]]; then
     fatal "reportingTeam field is missing in service.yaml"
   fi
@@ -34,10 +34,9 @@ sync_cortex() {
     sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
   fi
 
-  stencil_version="$(yaml_get_field .version stencil.lock)"
-  sed_replace '\(stencil_version:\) .\+' "\1 $stencil_version" cortex.yaml
+  sed_replace '\(stencil_version:\) .\+' "\1 $(stencil_version)" cortex.yaml
 }
 
-if [[ -f cortex.yaml ]]; then
+if ! managed_by_stencil cortex.yaml; then
   sync_cortex
 fi
