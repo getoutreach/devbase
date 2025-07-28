@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #
+# DEPRECATED: Use `mise run stencil:post:circleci-orb-sync` instead.
+#
 # Syncs the CircleCI orb definition with the version of devbase in the
 # stencil.lock file.  By default, it only updates .circleci/config.yml
 # (the default config file), but this is only necessary for repositories

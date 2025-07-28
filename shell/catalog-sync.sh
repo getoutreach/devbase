@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #
+# DEPRECATED: Use `mise run stencil:post:catalog-sync` instead.
+#
 # Syncs the service catalog manifest for the given repository with
 # the metadata present in the repository.
 
