@@ -183,6 +183,8 @@ find_tool() {
   fi
 }
 
+# Installs a given tool via `mise install`, assuming that it's defined
+# in the local `mise.toml` file and not already installed.
 mise_install_if_needed() {
   ensure_mise_installed
 
