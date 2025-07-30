@@ -5,6 +5,9 @@
 # shellcheck source=../languages/nodejs.sh
 source "$DIR/languages/nodejs.sh"
 
+# shellcheck source=../lib/mise.sh
+source "$DIR/lib/mise.sh"
+
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(yaml yml json md ts)
@@ -12,6 +15,7 @@ extensions=(yaml yml json md ts)
 find_prettier() {
   PRETTIER="node_modules/.bin/prettier"
   if [[ ! -f $PRETTIER && (! -f package.json || "$(gojq --raw-output .devDependencies.prettier package.json)" == "null") ]]; then
+    mise_install_if_needed npm:prettier
     # Try to find prettier installed via mise
     PRETTIER="$(mise which prettier)"
     if [[ -z $PRETTIER ]]; then
@@ -29,9 +33,11 @@ prettier_log_level_flag() {
 }
 
 prettier_linter() {
-  yarn_install_if_needed >/dev/null
-
   find_prettier
+
+  if [[ $PRETTIER =~ ^node_modules/ ]]; then
+    yarn_install_if_needed >/dev/null
+  fi
 
   local log_level_flag
   log_level_flag="$(prettier_log_level_flag)"
