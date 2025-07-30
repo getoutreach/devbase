@@ -26,4 +26,4 @@ if [[ $DRYRUN == true ]]; then
   exit 0
 fi
 
-exec make publish-orb
+exec mise run orb:publish-dev
