@@ -190,7 +190,7 @@ mise_install_if_needed() {
   local installed versions
 
   versions="$(mise ls --local --json "$tool_name")"
-  if [[ "$versions" == "[]" ]]; then
+  if [[ $versions == "[]" ]]; then
     fatal "mise: $tool_name is not declared in mise.toml"
   fi
   installed="$(echo "$versions" | gojq --raw-output '.[] | select(.installed and .active)')"
@@ -198,7 +198,5 @@ mise_install_if_needed() {
   if [[ -z $installed ]]; then
     info "mise: installing $tool_name"
     mise install --yes "$tool_name"
-  else
-    info "mise: $tool_name is already installed"
   fi
 }
