@@ -54,7 +54,7 @@ as well as existing tests in this repository (search for `*_test.bats` files!)
 If you want to test changes to the shared orb:
 
 1. Make the changes to the orb
-2. Run `make publish-orb`
+2. Run `mise run orb:publish-dev`
 3. In a test service, change the orb version (after the `@`,
    [example](https://github.com/getoutreach/devbase/blob/8f298fa86e5ff37afc75f6c6eeda14275f758f25/.circleci/config.yml#L5))
    to `dev:first`
