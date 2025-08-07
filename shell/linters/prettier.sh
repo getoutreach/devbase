@@ -14,6 +14,7 @@ extensions=(yaml yml json md ts)
 
 find_and_install_prettier_if_needed() {
   PRETTIER="node_modules/.bin/prettier"
+  yarn_install_if_needed >/dev/null
   if [[ ! -f $PRETTIER && (! -f package.json || "$(gojq --raw-output .devDependencies.prettier package.json)" == "null") ]]; then
     mise_install_if_needed npm:prettier
     # Try to find prettier installed via mise
@@ -21,10 +22,6 @@ find_and_install_prettier_if_needed() {
     if [[ -z $PRETTIER ]]; then
       fatal "prettier not found in repo, make sure 'npm:prettier' is defined in 'mise.toml' and you have run 'mise install'"
     fi
-  fi
-
-  if [[ $PRETTIER =~ ^node_modules/ ]]; then
-    yarn_install_if_needed >/dev/null
   fi
 }
 
