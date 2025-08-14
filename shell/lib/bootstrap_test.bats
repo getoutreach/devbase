@@ -49,6 +49,14 @@ teardown() {
   assert_output "$(git rev-parse HEAD)"
 }
 
+@test "stencil_version" {
+  cat >"$REPOPATH"/stencil.lock <<EOF
+version: v1.66.6-rc.6
+EOF
+  run stencil_version
+  assert_output "v1.66.6-rc.6"
+}
+
 @test "stencil_module_version returns the version from stencil.lock" {
   # Create a mock stencil.lock file
   cat >"$REPOPATH"/stencil.lock <<EOF
