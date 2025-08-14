@@ -49,7 +49,7 @@ teardown() {
   assert_output "$(git rev-parse HEAD)"
 }
 
-@test "stencil_version" {
+@test "stencil_version reads the Stencil version from stencil.lock" {
   cat >"$REPOPATH"/stencil.lock <<EOF
 version: v1.66.6-rc.6
 EOF
@@ -57,7 +57,7 @@ EOF
   assert_output "v1.66.6-rc.6"
 }
 
-@test "stencil_arg" {
+@test "stencil_arg reads a nested argument from service.yaml" {
   cat >"$REPOPATH"/service.yaml <<EOF
 arguments:
   foo:
