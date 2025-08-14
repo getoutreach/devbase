@@ -57,6 +57,16 @@ EOF
   assert_output "v1.66.6-rc.6"
 }
 
+@test "stencil_arg" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+arguments:
+  foo:
+    bar: baz
+EOF
+  run stencil_arg foo.bar
+  assert_output "baz"
+}
+
 @test "stencil_module_version returns the version from stencil.lock" {
   # Create a mock stencil.lock file
   cat >"$REPOPATH"/stencil.lock <<EOF
