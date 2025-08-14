@@ -69,3 +69,27 @@ EOF
   run stencil_module_version github.com/nonexistent/module
   assert_output ""
 }
+
+@test "managed_by_stencil succeeds for a file managed by stencil" {
+  # Create a mock stencil.lock file
+  cat >"$REPOPATH"/stencil.lock <<EOF
+files:
+  - name: exists.txt
+    template: exists.txt.tpl
+    module: example.com/module
+EOF
+  run managed_by_stencil exists.txt
+  assert_success
+}
+
+@test "managed_by_stencil fails for a file not managed by stencil" {
+  # Create a mock stencil.lock file
+  cat >"$REPOPATH"/stencil.lock <<EOF
+files:
+  - name: exists.txt
+    template: exists.txt.tpl
+    module: example.com/module
+EOF
+  run managed_by_stencil nonexistent.txt
+  assert_failure
+}
