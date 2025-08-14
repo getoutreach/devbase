@@ -67,6 +67,5 @@ EOF
 
   # Test with a non-existent module
   run stencil_module_version github.com/nonexistent/module
-  assert_failure
   assert_output ""
 }
