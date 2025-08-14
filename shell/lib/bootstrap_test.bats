@@ -48,3 +48,25 @@ teardown() {
   VERSIONING_SCHEME=sha run get_app_version
   assert_output "$(git rev-parse HEAD)"
 }
+
+@test "stencil_module_version returns the version from stencil.lock" {
+  # Create a mock stencil.lock file
+  cat >"$REPOPATH"/stencil.lock <<EOF
+modules:
+  - name: example.com/module
+    version: v1.2.3
+  - name: github.com/getoutreach/devbase
+    version: v2.3.4
+EOF
+
+  run stencil_module_version example.com/module
+  assert_output "v1.2.3"
+
+  run stencil_module_version github.com/getoutreach/devbase
+  assert_output "v2.3.4"
+
+  # Test with a non-existent module
+  run stencil_module_version github.com/nonexistent/module
+  assert_failure
+  assert_output ""
+}
