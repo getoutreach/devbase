@@ -7,7 +7,7 @@ parameters:
     type: boolean
     default: false
   checkout:
-    description: ensure submodules up-to-date with their remote tracking branch, via sync and update
+    description: Ensure submodules are up-to-date with their remote tracking branch via sync and update.
     type: boolean
     default: true
   setup_devenv:
