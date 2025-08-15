@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Discover and run tasks meant to be run after Stencil completes."
-#MISE tools={"ubi:getoutreach/stencil" = "latest"}
+#MISE tools={"gojq" = "latest"}
 
 set -euo pipefail
 
