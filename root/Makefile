@@ -228,21 +228,21 @@ docs:: pre-docs
 docs-publish:: pre-docs-publish
 	@./.bootstrap/shell/docs-publish.sh
 
-## stencil:         run stencil
+## stencil:         [DEPRECATED] run stencil
 .PHONY: stencil
 stencil:: pre-stencil run-stencil post-stencil
 
 .PHONY: run-stencil
 run-stencil:
-	stencil --skip-update
+	@./scripts/shell-wrapper.sh deprecated-task.sh stencil stencil:upgrade
 
-## restencil:       run stencil without updating module versions
+## restencil:       [DEPRECATED] run stencil without updating module versions
 .PHONY: restencil
 restencil:: pre-stencil run-restencil post-stencil
 
 .PHONY: run-restencil
 run-restencil:
-	stencil --skip-update --frozen-lockfile
+	@./scripts/shell-wrapper.sh deprecated-task.sh restencil stencil
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
