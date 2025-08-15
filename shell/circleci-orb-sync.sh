@@ -17,5 +17,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/logging.sh"
 
 warn "This script is deprecated and will be removed in the future. Please use 'mise run stencil:post:circleci-orb-sync' instead."
+echo
+warn "Starting in 5 seconds..."
+echo
+
+sleep 5
 
 exec mise run stencil:post:circleci-orb-sync "$@"
