@@ -9,7 +9,7 @@
 # The default config file is validated, others are not (as they may not
 # be config files per se, such as orb definitions).
 #
-# Additional confi files can be passed into this script via the
+# Additional config files can be passed into this script via the
 # CIRCLECI_ORB_SYNC_FILES environment variable, which is usually expected
 # to be set in the repository's `mise.toml` file.
 
