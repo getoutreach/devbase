@@ -47,7 +47,7 @@ fi
 
 if [[ $devbaseVersion =~ -rc ]]; then
   replaceVersion="dev:${devbaseVersion:1}"
-elif [[ $devbaseVersion == local ]]; then
+elif [[ $devbaseVersion == local || ! $devbaseVersion =~ ^v[0-9]+ ]]; then
   replaceVersion="dev:first"
 else
   replaceVersion="${devbaseVersion:1}"
