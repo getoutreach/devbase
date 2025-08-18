@@ -98,10 +98,6 @@ Runs a Go application in debug mode using [delve](https://github.com/go-delve/de
 
 Builds the documentation for the project.
 
-### `update-pipeline`
-
-Updates the Concourse pipeline for the project.
-
 ### `version`
 
 Returns the current application version
