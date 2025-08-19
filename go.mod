@@ -8,7 +8,6 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.107.1
 	github.com/getoutreach/localizer v1.15.13
-	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
@@ -48,7 +47,6 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/honeycombio/beeline-go v1.19.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
