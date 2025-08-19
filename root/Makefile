@@ -17,7 +17,7 @@ ORG                 ?= getoutreach
 
 # Transition
 MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep mage | awk '{ print $$2 }') MAGEFILE_HASHFAST=true mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
-APP_VERSION         := $(shell $(MAGE_CMD) version)
+APP_VERSION         := $(shell mise run --quiet version)
 
 # go options
 GO                  ?= go
@@ -105,6 +105,10 @@ help: Makefile
 	@printf "\n"
 	@echo "Mage (make <target>) targets"
 	@$(MAGE_CMD) -l
+
+.PHONY: version
+version::
+	@./scripts/shell-wrapper.sh deprecated-task.sh version version
 
 ## pre-commit:      run housekeeping utilities before creating a commit
 .PHONY: pre-commit
