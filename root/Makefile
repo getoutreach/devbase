@@ -254,11 +254,6 @@ benchmarker-gen:
 benchmarker-run:
 	benchmarker --input benchmarker-grpc.json --output benchmarker-output.json --format json --verbose
 
-## deploy: update actionable version to maestro
-.PHONY: deploy
-deploy:
-	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
-
 # Catch all to mage
 %::
 	@$(MAGE_CMD) $@
