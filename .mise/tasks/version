@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+#MISE description="Prints the current application version."
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DEVBASE_LIB_DIR="$DIR/../../shell/lib"
+
+# shellcheck source=../../shell/lib/bootstrap.sh
+source "$DEVBASE_LIB_DIR"/bootstrap.sh
+
+get_app_version

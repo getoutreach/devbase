@@ -15,7 +15,7 @@ shift
 deprecated_msg() {
   echo >&2
   # Bold, blinking, red text
-  echo -e "\e[1m\e[5m\e[31m**DEPRECATION MESSAGE**\e[0m"
+  echo -e "\e[1m\e[5m\e[31m**DEPRECATION MESSAGE**\e[0m" >&2
   echo "'make $make_task' is deprecated. Use 'mise run $mise_task' instead" >&2
   echo >&2
 }
@@ -28,4 +28,4 @@ echo "Starting in 5 seconds..." >&2
 echo >&2
 sleep 5
 
-mise run "$mise_task" "$@"
+mise run --quiet "$mise_task" "$@"
