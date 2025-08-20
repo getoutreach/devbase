@@ -36,12 +36,12 @@ teardown() {
 
 @test "get_app_version returns the latest version tag" {
   git switch main
-  git tag v1.0.0
+  git tag --message "1.0.0" v1.0.0
   run get_app_version
   assert_output "v1.0.0"
 
   git commit --allow-empty --message "Third commit"
-  git tag v1.1.0
+  git tag --message "1.1.0" v1.1.0
   run get_app_version
   assert_output "v1.1.0"
 
