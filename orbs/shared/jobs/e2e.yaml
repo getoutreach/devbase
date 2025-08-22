@@ -40,6 +40,10 @@ parameters:
     description: Flags to pass to the e2e test runner
     type: string
     default: ""
+  skip:
+    description: If this is set to true all E2E steps in this job will be skipped
+    type: boolean
+    default: false
 executor:
   name: testbed-machine
 environment:
@@ -53,13 +57,21 @@ environment:
   TEST_FLAGS: << parameters.test_flags >>
 resource_class: << parameters.resource_class >>
 steps:
-  - setup_environment:
-      machine: true
-  - run:
-      name: Run E2E Tests
-      command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
-      no_output_timeout: << parameters.no_output_timeout >>
-  - run:
-      name: Upload Code Coverage
-      command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out e2e
-  - upload_test_results # Uploads to CircleCI
+  - when:
+      condition:
+        not: << parameters.skip >>
+      steps:
+        - setup_environment:
+            machine: true
+        - run:
+            name: Run E2E Tests
+            command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
+            no_output_timeout: << parameters.no_output_timeout >>
+        - run:
+            name: Upload Code Coverage
+            command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out e2e
+        - upload_test_results # Uploads to CircleCI
+  - when:
+      condition: << parameters.skip >>
+      steps:
+        - run: echo "skip parameter in CI config was set to true, skipping"
