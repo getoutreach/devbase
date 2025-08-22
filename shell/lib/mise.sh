@@ -23,11 +23,15 @@ ensure_mise_installed() {
       export MISE_INSTALL_PATH=/usr/local/bin/mise
     fi
 
-    info "Installing mise to ${MISE_INSTALL_PATH:-$HOME/.local/bin/mise}"
+    local mise_bin="${MISE_INSTALL_PATH:-$HOME/.local/bin/mise}"
+
+    info "Installing mise to $mise_bin"
 
     install_mise
 
     unset MISE_INSTALL_PATH
+
+    "$mise_bin" --version
 
     local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
 
