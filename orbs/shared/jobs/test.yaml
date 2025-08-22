@@ -51,6 +51,10 @@ parameters:
     description: Maps to gotest -timeout parameter.
     type: string
     default: ""
+  tests_directory:
+    description: Directory to store test results in for CircleCI
+    type: string
+    default: "test-results"
 
 resource_class: << parameters.resource_class >>
 
@@ -77,7 +81,9 @@ steps:
         - run:
             name: Upload Code Coverage
             command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out
-        - upload_test_results # Uploads to CircleCI
+        # Uploads to CircleCI
+        - store_test_results:
+            path: << parameters.tests_directory >>
   - when:
       condition: << parameters.skip >>
       steps:
