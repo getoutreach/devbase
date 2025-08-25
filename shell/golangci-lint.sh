@@ -19,11 +19,18 @@ fi
 # environment variables' documentation for more information.
 CI="${CI:-}"
 
-# FINAL_TESTS_DIR="${workspaceFolder}/test-results"
-TESTS_DIR="/tmp/test-results"
+# REPODIR is the base directory of the repository.
+REPODIR=$(get_repo_directory)
 
 # Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners" "--output.junit-xml.extended" "--output.junit-xml.path=${workspaceFolder}/${TESTS_DIR}/golangci-lint-report.xml")
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+
+if [[ -n $CI ]]; then
+  junitOutputPath="/tmp/bin/junit-test-results"
+  mkdir -p "$junitOutputPath"
+  TESTS_FILENAME="golangci-lint-report.xml"
+  args+=("--out-format=junit-xml-extended" ">" "${junitOutputPath}/${TESTS_FILENAME}")
+fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
 GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
@@ -85,8 +92,5 @@ fi
 # Use individual directories for golangci-lint cache as opposed to a mono-directory.
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
-
-# Create the test results directory
-mkdir -p $TESTS_DIR
 
 asdf_devbase_exec golangci-lint "${args[@]}"
