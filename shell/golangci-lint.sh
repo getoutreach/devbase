@@ -19,7 +19,7 @@ fi
 # environment variables' documentation for more information.
 CI="${CI:-}"
 
-FINAL_TESTS_DIR="${workspaceFolder}/test-results"
+# FINAL_TESTS_DIR="${workspaceFolder}/test-results"
 TESTS_DIR="/tmp/test-results"
 
 # Enable only fast linters, and always use the correct config.
