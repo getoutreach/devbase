@@ -54,7 +54,7 @@ parameters:
   tests_directory:
     description: Directory to store test results in for CircleCI
     type: string
-    default: "test-results"
+    default: "junit-test-results"
 
 resource_class: << parameters.resource_class >>
 
