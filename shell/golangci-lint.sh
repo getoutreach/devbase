@@ -14,8 +14,23 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
+# CI denotes if we're in CI or not. When running in CI, certain
+# environment variables below behaviour may differ. Check each
+# environment variables' documentation for more information.
+CI="${CI:-}"
+
+# REPODIR is the base directory of the repository.
+REPODIR=$(get_repo_directory)
+
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+
+if [[ -n $CI ]]; then
+  junitOutputPath="/tmp/bin/junit-test-results"
+  mkdir -p "$junitOutputPath"
+  TESTS_FILENAME="golangci-lint-report.xml"
+  args+=("--out-format=junit-xml-extended" ">" "${junitOutputPath}/${TESTS_FILENAME}")
+fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
 GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
