@@ -21,15 +21,16 @@ CI="${CI:-}"
 
 # REPODIR is the base directory of the repository.
 REPODIR=$(get_repo_directory)
+TEST_FILENAME="${REPODIR}/bin/golangci-lint-tests.xml"
 
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
 if [[ -n $CI ]]; then
-  junitOutputPath="/tmp/bin/junit-test-results"
-  mkdir -p "$junitOutputPath"
-  TESTS_FILENAME="golangci-lint-report.xml"
-  args+=("--out-format=junit-xml-extended" ">" "${junitOutputPath}/${TESTS_FILENAME}")
+# junitOutputPath="/tmp/bin/junit-test-results"
+# mkdir -p "$junitOutputPath"
+# TESTS_FILENAME="golangci-lint-report.xml"
+  args+=("--out-format=junit-xml-extended")
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
@@ -93,4 +94,4 @@ fi
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
-asdf_devbase_exec golangci-lint "${args[@]}"
+asdf_devbase_exec golangci-lint "${args[@]}" >"${TEST_FILENAME}"

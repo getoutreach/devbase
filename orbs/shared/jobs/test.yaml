@@ -82,8 +82,8 @@ steps:
             name: Upload Code Coverage
             command: ./scripts/shell-wrapper.sh ci/testing/coverage.sh /tmp/coverage.out
         # Uploads to CircleCI
-        - store_test_results:
-            path: << parameters.tests_directory >>
+        # - store_test_results:
+        #     path: << parameters.tests_directory >>
   - when:
       condition: << parameters.skip >>
       steps:
