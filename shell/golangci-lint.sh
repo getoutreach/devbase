@@ -27,9 +27,9 @@ TEST_FILENAME="${REPODIR}/bin/golangci-lint-tests.xml"
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
 if [[ -n $CI ]]; then
-# junitOutputPath="/tmp/bin/junit-test-results"
-# mkdir -p "$junitOutputPath"
-# TESTS_FILENAME="golangci-lint-report.xml"
+  # junitOutputPath="/tmp/bin/junit-test-results"
+  # mkdir -p "$junitOutputPath"
+  # TESTS_FILENAME="golangci-lint-report.xml"
   args+=("--out-format=junit-xml-extended")
 fi
 
