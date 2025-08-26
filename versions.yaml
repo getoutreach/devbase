@@ -25,4 +25,5 @@ getoutreach/markdowntools/visualizemd: v0.0.33
 kovetskiy/mark: 8.8
 
 # kubeconform
+kubeconform: 0.6.4
 kubernetes: 1.25.16

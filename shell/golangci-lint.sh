@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This is a wrapper around mise to run golangci-lint.
+# This is a wrapper around `mise` to run `golangci-lint`.
 # Useful for using the correct version of golangci-lint
 # with your editor.
 
