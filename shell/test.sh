@@ -111,6 +111,9 @@ source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
+
 # REPODIR is the base directory of the repository.
 REPODIR=$(get_repo_directory)
 
@@ -189,14 +192,15 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # We pass along command line args to the executable so you can specify
     # `-test.run <regex>`, `-test.bench <regex>`, etc. if desired.  Try `-help`
     # for more information.
-    exec "$DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" exec "${TESTBIN}" -- "$@"
+    mise_exec go:github.com/go-delve/delve/cmd/dlv@v"$(get_tool_version "delve")" \
+      dlv exec "${TESTBIN}" -- "$@"
   else
     exitCode=0
 
-    GOTESTSUMPATH=$("$DIR/gobin.sh" -p gotest.tools/gotestsum@v"$(get_application_version "gotestsum")")
     (
       set -x
-      "$GOTESTSUMPATH" --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
+      mise_exec "gotestsum@$(get_tool_version "gotestsum")" \
+        gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
