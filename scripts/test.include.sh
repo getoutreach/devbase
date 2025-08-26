@@ -11,4 +11,4 @@ if ! command -v circleci &>/dev/null; then
   echo "Hint: brew install circleci" >&2
   exit 1
 fi
-MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none mise run orb:validate || exit 1
+MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none mise --verbose run orb:validate || exit 1
