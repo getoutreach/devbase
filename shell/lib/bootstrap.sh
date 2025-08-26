@@ -190,7 +190,7 @@ stencil_arg() {
 # from stencil.lock.
 stencil_module_version() {
   local module_name="$1"
-  "$YQ" --raw-output ".modules | select(.name == \"$module_name\").version" "$(get_stencil_lock)"
+  "$YQ" --raw-output ".modules[] | select(.name == \"$module_name\").version" "$(get_stencil_lock)"
 }
 
 # managed_by_stencil checks if the given file is managed by stencil.

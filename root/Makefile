@@ -17,7 +17,7 @@ ORG                 ?= getoutreach
 
 # Transition
 MAGE_CMD            := ASDF_MAGE_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep mage | awk '{ print $$2 }') MAGEFILE_HASHFAST=true mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
-APP_VERSION         := $(shell $(MAGE_CMD) version)
+APP_VERSION         := $(shell mise run --quiet version)
 
 # go options
 GO                  ?= go
@@ -105,6 +105,10 @@ help: Makefile
 	@printf "\n"
 	@echo "Mage (make <target>) targets"
 	@$(MAGE_CMD) -l
+
+.PHONY: version
+version::
+	@./scripts/shell-wrapper.sh deprecated-task.sh version version
 
 ## pre-commit:      run housekeeping utilities before creating a commit
 .PHONY: pre-commit
@@ -228,21 +232,21 @@ docs:: pre-docs
 docs-publish:: pre-docs-publish
 	@./.bootstrap/shell/docs-publish.sh
 
-## stencil:         run stencil
+## stencil:         [DEPRECATED] run stencil
 .PHONY: stencil
 stencil:: pre-stencil run-stencil post-stencil
 
 .PHONY: run-stencil
 run-stencil:
-	stencil --skip-update
+	@./scripts/shell-wrapper.sh deprecated-task.sh stencil stencil:upgrade
 
-## restencil:       run stencil without updating module versions
+## restencil:       [DEPRECATED] run stencil without updating module versions
 .PHONY: restencil
 restencil:: pre-stencil run-restencil post-stencil
 
 .PHONY: run-restencil
 run-restencil:
-	stencil --skip-update --frozen-lockfile
+	@./scripts/shell-wrapper.sh deprecated-task.sh restencil stencil
 
 ## benchmarker-gen:	generate a benchmarker input file using your locally running gRPC server
 .PHONY: benchmarker-gen
@@ -253,11 +257,6 @@ benchmarker-gen:
 .PHONY: benchmarker-run
 benchmarker-run:
 	benchmarker --input benchmarker-grpc.json --output benchmarker-output.json --format json --verbose
-
-## deploy: update actionable version to maestro
-.PHONY: deploy
-deploy:
-	@$(MAGE_CMD) deploy $(APP) $(CHANNEL)
 
 # Catch all to mage
 %::

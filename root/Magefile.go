@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -24,11 +23,6 @@ func Dep() error {
 	}
 
 	return runGoCommand(log, "mod", "tidy")
-}
-
-// Version prints the current application version
-func Version() {
-	fmt.Println(getAppVersion())
 }
 
 // E2ETestBuild builds binaries of e2e tests

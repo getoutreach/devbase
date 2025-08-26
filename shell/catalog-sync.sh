@@ -1,42 +1,22 @@
 #!/usr/bin/env bash
 #
+# DEPRECATED: Use `mise run stencil:post:catalog-sync` instead.
+#
 # Syncs the service catalog manifest for the given repository with
 # the metadata present in the repository.
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
+
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
-# shellcheck source=./lib/sed.sh
-source "$DIR/lib/sed.sh"
 
-sync_cortex() {
-  info "Syncing cortex.yaml"
-  local golang_version lintroller reporting_team
+warn "This script is deprecated and will be removed in the future. Please use 'mise run stencil:post:catalog-sync' instead."
+echo
+warn "Starting in 5 seconds..."
+echo
 
-  lintroller="$(stencil_arg lintroller)"
-  if [[ -z $lintroller ]]; then
-    fatal "lintroller field is missing in service.yaml"
-  fi
-  sed_replace '\(lintroller:\) .\+' "\1 $lintroller" cortex.yaml
+sleep 5
 
-  reporting_team="$(stencil_arg reportingTeam)"
-  if [[ -z $reporting_team ]]; then
-    fatal "reportingTeam field is missing in service.yaml"
-  fi
-  sed_replace '\(reporting_team:\) .\+' "\1 $reporting_team" cortex.yaml
-
-  golang_version="$(grep -w ^golang .tool-versions | awk '{print $2}')"
-  if [[ -n $golang_version ]]; then
-    sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
-  fi
-
-  sed_replace '\(stencil_version:\) .\+' "\1 $(stencil_version)" cortex.yaml
-}
-
-if ! managed_by_stencil cortex.yaml; then
-  sync_cortex
-fi
+exec mise run stencil:post:catalog-sync "$@"

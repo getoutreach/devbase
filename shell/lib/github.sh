@@ -31,6 +31,19 @@ github_token() {
   run_gh auth token
 }
 
+# Determines the latest release version of a GitHub repository.
+latest_github_release_version() {
+  local slug="$1"
+  local use_pre_releases="$2"
+
+  local gh_args=(--limit 1 --json tagName --jq '.[].tagName' --exclude-drafts)
+  if [[ $use_pre_releases != "true" ]]; then
+    gh_args+=(--exclude-pre-releases)
+  fi
+
+  run_gh release --repo "$slug" list "${gh_args[@]}"
+}
+
 # install_latest_github_release downloads the latest version of a tool
 # from Github. Requires the 'gh' cli to be installed either directly or via mise.
 #
@@ -48,11 +61,7 @@ install_latest_github_release() {
   local binary_name=${3:-$(basename "$slug")}
   local tag
 
-  if [[ $use_pre_releases == "true" ]]; then
-    tag=$(run_gh release -R "$slug" list --exclude-drafts | grep Pre-release | head -n1 | awk '{ print $1 }')
-  else
-    tag=$(run_gh release -R "$slug" list --exclude-drafts | grep -v Pre-release | head -n1 | awk '{ print $1 }')
-  fi
+  tag="$(latest_github_release_version "$slug" "$use_pre_releases")"
 
   # If we have an empty tag, something went wrong. Fail.
   if [[ -z $tag ]]; then
