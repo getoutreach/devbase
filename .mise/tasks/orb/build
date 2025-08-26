@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Build the CircleCI orb."
-#MISE sources=["{{ get_env(name="CIRCLECI_ORB_PATH")}}/**/*"]
 #MISE outputs=["orb.yml"]
 
 set -euo pipefail
