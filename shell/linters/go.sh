@@ -24,10 +24,9 @@ go_mod_tidy() {
 }
 
 goimports() {
-  # Why: We're OK with this.
-  # shellcheck disable=SC2155
-  local GOIMPORTS=$("$DIR/gobin.sh" -p golang.org/x/tools/cmd/goimports@v"$(get_application_version "goimports")")
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$GOIMPORTS" -w
+  find_files_with_extensions "${extensions[@]}" |
+    xargs_mise_exec 40 go:golang.org/x/tools/cmd/goimports@v"$(get_tool_version "goimports")" \
+      goimports -w
 }
 
 gofmt() {
