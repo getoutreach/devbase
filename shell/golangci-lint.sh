@@ -21,7 +21,7 @@ CI="${CI:-}"
 
 # REPODIR is the base directory of the repository.
 REPODIR=$(get_repo_directory)
-TEST_DIR="/tmp/test-results"
+TEST_DIR="$REPODIR/bin"
 TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
 mkdir -p "$TEST_DIR"
 
@@ -29,9 +29,6 @@ mkdir -p "$TEST_DIR"
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
 if [[ -n $CI ]]; then
-  # junitOutputPath="/tmp/bin/junit-test-results"
-  # mkdir -p "$junitOutputPath"
-  # TESTS_FILENAME="golangci-lint-report.xml"
   args+=("--out-format=junit-xml-extended:${TEST_FILENAME}")
 fi
 
@@ -97,3 +94,7 @@ fi
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
 asdf_devbase_exec golangci-lint "${args[@]}"
+
+if [[ -n $CI ]]; then
+  mv "$TEST_FILENAME" /tmp/test-results/
+fi
