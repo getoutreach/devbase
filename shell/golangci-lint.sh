@@ -21,7 +21,7 @@ CI="${CI:-}"
 
 # REPODIR is the base directory of the repository.
 REPODIR=$(get_repo_directory)
-TEST_DIR="${REPODIR}/bin"
+TEST_DIR="/tmp/test-results"
 TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
 mkdir -p "$TEST_DIR"
 

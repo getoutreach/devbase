@@ -206,7 +206,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
       # Move this to a temporary directory so that we can control
       # what gets uploaded via the store_test_results call
       mkdir -p /tmp/test-results
-      mv $REPODIR/bin/*.xml /tmp/test-results/
+      mv "$REPODIR/bin/unit-tests.xml" /tmp/test-results/
     fi
 
     exit $exitCode
