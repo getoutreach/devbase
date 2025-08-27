@@ -221,8 +221,16 @@ mise_exec() {
 
 # xargs_mise_exec is a helper function that runs `mise_exec` with xargs.
 xargs_mise_exec() {
+  ensure_mise_installed
+
   local maxArgs="$1"
   shift
 
-  xargs -n "$maxArgs" find_mise "$@"
+  local tool="$1"
+  shift
+
+  local mise
+  mise="$(find_mise)"
+
+  xargs -n "$maxArgs" "$mise" exec "$tool" -- "$@"
 }
