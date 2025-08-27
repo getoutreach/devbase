@@ -55,8 +55,6 @@ set_default_packages() {
   fi
   # language specifics
   echo -e "yarn" >"$HOME/.default-npm-packages"
-  # previously a default version of bundler was configured in ~/.default-gems, which is no longer desirable so delete it if present
-  rm -f "$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$protoc_go_version
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$protoc_doc_version
