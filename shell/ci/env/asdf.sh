@@ -55,7 +55,6 @@ set_default_packages() {
   fi
   # language specifics
   echo -e "yarn" >"$HOME/.default-npm-packages"
-  echo -e "bundler 2.2.17" >"$HOME/.default-gems"
   cat >"$HOME/.default-golang-pkgs" <<EOF
 github.com/golang/protobuf/protoc-gen-go@v$protoc_go_version
 github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$protoc_doc_version
