@@ -10,6 +10,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 
