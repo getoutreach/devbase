@@ -18,5 +18,5 @@ fi
 
 # The sed is used to strip the pwd from lintroller output,
 # which is currently prefixed with it.
-exec "$(find_mise)" exec "go:github.com/getoutreach/lintroller/cmd/lintroller@v$(get_tool_version "lintroller")" -- \
+exec "$(find_mise)" exec "ubi:getoutreach/lintroller@$(get_tool_version "lintroller")" -- \
   lintroller -config "$workspaceFolder/scripts/golangci.yml" "$@" 2>&1 | sed "s#^$(pwd)/##"
