@@ -24,7 +24,7 @@ source "$DIR/../shell/lib/bootstrap.sh"
 mapfile -t test_files < <(find_files_with_extensions "bats")
 
 extraArgs=()
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   # If we're running in CI, we want to output junit test results.
   junitOutputPath="$(get_repo_directory)/bin/junit-test-results"
   mkdir -p "$junitOutputPath"
@@ -37,7 +37,7 @@ exitCode=$?
 
 # If we're running in CI, move the test-results to the path that gets
 # uploaded. See shell/test.sh.
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   mkdir -p /tmp/test-results
   mv "$junitOutputPath/"*.xml /tmp/test-results
 fi

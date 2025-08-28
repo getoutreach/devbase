@@ -92,7 +92,14 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
-if [[ -n $CI ]]; then
+in_ci_environment() {
+  if [[ -n ${CI:-} ]]; then
+    return 0
+  fi
+  return 1
+}
+
+if in_ci_environment; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
 
@@ -145,7 +152,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info "Running go test (${TEST_TAGS[*]})"
 
   format="dots-v2"
-  if [[ -n $CI ]]; then
+  if in_ci_environment; then
     # When in CI, always use the pkgname format because it's easier to
     # read.
     format="pkgname"
@@ -204,7 +211,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
     ) || exitCode=$?
 
-    if [[ -n $CI ]]; then
+    if in_ci_environment; then
       # Move this to a temporary directory so that we can control
       # what gets uploaded via the store_test_results call
       mkdir -p /tmp/test-results

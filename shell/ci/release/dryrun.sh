@@ -9,7 +9,7 @@ LIB_DIR="${DIR}/../../lib"
 source "${LIB_DIR}/github.sh"
 
 # Setup git user name / email only in CI
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
 fi

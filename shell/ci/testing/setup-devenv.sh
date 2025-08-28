@@ -27,7 +27,7 @@ fi
 
 # CI sets up dependencies in CI and other small adjustments.
 # These are not required on local machines.
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   if [[ -z $VAULT_ROLE_ID ]]; then
     echo "Hint: Outreach CircleCI must be configured to have"
     echo "  vault-dev be added to the list of contexts for this"
@@ -62,7 +62,7 @@ if [[ $PROVISION == "true" ]]; then
     exit 0
   fi
 
-  if [[ -n $CI ]]; then
+  if in_ci_environment; then
     if [[ -z $VAULT_ADDR ]]; then
       VAULT_ADDR="$(get_box_field devenv.vault.address)"
       export VAULT_ADDR

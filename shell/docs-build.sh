@@ -22,7 +22,7 @@ info_sub "Protobuf"
 
 mkdir -p "$PROTO_DOCS_DIR"
 
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   pushd "$API_DIR" >/dev/null || fatal "Could not change directory to api"
   protoc --doc_out="$PROTO_DOCS_DIR" --doc_opt=html,index.html ./*.proto
   popd >/dev/null || fatal "Could not pop directory out of api"

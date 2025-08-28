@@ -14,13 +14,6 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-in_ci_environment() {
-  if [[ -n ${CI:-} ]]; then
-    return 0
-  fi
-  return 1
-}
-
 TEST_DIR="${workspaceFolder}/bin"
 TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
 mkdir -p "$TEST_DIR"
