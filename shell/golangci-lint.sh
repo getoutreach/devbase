@@ -14,21 +14,21 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# CI denotes if we're in CI or not. When running in CI, certain
-# environment variables below behaviour may differ. Check each
-# environment variables' documentation for more information.
-CI="${CI:-}"
+in_ci_environment() {
+  if [[ -n ${CI:-} ]]; then
+    return 0
+  fi
+  return 1
+}
 
-# REPODIR is the base directory of the repository.
-REPODIR=$(get_repo_directory)
-TEST_DIR="$REPODIR/bin"
+TEST_DIR="${workspaceFolder}/bin"
 TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
 mkdir -p "$TEST_DIR"
 
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   args+=("--out-format=junit-xml-extended:${TEST_FILENAME}")
 fi
 
@@ -95,6 +95,6 @@ mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
 asdf_devbase_exec golangci-lint "${args[@]}"
 
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   mv "$TEST_FILENAME" /tmp/test-results/
 fi
