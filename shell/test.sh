@@ -172,8 +172,6 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     fi
   done
 
-  git submodule update --init
-
   # Ensure this exists for tests results, just in case
   mkdir -p "bin"
 
