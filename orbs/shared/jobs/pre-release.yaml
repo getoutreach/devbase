@@ -23,7 +23,7 @@ parameters:
   executor_name:
     description: The executor to use for the job
     type: enum
-    enum: [testbed-docker, testbed-docker-aws]
+    enum: [oss-docker, testbed-docker, testbed-docker-aws]
     default: "testbed-docker-aws"
   docker_image:
     description: The docker image to use for running the test
