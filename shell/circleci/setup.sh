@@ -26,18 +26,22 @@ ensure_mise_installed
 
 "$CI_DIR/env/mise.sh"
 
-authn=(
-  "npm"
-  "ssh"
-  "aws"
-  "github"
-  "github_packages"
-)
+if [[ -n $CIRCLE_PR_REPONAME ]]; then
+  warn "🔒 🙅 NOT Setting up authentication, as this PR is from a fork"
+else
+  authn=(
+    "npm"
+    "ssh"
+    "aws"
+    "github"
+    "github_packages"
+  )
 
-for authName in "${authn[@]}"; do
-  info "🔒 Setting up $authName access"
-  "$CI_DIR/auth/$authName.sh"
-done
+  for authName in "${authn[@]}"; do
+    info "🔒 Setting up $authName access"
+    "$CI_DIR/auth/$authName.sh"
+  done
+fi
 
 # Setup $TEST_RESULTS if it's set
 if [[ -n $TEST_RESULTS ]]; then
@@ -51,10 +55,15 @@ if [[ -n $PRE_SETUP_SCRIPT ]]; then
   "${PRE_SETUP_SCRIPT}"
 fi
 
-# Set up a box stub
-boxPath="$HOME/.outreach/.config/box/box.yaml"
-mkdir -p "$(dirname "$boxPath")"
-cat >"$boxPath" <<EOF
+# Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
+echo "$CACHE_VERSION" >cache-version.txt
+
+# Setup box config and Vault/ECR access if not a fork PR
+if [[ -z $CIRCLE_PR_REPONAME ]]; then
+  # Set up a box stub
+  boxPath="$HOME/.outreach/.config/box/box.yaml"
+  mkdir -p "$(dirname "$boxPath")"
+  cat >"$boxPath" <<EOF
 lastUpdated: 2021-01-01T00:00:00.0000000Z
 config:
   refreshInterval: 0s
@@ -65,29 +74,27 @@ config:
 storageURL: git@github.com:getoutreach/box
 EOF
 
-# shellcheck source=../lib/box.sh
-source "${LIB_DIR}/box.sh"
+  # shellcheck source=../lib/box.sh
+  source "${LIB_DIR}/box.sh"
 
-# Ensure we have the latest box config
-download_box
+  # Ensure we have the latest box config
+  download_box
 
-# Authenticate with Vault now that we have the box config
-info "🔒 Setting up Vault access"
+  # Authenticate with Vault now that we have the box config
+  info "🔒 Setting up Vault access"
 
-# shellcheck source=../ci/auth/vault.sh
-"$CI_DIR/auth/vault.sh"
+  # shellcheck source=../ci/auth/vault.sh
+  "$CI_DIR/auth/vault.sh"
 
-# Setup a cache-version.txt file that can be used to invalidate cache via env vars in CircleCI
-echo "$CACHE_VERSION" >cache-version.txt
+  # Authenticate with AWS ECR now that we have the box config
+  info "🔒 Setting up AWS ECR access"
 
-# Authenticate with AWS ECR now that we have the box config
-info "🔒 Setting up AWS ECR access"
+  # shellcheck source=../lib/docker.sh
+  source "${LIB_DIR}/docker.sh"
 
-# shellcheck source=../lib/docker.sh
-source "${LIB_DIR}/docker.sh"
-
-if [[ -z $DOCKER_PUSH_REGISTRIES ]]; then
-  DOCKER_PUSH_REGISTRIES="$(get_docker_push_registries)"
+  if [[ -z $DOCKER_PUSH_REGISTRIES ]]; then
+    DOCKER_PUSH_REGISTRIES="$(get_docker_push_registries)"
+  fi
+  # shellcheck source=../ci/auth/aws-ecr.sh
+  "$CI_DIR/auth/aws-ecr.sh"
 fi
-# shellcheck source=../ci/auth/aws-ecr.sh
-"$CI_DIR/auth/aws-ecr.sh"
