@@ -14,8 +14,19 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
+in_ci_environment() {
+  [[ -n ${CI:-} ]]
+}
+
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+
+if in_ci_environment; then
+  TEST_DIR="${workspaceFolder}/bin"
+  TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
+  mkdir -p "$TEST_DIR"
+  args+=("--out-format=junit-xml-extended:${TEST_FILENAME}")
+fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
 GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
@@ -79,3 +90,7 @@ fi
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
 asdf_devbase_exec golangci-lint "${args[@]}"
+
+if in_ci_environment; then
+  mv "$TEST_FILENAME" /tmp/test-results/
+fi
