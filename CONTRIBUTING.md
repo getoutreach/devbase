@@ -12,14 +12,6 @@ To learn more about that, look at the documentation in the [`./rfcs`](./rfcs/) d
 
 <!-- <<Stencil::Block(customPrerequisites)>> -->
 
-### Before running
-
-Due to `./scripts/bats/bats`, `./scripts/bats/test_helper/bats-assert` and `./scripts/bats/test_helper/bats-support` being *git submodules*, run:
-
-```shell
-git submodule update --init
-```
-
 <!-- <</Stencil::Block>> -->
 
 ## Building and Testing
