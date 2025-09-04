@@ -39,6 +39,9 @@ teardown() {
 }
 
 @test "install_latest_github_release should be able to download and install the latest release of a repo" {
+  if [[ -n $CIRCLE_PR_REPONAME ]]; then
+    skip "Skipping test in fork PR, no GitHub token available to utilize gh."
+  fi
   install_latest_github_release getoutreach/stencil false stencil
 
   # We expect the stencil binary to be installed in the install dir.
@@ -48,6 +51,9 @@ teardown() {
 }
 
 @test "install_latest_github_release should be able to download and install the latest pre-release of a repo" {
+  if [[ -n $CIRCLE_PR_REPONAME ]]; then
+    skip "Skipping test in fork PR, no GitHub token available to utilize gh."
+  fi
   install_latest_github_release getoutreach/stencil true stencil
 
   # We expect the stencil binary to be installed in the install dir.
