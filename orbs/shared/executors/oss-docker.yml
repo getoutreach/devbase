@@ -1,0 +1,14 @@
+description: Executor for Docker based runtimes in OSS repositories
+parameters:
+  docker_tag:
+    type: string
+    default: stable
+  docker_image:
+    type: string
+    default: ghcr.io/getoutreach/bootstrap/ci-oss
+docker:
+  - image: << parameters.docker_image >>:<< parameters.docker_tag >>
+environment:
+  TEST_RESULTS: /tmp/test-results
+  GOPRIVATE: github.com/getoutreach/*
+  GOPROXY: https://proxy.golang.org
