@@ -21,14 +21,13 @@ in_ci_environment() {
   return 1
 }
 
-TEST_DIR="${workspaceFolder}/bin"
-TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
-mkdir -p "$TEST_DIR"
-
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
 
 if in_ci_environment; then
+  TEST_DIR="${workspaceFolder}/bin"
+  TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
+  mkdir -p "$TEST_DIR"
   args+=("--out-format=junit-xml-extended:${TEST_FILENAME}")
 fi
 
