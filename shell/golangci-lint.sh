@@ -15,10 +15,7 @@ if [[ -z $workspaceFolder ]]; then
 fi
 
 in_ci_environment() {
-  if [[ -n ${CI:-} ]]; then
-    return 0
-  fi
-  return 1
+  [[ -n ${CI:-} ]]
 }
 
 # Enable only fast linters, and always use the correct config.
