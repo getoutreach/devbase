@@ -26,6 +26,11 @@ if [[ -z $CIRCLE_PULL_REQUEST ]]; then
   exit 0
 fi
 
+if [[ -n $CIRCLE_PR_REPONAME ]]; then
+  echo "Skipping coverage upload for fork PR, no AWS credentials available." >&2
+  exit 0
+fi
+
 # If we are on a PR, continue with uploading coverage file to S3
 
 # Regex to comply with what AWS cli expects for session name input
