@@ -8,6 +8,9 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 # Setup git user name / email only in CI
 if [[ -n $CI ]]; then
   git config --global user.name "Devbase CI"
@@ -43,9 +46,15 @@ git checkout "$CIRCLE_BRANCH"
 if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
   git merge --squash "$OLD_CIRCLE_BRANCH"
   git commit -m "$COMMIT_MESSAGE"
-  GH_TOKEN="$(github_token)"
-  if [[ -z $GH_TOKEN ]]; then
-    echo "Failed to read Github personal access token" >&2
+
+  if [[ -n $CIRCLE_PR_REPONAME ]]; then
+    # We are in a fork, there is no GitHub token
+    warn "No GitHub token found, this is a fork PR"
+  else
+    GH_TOKEN="$(github_token)"
+    if [[ -z $GH_TOKEN ]]; then
+      warn "Failed to read Github personal access token" >&2
+    fi
   fi
 
   GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
