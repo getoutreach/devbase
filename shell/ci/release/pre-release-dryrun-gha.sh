@@ -21,6 +21,8 @@ if [[ -n $CI ]]; then
   git config --global user.email "devbase@outreach.io"
 fi
 
+env | grep -v TOKEN
+
 # Store what branch we are really on
 OLD_GITHUB_HEAD_REF="$GITHUB_HEAD_REF"
 GITHUB_HEAD_REF="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
