@@ -55,11 +55,17 @@ download_box
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # shellcheck source=../../lib/docker/authn/aws-ecr.sh
 source "${DOCKER_AUTH_DIR}/aws-ecr.sh"
 
 # shellcheck source=../../lib/docker/authn/gcr.sh
 source "${DOCKER_AUTH_DIR}/gcr.sh"
+
+# shellcheck source=../../lib/docker/authn/ghcr.sh
+source "${DOCKER_AUTH_DIR}/ghcr.sh"
 
 pullRegistry="${DOCKER_PULL_REGISTRY:-$(get_docker_pull_registry)}"
 pushRegistries="${DOCKER_PUSH_REGISTRIES:-$(get_docker_push_registries)}"
@@ -76,6 +82,13 @@ for crURL in $registries; do
     ;;
   *.amazonaws.com | *.amazonaws.com/*)
     ecr_auth "$crURL"
+    ;;
+  ghcr.io/*)
+    info_sub "🔓 GHCR ($crURL)"
+    # shellcheck disable=SC2119
+    # Why: no extra args needed to pass to ghaccesstoken in this case.
+    bootstrap_github_token
+    ghcr_auth "$(get_box_field org)"
     ;;
   *)
     warn "No authentication script found for registry: $crURL"
