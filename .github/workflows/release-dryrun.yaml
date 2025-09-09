@@ -6,6 +6,7 @@ on:
 jobs:
   release-dryrun:
     runs-on: ubuntu-24.04
+    if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -14,6 +15,6 @@ jobs:
       - name: Install dependencies via mise
         uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
       - name: Run release dry run
-        run: ./scripts/shell-wrapper.sh ci/release/dryrun.sh
+        run: ./scripts/shell-wrapper.sh ci/release/pre-release-dryrun-gha.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
