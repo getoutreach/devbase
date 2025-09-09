@@ -21,19 +21,14 @@ if [[ -n $CI ]]; then
   git config --global user.email "devbase@outreach.io"
 fi
 
-# Checkout the HEAD (default) branch and ensure it's up-to-date.
-git checkout "$GITHUB_BASE_REF"
-git pull
-
-git checkout "$GITHUB_HEAD_REF"
 # Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "$GITHUB_BASE_REF".."$GITHUB_HEAD_REF" --reverse --format=%B)"
+COMMIT_MESSAGE="$(git log "$GITHUB_BASE_REF"..HEAD --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
-if ! git diff --quiet "$GITHUB_HEAD_REF"; then
-  git merge --squash "$GITHUB_HEAD_REF"
+if ! git diff --quiet -; then
+  git merge --squash -
   git commit -m "$COMMIT_MESSAGE"
 
   GH_TOKEN="$GITHUB_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
