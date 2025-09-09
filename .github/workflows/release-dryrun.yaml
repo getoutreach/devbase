@@ -23,4 +23,5 @@ jobs:
       - name: Run release dry run
         run: ./scripts/shell-wrapper.sh ci/release/pre-release-dryrun-gha.sh
         env:
+          DEBUG: "semantic-release:*"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
