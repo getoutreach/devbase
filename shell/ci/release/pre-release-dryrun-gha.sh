@@ -21,10 +21,8 @@ if [[ -n $CI ]]; then
   git config --global user.email "devbase@outreach.io"
 fi
 
-git pull
-
 # Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "$GITHUB_BASE_REF"..HEAD --reverse --format=%B)"
+COMMIT_MESSAGE="$(git log "$GITHUB_BASE_REF".."$GITHUB_REF" --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
 # Squash our branch onto the HEAD (default) branch to mimic
