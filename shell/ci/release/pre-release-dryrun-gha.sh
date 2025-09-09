@@ -22,6 +22,7 @@ if [[ -n $CI ]]; then
 fi
 
 git remote -v
+find .git/refs -type f
 
 # Merge all of the commit messages from the branch into a single commit message.
 COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF".."$GITHUB_REF" --reverse --format=%B)"
