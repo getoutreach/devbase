@@ -21,17 +21,16 @@ if [[ -n $CI ]]; then
   git config --global user.email "devbase@outreach.io"
 fi
 
-git remote -v
-find .git/refs -type f
+pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 
 # Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF".."$GITHUB_REF" --reverse --format=%B)"
+COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF".."$pull_ref" --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
-if ! git diff --quiet -; then
-  git merge --squash -
+if ! git diff --quiet "$pull_ref"; then
+  git merge --squash "$pull_ref"
   git commit -m "$COMMIT_MESSAGE"
 
   GH_TOKEN="$GITHUB_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
