@@ -9,6 +9,9 @@ source "${LIB_DIR}/bootstrap.sh"
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
+# shellcheck source=../../lib/docker/authn/ghcr.sh
+source "${LIB_DIR}/docker/authn/ghcr.sh"
+
 bootstrap_github_token --env-prefix GHACCESSTOKEN_PAT
 
 # Allow setting for using static auth
@@ -56,4 +59,4 @@ if command -v npm >/dev/null 2>&1; then
 EOF
 fi
 
-echo "$GITHUB_TOKEN" | docker login ghcr.io --username="$ORG" --password-stdin
+ghcr_auth "$ORG"
