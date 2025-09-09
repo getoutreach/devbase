@@ -19,6 +19,7 @@ source "$DIR/../../lib/yaml.sh"
 if [[ -n $CI ]]; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
+  yarn install --frozen-lockfile
 fi
 
 pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
