@@ -22,6 +22,8 @@ if [[ -n $CI ]]; then
   yarn install --frozen-lockfile
 fi
 
+git pull origin "$GITHUB_BASE_REF"
+
 pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 
 # Merge all of the commit messages from the branch into a single commit message.
