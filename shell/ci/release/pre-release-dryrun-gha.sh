@@ -19,6 +19,8 @@ source "$DIR/../../lib/yaml.sh"
 if [[ -n $CI ]]; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
+  echo "$GITHUB_TOKEN" | gh auth login --with-token
+  gh auth setup-git
   yarn install --frozen-lockfile
 fi
 
