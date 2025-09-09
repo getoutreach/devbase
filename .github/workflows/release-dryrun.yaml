@@ -12,6 +12,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Authenticate to GitHub Packages
         run: |
           echo "@getoutreach:registry=https://npm.pkg.github.com/" >> ~/.npmrc
