@@ -19,7 +19,6 @@ source "$DIR/../../lib/yaml.sh"
 if [[ -n $CI ]]; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
-  echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> ~/.npmrc
   yarn install --frozen-lockfile
 fi
 
