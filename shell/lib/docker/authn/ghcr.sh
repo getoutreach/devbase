@@ -5,7 +5,8 @@
 set -eo pipefail
 
 # ghcr_auth(org)
-# Assumes that GITHUB_TOKEN has been set already.
+# Assumes that GITHUB_TOKEN has been set already, usually via
+# bootstrap_github_token from `shell/lib/github.sh`.
 ghcr_auth() {
   local org="$1"
 
