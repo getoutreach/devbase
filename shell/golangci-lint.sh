@@ -25,7 +25,8 @@ if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
   TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
   mkdir -p "$TEST_DIR"
-  args+=("--out-format=junit-xml-extended:${TEST_FILENAME}")
+  # support for multiple output formats (stdout and junit xml)
+  args+=("--out-format=colored-line-number,junit-xml-extended:${TEST_FILENAME}")
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
