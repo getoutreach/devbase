@@ -21,28 +21,19 @@ if [[ -n $CI ]]; then
   git config --global user.email "devbase@outreach.io"
 fi
 
-env | grep -v TOKEN
-
-# Store what branch we are really on
-OLD_GITHUB_HEAD_REF="$GITHUB_HEAD_REF"
-GITHUB_HEAD_REF="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
-
-# Export the branch variable to the semantic-release command
-export GITHUB_HEAD_REF
-
 # Checkout the HEAD (default) branch and ensure it's up-to-date.
-git checkout "$GITHUB_HEAD_REF"
+git checkout "$GITHUB_BASE_REF"
 git pull
 
-git checkout "$OLD_GITHUB_HEAD_REF"
-# Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "$GITHUB_HEAD_REF".."$OLD_GITHUB_HEAD_REF" --reverse --format=%B)"
 git checkout "$GITHUB_HEAD_REF"
+# Merge all of the commit messages from the branch into a single commit message.
+COMMIT_MESSAGE="$(git log "$GITHUB_BASE_REF".."$GITHUB_HEAD_REF" --reverse --format=%B)"
+git checkout "$GITHUB_BASE_REF"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
-if ! git diff --quiet "$OLD_GITHUB_HEAD_REF"; then
-  git merge --squash "$OLD_GITHUB_HEAD_REF"
+if ! git diff --quiet "$GITHUB_HEAD_REF"; then
+  git merge --squash "$GITHUB_HEAD_REF"
   git commit -m "$COMMIT_MESSAGE"
 
   GH_TOKEN="$GITHUB_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
