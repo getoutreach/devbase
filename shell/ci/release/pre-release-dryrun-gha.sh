@@ -30,6 +30,9 @@ pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF..$pull_ref" --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
+info "Local $GITHUB_BASE_REF: $(git rev-parse HEAD)"
+info "Remote $GITHUB_BASE_REF: $(git ls-remote --heads "$(git remote get-url origin)" "$GITHUB_BASE_REF")"
+
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 if ! git diff --quiet "$pull_ref"; then
