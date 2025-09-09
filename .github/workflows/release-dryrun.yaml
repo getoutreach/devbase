@@ -18,6 +18,8 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
       - name: Install dependencies via mise
         uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - name: Extra dependencies
+        run: mise use --global gojq
       - name: Run release dry run
         run: ./scripts/shell-wrapper.sh ci/release/pre-release-dryrun-gha.sh
         env:
