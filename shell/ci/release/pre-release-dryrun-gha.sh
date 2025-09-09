@@ -19,16 +19,14 @@ source "$DIR/../../lib/yaml.sh"
 if [[ -n $CI ]]; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
-  if [[ ! -f ~/.npmrc ]] || ! grep -q "^//npm.pkg.github.com/:_authToken=" ~/.npmrc; then
-    echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> ~/.npmrc
-  fi
+  echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> ~/.npmrc
   yarn install --frozen-lockfile
 fi
 
 pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 
 # Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF".."$pull_ref" --reverse --format=%B)"
+COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF..$pull_ref" --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
 # Squash our branch onto the HEAD (default) branch to mimic
