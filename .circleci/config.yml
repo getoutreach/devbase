@@ -157,23 +157,6 @@ workflows:
             branches:
               only:
                 - main
-      # Dryrun for PRs
-      - shared/pre-release: &pre-release
-          dryrun: true
-          context: *contexts
-          executor_name: oss-docker
-          docker_image: ghcr.io/getoutreach/bootstrap/ci-oss
-          ## <<Stencil::Block(circlePreReleaseDryRunExtra)>>
-          docker_tag: latest
-          ## <</Stencil::Block>>
-          requires:
-            ## <<Stencil::Block(circlePreReleaseDryRunRequires)>>
-
-            ## <</Stencil::Block>>
-            - shared/test
-          filters:
-            branches:
-              ignore: *release_branches
       - shared/test:
           <<: *test
           executor_name: oss-docker
