@@ -34,6 +34,10 @@ if ! git diff --quiet "$pull_ref"; then
   git merge --squash "$pull_ref"
   git commit -m "$COMMIT_MESSAGE"
 
+  # Unset variables to not trigger the PR message.
+  # From: https://github.com/semantic-release/env-ci/blob/master/services/github.js
+  unset GITHUB_EVENT_NAME
+
   GH_TOKEN="$GITHUB_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
 
   # If we don't have pre-releasing enabled, notify.
