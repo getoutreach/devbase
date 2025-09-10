@@ -10,7 +10,7 @@ steps:
         - release-node-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Install semantic-release Dependencies
-      command: yarn --frozen-lockfile
+      command: if [[ -z $CIRCLE_PR_REPONAME ]]; then yarn --frozen-lockfile; fi
   - when:
       condition: << parameters.save >>
       steps:
