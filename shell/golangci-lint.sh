@@ -25,7 +25,7 @@ if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
   TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
   mkdir -p "$TEST_DIR"
-  # support for multiple output formats (stdout and junit xml)
+  # Support multiple output formats (stdout, JUnit)
   args+=("--out-format=colored-line-number,junit-xml-extended:${TEST_FILENAME}")
 fi
 
