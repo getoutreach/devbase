@@ -12,8 +12,6 @@ LIB_DIR="${DIR}/../../lib"
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
-# shellcheck source=./../../lib/yaml.sh
-source "$DIR/../../lib/yaml.sh"
 
 # Setup git user name / email only in CI
 if [[ -n $CI ]]; then
@@ -31,9 +29,6 @@ pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 COMMIT_MESSAGE="$(git log "origin/$GITHUB_BASE_REF..$pull_ref" --reverse --format=%B)"
 git checkout "$GITHUB_BASE_REF"
 
-info "Local $GITHUB_BASE_REF: $(git rev-parse HEAD)"
-info "Remote $GITHUB_BASE_REF: $(git ls-remote --heads "$(git remote get-url origin)" "$GITHUB_BASE_REF")"
-
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 if ! git diff --quiet "$pull_ref"; then
@@ -48,7 +43,7 @@ if ! git diff --quiet "$pull_ref"; then
     yarn --frozen-lockfile semantic-release --dry-run
 
   # If we don't have pre-releasing enabled, notify.
-  if [[ "$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$(get_service_yaml)")" != "true" ]]; then
+  if [[ "$(stencil_arg "releaseOptions.enablePrereleases")" != "true" ]]; then
     echo "releaseOptions.enablePrereleases is not true, skipping unstable release"
     exit 0
   fi
