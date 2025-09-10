@@ -19,6 +19,7 @@ source "$DIR/../shell/lib/shell.sh"
 # shellcheck source=../shell/lib/bootstrap.sh
 source "$DIR/../shell/lib/bootstrap.sh"
 
+# Make sure that the bats-related submodules exist before running the bats tests.
 git submodule update --init
 
 # Find all files with _test.sh at the end of the filename
