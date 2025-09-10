@@ -10,13 +10,13 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/asdf.sh
 source "$DIR/lib/asdf.sh"
 
-if [[ -z $workspaceFolder ]]; then
-  workspaceFolder="$(get_repo_directory)"
-fi
-
 in_ci_environment() {
   [[ -n ${CI:-} ]]
 }
+
+if [[ -z $workspaceFolder ]]; then
+  workspaceFolder="$(get_repo_directory)"
+fi
 
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
