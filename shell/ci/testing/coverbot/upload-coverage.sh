@@ -29,7 +29,7 @@ if ! circleci_is_pr; then
   exit 0
 fi
 
-if circleci_is_pr_fork; then
+if circleci_pr_is_fork; then
   echo "Skipping coverage upload for fork PR, no AWS credentials available." >&2
   exit 0
 fi
