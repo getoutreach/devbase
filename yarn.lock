@@ -21,7 +21,7 @@
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
-"@getoutreach/semantic-release-circleci-orb@^2.1.0":
+"@getoutreach/semantic-release-circleci-orb@^2.0.1":
   version "2.1.0"
   resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/2.1.0/eb88679935336ac2029e2b9097b1d2d7561f1455#eb88679935336ac2029e2b9097b1d2d7561f1455"
   integrity sha512-heD0ZNZcbcmtb8YDsf/1egNV6K01qxXhaENJria4/Ds0Li7I0+gWbcEWI8v13tH+WMCQyK/NtaLN08cGfzEMZg==
