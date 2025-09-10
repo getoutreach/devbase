@@ -13,6 +13,9 @@ source "$LIB_DIR/bootstrap.sh"
 # shellcheck source=../../../lib/box.sh
 source "$LIB_DIR/box.sh"
 
+# shellcheck source=../../../lib/circleci.sh
+source "$LIB_DIR/circleci.sh"
+
 # Check if coverage file arg is empty
 if [[ -s $1 ]]; then
   coverage_file="$1"
@@ -21,12 +24,12 @@ else
   exit 0
 fi
 
-if [[ -z $CIRCLE_PULL_REQUEST ]]; then
+if ! circleci_is_pr; then
   echo "Not on a pull request, aborting" >&2
   exit 0
 fi
 
-if [[ -n $CIRCLE_PR_REPONAME ]]; then
+if circleci_is_pr_fork; then
   echo "Skipping coverage upload for fork PR, no AWS credentials available." >&2
   exit 0
 fi
