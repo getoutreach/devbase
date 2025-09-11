@@ -6,6 +6,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 CI_DIR="$DIR/../ci"
 LIB_DIR="$DIR/../lib"
 
+# shellcheck source=../lib/circleci.sh
+source "${LIB_DIR}/circleci.sh"
+
 # shellcheck source=../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -26,7 +29,7 @@ ensure_mise_installed
 
 "$CI_DIR/env/mise.sh"
 
-if [[ -n $CIRCLE_PR_REPONAME ]]; then
+if circleci_pr_is_fork; then
   warn "🔒 🙅 NOT Setting up authentication, as this PR is from a fork"
 else
   authn=(
@@ -59,7 +62,7 @@ fi
 echo "$CACHE_VERSION" >cache-version.txt
 
 # Setup box config and Vault/ECR access if not a fork PR
-if [[ -z $CIRCLE_PR_REPONAME ]]; then
+if ! circleci_pr_is_fork; then
   # Set up a box stub
   boxPath="$HOME/.outreach/.config/box/box.yaml"
   mkdir -p "$(dirname "$boxPath")"

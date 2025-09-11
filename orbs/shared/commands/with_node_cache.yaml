@@ -10,7 +10,12 @@ steps:
         - release-node-cache-{{ checksum "cache-version.txt" }}
   - run:
       name: Install semantic-release Dependencies
-      command: yarn --frozen-lockfile
+      command: |
+        if [[ -n $CIRCLE_PR_REPONAME ]]; then
+          echo -e '\e[1;33mWARNING:\e[0m skipping yarn install due to forked PR' >&2
+        else
+          yarn --frozen-lockfile
+        fi
   - when:
       condition: << parameters.save >>
       steps:
