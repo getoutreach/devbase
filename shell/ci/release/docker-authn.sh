@@ -85,9 +85,8 @@ for crURL in $registries; do
     ;;
   ghcr.io/*)
     info_sub "🔓 GHCR ($crURL)"
-    # shellcheck disable=SC2119
-    # Why: no extra args needed to pass to ghaccesstoken in this case.
-    bootstrap_github_token
+    # Need the PAT because app-based tokens cannot publish containers.
+    bootstrap_github_token --env-prefix GHACCESSTOKEN_PAT
     ghcr_auth "$(get_box_field org)"
     ;;
   *)
