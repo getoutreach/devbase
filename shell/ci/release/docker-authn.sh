@@ -86,8 +86,8 @@ for crURL in $registries; do
   ghcr.io/*)
     info_sub "🔓 GHCR ($crURL)"
     # Need the PAT because app-based tokens cannot publish containers.
-    bootstrap_github_token --env-prefix GHACCESSTOKEN_PAT
-    ghcr_auth "$(get_box_field org)"
+    GITHUB_TOKEN="$(fetch_github_token_from_ci --env-prefix GHACCESSTOKEN_PAT)" \
+      ghcr_auth "$(get_box_field org)"
     ;;
   *)
     warn "No authentication script found for registry: $crURL"
