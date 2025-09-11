@@ -1,0 +1,24 @@
+name: Release (dry run)
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  release-dryrun:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Authenticate to GitHub Packages
+        run: |
+          echo "@getoutreach:registry=https://npm.pkg.github.com/" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      - name: Install dependencies via mise
+        uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - name: Run release dry run
+        run: ./scripts/shell-wrapper.sh ci/release/pre-release-dryrun-gha.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

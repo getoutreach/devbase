@@ -12,10 +12,19 @@ source "$DIR/lib/mise.sh"
 # shellcheck disable=SC2034
 extensions=(yaml yml json md ts)
 
+prettier_defined_via_mise() {
+  [[ "$(gojq --raw-output .devDependencies.prettier package.json)" == "null" ]]
+}
+
 find_and_install_prettier_if_needed() {
   PRETTIER="node_modules/.bin/prettier"
-  yarn_install_if_needed >/dev/null
-  if [[ ! -f $PRETTIER && (! -f package.json || "$(gojq --raw-output .devDependencies.prettier package.json)" == "null") ]]; then
+  local miseBasedPrettier
+  if prettier_defined_via_mise; then
+    miseBasedPrettier="yes"
+  else
+    yarn_install_if_needed >/dev/null
+  fi
+  if [[ ! -f $PRETTIER && (! -f package.json || -n $miseBasedPrettier) ]]; then
     mise_install_if_needed npm:prettier
     # Try to find prettier installed via mise
     PRETTIER="$(mise which prettier)"
