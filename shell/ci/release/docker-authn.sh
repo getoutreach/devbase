@@ -36,16 +36,15 @@ install_tool_with_mise gojq "$(tool_version gojq)"
 
 info "🔓 Authenticating to GitHub"
 
-set -x
-
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
 source "${AUTH_DIR}/github.sh"
-ssh-add -l
 # We need to set up SSH to ensure that we can access private
 # repositories when building the Docker images
 # shellcheck source=../auth/ssh.sh
 source "${AUTH_DIR}/ssh.sh"
+
+set -x
 
 git config --global --remove-section url."ssh://git@github.com"
 RUST_BACKTRACE=full mise --verbose use --global ubi:astral-sh/uv
