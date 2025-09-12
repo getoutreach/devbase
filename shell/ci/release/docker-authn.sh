@@ -44,7 +44,9 @@ source "${AUTH_DIR}/github.sh"
 # shellcheck source=../auth/ssh.sh
 source "${AUTH_DIR}/ssh.sh"
 
-set -x
+if [[ -z $GITHUB_TOKEN ]]; then
+  fatal "GitHub token not set correctly"
+fi
 
 git config --global --remove-section url."ssh://git@github.com"
 MISE_GITHUB_TOKEN="$(fetch_github_token_from_ci)" RUST_BACKTRACE=full mise --verbose use --global uv
