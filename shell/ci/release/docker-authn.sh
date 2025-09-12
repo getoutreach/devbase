@@ -47,6 +47,7 @@ source "${AUTH_DIR}/github.sh"
 source "${AUTH_DIR}/ssh.sh"
 
 git config --global --remove-section url."ssh://git@github.com"
+mise exec yamllint -- yamllint ~/.config/gh/hosts.yml
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # shellcheck source=../../lib/box.sh
