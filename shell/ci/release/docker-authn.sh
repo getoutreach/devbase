@@ -48,7 +48,7 @@ ssh-add -l
 source "${AUTH_DIR}/ssh.sh"
 
 git config --global --remove-section url."ssh://git@github.com"
-mise use -g uv
+RUST_BACKTRACE=full mise --verbose use --global uv
 mise exec yamllint -- yamllint ~/.config/gh/hosts.yml
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
