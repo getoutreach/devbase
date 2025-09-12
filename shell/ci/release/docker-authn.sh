@@ -41,6 +41,7 @@ set -x
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
 source "${AUTH_DIR}/github.sh"
+ssh-add -l
 # We need to set up SSH to ensure that we can access private
 # repositories when building the Docker images
 # shellcheck source=../auth/ssh.sh
