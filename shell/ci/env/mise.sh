@@ -9,10 +9,23 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/mise.sh
+source "${LIB_DIR}/mise.sh"
+
 repo="$(get_repo_directory)"
+
+ensure_mise_installed
+
+# Ensure that a GitHub token exists, to avoid unauthenticated rate limiting.
+# shellcheck disable=SC2119
+# Why: no extra args needed to pass to ghaccesstoken in this case.
+bootstrap_github_token
 
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repo"/mise.toml ]]; then

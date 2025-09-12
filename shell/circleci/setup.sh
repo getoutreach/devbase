@@ -12,22 +12,18 @@ source "${LIB_DIR}/circleci.sh"
 # shellcheck source=../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
-# shellcheck source=../lib/mise.sh
-source "${LIB_DIR}/mise.sh"
-
 # shellcheck source=../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
+
+info "🔨 Setting up mise 🧑‍🍳"
+
+"$CI_DIR/env/mise.sh"
 
 if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
   # Ensure that asdf is ready to be used
   info "🔨 Setting up asdf"
   "$CI_DIR/env/asdf.sh"
 fi
-
-info "🔨 Setting up mise 🧑‍🍳"
-ensure_mise_installed
-
-"$CI_DIR/env/mise.sh"
 
 if circleci_pr_is_fork; then
   warn "🔒 🙅 NOT Setting up authentication, as this PR is from a fork"
