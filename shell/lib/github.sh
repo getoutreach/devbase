@@ -99,12 +99,14 @@ bootstrap_github_token() {
 # Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
 # arguments are passed to `ghaccesstoken token`.
 fetch_github_token_from_ci() {
-  local version
-  version="$(get_tool_version getoutreach/ci)"
-  if ! ghaccesstoken_exists "$version"; then
-    mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
-    install_tool_with_mise ubi:getoutreach/ci "$version"
-  fi
+  (
+    local version
+    version="$(get_tool_version getoutreach/ci)"
+    if ! ghaccesstoken_exists "$version"; then
+      mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
+      install_tool_with_mise ubi:getoutreach/ci "$version"
+    fi
+  ) >&2
   "$(find_tool ghaccesstoken)" --skip-update token "$@"
 }
 
