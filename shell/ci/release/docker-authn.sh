@@ -36,6 +36,8 @@ install_tool_with_mise gojq "$(tool_version gojq)"
 
 info "🔓 Authenticating to GitHub"
 
+set -x
+
 # In order to get the box config, we need to authenticate with GitHub
 # shellcheck source=../auth/github.sh
 source "${AUTH_DIR}/github.sh"
@@ -85,12 +87,9 @@ for crURL in $registries; do
     ;;
   ghcr.io/*)
     info_sub "🔓 GHCR ($crURL)"
-    (
-      set -x
-      # Need the PAT because app-based tokens cannot publish containers.
-      GITHUB_TOKEN="$(fetch_github_token_from_ci --env-prefix GHACCESSTOKEN_PAT)" \
-        ghcr_auth "$(get_box_field org)"
-    )
+    # Need the PAT because app-based tokens cannot publish containers.
+    GITHUB_TOKEN="$(fetch_github_token_from_ci --env-prefix GHACCESSTOKEN_PAT)" \
+      ghcr_auth "$(get_box_field org)"
     ;;
   *)
     warn "No authentication script found for registry: $crURL"
