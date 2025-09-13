@@ -87,20 +87,31 @@ install_latest_github_release() {
   install_tool_with_mise "$mise_identifier" "$tag"
 }
 
-# Fetch the token from getoutreach/ci:ghaccesstoken if not set.
+# Set GITHUB_TOKEN from getoutreach/ci:ghaccesstoken if not already
+# set. Any arguments are passed to `ghaccesstoken token`.
 bootstrap_github_token() {
-  local version
-  if [[ -z $GITHUB_TOKEN ]]; then
+  if [[ -z ${GITHUB_TOKEN:-} ]]; then
+    GITHUB_TOKEN="$(fetch_github_token_from_ci "$@")"
+    export GITHUB_TOKEN
+  fi
+}
+
+# Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
+# arguments are passed to `ghaccesstoken token`.
+fetch_github_token_from_ci() {
+  (
+    local version
     version="$(get_tool_version getoutreach/ci)"
     if ! ghaccesstoken_exists "$version"; then
       mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
       install_tool_with_mise ubi:getoutreach/ci "$version"
     fi
-    GITHUB_TOKEN="$("$(find_tool ghaccesstoken)" --skip-update token "$@")"
-    export GITHUB_TOKEN
-  fi
+  ) >&2
+  "$(find_tool ghaccesstoken)" --skip-update token "$@"
 }
 
+# Determines whether ghaccesstoken is installed with the provided
+# version number.
 ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
@@ -108,8 +119,5 @@ ghaccesstoken_exists() {
   if [[ -z $ghaccesstoken_path ]]; then
     return 1
   fi
-  if [[ "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" != "$version" ]]; then
-    return 1
-  fi
-  return 0
+  [[ "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" == "$version" ]]
 }

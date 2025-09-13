@@ -22,9 +22,9 @@
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
 "@getoutreach/semantic-release-circleci-orb@^2.0.1":
-  version "2.0.1"
-  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/2.0.1/3915cdc4b84a2bbced6c416ac4d2acc0c88a38ec#3915cdc4b84a2bbced6c416ac4d2acc0c88a38ec"
-  integrity sha512-/8vEfn1xP6ft1xPmN1YfdRJX7MVUBsiP3KftRESw+WfP/NXuYXnEffx7EN8QSU9ctQzM5bXPG69Veuh2AwelvA==
+  version "2.1.0"
+  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/2.1.0/eb88679935336ac2029e2b9097b1d2d7561f1455#eb88679935336ac2029e2b9097b1d2d7561f1455"
+  integrity sha512-heD0ZNZcbcmtb8YDsf/1egNV6K01qxXhaENJria4/Ds0Li7I0+gWbcEWI8v13tH+WMCQyK/NtaLN08cGfzEMZg==
   dependencies:
     "@semantic-release/error" "^4.0.0"
     aggregate-error "^5.0.0"
