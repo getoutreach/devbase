@@ -14,6 +14,14 @@ source "${LIB_DIR}/logging.sh"
 
 repo="$(get_repo_directory)"
 
+# inject_mise_into_bash_env injects mise support into the value of BASH_ENV.
+# Assumes that BASH_ENV is set.
+inject_mise_into_bash_env() {
+  # Empty echo ensures that we never append to an existing line.
+  echo >>"$BASH_ENV"
+  mise activate bash --shims >>"$BASH_ENV"
+}
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repo"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
@@ -24,4 +32,8 @@ if [[ -f "$repo"/mise.toml ]]; then
     info_sub "🧑‍🍳 allowing mise to manage .tool-versions"
     mise install --cd "$repo" --yes
   fi
+fi
+
+if [[ -n $BASH_ENV ]]; then
+  inject_mise_into_bash_env
 fi
