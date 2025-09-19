@@ -1,0 +1,17 @@
+description: Executor for jobs that specifically require macOS
+parameters:
+  docker_tag:
+    type: string
+    default: unused-docker-tag
+    description: Not used, but necessary to match parameters of other executors.
+  docker_image:
+    type: string
+    default: unused-docker-image
+    description: Not used, but necessary to match parameters of other executors.
+macos:
+  # macOS 15.3.2
+  xcode: "16.4.0"
+environment:
+  TEST_RESULTS: /tmp/test-results
+  GOPRIVATE: github.com/getoutreach/*
+  GOPROXY: https://proxy.golang.org
