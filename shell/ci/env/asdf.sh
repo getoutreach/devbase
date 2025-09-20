@@ -21,7 +21,7 @@ fi
 
 # inject_bash_env injects asdf support into the value of BASH_ENV and sources it
 inject_bash_env() {
-  cat >"$BASH_ENV" <<'EOF'
+  cat >>"$BASH_ENV" <<'EOF'
 
 # Source ASDF. DO NOT REMOVE THE EMPTY LINE ABOVE. This
 # ensures that we never append to an existing line.
