@@ -24,7 +24,7 @@ teardown() {
 }
 
 @test "sed_replace fails if gsed is not installed on macOS" {
-  if ! [[ "$OSTYPE" =~ darwin* ]]; then
+  if ! [[ $OSTYPE =~ darwin* ]]; then
     skip "Skipping macOS-specific test on non-macOS system."
   fi
   export MACOS_GNU_SED="nonexistent-gsed"
