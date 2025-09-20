@@ -5,6 +5,7 @@ bats_require_minimum_version 1.5.0
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
+load logging.sh
 load sed.sh
 load test_helper.sh
 
