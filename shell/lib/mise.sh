@@ -78,7 +78,7 @@ install_mise() {
     set +e
     if ! retry 5 5 sh "$install_script"; then
       local distro
-      if [[ -z $CI ]]; then
+      if ! in_ci_environment; then
         fatal "Could not install mise"
       fi
       set -e

@@ -14,13 +14,16 @@ source "${LIB_DIR}/github.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/shell.sh
+source "${LIB_DIR}/shell.sh"
+
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
   exit 0
 fi
 
 # Setup git user name / email only in CI
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
 fi
