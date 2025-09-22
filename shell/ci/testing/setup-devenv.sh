@@ -62,7 +62,7 @@ if [[ $PROVISION == "true" ]]; then
     exit 0
   fi
 
-  if [[ -z $VAULT_ADDR ]]; then
+  if in_ci_environment && [[ -z $VAULT_ADDR ]]; then
     VAULT_ADDR="$(get_box_field devenv.vault.address)"
     export VAULT_ADDR
   fi
