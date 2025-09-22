@@ -6,7 +6,7 @@
 # mktempdir creates a temporary directory and echoes its path.
 mktempdir() {
   local tmpdir="${TMPDIR:-/tmp}"
-  local suffix="${1:devbase-test-XXXXXX}"
+  local suffix="${1:-devbase-test-XXXXXX}"
   local dir="$tmpdir/$suffix"
   mktemp -d "$dir"
 }
