@@ -8,19 +8,18 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # CI determines if we're running in CI or not. Defaults to false.
 CI=${CI:-false}
 
-# Check if bats is installed and usable.
-if [[ ! -e "$DIR/bats/bats" ]]; then
-  echo "Initializing bats submodule(s) ..."
-  git submodule update --init --recursive
-fi
-
-# shellcheck source=../shell/lib/shell.sh
-source "$DIR/../shell/lib/shell.sh"
 # shellcheck source=../shell/lib/bootstrap.sh
 source "$DIR/../shell/lib/bootstrap.sh"
+# shellcheck source=../shell/lib/logging.sh
+source "$DIR/../shell/lib/logging.sh"
+# shellcheck source=../shell/lib/shell.sh
+source "$DIR/../shell/lib/shell.sh"
 
-# Make sure that the bats-related submodules exist before running the bats tests.
-git submodule update --init
+# Check if bats is installed and usable.
+if [[ ! -e "$DIR/bats/test_helper/bats-assert" ]]; then
+  info "Initializing bats submodule(s) ..."
+  git submodule update --init --recursive
+fi
 
 # Find all files with _test.sh at the end of the filename
 # and run them
