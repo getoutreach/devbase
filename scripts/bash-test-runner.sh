@@ -35,7 +35,7 @@ if [[ -n $CI ]]; then
   extraArgs+=("--report-formatter" "junit" "--output" "$junitOutputPath")
 fi
 
-BATS_LIB_PATH="$DIR/bats/test_helper" "$DIR/bats/bats/bin/bats" "${extraArgs[@]}" "${test_files[@]}"
+BATS_LIB_PATH="$DIR/bats/test_helper" bats "${extraArgs[@]}" "${test_files[@]}"
 exitCode=$?
 
 # If we're running in CI, move the test-results to the path that gets
