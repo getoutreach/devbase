@@ -4,11 +4,12 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 load bootstrap.sh
+load test_helper.sh
 
 setup() {
   # This points us to use a temp file for a git repo to operate on, as
   # opposed to the real one.
-  REPOPATH=$(mktemp -p "$TMPDIR" -d devbase.bootstrapXXXXXXXXXX)
+  REPOPATH=$(mktempdir devbase-bootstrap-XXXXXX)
 
   git init --initial-branch=main "$REPOPATH"
   cd "$REPOPATH" || exit 1

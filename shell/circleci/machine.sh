@@ -17,7 +17,7 @@ source "$LIB_DIR"/mise.sh
 source "$LIB_DIR"/shell.sh
 
 if [[ $OSTYPE == "darwin"* ]]; then
-  brew install bash docker gnupg
+  brew install bash docker gnupg gnu-sed
   # Rosetta is required for awscli installed by mise
   softwareupdate --install-rosetta --agree-to-license
 fi
