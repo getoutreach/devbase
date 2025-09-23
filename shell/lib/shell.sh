@@ -93,7 +93,7 @@ get_time_ms() {
 # is_terminal returns true if the current process is a terminal, with
 # a special case of always being false if CI is true
 is_terminal() {
-  [[ -t 0 ]] && [[ $CI != "true" ]]
+  [[ -t 0 ]] && ! in_ci_environment
 }
 
 # get_cursor_pos returns the current cursor position
@@ -213,4 +213,10 @@ find_files_with_shebang() {
       echo "$file"
     fi
   done | sort | uniq
+}
+
+# in_ci_environment determines whether the script is run in the context
+# of a CI job/workflow.
+in_ci_environment() {
+  [[ -n ${CI:-} ]]
 }

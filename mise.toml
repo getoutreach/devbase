@@ -17,7 +17,7 @@ CIRCLECI_ORB_NAME = "getoutreach/shared"
 circleci = "latest"
 
 ## <<Stencil::Block(customMiseTools)>>
-
+bats = "latest"
 ## <</Stencil::Block>>
 
 ## <<Stencil::Block(extraMise)>>

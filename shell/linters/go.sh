@@ -18,7 +18,7 @@ go_mod_tidy() {
   #
   # Skip when go.sum doesn't exist, because this causes errors. This can
   # happen when go.mod has no dependencies
-  if [[ -n $CI ]] && [[ -e "go.sum" ]]; then
+  if in_ci_environment && [[ -e "go.sum" ]]; then
     git diff --exit-code go.{mod,sum} || fatal "go.{mod,sum} are out of date, please run 'go mod tidy' and commit the result"
   fi
 }
