@@ -12,9 +12,11 @@ LIB_DIR="${DIR}/../../lib"
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
+# shellcheck source=../../lib/shell.sh
+source "${LIB_DIR}/shell.sh"
 
 # Setup git user name / email only in CI
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   git config --global user.name "Devbase CI"
   git config --global user.email "devbase@outreach.io"
   mise use --global gojq

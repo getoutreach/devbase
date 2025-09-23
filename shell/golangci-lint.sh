@@ -9,10 +9,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/asdf.sh
 source "$DIR/lib/asdf.sh"
-
-in_ci_environment() {
-  [[ -n ${CI:-} ]]
-}
+# shellcheck source=./lib/shell.sh
+source "$DIR/lib/shell.sh"
 
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
