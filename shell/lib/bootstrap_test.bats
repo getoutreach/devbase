@@ -9,7 +9,7 @@ load test_helper.sh
 setup() {
   # This points us to use a temp file for a git repo to operate on, as
   # opposed to the real one.
-  REPOPATH=$(mktempdir devbase.bootstrapXXXXXXXXXX)
+  REPOPATH=$(mktempdir devbase-bootstrap-XXXXXX)
 
   git init --initial-branch=main "$REPOPATH"
   cd "$REPOPATH" || exit 1
