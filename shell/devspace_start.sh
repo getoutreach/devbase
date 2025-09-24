@@ -44,7 +44,7 @@ fi
 # We actually don't want it to expand, we want it to be a literal string written to the file
 # shellcheck disable=SC2016
 # shellcheck disable=SC2086
-if ! grep -q '. "$HOME/.asdf/asdf.sh"' "$HOME/.bashrc"; then
+if [[ ! -f "$HOME/.bashrc" ]] || ! grep -q '. "$HOME/.asdf/asdf.sh"' "$HOME/.bashrc"; then
   # We actually don't want it to expand, we want it to be a literal string written to the file
   # shellcheck disable=SC2016
   # shellcheck disable=SC2086
@@ -53,6 +53,7 @@ fi
 
 echo "$(tput bold)Ensuring asdf plugins are installed$(tput sgr0)"
 pushd /home/dev/app >/dev/null || exit 1
+mise trust --cd .bootstrap
 ./.bootstrap/root/ensure_asdf.sh
 popd >/dev/null || exit 1
 
