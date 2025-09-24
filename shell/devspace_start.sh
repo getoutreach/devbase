@@ -7,6 +7,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/box.sh"
 
 mise trust
+mise trust --cd .bootstrap
 
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
