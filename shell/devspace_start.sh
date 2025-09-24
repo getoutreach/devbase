@@ -6,6 +6,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/box.sh
 source "$DIR/lib/box.sh"
 
+# Trust mise config in app
+mise trust --cd /home/dev/app
+
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # SSH -> HTTPS, since we're not using SSH keys
