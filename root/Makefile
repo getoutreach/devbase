@@ -212,7 +212,7 @@ debug:: pre-debug
 	@if [[ -n $$DLV_PORT ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh debug.sh; fi
 	@if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
-## docker-build:    build docker image for dev environment
+## docker-build:    [DEPRECATED] build docker image for dev environment
 .PHONY: docker-build
 docker-build:: pre-docker-build
 	@./scripts/shell-wrapper.sh deprecated-task.sh docker-build docker:build
