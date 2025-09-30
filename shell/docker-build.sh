@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Builds a Docker image for the current application in the dev environment.
+#
+# External environment variables accepted:
+#
+# * `APP_VERSION` (REQUIRED)
+# * `DOCKERFILE` (defaults to `deployments/$app/Dockerfile`)
+# * `DOCKER_BUILD_EXTRA_ARGS` (extra arguments to `docker build`,
+#   defaults to empty string)
 
 set -eo pipefail
 
@@ -17,9 +24,13 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=./lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
+if [[ -z ${APP_VERSION:-} ]]; then
+  fatal "Please specify APP_VERSION"
+fi
+
 appName="$(get_app_name)"
 
-if [[ -z $DOCKERFILE ]]; then
+if [[ -z ${DOCKERFILE:-} ]]; then
   DOCKERFILE="deployments/$appName/Dockerfile"
 fi
 
@@ -41,5 +52,5 @@ DOCKER_BUILDKIT=1 docker build \
   --ssh default "${tags[@]}" \
   -f "$DOCKERFILE" \
   . \
-  --build-arg VERSION="$APP_VERSION" \
-  $DOCKER_BUILD_EXTRA_ARGS
+  --build-arg VERSION="${APP_VERSION:-}" \
+  ${DOCKER_BUILD_EXTRA_ARGS:-}
