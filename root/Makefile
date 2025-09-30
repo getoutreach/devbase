@@ -215,7 +215,7 @@ debug:: pre-debug
 ## docker-build:    build docker image for dev environment
 .PHONY: docker-build
 docker-build:: pre-docker-build
-	@./scripts/shell-wrapper.sh docker-build.sh
+	@./scripts/shell-wrapper.sh deprecated-task.sh docker-build docker:build
 
 ## fmt:             run source code formatters
 .PHONY: fmt
