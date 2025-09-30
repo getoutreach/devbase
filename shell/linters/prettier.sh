@@ -13,7 +13,7 @@ source "$DIR/lib/mise.sh"
 extensions=(yaml yml json md ts)
 
 prettier_defined_via_mise() {
-  [[ "$(gojq --raw-output .devDependencies.prettier package.json)" == "null" ]]
+  [[ -f package.json && "$(gojq --raw-output .devDependencies.prettier package.json)" == "null" ]]
 }
 
 find_and_install_prettier_if_needed() {
