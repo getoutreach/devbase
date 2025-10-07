@@ -17,38 +17,30 @@ if [[ -z $workspaceFolder ]]; then
 fi
 
 # Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
+args+=("--fast-only" "--allow-parallel-runners" "--color=always" "--show-stats")
 
 if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
   TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
   mkdir -p "$TEST_DIR"
   # Support multiple output formats (stdout, JUnit)
-  args+=("--out-format=colored-line-number,junit-xml-extended:${TEST_FILENAME}")
+  args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
-GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
-GOLANGCILINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
-GO_MINOR_VERSION_INT=${GO_MINOR_VERSION//./}
-GOLANGCI_LINT_VERSION_INT=${GOLANGCILINT_VERSION//./}
+GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
+GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
+GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION//./}
 GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
 
-# Check version compatibility for golangci-lint/go 1.X.
-if [[ ${GO_MINOR_VERSION_INT:0:1} -lt 2 ]] && [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]]; then
-  # Go 1.20 requires >= golangci-lint 1.52.0
-  if [[ $GO_MINOR_VERSION_INT == 120 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1520 ]]; then
-    echo "Error: Go 1.20 requires golangci-lint 1.52.0 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
-  fi
-
-  # Go 1.21 requires >= golangci-lint 1.54.1
-  if [[ $GO_MINOR_VERSION_INT == 121 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1541 ]]; then
-    echo "Error: Go 1.21 requires golangci-lint 1.54.1 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
-  fi
+# Enforce golangci-lint >= 2.5.x
+if [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]] || [[ ${GOLANGCI_LINT_VERSION_INT:1:1} -lt 5 ]]; then
+  echo "Error: golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= 2.5.x" >&2
+  exit 1
 fi
 
+echo "Using golangci-lint version ${GOLANGCI_LINT_VERSION} with Go ${GO_VERSION}" >&2
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
 # manage memory usage by the golangci-linter in CI.
 if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
