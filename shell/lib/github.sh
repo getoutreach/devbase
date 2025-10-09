@@ -105,6 +105,7 @@ bootstrap_github_token() {
 
 # Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
 # arguments are passed to `ghaccesstoken token`.
+# Requires lib/bootstrap.sh for `get_tool_version`.
 fetch_github_token_from_ci() {
   (
     local version
