@@ -18,7 +18,7 @@ fi
 
 # Enable only fast linters, and always use the correct config.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
-args+=("--fast-only" "--allow-parallel-runners" "--color=always" "--show-stats")
+args+=("--allow-parallel-runners" "--color=always" "--show-stats")
 
 if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
