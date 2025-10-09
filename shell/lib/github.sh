@@ -14,13 +14,20 @@ source "$LIB_DIR/shell.sh"
 ghCmd=""
 
 # Looks for gh in the PATH or in the mise environment.
-run_gh() {
+gh_installed() {
   if [[ -z $ghCmd ]]; then
     ghCmd="$(find_tool gh)"
     if [[ -z $ghCmd ]]; then
-      error "gh not found in mise environment (run_gh)"
+      error "gh not found in mise environment (gh_installed)"
       return 1
     fi
+  fi
+}
+
+# Runs gh if found, otherwise fails.
+run_gh() {
+  if ! gh_installed; then
+    return 1
   fi
 
   "$ghCmd" "$@"

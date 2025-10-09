@@ -9,6 +9,9 @@ LIB_DIR="$DIR/../lib"
 # shellcheck source=../lib/circleci.sh
 source "${LIB_DIR}/circleci.sh"
 
+# shellcheck source=../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # shellcheck source=../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -17,6 +20,12 @@ source "${LIB_DIR}/mise.sh"
 
 # shellcheck source=../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
+
+if gh_installed; then
+  # shellcheck disable=SC2119
+  # Why: no extra args needed to pass to ghaccesstoken in this case.
+  bootstrap_github_token
+fi
 
 if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
   # Ensure that asdf is ready to be used
