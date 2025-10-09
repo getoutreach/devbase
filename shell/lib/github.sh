@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Contains various helper functions for interacting with Github.
+#
+# Requires the following libraries:
+# * logging.sh (required by mise.sh)
+# * mise.sh
+# * shell.sh (required by mise.sh)
+#
+# Setting the GitHub token requires bootstrap.sh.
 
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
