@@ -12,8 +12,8 @@ source "${LIB_DIR}/github.sh"
 source "${LIB_DIR}/logging.sh"
 
 # Retrieve the GH_TOKEN
-GH_TOKEN="$(github_token)"
-if [[ -z $GH_TOKEN ]]; then
+GITHUB_TOKEN="$(github_token)"
+if [[ -z $GITHUB_TOKEN ]]; then
   error "Failed to read GitHub personal access token"
 fi
 
@@ -43,5 +43,5 @@ unset CI_PULL_REQUEST
 unset CI_PULL_REQUESTS
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
-NPM_TOKEN='' MISE_GITHUB_TOKEN="$GH_TOKEN" GH_TOKEN=$GH_TOKEN \
+NPM_TOKEN='' MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
   yarn --frozen-lockfile semantic-release || send_failure_notification

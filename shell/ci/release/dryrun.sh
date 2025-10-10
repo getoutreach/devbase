@@ -58,12 +58,13 @@ if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
   git merge --squash "$OLD_CIRCLE_BRANCH"
   git commit -m "$COMMIT_MESSAGE"
 
-  GH_TOKEN="$(github_token)"
-  if [[ -z $GH_TOKEN ]]; then
+  GITHUB_TOKEN="$(github_token)"
+  if [[ -z $GITHUB_TOKEN ]]; then
     warn "Failed to read Github personal access token" >&2
   fi
 
-  MISE_GITHUB_TOKEN="$GH_TOKEN" GH_TOKEN="$GH_TOKEN" yarn --frozen-lockfile semantic-release --dry-run
+  MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
+    yarn --frozen-lockfile semantic-release --dry-run
 
   # Handle prereleases for CLIs, pre-conditions for this exist
   # in the script.
