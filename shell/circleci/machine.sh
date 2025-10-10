@@ -49,3 +49,6 @@ fi
 if ! command -v aws >/dev/null; then
   install_tool_with_mise aws-cli
 fi
+
+# Tiny app to work around GitHub token rate limits
+install_tool_with_mise wait-for-gh-rate-limit

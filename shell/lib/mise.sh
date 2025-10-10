@@ -125,7 +125,7 @@ install_tool_with_mise() {
 
   info "Installing $tool via mise"
 
-  if ! mise use --global "$tool"; then
+  if ! run_mise use --global "$tool"; then
     fatal "Error: failed to install $tool via mise" >&2
   fi
 }
@@ -170,6 +170,24 @@ find_mise() {
   fi
 }
 
+# run_mise ARGS...
+#
+# Runs `mise`. If `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set and
+# `wait-for-gh-rate-limit` is installed, makes sure that the token
+# isn't rate limited before calling `mise`.
+run_mise() {
+  local mise_path
+  mise_path="$(find_mise)"
+  if [[ -n $MISE_GITHUB_TOKEN || -n $GITHUB_TOKEN ]]; then
+    local wait_for_gh_rate_limit
+    wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
+    if [[ -n $wait_for_gh_rate_limit ]]; then
+      "$wait_gh_rate_limit"
+    fi
+  fi
+  "$mise_path" "$@"
+}
+
 # find_tool TOOL_NAME
 #
 # Prints the path to a tool from either PATH or in the
@@ -195,7 +213,7 @@ mise_install_if_needed() {
   local tool_name="$1"
   local installed versions
 
-  versions="$(mise ls --local --json "$tool_name")"
+  versions="$(run_mise ls --local --json "$tool_name")"
   if [[ $versions == "[]" ]]; then
     fatal "mise: $tool_name is not declared in mise.toml"
   fi
@@ -203,6 +221,6 @@ mise_install_if_needed() {
 
   if [[ -z $installed ]]; then
     info "mise: installing $tool_name"
-    mise install --yes "$tool_name"
+    run_mise install --yes "$tool_name"
   fi
 }
