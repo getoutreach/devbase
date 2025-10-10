@@ -8,16 +8,18 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 # Retrieve the GH_TOKEN
 GH_TOKEN="$(github_token)"
 if [[ -z $GH_TOKEN ]]; then
-  echo "Failed to read GitHub personal access token" >&2
+  error "Failed to read GitHub personal access token"
 fi
 
 send_failure_notification() {
   if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
-    echo "Failed to release"
-    exit 1
+    fatal "Failed to release"
   fi
 
   curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
@@ -25,9 +27,6 @@ send_failure_notification() {
     -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'", "buildURL": "'"$CIRCLE_BUILD_URL"'", "repoName": "'"$CIRCLE_PROJECT_REPONAME"'"}'
   exit 1
 }
-
-# shellcheck source=../../lib/logging.sh
-source "${LIB_DIR}/logging.sh"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
