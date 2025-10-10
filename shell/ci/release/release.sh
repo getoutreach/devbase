@@ -44,5 +44,5 @@ unset CI_PULL_REQUEST
 unset CI_PULL_REQUESTS
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
-NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
+NPM_TOKEN='' MISE_GITHUB_TOKEN="$GH_TOKEN" GH_TOKEN=$GH_TOKEN \
   yarn --frozen-lockfile semantic-release || send_failure_notification
