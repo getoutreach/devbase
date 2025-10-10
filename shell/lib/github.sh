@@ -130,7 +130,7 @@ fetch_github_token_from_ci() {
 ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
-  ghaccesstoken_path="$(mise which ghaccesstoken 2>/dev/null)"
+  ghaccesstoken_path="$(find_tool ghaccesstoken 2>/dev/null)"
   if [[ -z $ghaccesstoken_path ]]; then
     return 1
   fi
