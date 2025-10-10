@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Contains various helper functions for interacting with Github.
+#
+# Requires the following libraries:
+# * logging.sh (required by mise.sh)
+# * mise.sh
+# * shell.sh (required by mise.sh)
+#
+# Setting the GitHub token requires bootstrap.sh.
 
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -14,13 +21,20 @@ source "$LIB_DIR/shell.sh"
 ghCmd=""
 
 # Looks for gh in the PATH or in the mise environment.
-run_gh() {
+gh_installed() {
   if [[ -z $ghCmd ]]; then
     ghCmd="$(find_tool gh)"
     if [[ -z $ghCmd ]]; then
-      error "gh not found in mise environment (run_gh)"
+      error "gh not found in mise environment (gh_installed)"
       return 1
     fi
+  fi
+}
+
+# Runs gh if found, otherwise fails.
+run_gh() {
+  if ! gh_installed; then
+    return 1
   fi
 
   "$ghCmd" "$@"
@@ -98,6 +112,7 @@ bootstrap_github_token() {
 
 # Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
 # arguments are passed to `ghaccesstoken token`.
+# Requires lib/bootstrap.sh for `get_tool_version`.
 fetch_github_token_from_ci() {
   (
     local version
@@ -115,7 +130,7 @@ fetch_github_token_from_ci() {
 ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
-  ghaccesstoken_path="$(mise which ghaccesstoken 2>/dev/null)"
+  ghaccesstoken_path="$(find_tool ghaccesstoken 2>/dev/null)"
   if [[ -z $ghaccesstoken_path ]]; then
     return 1
   fi
