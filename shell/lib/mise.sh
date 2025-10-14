@@ -201,7 +201,7 @@ find_tool() {
       error "mise not found (find_tool)"
       return 1
     fi
-    "$mise_path" which "$tool_name"
+    "$mise_path" which "$tool_name" 2>/dev/null
   fi
 }
 
