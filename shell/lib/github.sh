@@ -89,6 +89,11 @@ install_latest_github_release() {
   # continue to use it for the configured private repos.
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
     GITHUB_TOKEN="$(github_token)"
+    if [[ -z $GITHUB_TOKEN ]]; then
+      # shellcheck disable=SC2119
+      # Why: no extra args needed to pass to ghaccesstoken in this case.
+      bootstrap_github_token
+    fi
     export GITHUB_TOKEN
   fi
 
