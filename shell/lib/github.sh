@@ -94,6 +94,11 @@ install_latest_github_release() {
 
   local mise_identifier="github:$slug"
   install_tool_with_mise "$mise_identifier" "$tag"
+
+  if [[ -n ${3:-} ]] && ! find_tool "$3"; then
+    error "Expecting to install '$3' but was not installed"
+    return 1
+  fi
 }
 
 # Set GITHUB_TOKEN from getoutreach/ci:ghaccesstoken if not already
