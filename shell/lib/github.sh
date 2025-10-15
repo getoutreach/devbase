@@ -108,6 +108,8 @@ install_latest_github_release() {
 
 # Set GITHUB_TOKEN from getoutreach/ci:ghaccesstoken if not already
 # set. Any arguments are passed to `ghaccesstoken token`.
+# shellcheck disable=SC2120
+# Why: External scripts using this library file could pass the arguments.
 bootstrap_github_token() {
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
     GITHUB_TOKEN="$(fetch_github_token_from_ci "$@")"
