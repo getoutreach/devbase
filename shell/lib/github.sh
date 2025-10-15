@@ -92,12 +92,7 @@ install_latest_github_release() {
     export GITHUB_TOKEN
   fi
 
-  local mise_identifier="ubi:$slug"
-  # If binary_name is not the default value, set the exe parameter in
-  # the mise config.
-  if [[ -n $3 ]]; then
-    mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
-  fi
+  local mise_identifier="github:$slug"
   install_tool_with_mise "$mise_identifier" "$tag"
 }
 
