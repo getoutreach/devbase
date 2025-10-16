@@ -45,5 +45,9 @@ sync_cortex() {
 }
 
 if ! managed_by_stencil cortex.yaml; then
-  sync_cortex
+  if [[ -f "$(get_repo_directory)"/cortex.yaml ]]; then
+    sync_cortex
+  else
+    info "Cortex manifest not found, skipping"
+  fi
 fi
