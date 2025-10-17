@@ -3,11 +3,17 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/asdf.sh
+source "${LIB_DIR}/asdf.sh"
+
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
+
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
 
 # shellcheck source=../../lib/docker/authn/ghcr.sh
 source "${LIB_DIR}/docker/authn/ghcr.sh"
@@ -25,7 +31,8 @@ fi
 ORG=getoutreach
 
 # Setup Ruby Authentication if bundle exists.
-if command -v bundle >/dev/null 2>&1; then
+if asdf_shim_activated bundle --version; then
+  info_sub "💎 Ruby"
   # Configure bundler access
   bundle config "https://rubygems.pkg.github.com/$ORG" "$GITHUB_USERNAME:$GITHUB_PACKAGES_TOKEN"
 
@@ -50,7 +57,8 @@ EOF
 EOF
 fi
 
-if command -v npm >/dev/null 2>&1; then
+if asdf_shim_activated npm --version; then
+  info_sub "Node.js"
   # Do not remove the empty newline, this ensures we never write to the same line
   # as something else.
   cat >>"$HOME/.npmrc" <<EOF
@@ -59,5 +67,7 @@ if command -v npm >/dev/null 2>&1; then
 @$ORG:registry=https://npm.pkg.github.com
 EOF
 fi
+
+info_sub "Docker"
 
 ghcr_auth "$ORG"
