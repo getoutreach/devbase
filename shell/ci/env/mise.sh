@@ -26,7 +26,7 @@ inject_mise_into_bash_env() {
 if [[ -f "$repo"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
   if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
-    info_sub "🧑‍🍳 ignoring .tool-versions"
+    info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
     MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="none" mise install --cd "$repo" --yes
   else
     info_sub "🧑‍🍳 allowing mise to manage .tool-versions"
