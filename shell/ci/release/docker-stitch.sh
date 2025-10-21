@@ -36,7 +36,7 @@ else
   archs=(amd64 arm64)
 fi
 
-info "Arches to stitch together: ${archs[@]}"
+info "Arches to stitch together: ${archs[*]}"
 
 tags=(latest "$VERSION")
 will_push="$(will_push_images)"
