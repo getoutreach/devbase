@@ -12,6 +12,10 @@ parameters:
     description: One of "sha" or "semver", depending on what versions are used for deployment.
     default: semver
     enum: ["sha", "semver"]
+  arches:
+    type: string
+    description: "Space-separated list of arches to stitch together. Defaults to empty string (equivalent to 'arm64 amd64')"
+    default: ""
   dry_run:
     type: enum
     description: Skip push to registries when versioning_scheme is "sha". Intended to use in test pipeline.
@@ -23,4 +27,5 @@ steps:
   - stitch_docker_image:
       push_registries: << parameters.push_registries >>
       versioning_scheme: << parameters.versioning_scheme >>
+      arches: << parameters.arches >>
       dry_run: << parameters.dry_run >>

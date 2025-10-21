@@ -26,7 +26,11 @@ APPNAME="$(get_app_name)"
 VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
-archs=(amd64 arm64)
+if [[ -n ${CUSTOM_ARCHES:-} ]]; then
+  IFS=' ' read -r -a archs <<<"$CUSTOM_ARCHES"
+else
+  archs=(amd64 arm64)
+fi
 tags=(latest "$VERSION")
 will_push="$(will_push_images)"
 
