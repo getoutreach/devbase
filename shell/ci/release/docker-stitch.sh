@@ -17,6 +17,9 @@ source "${LIB_DIR}/box.sh"
 # shellcheck source=../../lib/docker.sh
 source "${LIB_DIR}/docker.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 # shellcheck source=../../lib/docker/authn/aws-ecr.sh
 source "${DOCKER_DIR}/aws-ecr.sh"
 
@@ -31,6 +34,9 @@ if [[ -n ${CUSTOM_ARCHES:-} ]]; then
 else
   archs=(amd64 arm64)
 fi
+
+info "Arches to stitch together: ${archs[@]}"
+
 tags=(latest "$VERSION")
 will_push="$(will_push_images)"
 
