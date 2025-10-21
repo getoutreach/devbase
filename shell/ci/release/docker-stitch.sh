@@ -30,6 +30,7 @@ VERSION="$(get_app_version)"
 MANIFEST="$(get_repo_directory)/deployments/docker.yaml"
 
 if [[ -n ${CUSTOM_ARCHES:-} ]]; then
+  info "Using arches from environment"
   IFS=' ' read -r -a archs <<<"$CUSTOM_ARCHES"
 else
   archs=(amd64 arm64)
