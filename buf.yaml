@@ -1,0 +1,35 @@
+version: v2
+# name: github.com/getoutreach/stenciltestservice
+modules:
+  - path: .
+    name: github.com/getoutreach/stenciltestservice
+    excludes:
+      - pkg
+      - internal
+      - api/clients/node_modules
+      - api/clients/node/node_modules
+      ## <<Stencil::Block(buf_exclude_paths)>>
+
+      ## <</Stencil::Block>>
+    lint:
+      use:
+        - STANDARD
+        - COMMENTS
+# version: v1
+# name: github.com/getoutreach/stenciltestservice
+# deps: []
+# build:
+#   excludes:
+#     # pkg and internal may have test protos
+#     - pkg
+#     - internal
+#     - api/clients/node_modules
+#     - api/clients/node/node_modules
+#     ## <<Stencil::Block(buf_exclude_paths)>>
+#
+#     ## <</Stencil::Block>>
+# lint:
+#   use:
+#     - BASIC
+#     # - STANDARD
+
