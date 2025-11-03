@@ -85,9 +85,9 @@ get_cached_binary() {
 }
 
 # get_time_ms returns the current time in milliseconds
-# we use perl because we can't use the date command %N on macOS
+# we use python3 because we can't use the date command %N on macOS
 get_time_ms() {
-  perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+  python3 -c 'import time; print(int(time.time() * 1000))'
 }
 
 # is_terminal returns true if the current process is a terminal, with
