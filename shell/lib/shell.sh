@@ -84,10 +84,29 @@ get_cached_binary() {
   fi
 }
 
-# get_time_ms returns the current time in milliseconds
-# we use python3 because we can't use the date command %N on macOS
+# Wrapper for `command -v`, with no output.
+command_exists() {
+  exe="$1"
+  command -v "$exe" 2>/dev/null >&2
+}
+
+# get_time_ms returns the current time in milliseconds.
+# Tries GNU coreutils `date`, Python 3, Perl 5.
+# We can't use the BSD date command on macOS because it doesn't support %N.
 get_time_ms() {
-  python3 -c 'import time; print(int(time.time() * 1000))'
+  if [[ $OSTYPE == "darwin"* ]] && command_exists gdate; then
+    # https://stackoverflow.com/a/16548827
+    echo $(($(gdate +%s%N) / 1000000))
+  elif [[ $OSTYPE == "linux-gnu"* ]] && command_exists date; then
+    # https://stackoverflow.com/a/16548827
+    echo $(($(date +%s%N) / 1000000))
+  elif command_exists python3; then
+    python3 -c 'import time; print(int(time.time() * 1000))'
+  elif command_exists perl; then
+    perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+  else
+    fatal "Could not find a command to determine time in milliseconds. Tried: GNU coreutils 'date', Python 3, Perl 5"
+  fi
 }
 
 # is_terminal returns true if the current process is a terminal, with
