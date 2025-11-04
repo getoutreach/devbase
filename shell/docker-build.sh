@@ -5,6 +5,7 @@
 #
 # * `APP_VERSION` (REQUIRED)
 # * `DOCKERFILE` (defaults to `deployments/$app/Dockerfile`)
+# * `IMAGE_NAME` (optional, if not set defaults to appName)
 # * `DOCKER_BUILD_EXTRA_ARGS` (extra arguments to `docker build`,
 #   defaults to empty string)
 
@@ -34,7 +35,12 @@ if [[ -z ${DOCKERFILE:-} ]]; then
   DOCKERFILE="deployments/$appName/Dockerfile"
 fi
 
-info "Building docker image for ${appName} …"
+# If IMAGE_NAME is not set, default to appName
+if [[ -z ${IMAGE_NAME:-} ]]; then
+  IMAGE_NAME="$appName"
+fi
+
+info "Building docker image for ${IMAGE_NAME} …"
 
 warn "If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>)"
 
@@ -43,7 +49,15 @@ tags=()
 imageRegistries="$(get_docker_push_registries)"
 
 for imageRegistry in $imageRegistries; do
-  tags+=("--tag" "$imageRegistry/$appName")
+  if [[ "$IMAGE_NAME" == "$appName" ]]; then
+    # If image name equals app name, use the default format: imageRegistry/appName
+    tags+=("--tag" "$imageRegistry/$appName")
+    info "tag: $imageRegistry/$appName"
+  else
+    # Otherwise, use: imageRegistry/appName/imageName
+    tags+=("--tag" "$imageRegistry/$appName/$IMAGE_NAME")
+    info "tag: $imageRegistry/$appName/$IMAGE_NAME"
+  fi
 done
 
 # Assume that $APP_VERSION is set in the environment
