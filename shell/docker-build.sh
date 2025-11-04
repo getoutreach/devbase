@@ -37,7 +37,6 @@ else
   info "Building Docker image for $appName ($DOCKERFILE) …"
 fi
 
-
 warn "If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>)"
 
 tags=()
