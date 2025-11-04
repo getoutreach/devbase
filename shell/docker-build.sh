@@ -32,9 +32,11 @@ appName="$(get_app_name)"
 
 if [[ -z ${DOCKERFILE:-} ]]; then
   DOCKERFILE="deployments/$appName/Dockerfile"
+  info "Building default Docker image for $appName …"
+else
+  info "Building Docker image for $appName ($DOCKERFILE) …"
 fi
 
-info "Building docker image for ${appName} …"
 
 warn "If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>)"
 
