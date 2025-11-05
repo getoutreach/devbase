@@ -48,15 +48,23 @@ git checkout "$CIRCLE_BRANCH"
 git pull
 
 git checkout "$OLD_CIRCLE_BRANCH"
-# Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --reverse --format=%B)"
+
+# Create a temporary file for the commit message
+COMMIT_MSG_FILE="$(mktemp /tmp/commit-message.XXXXXX)"
+trap 'rm -f $COMMIT_MSG_FILE' EXIT
+
+# Write commit messages directly to file to avoid argument length limits
+git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --reverse --format=%B >"$COMMIT_MSG_FILE"
+
 git checkout "$CIRCLE_BRANCH"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
 if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
   git merge --squash "$OLD_CIRCLE_BRANCH"
-  git commit -m "$COMMIT_MESSAGE"
+
+  # Use the file for the commit message
+  git commit -F "$COMMIT_MSG_FILE"
 
   GITHUB_TOKEN="$(github_token)"
   if [[ -z $GITHUB_TOKEN ]]; then
