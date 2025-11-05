@@ -70,7 +70,7 @@ install_mise() {
       fatal "Could not import mise GPG release key"
     fi
     # ensure the install script is signed with the mise release key
-    if ! retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >"$install_script"; then
+    if ! download_mise_install_script | gpg --decrypt >"$install_script"; then
       fatal "Could not download or verify mise install script"
     fi
   fi
@@ -92,9 +92,22 @@ install_mise() {
   )
 }
 
+# Download mise script with retries, assuming either curl or wget is installed.
+download_mise_install_script() {
+  local url="https://mise.jdx.dev/install.sh.sig"
+  if command_exists curl; then
+    retry 5 5 curl "$url"
+  elif command_exists wget; then
+    # Using short flags because of busybox compatibility.
+    # -q: quiet; -O -: output document (stdout)
+    retry 5 5 wget -q -O - "$url"
+  else
+    error "Could not install mise via script, missing either curl or wget"
+    return 1
+  fi
+}
+
 # Install mise via apt for Debian-based Linux distros (including Ubuntu).
-# WARNING(2025-07-21): this might need to change in the near future.
-# See: https://github.com/jdx/mise/discussions/5722
 install_mise_via_apt() {
   local keyrings_dir=/etc/apt/keyrings
   sudo install --directory --mode=755 "$keyrings_dir"
@@ -159,7 +172,7 @@ mise_tool_config_set() {
 
 # find_mise returns the path to the mise binary if it is installed.
 find_mise() {
-  if command -v mise >/dev/null 2>&1; then
+  if command_exists mise; then
     command -v mise
   elif [[ -x $HOME/.local/bin/mise ]]; then
     echo "$HOME/.local/bin/mise"
