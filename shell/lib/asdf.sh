@@ -183,3 +183,24 @@ asdf_plugin_install() {
   asdf plugin-add "$name"
   asdf_plugins_list_regenerate
 }
+
+# asdf_shim_activated determines if a shim exists and it's available
+# in the context of the current working directory. It does this by
+# running the command (with the specified args) and seeing if the shim
+# returns exit code 126, which means that the shim is not activated.
+asdf_shim_activated() {
+  local cmd="$1"
+  shift
+  if ! command -v "$cmd" >/dev/null 2>/dev/null; then
+    # command isn't even installed
+    return 1
+  fi
+  set +e
+  "$cmd" "$@" >/dev/null 2>/dev/null
+  local exitCode="$?"
+  set -e
+
+  # exit code 126 indicates that no version is set for the command in
+  # the working directory's .tool-versions, despite the shim existing.
+  [[ $exitCode != 126 ]]
+}

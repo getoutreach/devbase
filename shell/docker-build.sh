@@ -32,19 +32,25 @@ appName="$(get_app_name)"
 
 if [[ -z ${DOCKERFILE:-} ]]; then
   DOCKERFILE="deployments/$appName/Dockerfile"
+  info "Building default Docker image for $appName …"
+else
+  info "Building Docker image for $appName ($DOCKERFILE) …"
 fi
-
-info "Building docker image for ${appName} …"
 
 warn "If you run into credential issues, ensure that your key is in your SSH agent (ssh-add <ssh-key-path>)"
 
 tags=()
 
-imageRegistries="$(get_docker_push_registries)"
+if [[ -n ${BASE_IMAGE:-} ]]; then
+  info_sub "Using custom image name: $BASE_IMAGE"
+  tags+=("--tag" "$BASE_IMAGE")
+else
+  imageRegistries="$(get_docker_push_registries)"
 
-for imageRegistry in $imageRegistries; do
-  tags+=("--tag" "$imageRegistry/$appName")
-done
+  for imageRegistry in $imageRegistries; do
+    tags+=("--tag" "$imageRegistry/$appName")
+  done
+fi
 
 # Assume that $APP_VERSION is set in the environment
 # shellcheck disable=SC2086
