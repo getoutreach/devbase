@@ -45,9 +45,10 @@ stitch_and_push_image() {
   local image="$1"
   local remoteImageNames=()
   for imageRegistry in $imageRegistries; do
-    remoteImageNames+=("$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")")
-    if [[ $will_push == "true" ]] && [[ $imageRegistry =~ amazonaws.com($|/) ]]; then
-      ensure_ecr_repository "$imageRegistry/$APPNAME"
+    remoteImageName="$(determine_remote_image_name "$APPNAME" "$imageRegistry" "$image")"
+    remoteImageNames+=("$remoteImageName")
+    if [[ $will_push == "true" ]] && [[ $remoteImageName =~ amazonaws.com($|/) ]]; then
+      ensure_ecr_repository "$remoteImageName"
     fi
   done
 
