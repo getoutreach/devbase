@@ -293,3 +293,32 @@ if has_grpc_client "ruby"; then
     popd || exit 1
   fi
 fi
+
+if has_grpc_client "python"; then
+  info "Generating Python gRPC client"
+  info_sub "Ensuring Python protoc plugins are installed"
+
+  python_grpcio_tools_version="$(get_application_version "python-grpcio-tools")"
+
+  if ! python -m pip list | grep "grpcio-tools" | grep "$python_grpcio_tools_version" >/dev/null 2>&1; then
+    python -m pip install grpcio-tools=="$python_grpcio_tools_version"
+  fi
+
+  betterproto_version="$(get_application_version "betterproto")"
+
+  # Not sure how to ensure this is installed only if missing, so just install it.
+  python -m pip install betterproto[compiler]==2.0.0-beta7
+
+  # Make python output directory if it doesn't exist.
+  mkdir -p "$(get_repo_directory)$workDir/clients/python/src//$(get_app_name)_client/generated"
+
+  info_sub "Running Python protobuf generation"
+
+  python_args=("${default_args[@]}")
+  python_args+=(
+    --python_betterproto_out="$(get_repo_directory)$workDir/clients/python/src/$(get_app_name)_client/generated"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
+  )
+
+  python -m grpc_tools.protoc "${python_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+fi
