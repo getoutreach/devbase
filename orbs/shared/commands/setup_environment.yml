@@ -22,6 +22,11 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
+  checkout_method:
+    description: checkout method, defaults to blobless https://circleci.com/docs/reference/configuration-reference/#checkout
+    type: enum
+    enum: [blobless, full]
+    default: blobless
 steps:
   - when:
       condition: << parameters.setup_remote_docker >>
@@ -38,7 +43,8 @@ steps:
   - when:
       condition: << parameters.checkout >>
       steps:
-        - checkout
+        - checkout:
+            method: << parameters.checkout_method >>
         - run:
             name: Checkout Submodules
             command: git submodule sync && git submodule update --init
