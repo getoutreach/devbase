@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Sets up SSH authentication in CI
-set -e
+
+set -eo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="${DIR}/../../lib"
+
+# shellcheck source=../../lib/logging.sh
+source "$LIB_DIR/logging.sh"
 
 if [[ -f ~/.ssh/config ]]; then
   # Setup SSH access
