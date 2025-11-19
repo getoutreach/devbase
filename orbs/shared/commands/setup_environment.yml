@@ -24,7 +24,8 @@ parameters:
     default: true
   checkout_method:
     description: checkout method, defaults to blobless https://circleci.com/docs/reference/configuration-reference/#checkout
-    type: string
+    type: enum
+    enum: [blobless, full]
     default: blobless
 steps:
   - when:
