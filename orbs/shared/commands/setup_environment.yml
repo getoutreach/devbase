@@ -23,7 +23,7 @@ parameters:
     type: boolean
     default: true
   checkout_method:
-    description: checkout method, defaults to blobless https://circleci.com/docs/reference/configuration-reference/#checkout
+    description: checkout method per https://circleci.com/docs/reference/configuration-reference/#checkout
     type: enum
     enum: [blobless, full]
     default: blobless
