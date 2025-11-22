@@ -1,4 +1,4 @@
-[tools.bats]
+[[tools.bats]]
 version = "1.12.0"
 backend = "aqua:bats-core/bats-core"
 
@@ -7,10 +7,10 @@ checksum = "blake3:836a0963444ede10131984991c0f92219c84418b57c242b4ff5bc80d83daa
 size = 175914
 url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"
 
-[tools.circleci]
+[[tools.circleci]]
 version = "0.1.32638"
 backend = "aqua:CircleCI-Public/circleci-cli"
 
-[tools."npm:prettier"]
+[[tools."npm:prettier"]]
 version = "2.8.8"
 backend = "npm:prettier"
