@@ -9,7 +9,7 @@ extensions=(proto)
 run_buf() {
   local mise_bin
   mise_bin="$(find_mise)"
-  find_files_with_extensions "${extensions[@]}" | xargs -n1 "$mise_bin" exec buf@"$(get_tool_version buf)" "$@"
+  find_files_with_extensions "${extensions[@]}" | xargs -n1 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf "$@"
 }
 
 buf_linter() {
