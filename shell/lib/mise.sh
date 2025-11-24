@@ -82,6 +82,7 @@ install_mise() {
       install_mise_via_apt_if_ubuntu_in_ci
     fi
   )
+  run_mise settings set http_retries 3
 }
 
 # Fetch a URL via either curl or wget, with retries, with the response body going to stdout.
