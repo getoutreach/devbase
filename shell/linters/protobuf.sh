@@ -17,7 +17,7 @@ buf_linter() {
 }
 
 buf_formatter() {
-  run_buf format -w
+  run_buf format --write
 }
 
 linter() {
