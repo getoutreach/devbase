@@ -67,38 +67,66 @@ install_mise() {
 
   if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
     if ! retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d; then
-      fatal "Could not import mise GPG release key"
+      error "Could not import mise GPG release key"
+      install_mise_via_apt_if_ubuntu_in_ci
     fi
     # ensure the install script is signed with the mise release key
-    if ! retry 5 5 curl https://mise.jdx.dev/install.sh.sig | gpg --decrypt >"$install_script"; then
-      fatal "Could not download or verify mise install script"
+    if ! download_mise_install_script | gpg --decrypt >"$install_script"; then
+      error "Could not download or verify mise install script"
+      install_mise_via_apt_if_ubuntu_in_ci
     fi
   fi
   (
     set +e
     if ! retry 5 5 sh "$install_script"; then
-      local distro
-      if ! in_ci_environment; then
-        fatal "Could not install mise"
-      fi
-      set -e
-      distro="$(grep ^ID= /etc/os-release | cut -d= -f2-)"
-      if [[ $distro != "ubuntu" ]]; then
-        fatal "Could not install mise"
-      fi
-      warn "Installing mise via apt, mise will be installed to /usr/bin/mise instead"
-      install_mise_via_apt
+      install_mise_via_apt_if_ubuntu_in_ci
     fi
   )
+  run_mise settings set http_retries 3
+}
+
+# Fetch a URL via either curl or wget, with retries, with the response body going to stdout.
+http_fetch() {
+  local url="$1"
+  if command_exists curl; then
+    retry 5 5 curl --fail --silent --show-error --location "$url"
+  elif command_exists wget; then
+    # Using short flags because of busybox compatibility.
+    # -q: --quiet; -O -: --output-document - (stdout)
+    retry 5 5 wget -q -O - "$url"
+  else
+    error "Could not fetch URL '$url', missing either curl or wget"
+    return 1
+  fi
+}
+
+# Download mise script with retries, assuming either curl or wget is installed.
+download_mise_install_script() {
+  http_fetch "https://mise.jdx.dev/install.sh.sig"
+}
+
+# Install mise via apt if running in CI on Ubuntu.
+install_mise_via_apt_if_ubuntu_in_ci() {
+  local distro
+  if ! in_ci_environment; then
+    warn "Falling back to apt installation of mise is only supported in CI environments"
+    return 1
+  fi
+  set -e
+  distro="$(grep ^ID= /etc/os-release | cut -d= -f2-)"
+  if [[ $distro != "ubuntu" ]]; then
+    warn "Falling back to apt installation of mise is only supported on Ubuntu"
+    return 1
+  fi
+  warn "Installing mise via apt, mise will be installed to /usr/bin/mise instead"
+  install_mise_via_apt
 }
 
 # Install mise via apt for Debian-based Linux distros (including Ubuntu).
-# WARNING(2025-07-21): this might need to change in the near future.
-# See: https://github.com/jdx/mise/discussions/5722
 install_mise_via_apt() {
   local keyrings_dir=/etc/apt/keyrings
   sudo install --directory --mode=755 "$keyrings_dir"
-  wget --quiet --output-document - https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee "$keyrings_dir"/mise-archive-keyring.gpg 1>/dev/null
+  http_fetch https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee "$keyrings_dir"/mise-archive-keyring.gpg 1>/dev/null
   echo "deb [signed-by=$keyrings_dir/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
   sudo apt update
   sudo apt install --yes mise
@@ -159,7 +187,7 @@ mise_tool_config_set() {
 
 # find_mise returns the path to the mise binary if it is installed.
 find_mise() {
-  if command -v mise >/dev/null 2>&1; then
+  if command_exists mise; then
     command -v mise
   elif [[ -x $HOME/.local/bin/mise ]]; then
     echo "$HOME/.local/bin/mise"

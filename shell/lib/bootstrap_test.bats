@@ -112,3 +112,41 @@ EOF
   run managed_by_stencil nonexistent.txt
   assert_failure
 }
+
+@test "deployment_source_path: default value" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+EOF
+  run deployment_source_path
+  assert_output "deployments/foo"
+}
+@test "deployment_manifest_path: default value" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+EOF
+  run deployment_manifest_path
+  assert_output "foo.jsonnet"
+}
+
+@test "deployment_source_path: value from service.yaml" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+  deployment:
+    sourcePath: kubernetes
+EOF
+  run deployment_source_path
+  assert_output "kubernetes"
+}
+@test "deployment_manifest_path: value from service.yaml" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+  deployment:
+    manifestPath: foo-bar.jsonnet
+EOF
+  run deployment_manifest_path
+  assert_output "foo-bar.jsonnet"
+}

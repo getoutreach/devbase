@@ -35,6 +35,8 @@ fi
 action=$1
 
 appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
+jsonnetSourcePath="$(deployment_source_path "$appName")"
+jsonnetManifestPath="$(deployment_manifest_path "$appName")"
 bento="${DEVENV_DEPLOY_BENTO:-"bento1a"}"
 channel="${DEVENV_DEPLOY_CHANNEL:-"devenv"}"
 namespace="${DEVENV_DEPLOY_NAMESPACE:-$appName--$bento}"
@@ -48,7 +50,7 @@ appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}
   --jpath "$JSONNET_LIBS_REPO" \
   --jurl http://k8s-clusters.outreach.cloud/ \
   -n "$namespace" \
-  --context "dev-environment" "$action" "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" \
+  --context "dev-environment" "$action" "$(get_repo_directory)/$jsonnetSourcePath/$jsonnetManifestPath" \
   -V cluster="development.us-west-2" \
   -V region="us-west-2" \
   -V namespace="$namespace" \
