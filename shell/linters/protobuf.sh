@@ -7,22 +7,9 @@ extensions=(proto)
 
 # Runs buf [...] on all versioned .proto files.
 run_buf() {
-  local buf_args cfg_path mise_bin possible_cfg_dirs repo_dir
+  local mise_bin
   mise_bin="$(find_mise)"
-  repo_dir="$(get_repo_directory)"
-  possible_cfg_dirs=("$repo_dir"/api "$repo_dir")
-  for pdir in "${possible_cfg_dirs[@]}"; do
-    local pcfg="$pdir"/buf.yaml
-    if [[ -f $pcfg ]]; then
-      cfg_path="$pcfg"
-      break
-    fi
-  done
-  buf_args=()
-  if [[ -n $cfg_path ]]; then
-    buf_args+=(--config "$cfg_path")
-  fi
-  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | xargs --verbose -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf --debug "$@" "${buf_args[@]}"
+  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | xargs -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf "$@"
 }
 
 buf_linter() {
