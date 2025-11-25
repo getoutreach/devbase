@@ -22,7 +22,7 @@ run_buf() {
   if [[ -n $cfg_path ]]; then
     buf_args+=(--config "$cfg_path")
   fi
-  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | xargs --verbose -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf "$@" "${buf_args[@]}"
+  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | xargs --verbose -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf --debug "$@" "${buf_args[@]}"
 }
 
 buf_linter() {
