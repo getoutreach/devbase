@@ -9,6 +9,9 @@ extensions=(proto)
 run_buf() {
   local mise_bin
   mise_bin="$(find_mise)"
+  # buf only allows one path (file/folder) to be passed to it in the args.
+  # However, you can get around this by passing multiple `--path <path/to.proto>`
+  # flags, which requires an extra `xargs printf` to generate.
   find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | xargs -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf "$@"
 }
 
