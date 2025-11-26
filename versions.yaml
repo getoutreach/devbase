@@ -12,7 +12,7 @@ gh: 2.62.0
 gojq: v0.12.17
 
 # protobuf formatters/plugins/tools/etc
-buf: 1.8.0 # formatter
+buf: 1.60.0
 protoc-gen-validate: 0.6.7
 protoc-gen-go: 1.5.2
 protoc-gen-doc: 1.5.1
