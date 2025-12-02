@@ -16,8 +16,8 @@ source "${LIB_DIR}/box.sh"
 source "${LIB_DIR}/logging.sh"
 
 TAG="$CIRCLE_TAG"
-# Do not update engdocs unless there is a tag
-if [[ -n $TAG ]]; then
+# Do not update engdocs unless there is a tag and it's run in a Go-based repository.
+if [[ -n $TAG && -f "$(get_repo_directory)/go.mod" ]]; then
   repo="$(get_box_field org)/$(get_app_name)"
   # We need to use the module path to support major versions properly.
   # Filter out module paths that aren't a part of this repo.
