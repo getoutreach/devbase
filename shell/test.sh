@@ -123,6 +123,9 @@ fi
 # choose to temporarily disable this option
 if [[ $RACE != "disabled" ]]; then
   TEST_FLAGS+=(-race)
+  # Needed due to the following error:
+  # "go: -race requires cgo; enable cgo by setting CGO_ENABLED=1"
+  export CGO_ENABLED=1
 fi
 
 # If WITH_COVERAGE is set, we pass flags to 'go test' to enable coverage
