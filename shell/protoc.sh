@@ -293,3 +293,39 @@ if has_grpc_client "ruby"; then
     popd || exit 1
   fi
 fi
+
+if has_grpc_client "python"; then
+  info "Generating Python gRPC client"
+
+  # Create a dedicated virtualenv for codegen tools
+  VENV_DIR="$HOME/.outreach/.cache/$(get_app_name)/venv-codegen"
+  VENV_PYTHON="$VENV_DIR/bin/python"
+  VENV_PIP="$VENV_DIR/bin/pip"
+
+  if [ ! -d "$VENV_DIR" ]; then
+    info_sub "Creating virtualenv for code generation tools"
+    python -m venv "$VENV_DIR"
+  fi
+
+  info_sub "Ensuring Python protoc plugins are installed"
+
+  python_grpcio_tools_version="$(get_application_version "python-grpcio-tools")"
+  betterproto_version="$(get_application_version "betterproto")"
+
+  "$VENV_PIP" install --quiet \
+    "grpcio-tools==$python_grpcio_tools_version" \
+    "betterproto[compiler]==$betterproto_version"
+
+  # Make python output directory if it doesn't exist.
+  mkdir -p "$(get_repo_directory)$workDir/clients/python/src/$(get_app_name)_client/generated"
+
+  info_sub "Running Python protobuf generation"
+
+  python_args=("${default_args[@]}")
+  python_args+=(
+    --python_betterproto_out="$(get_repo_directory)$workDir/clients/python/src/$(get_app_name)_client/generated"
+    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
+  )
+
+  "$VENV_PYTHON" -m grpc_tools.protoc "${python_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
+fi
