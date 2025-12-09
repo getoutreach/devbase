@@ -295,6 +295,8 @@ if has_grpc_client "ruby"; then
 fi
 
 if has_grpc_client "python"; then
+  # Python support is not currently open source, so only run this if
+  # the `build:python-proto` mise task exists in the repo.
   if [[ -n $(mise tasks ls --json | gojq -r '.[] | select(.name == "build:python-proto").name') ]]; then
     mise run build:python-proto "$(get_repo_directory)$workDir$SUBDIR" "${default_args[@]}"
   else
