@@ -30,8 +30,8 @@ linters:
     - revive
     - staticcheck
     - unconvert
-    - unparam
-    - unused
+    #    - unparam # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
+    #    - unused # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
     - whitespace
   settings:
     dupl:
@@ -47,7 +47,6 @@ linters:
     gocritic:
       disabled-checks:
         - whyNoLint # Doesn't seem to work properly
-        - hugeParam
         - ifElseChain
         - rangeValCopy
       enabled-tags:
@@ -77,12 +76,17 @@ linters:
         - name: exported
         - name: increment-decrement
         - name: var-naming
+          arguments:
+            - []
+            - []
+            - - skip-package-name-checks: true # Allow meaningless package names for historical reasons
         - name: var-declaration
         - name: package-comments
         - name: range
         - name: receiver-naming
         - name: time-naming
         - name: unexported-return
+          disabled: true # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
         - name: indent-error-flow
         - name: errorf
         - name: empty-block
@@ -107,6 +111,7 @@ linters:
           "-ST1005",
           "-QF1001",
           "-QF1002",
+          "-QF1007",
           "-QF1008",
           "-QF1009",
         ]
@@ -142,13 +147,6 @@ linters:
       # We allow error shadowing
       - path: (.+)\.go$
         text: declaration of "err" shadows declaration at
-      # We allow unused functions and unused parameters in functions
-      - linters:
-          - unparam
-          - unused
-        text: unused
-    ## <<Stencil::Block(exclusionsRules)>>
-    ## <</Stencil::Block>>
     paths:
       - third_party$
       - builtin$
