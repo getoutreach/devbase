@@ -3,7 +3,7 @@
 # configured (currently limited to Ruby and JavaScript/TypeScript).
 set -euo pipefail
 
-# Generates proto types and clients from proto filess
+# Generates proto types and clients from proto files
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$SCRIPTS_DIR/gobin.sh"
 
@@ -295,37 +295,11 @@ if has_grpc_client "ruby"; then
 fi
 
 if has_grpc_client "python"; then
-  info "Generating Python gRPC client"
-
-  # Create a dedicated virtualenv for codegen tools
-  VENV_DIR="$HOME/.outreach/.cache/$(get_app_name)/venv-codegen"
-  VENV_PYTHON="$VENV_DIR/bin/python"
-  VENV_PIP="$VENV_DIR/bin/pip"
-
-  if [ ! -d "$VENV_DIR" ]; then
-    info_sub "Creating virtualenv for code generation tools"
-    python -m venv "$VENV_DIR"
+  # Python support is not currently open source, so only run this if
+  # the `build:python-proto` mise task exists in the repo.
+  if [[ -n $(mise tasks ls --json | gojq -r '.[] | select(.name == "build:python-proto").name') ]]; then
+    mise run build:python-proto "$(get_repo_directory)$workDir$SUBDIR" "${default_args[@]}"
+  else
+    fatal "Expected build:python-proto mise task to exist when Python gRPC client defined"
   fi
-
-  info_sub "Ensuring Python protoc plugins are installed"
-
-  python_grpcio_tools_version="$(get_application_version "python-grpcio-tools")"
-  betterproto_version="$(get_application_version "betterproto")"
-
-  "$VENV_PIP" install --quiet \
-    "grpcio-tools==$python_grpcio_tools_version" \
-    "betterproto[compiler]==$betterproto_version"
-
-  # Make python output directory if it doesn't exist.
-  mkdir -p "$(get_repo_directory)$workDir/clients/python/src/$(get_app_name)_client/generated"
-
-  info_sub "Running Python protobuf generation"
-
-  python_args=("${default_args[@]}")
-  python_args+=(
-    --python_betterproto_out="$(get_repo_directory)$workDir/clients/python/src/$(get_app_name)_client/generated"
-    --proto_path "$(get_repo_directory)$workDir$SUBDIR"
-  )
-
-  "$VENV_PYTHON" -m grpc_tools.protoc "${python_args[@]}" "$(get_repo_directory)$workDir$SUBDIR/"*.proto
 fi
