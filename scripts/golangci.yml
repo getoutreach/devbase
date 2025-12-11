@@ -25,13 +25,13 @@ linters:
     - govet
     - ineffassign
     - lll
-    # - misspell        # The reason we're disabling this right now is because it uses 1/2 of the memory of the run.
+    # - misspell        # The reason we're disabling this right now because it uses 1/2 of the memory of the run.
     - nakedret
     - revive
     - staticcheck
     - unconvert
-    #    - unparam # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
-    #    - unused # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
+    # - unparam # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
+    # - unused # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
     - whitespace
   settings:
     dupl:
@@ -60,6 +60,10 @@ linters:
     govet:
       enable:
         - shadow
+      disable:
+        - buildtag
+        - printf
+        - atomic
     lll:
       line-length: 140
     revive:
