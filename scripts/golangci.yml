@@ -25,13 +25,13 @@ linters:
     - govet
     - ineffassign
     - lll
-    # - misspell        # The reason we're disabling this right now because it uses 1/2 of the memory of the run.
+    # - misspell        # Disabling this right now because it uses 1/2 of the memory of the run.
     - nakedret
     - revive
     - staticcheck
     - unconvert
-    # - unparam # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
-    # - unused # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
+    # - unparam # Previously suppressed by --fast flag; disabled now to reduce noise
+    # - unused # Previously suppressed by --fast flag; disabled now to reduce noise
     - whitespace
   settings:
     dupl:
@@ -90,7 +90,7 @@ linters:
         - name: receiver-naming
         - name: time-naming
         - name: unexported-return
-          disabled: true # This rule had been suppressed by --fast flag in the past, so disabling it for now to avoid noise
+          disabled: true # Previously suppressed by --fast flag; disabled now to reduce noise
         - name: indent-error-flow
         - name: errorf
         - name: empty-block
