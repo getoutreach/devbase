@@ -14,7 +14,7 @@ find_service_yaml() {
     exit 1
   fi
 
-  if [[ -e "$path/service.yaml" ]]; then
+  if [[ -e "$path/service.yaml" && "$(basename "$path")" != ".bootstrap" ]]; then
     REPODIR="$path"
     return
   fi
