@@ -4,6 +4,8 @@ arguments:
     skipE2e: true
     skipDocker: true
   description: A collection of scripts and ci configuration
+  go:
+    formatter: gofumpt
   lintroller: platinum
   notifications:
     slackChannel: "#dt-notifications"

@@ -71,7 +71,8 @@ func ReadServiceName() (string, error) {
 
 // FromGitHub reads and parses DevenvConfig from GitHub
 func FromGitHub(ctx context.Context, conf *box.Config, serviceName string,
-	gh *github.Client, configFileName string) (*Devenv, error) {
+	gh *github.Client, configFileName string,
+) (*Devenv, error) {
 	r, _, err := gh.Repositories.DownloadContents(ctx, conf.Org, serviceName, configFileName, nil)
 	l := log.With().Str("service", serviceName).Str("file", configFileName).Logger()
 	if err != nil {

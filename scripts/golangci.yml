@@ -159,8 +159,7 @@ issues:
   max-same-issues: 10
 formatters:
   enable:
-    - gofmt
-    - goimports
+    - gofumpt
   exclusions:
     generated: lax
     paths:

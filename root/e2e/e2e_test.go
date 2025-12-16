@@ -84,8 +84,10 @@ func TestBuildE2ETestPackages(t *testing.T) {
 		called = true
 		expectedBinary := "bin/e2e_internal_e2e_prospects"
 		expectedPackage := "./internal/e2e/prospects"
-		assert.DeepEqual(t, args, []string{"test", "-tags", "or_test,or_e2e", "-c", "-o", expectedBinary, expectedPackage, "-ldflags",
-			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"})
+		assert.DeepEqual(t, args, []string{
+			"test", "-tags", "or_test,or_e2e", "-c", "-o", expectedBinary, expectedPackage, "-ldflags",
+			"-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing",
+		})
 		return nil
 	}
 

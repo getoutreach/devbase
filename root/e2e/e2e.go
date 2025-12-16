@@ -68,7 +68,6 @@ func GetE2eTestPaths(rootDir string, walk DirectoryWalker, readDir DirectoryRead
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
