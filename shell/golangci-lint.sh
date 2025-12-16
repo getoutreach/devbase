@@ -29,7 +29,6 @@ if in_ci_environment; then
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
-GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
 GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
 GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION//./}
 GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
@@ -40,7 +39,6 @@ if [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]] || [[ ${GOLANGCI_LINT_VERSION_IN
   exit 1
 fi
 
-echo "Using golangci-lint version ${GOLANGCI_LINT_VERSION} with Go ${GO_VERSION}" >&2
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
 # manage memory usage by the golangci-linter in CI.
 if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
