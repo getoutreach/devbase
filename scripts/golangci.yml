@@ -25,7 +25,7 @@ linters:
     - govet
     - ineffassign
     - lll
-    # - misspell        # Disabling this right now because it uses 1/2 of the memory of the run.
+    # - misspell        # The reason we're disabling this right now is because it uses 1/2 of the memory of the run.
     - nakedret
     - revive
     - staticcheck
