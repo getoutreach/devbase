@@ -32,8 +32,6 @@ fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
 GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
-GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION//./}
-GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
 
 min_version="2.5.0"
 read -r min_major min_minor min_patch <<<"$(parse_version "$min_version")"
