@@ -3,7 +3,9 @@
 
 # Parses a version string (e.g. v1.2.3 or 1.2.3 or v1.2.3-alpha) into major, minor, and patch numbers
 parse_version() {
+  # Remove the leading `v` from the first argument (if present).
   local v="${1#v}"
+  # Strip pre-release/build metadata: delete from the first `-` or `+` to the end.
   v="${v%%[-+]*}"
   IFS='.' read -r major minor patch <<<"$v"
   printf '%d %d %d' "${major:-0}" "${minor:-0}" "${patch:-0}"
