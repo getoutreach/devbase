@@ -3,7 +3,7 @@
 # configured (currently limited to Ruby and JavaScript/TypeScript).
 set -euo pipefail
 
-# Generates proto types and clients from proto filess
+# Generates proto types and clients from proto files
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GOBIN="$SCRIPTS_DIR/gobin.sh"
 
@@ -291,5 +291,15 @@ if has_grpc_client "ruby"; then
       delete_validate "$file"
     done
     popd || exit 1
+  fi
+fi
+
+if has_grpc_client "python"; then
+  # Python support is not currently open source, so only run this if
+  # the `build:python-proto` mise task exists in the repo.
+  if [[ -n $(mise tasks ls --json | gojq -r '.[] | select(.name == "build:python-proto").name') ]]; then
+    mise run build:python-proto "$(get_repo_directory)$workDir$SUBDIR" "${default_args[@]}"
+  else
+    fatal "Expected build:python-proto mise task to exist when Python gRPC client defined"
   fi
 fi
