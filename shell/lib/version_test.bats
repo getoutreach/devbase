@@ -46,3 +46,38 @@ load version.sh
   assert_success
   assert_output "0 0 0"
 }
+
+@test "has_minimum_version succeeds for equal versions" {
+  run has_minimum_version "2.5.0" "v2.5.0"
+  assert_success
+}
+
+@test "has_minimum_version succeeds when version is greater" {
+  run has_minimum_version "2.5.0" "2.6.0"
+  assert_success
+}
+
+@test "has_minimum_version fails when version is lower" {
+  run has_minimum_version "2.5.0" "2.4.9"
+  assert_failure
+}
+
+@test "has_minimum_version handles leading zeros" {
+  run has_minimum_version "2.5.0" "v02.05.007"
+  assert_success
+}
+
+@test "has_minimum_version treats empty version as 0.0.0 and fails when min > 0" {
+  run has_minimum_version "1.0.0" ""
+  assert_failure
+}
+
+@test "has_minimum_version treats empty minimum as 0.0.0 and succeeds for any positive version" {
+  run has_minimum_version "" "v1.2.3"
+  assert_success
+}
+
+@test "has_minimum_version handles higher minor version" {
+  run has_minimum_version "2.5.0" "v1.62.2"
+  assert_failure
+}
