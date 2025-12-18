@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Provides version related helper functions
 
-# Parses a version string (e\.g\. v1\.2\.3) into major, minor, and patch numbers
+# Parses a version string (e.g. v1.2.3 or 1.2.3 or v1.2.3-alpha) into major, minor, and patch numbers
 parse_version() {
   local v="${1#v}"
   v="${v%%[-+]*}"
@@ -15,21 +15,9 @@ has_minimum_version() {
   read -r min_major min_minor min_patch <<<"$(parse_version "$min")"
   read -r ver_major ver_minor ver_patch <<<"$(parse_version "$ver")"
 
-  if ((ver_major > min_major)); then
-    return 0
-  elif ((ver_major < min_major)); then
-    return 1
-  fi
-
-  if ((ver_minor > min_minor)); then
-    return 0
-  elif ((ver_minor < min_minor)); then
-    return 1
-  fi
-
-  if ((ver_patch >= min_patch)); then
-    return 0
-  else
-    return 1
-  fi
+  ((ver_major > min_major)) && return 0
+  ((ver_major < min_major)) && return 1
+  ((ver_minor > min_minor)) && return 0
+  ((ver_minor < min_minor)) && return 1
+  ((ver_patch >= min_patch))
 }
