@@ -11,6 +11,8 @@ source "$DIR/lib/bootstrap.sh"
 source "$DIR/lib/asdf.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
+# shellcheck source=./lib/version.sh
+source "$DIR/lib/version.sh"
 
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
@@ -33,9 +35,12 @@ GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $
 GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION//./}
 GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
 
-# Enforce golangci-lint >= 2.5.x
-if [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]] || [[ ${GOLANGCI_LINT_VERSION_INT:1:1} -lt 5 ]]; then
-  echo "Error: golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= 2.5.x" >&2
+min_version="2.5.0"
+read -r min_major min_minor min_patch <<<"$(parse_version "$min_version")"
+read -r ver_major ver_minor ver_patch <<<"$(parse_version "$GOLANGCI_LINT_VERSION")"
+
+if ((ver_major < min_major || (ver_major == min_major && (ver_minor < min_minor || (ver_minor == min_minor && ver_patch < min_patch))))); then
+  echo "Error: golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${min_version}" >&2
   exit 1
 fi
 
