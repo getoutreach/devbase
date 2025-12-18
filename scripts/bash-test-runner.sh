@@ -6,9 +6,6 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEVBASE_LIB_DIR="$DIR/../shell/lib"
 
-# CI determines if we're running in CI or not. Defaults to false.
-CI=${CI:-false}
-
 # shellcheck source=../shell/lib/bootstrap.sh
 source "$DEVBASE_LIB_DIR/bootstrap.sh"
 # shellcheck source=../shell/lib/logging.sh
@@ -17,7 +14,7 @@ source "$DEVBASE_LIB_DIR/logging.sh"
 source "$DEVBASE_LIB_DIR/shell.sh"
 
 # Check if the bats test helpers are installed and usable.
-if [[ ! -d "$DIR/bats/test_helper/bats-assert" ]]; then
+if [[ ! -f "$DIR/bats/test_helper/bats-assert/load.bash" ]]; then
   info "Initializing bats submodule(s) ..."
   git submodule update --init --recursive
 fi
