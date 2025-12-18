@@ -5,7 +5,7 @@ bats_load_library "bats-assert/load.bash"
 
 load version.sh
 
-@test "parse_version parses v2.5.0 (single digit minor") {
+@test "parse_version parses v2.5.0 (single-digit minor)" {
   run parse_version "v2.5.0"
   assert_success
   assert_output "2 5 0"
