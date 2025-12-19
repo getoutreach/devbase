@@ -2,8 +2,12 @@
 # Provides version related helper functions
 
 # parse_version(version)
-# Parses a version string into major, minor, and patch numbers. Strips leading
-# `v`, ignores pre-release info / build metadata, and parses invalid versions as `0.0.0`.
+#
+# Parses a semantic version (semver)-compatible string into major,
+# minor, and patch numbers. Strips leading `v`, ignores pre-release
+# info / build metadata, and parses empty versions as `0.0.0`.
+# Partial versions have missing parts parsed as `0`. Fails if any
+# version part is not a number.
 parse_version() {
   # Remove the leading `v` from the first argument (if present).
   local v="${1#v}"
@@ -14,9 +18,9 @@ parse_version() {
 }
 
 # has_minimum_version(minimum_version, version)
-# Checks if the given version is greater than or equal to the minimum required version.
-# Versions need to follow semantic versioning format: MAJOR.MINOR.PATCH (with optional
-# `v` prefix and pre-release info / build metadata suffix).
+#
+# Checks if the given version is greater than or equal to the minimum
+# required version. Versions are parsed with parse_version().
 has_minimum_version() {
   local min="$1" ver="$2"
   read -r min_major min_minor min_patch <<<"$(parse_version "$min")"
