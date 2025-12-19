@@ -20,7 +20,7 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# Enable only fast linters, and always use the correct config.
+# Ensure that the configuration comes from the repo and not devbase.
 args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
 args+=("--allow-parallel-runners" "--color=always" "--show-stats")
 
