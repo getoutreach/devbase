@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Provides version related helper functions
 
-# Parses a version string (e.g. v1.2.3 or 1.2.3 or v1.2.3-alpha) into major, minor, and patch numbers
+# parse_version(version)
+# Parses a version string into major, minor, and patch numbers. Strips leading
+# `v`, ignores pre-release info / build metadata, and parses invalid versions as `0.0.0`.
 parse_version() {
   # Remove the leading `v` from the first argument (if present).
   local v="${1#v}"
@@ -11,7 +13,10 @@ parse_version() {
   printf '%d %d %d' "${major:-0}" "${minor:-0}" "${patch:-0}"
 }
 
-# Checks if the given version is greater than or equal to the minimum required version
+# has_minimum_version(minimum_version, version)
+# Checks if the given version is greater than or equal to the minimum required version.
+# Versions need to follow semantic versioning format: MAJOR.MINOR.PATCH (with optional
+# `v` prefix and pre-release info / build metadata suffix).
 has_minimum_version() {
   local min="$1" ver="$2"
   read -r min_major min_minor min_patch <<<"$(parse_version "$min")"

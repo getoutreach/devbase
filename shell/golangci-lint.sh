@@ -5,10 +5,12 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/asdf.sh
 source "$DIR/lib/asdf.sh"
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 # shellcheck source=./lib/version.sh
@@ -32,11 +34,10 @@ fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
 GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
-MIN_GOLANGCI_LINT_VERSION="2.5.0"
+MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
 if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then
-  echo "Error: golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}" >&2
-  exit 1
+  fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
