@@ -65,7 +65,7 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     # which is relative to the amount of memory we have.
     if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
       # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
-      echo "Warning: Failed to determine system memory or under threshold. " \
+      warn "Failed to determine system memory or under threshold. " \
         "Falling back to GOGC" >&2
       export GOGC=20
     else
