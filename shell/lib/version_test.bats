@@ -53,6 +53,11 @@ load version.sh
   assert_output "0 0 0"
 }
 
+@test "parse_version fails when a version part contains a nonnumeric character" {
+  run parse_version "1.0.0a"
+  assert_failure
+}
+
 @test "has_minimum_version succeeds for equal versions" {
   run has_minimum_version "2.5.0" "v2.5.0"
   assert_success
