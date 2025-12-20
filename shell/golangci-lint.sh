@@ -84,6 +84,13 @@ if [[ -z ${GOLANGCI_LINT_CACHE:-} ]]; then
   mkdir -p "$GOLANGCI_LINT_CACHE" >/dev/null 2>&1
 fi
 
+asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
+if in_ci_environment && [[ -f "$asdf_shim" ]]; then
+  # For some reason in CI, the asdf shim always overrides the one
+  # downloaded from `mise`.
+  rm "$asdf_shim"
+fi
+
 mise_exec_tool golangci-lint "${args[@]}"
 
 if in_ci_environment; then
