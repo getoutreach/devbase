@@ -32,6 +32,13 @@ if in_ci_environment; then
   mkdir -p "$TEST_DIR"
   # Support multiple output formats (stdout, JUnit)
   args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+
+  # For some reason in CI, the asdf shim always overrides the one
+  # downloaded from `mise`.
+  asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
+  if [[ -f $asdf_shim ]]; then
+    rm "$asdf_shim"
+  fi
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
@@ -82,13 +89,6 @@ if [[ -z ${GOLANGCI_LINT_CACHE:-} ]]; then
   # This helps with the "too many open files" error.
   export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint"
   mkdir -p "$GOLANGCI_LINT_CACHE" >/dev/null 2>&1
-fi
-
-asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
-if in_ci_environment && [[ -f $asdf_shim ]]; then
-  # For some reason in CI, the asdf shim always overrides the one
-  # downloaded from `mise`.
-  rm "$asdf_shim"
 fi
 
 mise_exec_tool golangci-lint "${args[@]}"
