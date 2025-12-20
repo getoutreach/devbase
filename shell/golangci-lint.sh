@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# This is a wrapper around gobin.sh to run golangci-lint.
+# This is a wrapper around mise to run golangci-lint.
 # Useful for using the correct version of golangci-lint
 # with your editor.
 
+set -eo pipefail
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/asdf.sh
-source "$DIR/lib/asdf.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 # shellcheck source=./lib/version.sh
@@ -33,7 +35,7 @@ if in_ci_environment; then
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
-GOLANGCI_LINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
+GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
 MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
 if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then
@@ -79,7 +81,7 @@ fi
 # This helps with the "too many open files" error.
 mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
 
-asdf_devbase_exec golangci-lint "${args[@]}"
+mise_exec_tool golangci-lint "${args[@]}"
 
 if in_ci_environment; then
   mv "$TEST_FILENAME" /tmp/test-results/
