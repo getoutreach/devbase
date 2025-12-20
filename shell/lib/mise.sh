@@ -233,6 +233,18 @@ find_tool() {
   fi
 }
 
+# mise_exec_tool(toolName[, args...])
+#
+# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
+# Assumes the binary and the tool name are the same.
+mise_exec_tool() {
+  local toolName="$1"
+  shift
+  local version
+  version="$(get_tool_version "$toolName")"
+  run_mise exec "$toolName@$version" -- "$toolName" "$@"
+}
+
 # Installs a given tool via `mise install`, assuming that it's defined
 # in the local `mise.toml` file and not already installed.
 mise_install_if_needed() {
