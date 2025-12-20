@@ -85,7 +85,7 @@ if [[ -z ${GOLANGCI_LINT_CACHE:-} ]]; then
 fi
 
 asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
-if in_ci_environment && [[ -f "$asdf_shim" ]]; then
+if in_ci_environment && [[ -f $asdf_shim ]]; then
   # For some reason in CI, the asdf shim always overrides the one
   # downloaded from `mise`.
   rm "$asdf_shim"
