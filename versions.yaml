@@ -9,6 +9,7 @@ goveralls: 0.0.11
 getoutreach/ci: v1.6.14
 getoutreach/logfmt: v1.1.0
 gh: 2.62.0
+mage: 1.14.0
 ## Sync with templates/scripts/devbase.sh.tpl
 gojq: v0.12.18
 
