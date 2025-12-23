@@ -14,7 +14,7 @@ find_service_yaml() {
     exit 1
   fi
 
-  if [[ -e "$path/service.yaml" ]]; then
+  if [[ -e "$path/service.yaml" && "$(basename "$path")" != ".bootstrap" ]]; then
     REPODIR="$path"
     return
   fi
@@ -200,4 +200,28 @@ managed_by_stencil() {
     return 0
   fi
   return 1
+}
+
+# deployment_source_path returns the base directory of the
+# jsonnet-based deployment files. Optional argument: app name
+deployment_source_path() {
+  local appName="${1:-$(get_app_name)}"
+  local sourcePath
+  sourcePath="$(stencil_arg deployment.sourcePath)"
+  if [[ -z $sourcePath || $sourcePath == "null" ]]; then
+    sourcePath="deployments/$appName"
+  fi
+  echo "$sourcePath"
+}
+
+# deployment_manifest_path returns the base name of the jsonnet-based
+# deployment entry point. Optional argument: app name
+deployment_manifest_path() {
+  local appName="${1:-$(get_app_name)}"
+  local manifestPath
+  manifestPath="$(stencil_arg deployment.manifestPath)"
+  if [[ -z $manifestPath || $manifestPath == "null" ]]; then
+    manifestPath="$appName.jsonnet"
+  fi
+  echo "$manifestPath"
 }

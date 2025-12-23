@@ -17,7 +17,7 @@ appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
 kubernetesVersion=$(get_tool_version kubernetes)
 
 kubecfg_kubeconform() {
-  if [[ ! -f "$(get_repo_directory)/deployments/$appName/$appName.jsonnet" ]]; then
+  if [[ ! -f "$(get_repo_directory)/$(deployment_source_path "$appName")/$(deployment_manifest_path "$appName")" ]]; then
     echo "No jsonnet to be validated, skipping" >&2
     return 0
   fi

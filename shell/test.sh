@@ -5,10 +5,14 @@ set -euo pipefail
 # DIR is the directory that this scripts lives in.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# CI denotes if we're in CI or not. When running in CI, certain
-# environment variables below behaviour may differ. Check each
-# environment variables' documentation for more information.
-CI="${CI:-}"
+# shellcheck source=./lib/bootstrap.sh
+source "$DIR/lib/bootstrap.sh"
+
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
+
+# shellcheck source=./lib/shell.sh
+source "$DIR/lib/shell.sh"
 
 # TEST_FLAGS is an array of flags to pass to `go test`. TEST_FLAGS must
 # be a string value. It will be split on spaces.
@@ -92,7 +96,7 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
-if [[ -n $CI ]]; then
+if in_ci_environment; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
 
@@ -104,12 +108,6 @@ fi
 if [[ -n $GO_TEST_TIMEOUT ]]; then
   TEST_FLAGS+=(-timeout "$GO_TEST_TIMEOUT")
 fi
-
-# shellcheck source=./lib/logging.sh
-source "$DIR/lib/logging.sh"
-
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
 
 # REPODIR is the base directory of the repository.
 REPODIR=$(get_repo_directory)
@@ -145,7 +143,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   info "Running go test (${TEST_TAGS[*]})"
 
   format="dots-v2"
-  if [[ -n $CI ]]; then
+  if in_ci_environment; then
     # When in CI, always use the pkgname format because it's easier to
     # read.
     format="pkgname"
@@ -202,7 +200,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
     ) || exitCode=$?
 
-    if [[ -n $CI ]]; then
+    if in_ci_environment; then
       # Move this to a temporary directory so that we can control
       # what gets uploaded via the store_test_results call
       mkdir -p /tmp/test-results

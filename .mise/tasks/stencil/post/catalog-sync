@@ -36,14 +36,20 @@ sync_cortex() {
   fi
   sed_replace '\(reporting_team:\) .\+' "\1 $reporting_team" cortex.yaml
 
-  golang_version="$(grep -w ^golang .tool-versions | awk '{print $2}')"
-  if [[ -n $golang_version ]]; then
-    sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
+  if grep -q -w ^golang .tool-versions; then
+    golang_version="$(grep -w ^golang .tool-versions | awk '{print $2}')"
+    if [[ -n $golang_version ]]; then
+      sed_replace '\(golang_version:\) .\+' "\1 $golang_version" cortex.yaml
+    fi
   fi
 
   sed_replace '\(stencil_version:\) .\+' "\1 $(stencil_version)" cortex.yaml
 }
 
 if ! managed_by_stencil cortex.yaml; then
-  sync_cortex
+  if [[ -f "$(get_repo_directory)"/cortex.yaml ]]; then
+    sync_cortex
+  else
+    info "Cortex manifest not found, skipping"
+  fi
 fi

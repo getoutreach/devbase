@@ -84,16 +84,35 @@ get_cached_binary() {
   fi
 }
 
-# get_time_ms returns the current time in milliseconds
-# we use perl because we can't use the date command %N on macOS
+# Wrapper for `command -v`, with no output.
+command_exists() {
+  exe="$1"
+  command -v "$exe" 2>/dev/null >&2
+}
+
+# get_time_ms returns the current time in milliseconds.
+# Tries GNU coreutils `date`, Python 3, Perl 5.
+# We can't use the BSD date command on macOS because it doesn't support %N.
 get_time_ms() {
-  perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+  if [[ $OSTYPE == "darwin"* ]] && command_exists gdate; then
+    # https://stackoverflow.com/a/16548827
+    echo $(($(gdate +%s%N) / 1000000))
+  elif [[ $OSTYPE == "linux-gnu"* ]] && command_exists date; then
+    # https://stackoverflow.com/a/16548827
+    echo $(($(date +%s%N) / 1000000))
+  elif command_exists python3; then
+    python3 -c 'import time; print(int(time.time() * 1000))'
+  elif command_exists perl; then
+    perl -MTime::HiRes -e 'printf("%.0f\n",Time::HiRes::time()*1000)'
+  else
+    fatal "Could not find a command to determine time in milliseconds. Tried: GNU coreutils 'date', Python 3, Perl 5"
+  fi
 }
 
 # is_terminal returns true if the current process is a terminal, with
 # a special case of always being false if CI is true
 is_terminal() {
-  [[ -t 0 ]] && [[ $CI != "true" ]]
+  [[ -t 0 ]] && ! in_ci_environment
 }
 
 # get_cursor_pos returns the current cursor position
@@ -213,4 +232,10 @@ find_files_with_shebang() {
       echo "$file"
     fi
   done | sort | uniq
+}
+
+# in_ci_environment determines whether the script is run in the context
+# of a CI job/workflow.
+in_ci_environment() {
+  [[ -n ${CI:-} ]]
 }

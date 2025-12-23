@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Contains various helper functions for interacting with Github.
+#
+# Requires the following libraries:
+# * logging.sh (required by mise.sh)
+# * mise.sh
+# * shell.sh (required by mise.sh)
+#
+# Setting the GitHub token requires bootstrap.sh.
 
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -14,13 +21,20 @@ source "$LIB_DIR/shell.sh"
 ghCmd=""
 
 # Looks for gh in the PATH or in the mise environment.
-run_gh() {
+gh_installed() {
   if [[ -z $ghCmd ]]; then
     ghCmd="$(find_tool gh)"
     if [[ -z $ghCmd ]]; then
-      error "gh not found in mise environment (run_gh)"
+      error "gh not found in mise environment (gh_installed)"
       return 1
     fi
+  fi
+}
+
+# Runs gh if found, otherwise fails.
+run_gh() {
+  if ! gh_installed; then
+    return 1
   fi
 
   "$ghCmd" "$@"
@@ -75,20 +89,27 @@ install_latest_github_release() {
   # continue to use it for the configured private repos.
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
     GITHUB_TOKEN="$(github_token)"
+    if [[ -z $GITHUB_TOKEN ]]; then
+      # shellcheck disable=SC2119
+      # Why: no extra args needed to pass to ghaccesstoken in this case.
+      bootstrap_github_token
+    fi
     export GITHUB_TOKEN
   fi
 
-  local mise_identifier="ubi:$slug"
-  # If binary_name is not the default value, set the exe parameter in
-  # the mise config.
-  if [[ -n $3 ]]; then
-    mise_tool_config_set "$mise_identifier" version "$tag" exe "$binary_name"
-  fi
+  local mise_identifier="github:$slug"
   install_tool_with_mise "$mise_identifier" "$tag"
+
+  if [[ -n ${3:-} ]] && ! find_tool "$3"; then
+    error "Expecting to install '$3' but was not installed"
+    return 1
+  fi
 }
 
 # Set GITHUB_TOKEN from getoutreach/ci:ghaccesstoken if not already
 # set. Any arguments are passed to `ghaccesstoken token`.
+# shellcheck disable=SC2120
+# Why: External scripts using this library file could pass the arguments.
 bootstrap_github_token() {
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
     GITHUB_TOKEN="$(fetch_github_token_from_ci "$@")"
@@ -98,6 +119,7 @@ bootstrap_github_token() {
 
 # Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
 # arguments are passed to `ghaccesstoken token`.
+# Requires lib/bootstrap.sh for `get_tool_version`.
 fetch_github_token_from_ci() {
   (
     local version
@@ -115,7 +137,7 @@ fetch_github_token_from_ci() {
 ghaccesstoken_exists() {
   local version="$1"
   local ghaccesstoken_path
-  ghaccesstoken_path="$(mise which ghaccesstoken 2>/dev/null)"
+  ghaccesstoken_path="$(find_tool ghaccesstoken 2>/dev/null)"
   if [[ -z $ghaccesstoken_path ]]; then
     return 1
   fi

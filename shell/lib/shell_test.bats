@@ -4,12 +4,13 @@
 # shellcheck disable=SC2155
 
 load shell.sh
+load test_helper.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 setup() {
-  TMP_GITDIR=$(mktemp -d)
+  TMP_GITDIR=$(mktempdir devbase-shell-test-XXXXXX)
   git init --quiet "$TMP_GITDIR"
   pushd "$TMP_GITDIR" >/dev/null || exit 1
   git config user.name "Test User"

@@ -5,10 +5,14 @@ set -e -o pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/logging.sh
-source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+# shellcheck source=./lib/github.sh
+source "$DIR/lib/github.sh"
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 

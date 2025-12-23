@@ -43,14 +43,13 @@ BENCH_FLAGS         := "-bench=Bench $(BENCH_FLAGS)"
 TEST_TAGS           ?= or_test
 SKIP_VALIDATE       ?=
 LOGFMT              ?=
-GOLANGCI_LINT_CACHE ?= "$(HOME)/.outreach/.cache/.golangci-lint/$(APP)"
 
 # Outreach stuff, will be moved out... one day.
 OUTREACH_DOMAIN     ?= outreach-dev.com
 ACCOUNTS_URL        ?= https://accounts.$(OUTREACH_DOMAIN)
 
 # E2E
-BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} SKIP_LINTERS=${SKIP_LINTERS} OSS=$(OSS) TEST_TAGS=$(TEST_TAGS) GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE)
+BASE_TEST_ENV       ?= GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) SKIP_VALIDATE=${SKIP_VALIDATE} SKIP_LINTERS=${SKIP_LINTERS} OSS=$(OSS) TEST_TAGS=$(TEST_TAGS)
 E2E_NAMESPACE       ?= $(APP)--bento1a
 E2E_SERVICE_ACCOUNT ?= $(APP)-e2e-client-svc
 E2E_CLUSTER         ?= development.us-west-2
@@ -212,10 +211,10 @@ debug:: pre-debug
 	@if [[ -n $$DLV_PORT ]]; then DEVBOX_LOGFMT="$(LOGFMT)" ./scripts/shell-wrapper.sh debug.sh; fi
 	@if [[ -z $$DLV_PORT ]]; then OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) ./scripts/shell-wrapper.sh debug.sh; fi
 
-## docker-build:    build docker image for dev environment
+## docker-build:    [DEPRECATED] build docker image for dev environment
 .PHONY: docker-build
 docker-build:: pre-docker-build
-	@./scripts/shell-wrapper.sh docker-build.sh
+	@./scripts/shell-wrapper.sh deprecated-task.sh docker-build docker:build
 
 ## fmt:             run source code formatters
 .PHONY: fmt

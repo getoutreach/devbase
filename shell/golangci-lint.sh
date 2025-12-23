@@ -1,54 +1,54 @@
 #!/usr/bin/env bash
-# This is a wrapper around gobin.sh to run golangci-lint.
+# This is a wrapper around mise to run golangci-lint.
 # Useful for using the correct version of golangci-lint
 # with your editor.
+
+set -eo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
-# shellcheck source=./lib/asdf.sh
-source "$DIR/lib/asdf.sh"
-
-in_ci_environment() {
-  [[ -n ${CI:-} ]]
-}
+# shellcheck source=./lib/github.sh
+source "$DIR/lib/github.sh"
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
+# shellcheck source=./lib/shell.sh
+source "$DIR/lib/shell.sh"
+# shellcheck source=./lib/version.sh
+source "$DIR/lib/version.sh"
 
 if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# Enable only fast linters, and always use the correct config.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@" "--fast" "--allow-parallel-runners")
+# Ensure that the configuration comes from the repo and not devbase.
+args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
+args+=("--allow-parallel-runners" "--color=always" "--show-stats")
 
 if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
   TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
   mkdir -p "$TEST_DIR"
   # Support multiple output formats (stdout, JUnit)
-  args+=("--out-format=colored-line-number,junit-xml-extended:${TEST_FILENAME}")
+  args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+
+  # For some reason in CI, the asdf shim always overrides the one
+  # downloaded from `mise`.
+  asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
+  if [[ -f $asdf_shim ]]; then
+    rm "$asdf_shim"
+  fi
 fi
 
 # Determine the version of go and golangci-lint to calculate compatibility.
-GO_MINOR_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d'.' -f1,2)
-GOLANGCILINT_VERSION=$(asdf_devbase_run golangci-lint --version | awk '{print $4}')
-GO_MINOR_VERSION_INT=${GO_MINOR_VERSION//./}
-GOLANGCI_LINT_VERSION_INT=${GOLANGCILINT_VERSION//./}
-GOLANGCI_LINT_VERSION_INT=${GOLANGCI_LINT_VERSION_INT//v/}
+GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
+MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
-# Check version compatibility for golangci-lint/go 1.X.
-if [[ ${GO_MINOR_VERSION_INT:0:1} -lt 2 ]] && [[ ${GOLANGCI_LINT_VERSION_INT:0:1} -lt 2 ]]; then
-  # Go 1.20 requires >= golangci-lint 1.52.0
-  if [[ $GO_MINOR_VERSION_INT == 120 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1520 ]]; then
-    echo "Error: Go 1.20 requires golangci-lint 1.52.0 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
-  fi
-
-  # Go 1.21 requires >= golangci-lint 1.54.1
-  if [[ $GO_MINOR_VERSION_INT == 121 ]] && [[ $GOLANGCI_LINT_VERSION_INT -lt 1541 ]]; then
-    echo "Error: Go 1.21 requires golangci-lint 1.54.1 or newer (detected $GOLANGCILINT_VERSION)" >&2
-    exit 1
-  fi
+if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then
+  fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
@@ -76,7 +76,7 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
     # which is relative to the amount of memory we have.
     if [[ $mem -lt $RESERVED_MEMORY_IN_MIB ]] || [[ -z $mem ]]; then
       # Failed to determine GOMEMLIMIT somehow. Fallback to GOGC.
-      echo "Warning: Failed to determine system memory or under threshold. " \
+      warn "Failed to determine system memory or under threshold. " \
         "Falling back to GOGC" >&2
       export GOGC=20
     else
@@ -86,11 +86,14 @@ if [[ -z $GOGC ]] && [[ -z $GOMEMLIMIT ]]; then
   fi
 fi
 
-# Use individual directories for golangci-lint cache as opposed to a mono-directory.
-# This helps with the "too many open files" error.
-mkdir -p "$HOME/.outreach/.cache/.golangci-lint" >/dev/null 2>&1
+if [[ -z ${GOLANGCI_LINT_CACHE:-} ]]; then
+  # Use individual directories for golangci-lint cache as opposed to a mono-directory.
+  # This helps with the "too many open files" error.
+  export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint"
+  mkdir -p "$GOLANGCI_LINT_CACHE" >/dev/null 2>&1
+fi
 
-asdf_devbase_exec golangci-lint "${args[@]}"
+mise_exec_tool golangci-lint "${args[@]}"
 
 if in_ci_environment; then
   mv "$TEST_FILENAME" /tmp/test-results/

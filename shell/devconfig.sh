@@ -9,17 +9,20 @@ YQ="$DIR/yq.sh"
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
 
+# shellcheck source=./lib/box.sh
+source "$DIR/lib/box.sh"
+
+# shellcheck source=./lib/logging.sh
+source "$DIR/lib/logging.sh"
+
+# shellcheck source=./lib/shell.sh
+source "$DIR/lib/shell.sh"
+
 APPNAME="$(get_app_name)"
 
 overridePath="$(get_repo_directory)/scripts/devconfig.override.sh"
 configDir="$HOME/.outreach/$APPNAME"
 volumeDir="${TMPDIR:-/tmp}/$APPNAME"
-
-# shellcheck source=./lib/logging.sh
-source "$DIR/lib/logging.sh"
-
-# shellcheck source=./lib/box.sh
-source "$DIR/lib/box.sh"
 
 mkdir -p "$configDir"
 
@@ -74,7 +77,7 @@ get_vault_secrets() {
   return 0
 }
 
-if [[ -z $CI ]]; then
+if ! in_ci_environment; then
   ensure_logged_into_vault
 fi
 

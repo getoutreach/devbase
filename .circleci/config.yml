@@ -122,7 +122,12 @@ workflows:
         - not: << pipeline.parameters.release_rc >>
     jobs:
       ## <<Stencil::Block(circleWorkflowJobs)>>
-
+      - shared/test:
+          <<: *test
+          name: test-macos
+          executor_name: testbed-macos
+          machine: true
+          resource_class: macos.m1.medium.gen1
       ## <</Stencil::Block>>
       ### Start jobs inserted by other modules
       ### End jobs inserted by other modules

@@ -4,11 +4,12 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 load bootstrap.sh
+load test_helper.sh
 
 setup() {
   # This points us to use a temp file for a git repo to operate on, as
   # opposed to the real one.
-  REPOPATH=$(mktemp -p "$TMPDIR" -d devbase.bootstrapXXXXXXXXXX)
+  REPOPATH=$(mktempdir devbase-bootstrap-XXXXXX)
 
   git init --initial-branch=main "$REPOPATH"
   cd "$REPOPATH" || exit 1
@@ -110,4 +111,42 @@ files:
 EOF
   run managed_by_stencil nonexistent.txt
   assert_failure
+}
+
+@test "deployment_source_path: default value" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+EOF
+  run deployment_source_path
+  assert_output "deployments/foo"
+}
+@test "deployment_manifest_path: default value" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+EOF
+  run deployment_manifest_path
+  assert_output "foo.jsonnet"
+}
+
+@test "deployment_source_path: value from service.yaml" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+  deployment:
+    sourcePath: kubernetes
+EOF
+  run deployment_source_path
+  assert_output "kubernetes"
+}
+@test "deployment_manifest_path: value from service.yaml" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+name: foo
+arguments:
+  deployment:
+    manifestPath: foo-bar.jsonnet
+EOF
+  run deployment_manifest_path
+  assert_output "foo-bar.jsonnet"
 }

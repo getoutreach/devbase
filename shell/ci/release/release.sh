@@ -8,16 +8,18 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "${LIB_DIR}/logging.sh"
+
 # Retrieve the GH_TOKEN
-GH_TOKEN="$(github_token)"
-if [[ -z $GH_TOKEN ]]; then
-  echo "Failed to read GitHub personal access token" >&2
+GITHUB_TOKEN="$(github_token)"
+if [[ -z $GITHUB_TOKEN ]]; then
+  error "Failed to read GitHub personal access token"
 fi
 
 send_failure_notification() {
   if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
-    echo "Failed to release"
-    exit 1
+    fatal "Failed to release"
   fi
 
   curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
@@ -25,9 +27,6 @@ send_failure_notification() {
     -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'", "buildURL": "'"$CIRCLE_BUILD_URL"'", "repoName": "'"$CIRCLE_PROJECT_REPONAME"'"}'
   exit 1
 }
-
-# shellcheck source=../../lib/logging.sh
-source "${LIB_DIR}/logging.sh"
 
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
@@ -44,5 +43,5 @@ unset CI_PULL_REQUEST
 unset CI_PULL_REQUESTS
 
 # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
-NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
+NPM_TOKEN='' MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
   yarn --frozen-lockfile semantic-release || send_failure_notification

@@ -362,7 +362,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			go func(wg *sync.WaitGroup) {
 				defer wg.Done()
 				log.Info().Msg("Starting early docker build")
-				if err := exec.CommandContext(ctx, "make", "docker-build").Run(); err != nil {
+				if err := exec.CommandContext(ctx, "mise", "run", "docker:build").Run(); err != nil {
 					log.Warn().Err(err).Msg("Error when running early docker build")
 				} else {
 					log.Info().Msg("Early docker build finished successfully")

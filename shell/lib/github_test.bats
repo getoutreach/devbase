@@ -2,17 +2,17 @@
 
 load circleci.sh
 load github.sh
+load test_helper.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 setup() {
   local MISE_CONFIG_DIR MISE_DATA_DIR MISE_STATE_DIR
-  local tmpdir="${TMPDIR:-/tmp}"
 
-  MISE_CONFIG_DIR="$(mktemp -d "$tmpdir"/mise-config-XXXXXX)"
-  MISE_DATA_DIR="$(mktemp -d "$tmpdir"/mise-data-XXXXXX)"
-  MISE_STATE_DIR="$(mktemp -d "$tmpdir"/mise-state-XXXXXX)"
+  MISE_CONFIG_DIR="$(mktempdir mise-config-XXXXXX)"
+  MISE_DATA_DIR="$(mktempdir mise-data-XXXXXX)"
+  MISE_STATE_DIR="$(mktempdir mise-state-XXXXXX)"
   export MISE_CONFIG_DIR MISE_DATA_DIR MISE_STATE_DIR
 
   export MISE_GLOBAL_CONFIG_ROOT="$MISE_CONFIG_DIR"

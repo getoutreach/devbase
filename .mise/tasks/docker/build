@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Builds a Docker image for the current application in the dev environment."
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SHELL_DIR="$DIR/../../../shell"
+LIB_DIR="$SHELL_DIR/lib"
+
+# shellcheck source=../../../shell/lib/bootstrap.sh
+source "$LIB_DIR"/bootstrap.sh
+
+APP_VERSION="$(get_app_version)" "$SHELL_DIR"/docker-build.sh
