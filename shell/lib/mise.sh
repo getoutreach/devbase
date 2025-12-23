@@ -200,13 +200,13 @@ find_mise() {
 
 # run_mise ARGS...
 #
-# Runs `mise`. If `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set and
+# Runs `mise`. If in CI, `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set, and
 # `wait-for-gh-rate-limit` is installed, makes sure that the token
 # isn't rate limited before calling `mise`.
 run_mise() {
   local mise_path
   mise_path="$(find_mise)"
-  if [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
+  if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     local wait_for_gh_rate_limit
     wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
     if [[ -n $wait_for_gh_rate_limit ]]; then
@@ -240,9 +240,21 @@ find_tool() {
 mise_exec_tool() {
   local toolName="$1"
   shift
+  mise_exec_tool_with_bin "$toolName" "$toolName" "$@"
+}
+
+# mise_exec_tool_with_bin(toolName, binName[, args...])
+#
+# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
+# Assumes `github.sh` is sourced.
+mise_exec_tool_with_bin() {
+  local toolName="$1"
+  shift
+  local binName="$1"
+  shift
   local version
-  version="$(get_tool_version "$toolName")"
-  run_mise exec "$toolName@$version" -- "$toolName" "$@"
+  version="$(get_tool_version "$binName")"
+  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$version" -- "$binName" "$@"
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
