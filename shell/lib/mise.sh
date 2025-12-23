@@ -200,13 +200,13 @@ find_mise() {
 
 # run_mise ARGS...
 #
-# Runs `mise`. If `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set and
+# Runs `mise`. If in CI, `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set, and
 # `wait-for-gh-rate-limit` is installed, makes sure that the token
 # isn't rate limited before calling `mise`.
 run_mise() {
   local mise_path
   mise_path="$(find_mise)"
-  if [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
+  if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     local wait_for_gh_rate_limit
     wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
     if [[ -n $wait_for_gh_rate_limit ]]; then
