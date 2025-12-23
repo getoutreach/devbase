@@ -13,6 +13,9 @@ mage: 1.14.0
 ## Sync with templates/scripts/devbase.sh.tpl
 gojq: v0.12.18
 
+shellcheck: 0.9.0
+shfmt: 3.7.0
+
 # protobuf formatters/plugins/tools/etc
 buf: 1.60.0
 protoc-gen-validate: 0.6.7
