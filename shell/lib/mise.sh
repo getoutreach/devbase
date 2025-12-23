@@ -246,6 +246,7 @@ mise_exec_tool() {
 # mise_exec_tool_with_bin(toolName, binName[, args...])
 #
 # Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
+# Assumes `github.sh` is sourced.
 mise_exec_tool_with_bin() {
   local toolName="$1"
   shift
@@ -253,7 +254,7 @@ mise_exec_tool_with_bin() {
   shift
   local version
   version="$(get_tool_version "$binName")"
-  run_mise exec "$toolName@$version" -- "$binName" "$@"
+  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$version" -- "$binName" "$@"
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined

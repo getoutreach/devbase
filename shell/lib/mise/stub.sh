@@ -7,6 +7,8 @@ DEVBASE_LIB_DIR="$DIRNAME/.."
 
 # shellcheck source=../bootstrap.sh
 source "$DEVBASE_LIB_DIR/bootstrap.sh"
+# shellcheck source=../github.sh
+source "$DEVBASE_LIB_DIR/github.sh"
 # shellcheck source=../logging.sh
 source "$DEVBASE_LIB_DIR/logging.sh"
 # shellcheck source=../mise.sh
