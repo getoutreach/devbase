@@ -4,7 +4,7 @@ goimports: 0.5.0
 golangci-lint: 2.7.2
 delve: 1.24.0
 gotestsum: 1.10.1
-lintroller: 1.18.11
+lintroller: 1.19.0
 goveralls: 0.0.11
 getoutreach/ci: v1.6.14
 getoutreach/logfmt: v1.1.0
