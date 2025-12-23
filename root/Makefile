@@ -16,7 +16,7 @@ APP                 ?= unset
 ORG                 ?= getoutreach
 
 # Transition
-MAGE_CMD            := MAGEFILE_HASHFAST=true mise exec mage@$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep mage | awk '{ print $$2 }') -- mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
+MAGE_CMD            := MAGEFILE_HASHFAST=true mise exec mage@$(shell cat "$(BOOTSTRAP_DIR)/versions.yaml" | grep ^mage: | awk '{ print $$2 }') -- mage -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
 APP_VERSION         := $(shell mise run --quiet version)
 
 # go options
