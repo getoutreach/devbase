@@ -13,7 +13,18 @@ if [[ -z ${workspaceFolder:-} ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# The sed is used to strip the pwd from lintroller output,
-# which is currently prefixed with it.
-mise_exec_tool_with_bin github:getoutreach/lintroller \
-  lintroller -config "$workspaceFolder/scripts/golangci.yml" "$@" 2>&1 | sed "s#^$(pwd)/##"
+args=(-config "$workspaceFolder/scripts/golangci.yml" "$@")
+
+run_lintroller() {
+  local customLintroller="$workspaceFolder/scripts/lintroller.sh"
+  if [[ -x $customLintroller ]]; then
+    "$customLintroller" "${args[@]}"
+  else
+    # The sed is used to strip the pwd from lintroller output,
+    # which is currently prefixed with it.
+    mise_exec_tool_with_bin github:getoutreach/lintroller \
+      lintroller "${args[@]}"
+  fi
+}
+
+run_lintroller 2>&1 | sed "s#^$(pwd)/##"
