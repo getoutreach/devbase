@@ -6,7 +6,7 @@ delve: 1.24.0
 gotestsum: 1.10.1
 lintroller: 1.18.1
 goveralls: 0.0.11
-getoutreach/ci: v1.3.0
+getoutreach/ci: v1.6.14
 getoutreach/logfmt: v1.1.0
 gh: 2.62.0
 ## Sync with templates/scripts/devbase.sh.tpl
