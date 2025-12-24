@@ -12,4 +12,4 @@ source "$DIR/lib/mise/stub.sh"
 # Always set simplify mode.
 args=("--simplify" "$@")
 
-mise_exec_tool shellcheck "${args[@]}"
+mise_exec_tool shfmt "${args[@]}"
