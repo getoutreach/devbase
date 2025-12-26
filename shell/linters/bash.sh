@@ -16,15 +16,19 @@ find_shell_files() {
 }
 
 shellcheck_linter() {
-  find_shell_files | xargs -n40 "$SHELLCHECKPATH" -x -P SCRIPTDIR
+  # Wrapper script already sets external sources & script directory
+  # source path.
+  find_shell_files | xargs -n40 "$SHELLCHECKPATH"
 }
 
 shellfmt_linter() {
-  find_shell_files | xargs -n40 "$SHELLFMTPATH" -s -d
+  # Wrapper script already sets --simplify
+  find_shell_files | xargs -n40 "$SHELLFMTPATH" --diff
 }
 
 shellfmt_formatter() {
-  find_shell_files | xargs -n40 "$SHELLFMTPATH" -w -l
+  # Wrapper script already sets --simplify
+  find_shell_files | xargs -n40 "$SHELLFMTPATH" --write --list
 }
 
 linter() {

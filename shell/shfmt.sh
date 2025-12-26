@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# This is a wrapper around asdf to run shfmt.
+# This is a wrapper around mise to run shfmt.
 # Useful for using the correct version of shfmt
 # with your editor.
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/asdf.sh
-source "$DIR/lib/asdf.sh"
+# shellcheck source=./lib/mise/stub.sh
+source "$DIR/lib/mise/stub.sh"
 
 # Always set simplify mode.
-args=("-s" "$@")
+args=("--simplify" "$@")
 
-asdf_devbase_exec shfmt "${args[@]}"
+mise_exec_tool shfmt "${args[@]}"
