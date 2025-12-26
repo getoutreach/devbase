@@ -256,7 +256,7 @@ mise_exec_tool_with_bin() {
   # asdf shims take precedence in the PATH,
   # so remove it in CI before execution.
   local asdfShim="${ASDF_DIR:-$HOME/.asdf}/shims/$binName"
-  if in_ci_environment && [[ -f "$asdfShim" ]]; then
+  if in_ci_environment && [[ -f $asdfShim ]]; then
     rm "$asdfShim"
   fi
 
