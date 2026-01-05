@@ -89,8 +89,9 @@ fi
 if [[ -z ${GOLANGCI_LINT_CACHE:-} ]]; then
   # Use individual directories for golangci-lint cache as opposed to a mono-directory.
   # This helps with the "too many open files" error.
-  export GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint"
+  GOLANGCI_LINT_CACHE="$HOME/.outreach/.cache/.golangci-lint/$(get_app_name)"
   mkdir -p "$GOLANGCI_LINT_CACHE" >/dev/null 2>&1
+  export GOLANGCI_LINT_CACHE
 fi
 
 mise_exec_tool golangci-lint "${args[@]}"
