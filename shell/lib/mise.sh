@@ -210,7 +210,8 @@ run_mise() {
     local wait_for_gh_rate_limit
     wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
     if [[ -n $wait_for_gh_rate_limit ]]; then
-      "$wait_for_gh_rate_limit"
+      # Send output to stderr so that it doesn't affect stdout of mise
+      "$wait_for_gh_rate_limit" >&2
     fi
   fi
   "$mise_path" "$@"
