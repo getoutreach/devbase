@@ -58,43 +58,6 @@ asdf_get_version_from_devbase() {
   grep -E "^$tool_name " "$devbase_dir/.tool-versions" | head -n1 | awk '{print $2}'
 }
 
-# asdf_devbase_exec runs asdf_devbase_run but execs the command instead
-# of running it as a subprocess.
-asdf_devbase_exec() {
-  asdf_tool_env_var "$1"
-  exec "$@"
-}
-
-# asdf_devbase_run executes a command with the versions from the devbase
-# .tool-versions file. This will fail if the tool isn't installed, so callers
-# should invoke asdf_devbase_ensure first.
-asdf_devbase_run() {
-  asdf_tool_env_var "$1"
-  "$@"
-}
-
-# asdf_tool_env_var exports an environment variable to have the provided
-# tool version be used in asdf. This mutates the current shell's
-# environment variables by exporting the variable.
-#
-# See: https://asdf-vm.com/manage/versions.html#set-current-version
-asdf_tool_env_var() {
-  local tool="$1"
-  # Why: We're OK with this being the way it is.
-  # shellcheck disable=SC2155
-  local tool_env_var="$(tr '[:lower:]-' '[:upper:]_' <<<"$tool")"
-
-  # Why: We're OK with this being the way it is.
-  # shellcheck disable=SC2155
-  local version="$(asdf_get_version_from_devbase "$tool")"
-  if [[ -z $version ]]; then
-    echo "No version found for $tool in devbase .tool-versions file"
-    return 1
-  fi
-
-  export "ASDF_${tool_env_var}_VERSION"="${version}"
-}
-
 # asdf_devbase_ensure ensures that all versions of tools are installed from
 # .tool-version files in the current directory and all subdirectories.
 asdf_devbase_ensure() {
