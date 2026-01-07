@@ -33,7 +33,9 @@ source "$DEVBASE_LIB_DIR"/shell.sh
 
 ensure_bash_5_or_greater
 
+repoDir="$(get_repo_directory)"
 repoCircleCIConfig=".circleci/config.yml"
+fullRepoCircleCIConfigPath="$repoDir/.circleci/config.yml"
 org="$(get_box_field org)"
 
 if [[ "$(get_app_name)" == "devbase" ]]; then
@@ -42,7 +44,7 @@ else
   isDevbaseItself=false
 fi
 
-if [[ $# == 0 ]] && managed_by_stencil "$repoCircleCIConfig" && [[ $isDevbaseItself == "false" ]]; then
+if [[ $# == 0 && -z ${CIRCLECI_ORB_SYNC_FILES:-} ]] && managed_by_stencil "$repoCircleCIConfig" && [[ $isDevbaseItself == "false" ]]; then
   info "CircleCI config is managed by Stencil, skipping manual CircleCI orb sync" >&2
   exit 0
 fi
@@ -65,16 +67,21 @@ fi
 
 info "Replacing CircleCI shared orb version with $replaceVersion"
 
-configFiles=("$repoCircleCIConfig")
+configFiles=()
+if ! managed_by_stencil "$repoCircleCIConfig"; then
+  configFiles+=("$fullRepoCircleCIConfigPath")
+fi
+
 if [[ -n ${CIRCLECI_ORB_SYNC_FILES:-} ]]; then
-  readarray -t -d ' ' extraFiles < <(echo "$CIRCLECI_ORB_SYNC_FILES")
-  configFiles+=("${extraFiles[@]}")
+  for extraFile in $CIRCLECI_ORB_SYNC_FILES; do
+    configFiles+=("$repoDir/$extraFile")
+  done
 fi
 
 for config in "${configFiles[@]}"; do
   info_sub "Updating $config"
   sed_replace "$org/shared@.\+" "$org/shared@$replaceVersion" "$config"
-  if [[ $config == "$repoCircleCIConfig" ]]; then
+  if [[ $config == "$fullRepoCircleCIConfigPath" ]]; then
     circleci config validate --org-slug="github/$org" "$config"
   fi
 done
