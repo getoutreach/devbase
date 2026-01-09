@@ -43,7 +43,7 @@ if in_ci_environment; then
   fi
 
   if ! command -v kubecfg >/dev/null; then
-    install_tool_with_mise ubi:getoutreach/kubecfg v0.28.1
+    install_tool_with_mise github:getoutreach/kubecfg v0.28.1
   fi
 
   if ! command -v devenv >/dev/null; then
