@@ -7,6 +7,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="$DIR/../lib"
 ROOT_DIR="$DIR/../.."
 
+# shellcheck source=../lib/github.sh
+source "$LIB_DIR"/github.sh
+
 # shellcheck source=../lib/logging.sh
 source "$LIB_DIR"/logging.sh
 
@@ -22,22 +25,29 @@ if [[ $OSTYPE == "darwin"* ]]; then
   softwareupdate --install-rosetta --agree-to-license
 fi
 
-install_tool_with_mise github-cli "$(grep ^gh: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
+miseConfdDir="$HOME/.config/mise/conf.d"
 
-info "Installing yq (Python)"
+mkdir -p "$miseConfdDir"
+cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+
+if ! gh_installed; then
+  run_mise install --cd "$HOME" github-cli
+fi
+
+bootstrap_github_token
+
+info "Installing tools via mise required in machine environment"
+run_mise install
+
 # Remove the existing yq, if it already exists
 # (usually the Go Version we don't support)
-info_sub "Removing existing Go-based (incompatible) yq"
+info "Removing existing Go-based (incompatible) yq"
 sudo rm -f "$(command -v yq)"
 
+info "Installing yq (Python)"
 install_tool_with_mise uv
 mise config set settings.pipx.uvx true
 install_tool_with_mise pipx:yq
-
-# Install gojq as that's preferred over yq
-if ! command -v gojq >/dev/null 2>&1; then
-  install_tool_with_mise gojq "$(grep ^gojq: "$ROOT_DIR"/versions.yaml | awk '{print $2}')"
-fi
 
 if ! command -v vault >/dev/null 2>&1; then
   install_tool_with_mise vault

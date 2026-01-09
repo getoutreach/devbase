@@ -236,8 +236,9 @@ find_tool() {
 
 # mise_exec_tool(toolName[, args...])
 #
-# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
-# Assumes the binary and the tool name are the same.
+# Runs `mise exec` on a tool defined in `mise.devbase.toml` (equivalent
+# to MISE_ENV=devbase). Assumes the binary and the tool name are the same,
+# and that `github.sh` is sourced.
 mise_exec_tool() {
   local toolName="$1"
   shift
@@ -246,8 +247,8 @@ mise_exec_tool() {
 
 # mise_exec_tool_with_bin(toolName, binName[, args...])
 #
-# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
-# Assumes `github.sh` is sourced.
+# Runs `mise exec` on a tool defined in `mise.devbase.toml` (equivalent
+# to MISE_ENV=devbase). Assumes `github.sh` is sourced.
 mise_exec_tool_with_bin() {
   local toolName="$1"
   shift
@@ -261,9 +262,13 @@ mise_exec_tool_with_bin() {
     rm "$asdfShim"
   fi
 
-  local version
-  version="$(get_tool_version "$binName")"
-  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$version" -- "$binName" "$@"
+  local devbaseRootDir repoDir
+  repoDir="$(get_repo_directory)"
+  devbaseRootDir="$repoDir/.bootstrap"
+
+  pushd "$devbaseRootDir" >/dev/null || fatal "Could not change directory to $devbaseRootDir"
+  MISE_GITHUB_TOKEN=$(github_token) run_mise exec --cd "$repoDir" --env devbase "$toolName" -- "$binName" "$@"
+  popd >/dev/null || fatal "Could not change directory back from $devbaseRootDir"
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
