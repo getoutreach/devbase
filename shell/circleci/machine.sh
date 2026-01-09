@@ -7,9 +7,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="$DIR/../lib"
 ROOT_DIR="$DIR/../.."
 
-# shellcheck source=../lib/bootstrap.sh
-source "$LIB_DIR"/bootstrap.sh
-
 # shellcheck source=../lib/github.sh
 source "$LIB_DIR"/github.sh
 
@@ -36,7 +33,7 @@ mkdir -p "$miseConfdDir"
 cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
 if ! gh_installed; then
-  run_mise install --cd "$HOME" github-cli
+  run_mise install --cd "$HOME" github-cli github:getoutreach/ci
 fi
 
 bootstrap_github_token
