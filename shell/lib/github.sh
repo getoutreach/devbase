@@ -125,8 +125,8 @@ fetch_github_token_from_ci() {
     local version
     version="$(get_tool_version getoutreach/ci)"
     if ! ghaccesstoken_exists "$version"; then
-      mise_tool_config_set ubi:getoutreach/ci version "$version" exe ghaccesstoken
-      install_tool_with_mise ubi:getoutreach/ci "$version"
+      mise_tool_config_set github:getoutreach/ci version "$version" exe ghaccesstoken
+      install_tool_with_mise github:getoutreach/ci "$version"
     fi
   ) >&2
   "$(find_tool ghaccesstoken)" --skip-update token "$@"
