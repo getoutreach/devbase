@@ -25,6 +25,8 @@ if [[ $OSTYPE == "darwin"* ]]; then
   softwareupdate --install-rosetta --agree-to-license
 fi
 
+ensure_mise_installed
+
 miseConfdDir="$HOME/.config/mise/conf.d"
 
 mkdir -p "$miseConfdDir"
