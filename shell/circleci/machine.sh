@@ -32,9 +32,7 @@ miseConfdDir="$HOME/.config/mise/conf.d"
 mkdir -p "$miseConfdDir"
 cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
-if ! gh_installed; then
-  run_mise install --cd "$HOME" github-cli github:getoutreach/ci
-fi
+run_mise install --cd "$HOME" github-cli github:getoutreach/ci
 
 bootstrap_github_token
 
