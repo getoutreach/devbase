@@ -1,16 +1,66 @@
 [[tools.bats]]
 version = "1.12.0"
 backend = "aqua:bats-core/bats-core"
+"platforms.linux-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
+"platforms.linux-x64" = { checksum = "blake3:836a0963444ede10131984991c0f92219c84418b57c242b4ff5bc80d83daa9a3", url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
+"platforms.macos-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
+"platforms.macos-x64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
 
-[tools.bats.platforms.linux-x64]
-checksum = "blake3:836a0963444ede10131984991c0f92219c84418b57c242b4ff5bc80d83daa9a3"
-size = 175914
-url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"
+[[tools.buf]]
+version = "1.60.0"
+backend = "aqua:bufbuild/buf"
+env = ["devbase"]
 
 [[tools.circleci]]
 version = "0.1.32638"
 backend = "aqua:CircleCI-Public/circleci-cli"
+"platforms.linux-arm64" = { checksum = "sha256:f2f7028f0db0de0fe2331f6f11e9672fb12388a7f03e5c8b5070ec4769fd2265", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_linux_arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:ad657914ddbf1224a75df71921d70e166fd8c209ba7792a7456c0f44e102fe0b", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_linux_amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:88f25c2b7137e79702dd2129e280589d2943d9536ffc8de5e11f0695b16ee940", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_darwin_amd64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:88f25c2b7137e79702dd2129e280589d2943d9536ffc8de5e11f0695b16ee940", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_darwin_amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:1fd12d0de3059a90e7d27f09f978ff117a228a04677460002f4c7c66e0f7f82f", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_windows_amd64.zip"}
+
+[[tools.github-cli]]
+version = "2.83.2"
+backend = "aqua:cli/cli"
+env = ["devbase"]
+
+[[tools."github:getoutreach/ci"]]
+version = "1.6.14"
+backend = "github:getoutreach/ci"
+env = ["devbase"]
+"platforms.linux-x64" = { checksum = "sha256:a8bbc112b45bdbc713397eff318b317e248288d9bc277598794a25173d83e1be", url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_linux_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854916"}
+
+[[tools."github:getoutreach/lintroller"]]
+version = "1.19.0"
+backend = "github:getoutreach/lintroller"
+env = ["devbase"]
+
+[[tools.gojq]]
+version = "0.12.18"
+backend = "aqua:itchyny/gojq"
+env = ["devbase"]
+
+[[tools.golangci-lint]]
+version = "2.7.2"
+backend = "aqua:golangci/golangci-lint"
+env = ["devbase"]
+
+[[tools.mage]]
+version = "1.14.0"
+backend = "aqua:magefile/mage"
+env = ["devbase"]
 
 [[tools."npm:prettier"]]
 version = "2.8.8"
 backend = "npm:prettier"
+
+[[tools.shellcheck]]
+version = "0.9.0"
+backend = "aqua:koalaman/shellcheck"
+env = ["devbase"]
+
+[[tools.shfmt]]
+version = "3.7.0"
+backend = "aqua:mvdan/sh"
+env = ["devbase"]

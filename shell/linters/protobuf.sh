@@ -12,7 +12,8 @@ run_buf() {
   # buf only allows one path (file/folder) to be passed to it in the args.
   # However, you can get around this by passing multiple `--path <path/to.proto>`
   # flags, which requires an extra `xargs printf` to generate.
-  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' | GITHUB_TOKEN="$(github_token)" xargs -n40 "$mise_bin" exec buf@"$(get_tool_version buf)" -- buf "$@"
+  find_files_with_extensions "${extensions[@]}" | xargs printf -- '--path %s\n' |
+    xargs -n40 "$mise_bin" exec buf@"$(devbase_tool_version_from_mise buf)" -- buf "$@"
 }
 
 buf_linter() {

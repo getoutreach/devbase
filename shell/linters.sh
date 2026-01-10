@@ -21,6 +21,8 @@ if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
   exit 0
 fi
 
+bootstrap_github_token
+
 # add extra (per project) linters
 linters=("$DIR/linters"/*.sh)
 if [[ -z $workspaceFolder ]]; then

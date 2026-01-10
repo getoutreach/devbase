@@ -208,7 +208,9 @@ run_mise() {
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     local wait_for_gh_rate_limit
+    set +e
     wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
+    set -e
     if [[ -n $wait_for_gh_rate_limit ]]; then
       # Send output to stderr so that it doesn't affect stdout of mise
       "$wait_for_gh_rate_limit" >&2
@@ -236,8 +238,9 @@ find_tool() {
 
 # mise_exec_tool(toolName[, args...])
 #
-# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
-# Assumes the binary and the tool name are the same.
+# Runs `mise exec` on a tool defined in `mise.devbase.toml` (equivalent
+# to MISE_ENV=devbase). Assumes the binary and the tool name are the same,
+# and that `github.sh` is sourced.
 mise_exec_tool() {
   local toolName="$1"
   shift
@@ -246,8 +249,8 @@ mise_exec_tool() {
 
 # mise_exec_tool_with_bin(toolName, binName[, args...])
 #
-# Runs `mise exec` on a tool defined in `devbase/versions.yaml`.
-# Assumes `github.sh` is sourced.
+# Runs `mise exec` on a tool defined in `mise.devbase.toml` (equivalent
+# to MISE_ENV=devbase). Assumes `github.sh` is sourced.
 mise_exec_tool_with_bin() {
   local toolName="$1"
   shift
@@ -261,9 +264,16 @@ mise_exec_tool_with_bin() {
     rm "$asdfShim"
   fi
 
-  local version
-  version="$(get_tool_version "$binName")"
-  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$version" -- "$binName" "$@"
+  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
+}
+
+# Determines the requested version of a tool as defined in
+# devbase's `mise.devbase.toml`.
+devbase_tool_version_from_mise() {
+  local devbaseRootDir toolName="$1"
+  devbaseRootDir="$(get_repo_directory)/.bootstrap"
+  run_mise ls --env devbase --cd "$devbaseRootDir" --local --json |
+    gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
