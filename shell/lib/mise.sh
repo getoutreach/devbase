@@ -208,7 +208,9 @@ run_mise() {
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     local wait_for_gh_rate_limit
+    set +e
     wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
+    set -e
     if [[ -n $wait_for_gh_rate_limit ]]; then
       # Send output to stderr so that it doesn't affect stdout of mise
       "$wait_for_gh_rate_limit" >&2
