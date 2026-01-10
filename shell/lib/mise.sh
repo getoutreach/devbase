@@ -264,7 +264,7 @@ mise_exec_tool_with_bin() {
     rm "$asdfShim"
   fi
 
-  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(MISE_ENV=devbase devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
+  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
 }
 
 # Determines the requested version of a tool as defined in
@@ -272,7 +272,8 @@ mise_exec_tool_with_bin() {
 devbase_tool_version_from_mise() {
   local devbaseRootDir toolName="$1"
   devbaseRootDir="$(get_repo_directory)/.bootstrap"
-  run_mise ls --cd="$devbaseRootDir" --local --json | gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
+  run_mise ls --env devbase --cd "$devbaseRootDir" --local --json |
+    gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
