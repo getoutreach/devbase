@@ -127,7 +127,7 @@ workflows:
           name: test-macos
           executor_name: testbed-macos
           machine: true
-          resource_class: macos.m1.medium.gen1
+          resource_class: m4pro.medium
       ## <</Stencil::Block>>
       ### Start jobs inserted by other modules
       ### End jobs inserted by other modules
