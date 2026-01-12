@@ -119,27 +119,6 @@ bootstrap_github_token() {
 
 # Print the GitHub token from getoutreach/ci:ghaccesstoken. Any
 # arguments are passed to `ghaccesstoken token`.
-# Requires lib/bootstrap.sh for `get_tool_version`.
 fetch_github_token_from_ci() {
-  (
-    local version
-    version="$(get_tool_version getoutreach/ci)"
-    if ! ghaccesstoken_exists "$version"; then
-      mise_tool_config_set github:getoutreach/ci version "$version"
-      install_tool_with_mise github:getoutreach/ci "$version"
-    fi
-  ) >&2
-  "$(find_tool ghaccesstoken)" --skip-update token "$@"
-}
-
-# Determines whether ghaccesstoken is installed with the provided
-# version number.
-ghaccesstoken_exists() {
-  local version="$1"
-  local ghaccesstoken_path
-  ghaccesstoken_path="$(find_tool ghaccesstoken 2>/dev/null)"
-  if [[ -z $ghaccesstoken_path ]]; then
-    return 1
-  fi
-  [[ "$("$ghaccesstoken_path" --skip-update --version | awk '{print $3}')" == "$version" ]]
+  mise_exec_tool_with_bin github:getoutreach/ci ghaccesstoken --skip-update token "$@"
 }

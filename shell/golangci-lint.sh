@@ -43,8 +43,11 @@ if in_ci_environment; then
   fi
 fi
 
-# Determine the version of go and golangci-lint to calculate compatibility.
+# Determine the version of golangci-lint to calculate compatibility.
 GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
+# Only update this if something in devbase requires a specific version.
+# For example, if the config schema has a breaking change, or the templated
+# config file references a linter that was recently introduced.
 MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
 if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then

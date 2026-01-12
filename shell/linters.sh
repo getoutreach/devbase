@@ -21,6 +21,13 @@ if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
   exit 0
 fi
 
+if in_ci_environment; then
+  bootstrap_github_token
+else
+  GITHUB_TOKEN="$(github_token)"
+  export GITHUB_TOKEN
+fi
+
 # add extra (per project) linters
 linters=("$DIR/linters"/*.sh)
 if [[ -z $workspaceFolder ]]; then
