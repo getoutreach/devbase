@@ -55,8 +55,7 @@ release_branches: &release_branches # Release branch
 
 ## <</Stencil::Block>>
 
-jobs:
-  {}
+jobs: {}
   ## <<Stencil::Block(circleJobs)>>
 
   ## <</Stencil::Block>>
@@ -127,7 +126,7 @@ workflows:
           name: test-macos
           executor_name: testbed-macos
           machine: true
-          resource_class: macos.m1.medium.gen1
+          resource_class: m4pro.medium
       ## <</Stencil::Block>>
       ### Start jobs inserted by other modules
       ### End jobs inserted by other modules
