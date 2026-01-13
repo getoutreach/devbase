@@ -32,6 +32,19 @@ get_repo_directory() {
   echo "$REPODIR"
 }
 
+# Returns the path to the devbase directory associated with the
+# current repository. If the repository is devbase itself, returns
+# its own path.
+get_devbase_directory() {
+  local repoDir
+  repoDir="$(get_repo_directory)"
+  if [[ "$(get_app_name)" == "devbase" ]]; then
+    echo "$repoDir"
+  else
+    echo "$repoDir/.bootstrap"
+  fi
+}
+
 get_app_name() {
   "$YQ" -r '.name' <"$(get_service_yaml)"
 }
@@ -58,7 +71,7 @@ get_app_version() {
 # and returns it
 get_tool_version() {
   name="$1"
-  "$YQ" -r ".[\"$name\"]" <"$DEVBASE_DIR/versions.yaml"
+  "$YQ" -r ".[\"$name\"]" <"$(get_devbase_directory)/versions.yaml"
 }
 
 # get_application_version executes get_tool_version

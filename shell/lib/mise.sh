@@ -270,9 +270,8 @@ mise_exec_tool_with_bin() {
 # Determines the requested version of a tool as defined in
 # devbase's `mise.devbase.toml`.
 devbase_tool_version_from_mise() {
-  local devbaseRootDir toolName="$1"
-  devbaseRootDir="$(get_repo_directory)/.bootstrap"
-  run_mise ls --env devbase --cd "$devbaseRootDir" --local --json |
+  local toolName="$1"
+  run_mise ls --env devbase --cd "$(get_devbase_directory)" --local --json |
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
