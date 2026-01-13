@@ -83,6 +83,7 @@ install_mise() {
     fi
   )
   run_mise settings set http_retries 3
+  run_mise settings set use_versions_host_track false
 }
 
 # Fetch a URL via either curl or wget, with retries, with the response body going to stdout.
