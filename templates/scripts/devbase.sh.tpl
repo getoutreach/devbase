@@ -105,6 +105,7 @@ if [[ ! -e $libDir ]] || [[ $existingVersion != "$version" ]] || [[ ! -e "$libDi
   else
     git clone -q --single-branch --branch "$version" git@github.com:getoutreach/devbase \
       "$libDir" >/dev/null
+    mise trust --cd "$libDir" --env devbase >/dev/null
   fi
 
   echo -n "$version" >"$libDir/.version"
