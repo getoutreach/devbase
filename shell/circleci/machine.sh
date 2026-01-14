@@ -35,6 +35,7 @@ miseConfdDir="$HOME/.config/mise/conf.d"
 mkdir -p "$miseConfdDir"
 cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
+run_mise trust --env devbase --cd "$ROOT_DIR"
 run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 
 bootstrap_github_token
