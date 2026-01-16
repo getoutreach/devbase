@@ -54,7 +54,7 @@ git ls-files '**/go.mod' | while read -r gomod; do
   sed_replace '^go .*$' "go $gomodGoVersion" "$ROOT_DIR/$gomod"
   sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$ROOT_DIR/$gomod"
   for module in ${GO_MODULES_TO_SYNC:-}; do
-    moduleVersion="$(grep "$module " "$ROOT_DIR/$gomod" | awk '{print $2}')"
+    moduleVersion="$(grep "$module " "$ROOT_DIR/go.mod" | awk '{print $2}')"
     if [[ -z $moduleVersion ]]; then
       warn "Module $module not found in $gomod, skipping"
       continue
