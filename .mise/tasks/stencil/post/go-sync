@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#
+#MISE description="Syncs the Go version in Stencil-unmanaged child go.mod files and Dockerfiles, with the version specified in .tool-versions"
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+ROOT_DIR="$DIR/../../../.."
+DEVBASE_LIB_DIR="$ROOT_DIR/.bootstrap/shell/lib"
+
+"$ROOT_DIR"/scripts/devbase.sh
+
+# shellcheck source=../../../../.bootstrap/shell/lib/bootstrap.sh
+source "$DEVBASE_LIB_DIR"/bootstrap.sh
+
+# shellcheck source=../../../../.bootstrap/shell/lib/logging.sh
+source "$DEVBASE_LIB_DIR"/logging.sh
+
+# shellcheck source=../../../../.bootstrap/shell/lib/sed.sh
+source "$DEVBASE_LIB_DIR"/sed.sh
+
+goVersion="$(grep "^golang " "$ROOT_DIR"/.tool-versions | awk '{print $2}')"
+if [[ -f "$ROOT_DIR/go.mod" ]]; then
+  gomodGoVersion="$(grep "^go " "$ROOT_DIR/go.mod" | awk '{print $2}')"
+fi
+
+git ls-files Dockerfile '**/Dockerfile' | while read -r dockerfile; do
+  if managed_by_stencil "$dockerfile"; then
+    continue
+  fi
+  info "Syncing Go version in $dockerfile to $goVersion"
+
+  sed_replace '\(FROM \(.\+/\)\?golang\):[.0-9]\+ \(AS builder\)' "\1:$goVersion \3" \
+    "$ROOT_DIR/$dockerfile"
+done
+
+if [[ -z $gomodGoVersion ]]; then
+  info "No top-level go.mod file found, skipping go.mod sync"
+  exit 0
+fi
+
+git ls-files '**/go.mod' | while read -r gomod; do
+  if managed_by_stencil "$gomod"; then
+    continue
+  fi
+  for ignored in ${IGNORED_GO_MOD_DIRS:-}; do
+    if [[ "$(dirname "$gomod")" == "$ignored" ]]; then
+      warn "Ignoring $gomod as per IGNORED_GO_MOD_DIRS"
+      continue 2
+    fi
+  done
+  info "Syncing Go version/toolchain in $gomod to $gomodGoVersion/$goVersion"
+
+  sed_replace '^go .*$' "go $gomodGoVersion" "$ROOT_DIR/$gomod"
+  sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$ROOT_DIR/$gomod"
+  for module in ${GO_MODULES_TO_SYNC:-}; do
+    moduleVersion="$(grep "$module " "$ROOT_DIR/go.mod" | awk '{print $2}')"
+    if [[ -z $moduleVersion ]]; then
+      warn "Module $module not found in $gomod, skipping"
+      continue
+    fi
+    info "Syncing $module version in $gomod to $moduleVersion"
+    sed_replace "\(\t$module\) .*" "\1 $moduleVersion" "$ROOT_DIR/$gomod"
+  done
+done
