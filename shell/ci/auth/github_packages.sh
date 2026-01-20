@@ -70,4 +70,4 @@ fi
 
 info_sub "Docker"
 
-ghcr_auth "$ORG"
+GITHUB_TOKEN="$GITHUB_PACKAGES_TOKEN" ghcr_auth "$ORG"
