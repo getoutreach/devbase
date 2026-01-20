@@ -5,23 +5,30 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-ROOT_DIR="$DIR/../../../.."
-DEVBASE_LIB_DIR="$ROOT_DIR/.bootstrap/shell/lib"
+DEVBASE_ROOT_DIR="$DIR/../../../.."
+REPO_DIR="$DEVBASE_ROOT_DIR/.."
+DEVBASE_LIB_DIR="$DEVBASE_ROOT_DIR/shell/lib"
 
-"$ROOT_DIR"/scripts/devbase.sh
-
-# shellcheck source=../../../../.bootstrap/shell/lib/bootstrap.sh
+# shellcheck source=../../../../shell/lib/bootstrap.sh
 source "$DEVBASE_LIB_DIR"/bootstrap.sh
 
-# shellcheck source=../../../../.bootstrap/shell/lib/logging.sh
+if [[ $(get_app_name) == "devbase" ]]; then
+  appDir="$DEVBASE_ROOT_DIR"
+else
+  appDir="$REPO_DIR"
+fi
+
+"$appDir"/scripts/devbase.sh
+
+# shellcheck source=../../../../shell/lib/logging.sh
 source "$DEVBASE_LIB_DIR"/logging.sh
 
-# shellcheck source=../../../../.bootstrap/shell/lib/sed.sh
+# shellcheck source=../../../../shell/lib/sed.sh
 source "$DEVBASE_LIB_DIR"/sed.sh
 
-goVersion="$(grep "^golang " "$ROOT_DIR"/.tool-versions | awk '{print $2}')"
-if [[ -f "$ROOT_DIR/go.mod" ]]; then
-  gomodGoVersion="$(grep "^go " "$ROOT_DIR/go.mod" | awk '{print $2}')"
+goVersion="$(grep "^golang " "$appDir"/.tool-versions | awk '{print $2}')"
+if [[ -f "$appDir/go.mod" ]]; then
+  gomodGoVersion="$(grep "^go " "$appDir/go.mod" | awk '{print $2}')"
 fi
 
 git ls-files Dockerfile '**/Dockerfile' | while read -r dockerfile; do
@@ -31,7 +38,7 @@ git ls-files Dockerfile '**/Dockerfile' | while read -r dockerfile; do
   info "Syncing Go version in $dockerfile to $goVersion"
 
   sed_replace '\(FROM \(.\+/\)\?golang\):[.0-9]\+ \(AS builder\)' "\1:$goVersion \3" \
-    "$ROOT_DIR/$dockerfile"
+    "$appDir/$dockerfile"
 done
 
 if [[ -z $gomodGoVersion ]]; then
@@ -51,15 +58,15 @@ git ls-files '**/go.mod' | while read -r gomod; do
   done
   info "Syncing Go version/toolchain in $gomod to $gomodGoVersion/$goVersion"
 
-  sed_replace '^go .*$' "go $gomodGoVersion" "$ROOT_DIR/$gomod"
-  sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$ROOT_DIR/$gomod"
+  sed_replace '^go .*$' "go $gomodGoVersion" "$appDir/$gomod"
+  sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$appDir/$gomod"
   for module in ${GO_MODULES_TO_SYNC:-}; do
-    moduleVersion="$(grep "$module " "$ROOT_DIR/go.mod" | awk '{print $2}')"
+    moduleVersion="$(grep "$module " "$appDir/go.mod" | awk '{print $2}')"
     if [[ -z $moduleVersion ]]; then
       warn "Module $module not found in $gomod, skipping"
       continue
     fi
     info "Syncing $module version in $gomod to $moduleVersion"
-    sed_replace "\(\t$module\) .*" "\1 $moduleVersion" "$ROOT_DIR/$gomod"
+    sed_replace "\(\t$module\) .*" "\1 $moduleVersion" "$appDir/$gomod"
   done
 done
