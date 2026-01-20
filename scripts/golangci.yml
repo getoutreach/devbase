@@ -30,8 +30,8 @@ linters:
     - revive
     - staticcheck
     - unconvert
-    # - unparam # Previously suppressed by --fast flag; disabled now to reduce noise
-    # - unused # Previously suppressed by --fast flag; disabled now to reduce noise
+    # - unparam # Previously suppressed by --fast in v1, disabling for now to avoid noise
+    # - unused # Previously suppressed by --fast in v1, disabling for now to avoid noise
     - whitespace
   settings:
     dupl:
@@ -90,7 +90,7 @@ linters:
         - name: receiver-naming
         - name: time-naming
         - name: unexported-return
-          disabled: true # Previously suppressed by --fast flag; disabled now to reduce noise
+          disabled: true # Previously suppressed by --fast in v1, disabling for now to avoid noise
         - name: indent-error-flow
         - name: errorf
         - name: empty-block
