@@ -37,6 +37,10 @@ parameters:
     description: The timeout that gets applied when CircleCI receives no output during the release
     type: string
     default: 10m
+  setup_remote_docker:
+    description: Enable running Docker on the underlying virtual machine running the container
+    type: boolean
+    default: false
 resource_class: << parameters.resource_class >>
 executor:
   name: << parameters.executor_name >>
@@ -45,6 +49,7 @@ executor:
 steps:
   - setup_environment:
       machine: << parameters.machine >>
+      setup_remote_docker: << parameters.setup_remote_docker >>
   - when:
       condition: << parameters.node_client >>
       steps:
