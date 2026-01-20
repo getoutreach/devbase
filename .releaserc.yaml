@@ -13,6 +13,7 @@ plugins:
 
   # This creates fancy release notes in our Github release
   - "@semantic-release/release-notes-generator"
+
   - "@semantic-release/github"
   - - "@semantic-release/exec"
     - prepareCmd: mise run orb:build
