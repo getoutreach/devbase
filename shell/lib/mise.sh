@@ -258,21 +258,40 @@ mise_exec_tool_with_bin() {
   local binName="$1"
   shift
 
-  # asdf shims take precedence in the PATH,
-  # so remove it in CI before execution.
-  local asdfShim="${ASDF_DIR:-$HOME/.asdf}/shims/$binName"
-  if in_ci_environment && [[ -f $asdfShim ]]; then
-    rm "$asdfShim"
+  local binPath
+  binPath="$(devbase_mise which "$binName")"
+
+  if [[ -n $binPath ]]; then
+    "$binPath" "$@"
+  else
+    # asdf shims take precedence in the PATH,
+    # so remove it in CI before execution.
+    local asdfShim="${ASDF_DIR:-$HOME/.asdf}/shims/$binName"
+    if in_ci_environment && [[ -f $asdfShim ]]; then
+      rm "$asdfShim"
+    fi
+
+    MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
+  fi
+}
+
+# Runs mise in the context of the repo's devbase directory and devbase env
+devbase_mise() {
+  local subcommand="$1"
+  shift
+
+  if [[ -z $subcommand ]]; then
+    fatal "Running devbase_mise requires at least one argument"
   fi
 
-  MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
+  run_mise "$subcommand" --cd "$(get_devbase_directory)" --env devbase "$@"
 }
 
 # Determines the requested version of a tool as defined in
 # devbase's `mise.devbase.toml`.
 devbase_tool_version_from_mise() {
   local toolName="$1"
-  run_mise ls --env devbase --cd "$(get_devbase_directory)" --local --json |
+  devbase_mise ls --local --json |
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
