@@ -28,6 +28,9 @@ linter() {
 }
 
 formatter() {
+  if [[ -f "$(get_repo_directory)/go.work" ]]; then
+    run_command "go work use" go work use || return 1
+  fi
   run_command "go mod tidy" go mod tidy || return 1
   run_command "goimports" goimports || return 1
   run_command "gofmt" gofmt || return 1
