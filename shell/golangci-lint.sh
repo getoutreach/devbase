@@ -34,13 +34,6 @@ if in_ci_environment; then
   mkdir -p "$TEST_DIR"
   # Support multiple output formats (stdout, JUnit)
   args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
-
-  # For some reason in CI, the asdf shim always overrides the one
-  # downloaded from `mise`.
-  asdf_shim="${ASDF_DIR:-$HOME/.asdf}/shims/golangci-lint"
-  if [[ -f $asdf_shim ]]; then
-    rm "$asdf_shim"
-  fi
 fi
 
 # Determine the version of golangci-lint to calculate compatibility.
