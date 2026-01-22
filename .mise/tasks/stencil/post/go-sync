@@ -37,7 +37,7 @@ git ls-files Dockerfile '**/Dockerfile' | while read -r dockerfile; do
   fi
   info "Syncing Go version in $dockerfile to $goVersion"
 
-  sed_replace '\(FROM \(.\+/\)\?golang\):[.0-9]\+ \(AS builder\)' "\1:$goVersion \3" \
+  sed_replace '\(FROM \(.\+/\)\?golang\):[.0-9]\+ \([aA][sS] builder\)' "\1:$goVersion AS builder" \
     "$appDir/$dockerfile"
 done
 
