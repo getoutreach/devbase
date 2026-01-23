@@ -37,6 +37,10 @@ cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
 run_mise trust --env devbase --cd "$ROOT_DIR"
 run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
+if [[ $OSTYPE == "darwin"* && -n $MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES ]]; then
+  # Install Go to make sure that tools from the Go backend can be installed
+  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES='' run_mise install go
+fi
 
 bootstrap_github_token
 
