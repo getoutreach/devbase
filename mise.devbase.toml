@@ -1,5 +1,6 @@
 [tools]
 github-cli = "2.83.2"
+"go:github.com/go-delve/delve/cmd/dlv" = "1.26.0"
 ## Sync with templates/scripts/devbase.sh.tpl
 gojq = "0.12.18"
 mage = "1.14.0"

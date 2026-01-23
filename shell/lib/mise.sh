@@ -259,19 +259,40 @@ mise_exec_tool_with_bin() {
   shift
 
   local binPath
-  binPath="$(devbase_mise which "$binName")"
+  set +e
+  binPath="$(find_tool "$binName")"
+  set -e
+
+  if [[ $binPath == "$(asdf_shim_dir)"* ]]; then
+    remove_asdf_shim "$binName"
+    set +e
+    binPath="$(find_tool "$binName")"
+    set -e
+  fi
 
   if [[ -n $binPath ]]; then
     "$binPath" "$@"
   else
-    # asdf shims take precedence in the PATH,
-    # so remove it in CI before execution.
-    local asdfShim="${ASDF_DIR:-$HOME/.asdf}/shims/$binName"
-    if in_ci_environment && [[ -f $asdfShim ]]; then
-      rm "$asdfShim"
-    fi
-
     MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
+  fi
+}
+
+asdf_shim_dir() {
+  echo "${ASDF_DIR:-$HOME/.asdf}/shims"
+}
+
+asdf_shim_path() {
+  local binName="$1"
+  echo "$(asdf_shim_dir)/$binName"
+}
+
+# Removes the given shim if it exists. This is because `asdf`
+# shims take precedence in the PATH.
+remove_asdf_shim() {
+  local asdfShim binName="$1"
+  asdfShim="$(asdf_shim_path "$binName")"
+  if [[ -f $asdfShim ]]; then
+    rm "$asdfShim"
   fi
 }
 
