@@ -35,12 +35,8 @@ miseConfdDir="$HOME/.config/mise/conf.d"
 mkdir -p "$miseConfdDir"
 cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
-if [[ $OSTYPE == "darwin"* && -n $MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES ]]; then
-  info_sub "Pre-install Go via mise for go: mise backend"
-  (
-    unset MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES
-    run_mise install go
-  )
+if [[ $OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]; then
+  install_tool_with_mise go "$(grep ^go "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
 fi
 run_mise trust --env devbase --cd "$ROOT_DIR"
 run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
