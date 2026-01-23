@@ -264,8 +264,10 @@ mise_exec_tool_with_bin() {
   set -e
 
   if [[ $binPath == "$(asdf_shim_dir)"* ]]; then
-    remove_asdf_shim_from_ci "$binName"
+    remove_asdf_shim "$binName"
+    set +e
     binPath="$(find_tool "$binName")"
+    set -e
   fi
 
   if [[ -n $binPath ]]; then
@@ -284,12 +286,12 @@ asdf_shim_path() {
   echo "$(asdf_shim_dir)/$binName"
 }
 
-# Removes the given shim from CI if it exists. This is because `asdf`
+# Removes the given shim if it exists. This is because `asdf`
 # shims take precedence in the PATH.
-remove_asdf_shim_from_ci() {
+remove_asdf_shim() {
   local asdfShim binName="$1"
   asdfShim="$(asdf_shim_path "$binName")"
-  if in_ci_environment && [[ -f $asdfShim ]]; then
+  if [[ -f $asdfShim ]]; then
     rm "$asdfShim"
   fi
 }
