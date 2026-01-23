@@ -88,7 +88,7 @@ fi
 
 function ctrl_c_trap() {
   echo "killing delve (and its child processes) with PID: $DLV_PID"
-  kill "-$DLV_PID"
+  kill -- "-$DLV_PID"
   exit 0
 }
 trap ctrl_c_trap SIGINT
