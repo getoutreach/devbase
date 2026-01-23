@@ -36,7 +36,7 @@ mkdir -p "$miseConfdDir"
 cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
 
 if [[ $OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]; then
-  MISE_VERBOSE=1 install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
+  install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
 fi
 run_mise trust --env devbase --cd "$ROOT_DIR"
 run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
