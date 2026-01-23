@@ -51,7 +51,6 @@ if [[ $HEADLESS == "true" ]] && [[ -z $DLV_PORT ]]; then
   echo "DLV_PORT must be set when running in headless mode" >&2
   exit 1
 fi
-DLV_VERSION="v$(get_application_version "delve")"
 
 # DEV_CONTAINER_LOGFILE is the path to the log file that will be used for all output
 # from the debugger. This is only used when running in a container and ideally would be
@@ -70,11 +69,9 @@ if [[ $HEADLESS == "true" ]]; then
 fi
 echo
 
-delve_path=$("$DIR/gobin.sh" -p github.com/go-delve/delve/cmd/dlv@"$DLV_VERSION")
-
 # delve is the command that will be executed to start the debugger
 delve=(
-  "$delve_path"
+  "$DIR/dlv.sh"
   debug
   --build-flags="-tags=or_dev"
   "$PACKAGE_TO_DEBUG"
@@ -90,8 +87,8 @@ if [[ $HEADLESS == "true" ]]; then
 fi
 
 function ctrl_c_trap() {
-  echo "killing delve with PID: $DLV_PID"
-  kill "$DLV_PID"
+  echo "killing delve (and its child processes) with PID: $DLV_PID"
+  kill "-$DLV_PID"
   exit 0
 }
 trap ctrl_c_trap SIGINT

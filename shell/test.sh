@@ -187,7 +187,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # We pass along command line args to the executable so you can specify
     # `-test.run <regex>`, `-test.bench <regex>`, etc. if desired.  Try `-help`
     # for more information.
-    exec "$DIR/gobin.sh" github.com/go-delve/delve/cmd/dlv@v"$(get_application_version "delve")" exec "${TESTBIN}" -- "$@"
+    exec "$DIR/dlv.sh" exec "${TESTBIN}" -- "$@"
   else
     exitCode=0
 
