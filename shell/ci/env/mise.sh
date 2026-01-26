@@ -34,6 +34,8 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   fi
 fi
 
+devbase_install_mise_tools
+
 if [[ -n $BASH_ENV ]]; then
   inject_mise_into_bash_env
 fi

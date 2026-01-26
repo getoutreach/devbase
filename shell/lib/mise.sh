@@ -317,6 +317,10 @@ devbase_tool_version_from_mise() {
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
+devbase_install_mise_tools() {
+  MISE_GITHUB_TOKEN="$(github_token)" devbase_mise install --yes
+}
+
 # Installs a given tool via `mise install`, assuming that it's defined
 # in the local `mise.toml` file and not already installed.
 mise_install_if_needed() {
