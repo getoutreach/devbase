@@ -20,6 +20,8 @@ source "${LIB_DIR}/mise.sh"
 
 repoDir="$(get_repo_directory)"
 
+mise version --quiet
+
 # inject_mise_into_bash_env injects mise support into the value of BASH_ENV.
 # Assumes that BASH_ENV is set.
 inject_mise_into_bash_env() {
