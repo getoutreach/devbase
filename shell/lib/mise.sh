@@ -292,6 +292,7 @@ remove_asdf_shim() {
   local asdfShim binName="$1"
   asdfShim="$(asdf_shim_path "$binName")"
   if [[ -f $asdfShim ]]; then
+    warn "Deleting asdf shim for $binName as it is mise-managed" >&2
     rm "$asdfShim"
   fi
 }
