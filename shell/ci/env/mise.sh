@@ -18,6 +18,9 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/mise.sh
 source "${LIB_DIR}/mise.sh"
 
+# shellcheck source=../../lib/version.sh
+source "${LIB_DIR}/version.sh"
+
 repoDir="$(get_repo_directory)"
 
 mise version --quiet
