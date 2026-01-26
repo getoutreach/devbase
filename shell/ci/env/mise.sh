@@ -9,8 +9,14 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
+
+# shellcheck source=../../lib/mise.sh
+source "${LIB_DIR}/mise.sh"
 
 repoDir="$(get_repo_directory)"
 
