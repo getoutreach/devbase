@@ -25,15 +25,12 @@ buf_formatter() {
 }
 
 buf_lint_linter() {
-  # Why: We're OK with this.
-  # shellcheck disable=SC2155
-  local PROTOFMT=$(load_tool)
-  find_files_with_extensions "${extensions[@]}" | xargs -n1 "$PROTOFMT" lint --path
+  run_buf lint
 }
 
 linter() {
-  run_command "buf" buf_linter
-  run_command "buf" buf_lint_linter
+  run_command "buf format" buf_linter
+  run_command "buf lint" buf_lint_linter
 }
 
 formatter() {
