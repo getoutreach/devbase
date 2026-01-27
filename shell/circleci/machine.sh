@@ -29,11 +29,7 @@ if [[ $OSTYPE == "darwin"* ]]; then
 fi
 
 ensure_mise_installed
-
-miseConfdDir="$HOME/.config/mise/conf.d"
-
-mkdir -p "$miseConfdDir"
-cp "$ROOT_DIR/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+devbase_configure_global_tools
 
 if [[ $OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]; then
   install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"

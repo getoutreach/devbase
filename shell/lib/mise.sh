@@ -317,6 +317,14 @@ devbase_tool_version_from_mise() {
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
+# Copies mise.devbase.toml to a user-wide config so that shims in CI
+# know what to run.
+devbase_configure_global_tools() {
+  local miseConfdDir="$HOME/.config/mise/conf.d"
+  mkdir -p "$miseConfdDir"
+  cp "$(get_devbase_directory)/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+}
+
 # Installs devbase specific tools if they're not already installed.
 devbase_install_mise_tools() {
   # experimental setting needed for Go backend
