@@ -326,6 +326,7 @@ devbase_configure_global_tools() {
 }
 
 # Installs devbase specific tools if they're not already installed.
+# Requires sourcing version.sh.
 devbase_install_mise_tools() {
   # experimental setting needed for Go backend
   local miseVersion
@@ -333,7 +334,7 @@ devbase_install_mise_tools() {
   if ! has_minimum_version "2025.10.11" "$miseVersion"; then
     mise settings set experimental true
   fi
-  MISE_GITHUB_TOKEN="$(github_token)" devbase_mise install --yes
+  devbase_mise install --yes
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
