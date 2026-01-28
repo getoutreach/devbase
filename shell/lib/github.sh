@@ -122,3 +122,22 @@ bootstrap_github_token() {
 fetch_github_token_from_ci() {
   mise_exec_tool_with_bin github:getoutreach/ci ghaccesstoken --skip-update token "$@"
 }
+
+GITHUB_PAT=""
+# Print the GitHub PAT from getoutreach/ci:ghaccesstoken.
+# Cached in `$GITHUB_PAT`.
+github_pat_from_ci() {
+  if [[ -z $GITHUB_PAT ]]; then
+    set +e
+    GITHUB_PAT="$(fetch_github_token_from_ci --env-prefix GHACCESSTOKEN_PAT)"
+    local exitCode=$?
+    set -e
+    if [[ $exitCode != 0 ]]; then
+      fatal "Could not fetch non-ratelimited GitHub PAT used for GitHub Packages access, try again later"
+    elif [[ -z $GITHUB_PAT ]]; then
+      fatal "Could not fetch GitHub PAT used for GitHub Packages access, try again later"
+    fi
+  fi
+
+  echo "$GITHUB_PAT"
+}

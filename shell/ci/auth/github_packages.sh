@@ -19,7 +19,7 @@ source "${LIB_DIR}/logging.sh"
 source "${LIB_DIR}/docker/authn/ghcr.sh"
 
 # Can't use app token for GitHub Packages
-GITHUB_PACKAGES_TOKEN="$(fetch_github_token_from_ci --env-prefix GHACCESSTOKEN_PAT)"
+GITHUB_PACKAGES_TOKEN="$(github_pat_from_ci)"
 
 # Allow setting for using static auth
 if [[ -z ${GITHUB_USERNAME:-} ]]; then
