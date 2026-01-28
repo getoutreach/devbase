@@ -8,6 +8,9 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/bootstrap.sh
 source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
+# shellcheck source=./lib/box.sh
+source "$SCRIPTS_DIR/lib/box.sh"
+
 # shellcheck source=./lib/docker.sh
 source "$SCRIPTS_DIR/lib/docker.sh"
 
@@ -35,6 +38,7 @@ fi
 action=$1
 
 appName="${DEVENV_DEPLOY_APPNAME:-$(get_app_name)}"
+awsAccountID="$(get_box_field aws.defaultAccountID)"
 jsonnetSourcePath="$(deployment_source_path "$appName")"
 jsonnetManifestPath="$(deployment_manifest_path "$appName")"
 bento="${DEVENV_DEPLOY_BENTO:-"bento1a"}"
@@ -60,4 +64,5 @@ appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}
   -V channel="$channel" \
   -V dev_email="$email" \
   -V host="$host" \
+  -V awsAccountID="$awsAccountID" \
   -V appImageRegistry="$appImageRegistry"
