@@ -31,7 +31,7 @@ fi
 ensure_mise_installed
 devbase_configure_global_tools
 
-if [[ ($OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}) || -n $DEVBASE_PRELOAD_GO_FOR_MISE ]]; then
+if [[ $OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]] || ! command -v go >/dev/null; then
   install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
 fi
 run_mise trust --env devbase --cd "$ROOT_DIR"
