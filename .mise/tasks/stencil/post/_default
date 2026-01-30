@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Discover and run tasks meant to be run after Stencil completes."
 #MISE tools={"gojq" = "latest"}
+#MISE depends=["devbase:sync"]
 
 set -euo pipefail
 
