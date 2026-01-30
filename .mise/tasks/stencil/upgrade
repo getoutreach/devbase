@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Run Stencil on the current repo and update any module versions if available."
 #MISE tools={"github:getoutreach/stencil" = "latest"}
+#MISE depends=["devbase:sync"]
 #MISE depends_post=["stencil:post"]
 
 exec stencil --skip-update

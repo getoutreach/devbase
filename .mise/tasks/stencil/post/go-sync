@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#MISE description="Syncs the Go version in Stencil-unmanaged child go.mod files and Dockerfiles, with the version specified in .tool-versions"
+#MISE description="Syncs the Go version in Stencil-unmanaged child go.mod files and Dockerfiles, with the version specified in .tool-versions."
 
 set -euo pipefail
 

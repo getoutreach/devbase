@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Builds a Docker image for the current application in the dev environment."
+#MISE depends=["devbase:sync"]
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 SHELL_DIR="$DIR/../../../shell"
