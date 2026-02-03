@@ -1,7 +1,7 @@
 grpcui: 1.3.1
 jsonnetfmt: 0.19.1
 goimports: 0.5.0
-gotestsum: 1.10.1
+gotestsum: 1.13.0
 goveralls: 0.0.11
 getoutreach/ci: v1.6.14
 getoutreach/logfmt: v1.1.0
