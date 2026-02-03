@@ -208,16 +208,22 @@ run_mise() {
   local mise_path
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
-    local wait_for_gh_rate_limit
-    set +e
-    wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
-    set -e
-    if [[ -n $wait_for_gh_rate_limit ]]; then
-      # Send output to stderr so that it doesn't affect stdout of mise
-      "$wait_for_gh_rate_limit" >&2
-    fi
+    wait_for_gh_rate_limit
   fi
   "$mise_path" "$@"
+}
+
+# If `wait-for-gh-rate-limit` is installed, runs it to wait for
+# GitHub rate limits to clear.
+wait_for_gh_rate_limit() {
+  local binName
+  set +e
+  binName="$(find_tool wait-for-gh-rate-limit)"
+  set -e
+  if [[ -n $binName ]]; then
+    # Send output to stderr so that it doesn't affect stdout of mise
+    "$binName" >&2
+  fi
 }
 
 # find_tool TOOL_NAME
