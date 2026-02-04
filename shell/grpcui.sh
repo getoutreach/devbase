@@ -1,25 +1,19 @@
 #!/usr/bin/env bash
-# GRPCUI wrapper
+# gRPC UI wrapper
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./lib/bootstrap.sh
-source "$DIR/lib/bootstrap.sh"
-
-# shellcheck source=./lib/logging.sh
-source "$DIR/lib/logging.sh"
-
-# shellcheck source=./lib/mise.sh
-source "$DIR/lib/mise.sh"
+# shellcheck source=./lib/mise/stub.sh
+source "$DIR/lib/mise/stub.sh"
 
 # We set -plaintext here because we don't use gRPC TLS
 args=("-plaintext" "$@")
 
 # check if the grpcui command fails and if so echo error message
-if ! mise_exec "aqua:fullstorydev/grpcui@v$(get_tool_version "grpcui")" grpcui "${args[@]}"; then
+if ! mise_exec_tool_with_bin "aqua:fullstorydev/grpcui" grpcui "${args[@]}"; then
   echo >&2
-  error 'this expects your service to either be running locally or have port forward running.
-to port forward:
-  - deploy to devenv (i.e. "devenv app deploy .")
+  fatal 'This expects your service to either be running locally or have port forward running.
+To port forward:
+  - deploy to devenv (i.e. "devenv apps run")
   - run "kubectl port-forward service/[SERVICE-NAME] 5000:5000 -n [NAMESPACE]"'
 fi
