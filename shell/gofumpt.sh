@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Wrapper around mise + goimports, mostly for editors that can't handle
+# Wrapper around mise + gofumpt, mostly for editors that can't handle
 # `mise exec` in their config.
 set -euo pipefail
 
