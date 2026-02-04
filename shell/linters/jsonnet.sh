@@ -7,8 +7,7 @@ extensions=(jsonnet libsonnet)
 
 jsonnetfmt() {
   find_files_with_extensions "${extensions[@]}" |
-    xargs_mise_exec 40 go-jsonnet@v"$(get_tool_version "jsonnetfmt")" \
-      jsonnetfmt -i
+    xargs_mise_exec_tool_with_bin 40 go-jsonnet jsonnetfmt -i
 }
 
 linter() {

@@ -285,6 +285,24 @@ mise_exec_tool_with_bin() {
   fi
 }
 
+# xargs_mise_exec_tool_with_bin is a helper function that runs `mise exec` with xargs.
+# Only used when a tool doesn't need its own wrapper script.
+xargs_mise_exec_tool_with_bin() {
+  ensure_mise_installed
+
+  local maxArgs="$1"
+  shift
+  local tool="$1"
+  shift
+  local toolVersion
+  toolVersion="$(devbase_tool_version_from_mise "$tool")"
+
+  local mise
+  mise="$(find_mise)"
+
+  xargs -n "$maxArgs" "$mise" exec "$tool@$toolVersion" -- "$@"
+}
+
 asdf_shim_dir() {
   echo "${ASDF_DIR:-$HOME/.asdf}/shims"
 }
@@ -375,20 +393,4 @@ mise_exec() {
   local mise
   mise="$(find_mise)"
   "$mise" exec "$tool" -- "$@"
-}
-
-# xargs_mise_exec is a helper function that runs `mise_exec` with xargs.
-xargs_mise_exec() {
-  ensure_mise_installed
-
-  local maxArgs="$1"
-  shift
-
-  local tool="$1"
-  shift
-
-  local mise
-  mise="$(find_mise)"
-
-  xargs -n "$maxArgs" "$mise" exec "$tool" -- "$@"
 }
