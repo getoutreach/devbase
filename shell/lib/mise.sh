@@ -296,7 +296,6 @@ xargs_mise_exec_tool_with_bin() {
   shift
   local toolVersion
   toolVersion="$(devbase_tool_version_from_mise "$tool")"
-
   local mise
   mise="$(find_mise)"
 
