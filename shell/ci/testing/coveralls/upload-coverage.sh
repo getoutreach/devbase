@@ -19,7 +19,7 @@ if [[ -n ${COVERALLS_TOKEN:-} && -f $coverage_file ]]; then
     extra_args+=("-parallel" "-flagname" "$flag_name")
   fi
 
-  mise_exec_tool "go:github.com/mattn/goveralls" goveralls \
+  mise_exec_tool_with_bin "go:github.com/mattn/goveralls" goveralls \
     -coverprofile="$coverage_file" -service=circle-ci -jobid="${CIRCLE_WORKFLOW_ID:-}" \
     -repotoken="${COVERALLS_TOKEN:-}" "${extra_args[@]}"
 fi
