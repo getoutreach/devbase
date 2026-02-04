@@ -381,15 +381,3 @@ mise_install_if_needed() {
     run_mise install --yes "$tool_name"
   fi
 }
-
-# mise_exec runs a command using the `mise exec` command.
-mise_exec() {
-  ensure_mise_installed
-
-  local tool="$1"
-  shift
-
-  local mise
-  mise="$(find_mise)"
-  "$mise" exec "$tool" -- "$@"
-}

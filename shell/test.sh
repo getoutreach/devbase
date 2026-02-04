@@ -196,8 +196,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
 
     (
       set -x
-      mise_exec "gotestsum@$(get_tool_version "gotestsum")" \
-        gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
+      mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
