@@ -42,7 +42,7 @@ formatter() {
     run_command goimports goimports || return 1
     run_command gofmt gofmt || return 1
   elif [[ $goFormatter == gofumpt ]]; then
-    run_command gofumpt gofumpt
+    run_command gofumpt gofumpt || return 1
   else
     fatal "Unknown Go formatter: $goFormatter"
   fi
