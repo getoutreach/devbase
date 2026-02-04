@@ -13,7 +13,7 @@ ENSURE_TOOL_VERSIONS := $(shell "$(BOOTSTRAP_DIR)/root/ensure_asdf.sh" 1>&2)
 
 # application information
 APP                 ?= unset
-ORG                 ?= getoutreach
+ORG                 ?= $(shell ./scripts/shell-wrapper.sh boxconfig.sh org)
 
 # Transition
 MAGE_CMD            := MAGEFILE_HASHFAST=true "$(BOOTSTRAP_DIR)/shell/mage.sh" -d "$(CURDIR)/$(shell if [[ "$(APP)" != "devbase" ]]; then echo ".bootstrap/"; fi)root" -w "$(CURDIR)"
