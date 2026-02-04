@@ -33,9 +33,7 @@ CGO_ENABLED         ?= $(shell "$(CURDIR)/scripts/shell-wrapper.sh" cgo-enabled.
 TOOL_DEPS           := ${GO}
 
 # formatters / misc
-JSONNET             ?= $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/google/go-jsonnet/cmd/jsonnet@v0.19.0
 LOG                 := ./scripts/shell-wrapper.sh makefile-logger.sh
-BOX_CONFIG          := ./scripts/shell-wrapper.sh boxconfig.sh
 AIR                 := $(CURDIR)/scripts/shell-wrapper.sh gobin.sh github.com/cosmtrek/air@v1.44.0 -c $(CURDIR)/.air.toml
 
 # Testing options
