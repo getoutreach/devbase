@@ -1,10 +1,10 @@
 [[tools.bats]]
-version = "1.12.0"
+version = "1.13.0"
 backend = "aqua:bats-core/bats-core"
-"platforms.linux-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
-"platforms.linux-x64" = { checksum = "blake3:836a0963444ede10131984991c0f92219c84418b57c242b4ff5bc80d83daa9a3", url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
-"platforms.macos-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
-"platforms.macos-x64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.12.0.tar.gz"}
+"platforms.linux-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"}
+"platforms.linux-x64" = { checksum = "blake3:d34af9fd0f9101d5309b2de31f3d1699e56a574d7d4b5e6380580a9e758a9744", url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"}
+"platforms.macos-arm64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"}
+"platforms.macos-x64" = { url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"}
 
 [[tools.buf]]
 version = "1.60.0"
@@ -12,13 +12,22 @@ backend = "aqua:bufbuild/buf"
 env = ["devbase"]
 
 [[tools.circleci]]
-version = "0.1.32638"
+version = "0.1.34038"
 backend = "aqua:CircleCI-Public/circleci-cli"
-"platforms.linux-arm64" = { checksum = "sha256:f2f7028f0db0de0fe2331f6f11e9672fb12388a7f03e5c8b5070ec4769fd2265", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_linux_arm64.tar.gz"}
-"platforms.linux-x64" = { checksum = "sha256:ad657914ddbf1224a75df71921d70e166fd8c209ba7792a7456c0f44e102fe0b", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_linux_amd64.tar.gz"}
-"platforms.macos-arm64" = { checksum = "sha256:88f25c2b7137e79702dd2129e280589d2943d9536ffc8de5e11f0695b16ee940", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_darwin_amd64.tar.gz"}
-"platforms.macos-x64" = { checksum = "sha256:88f25c2b7137e79702dd2129e280589d2943d9536ffc8de5e11f0695b16ee940", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_darwin_amd64.tar.gz"}
-"platforms.windows-x64" = { checksum = "sha256:1fd12d0de3059a90e7d27f09f978ff117a228a04677460002f4c7c66e0f7f82f", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.32638/circleci-cli_0.1.32638_windows_amd64.zip"}
+"platforms.linux-arm64" = { checksum = "sha256:4240622ce48e664e94df0f007a6fb17e959e04c7f0f2a7e98409d57c1801a262", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34038/circleci-cli_0.1.34038_linux_arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:4cbf7b64cc6a0c2c5d09b3f02ba756807886f88ea32adcf75f4f8580285c4606", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34038/circleci-cli_0.1.34038_linux_amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:6e468df41013314dffb9c47687beb6bd0fd4497a21e5c4839684b58c4843e0a9", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34038/circleci-cli_0.1.34038_darwin_amd64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:6e468df41013314dffb9c47687beb6bd0fd4497a21e5c4839684b58c4843e0a9", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34038/circleci-cli_0.1.34038_darwin_amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:2c8ddb2b99979947f7778f235e4d56eeb637d0049f8586078557e2f0f5aca3f5", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34038/circleci-cli_0.1.34038_windows_amd64.zip"}
+
+[[tools.circleci]]
+version = "0.1.34283"
+backend = "aqua:CircleCI-Public/circleci-cli"
+"platforms.linux-arm64" = { checksum = "sha256:f494dd3f9a5cd6202a7d26aa0a5f4f64d2dc6391522c77933ba8ec984602077f", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34283/circleci-cli_0.1.34283_linux_arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:30ee7b5d9fb4278585f33bce3323ad1df027a6f6a37fd1508f7077856f68168a", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34283/circleci-cli_0.1.34283_linux_amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:896684164f9c3a09d2bcc7e7242a3b7a0992ae850a4d78d0e973ca630e319146", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34283/circleci-cli_0.1.34283_darwin_amd64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:896684164f9c3a09d2bcc7e7242a3b7a0992ae850a4d78d0e973ca630e319146", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34283/circleci-cli_0.1.34283_darwin_amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:684cf8faa800bc52276defbb65443865f4c55f73a7a69b054989759f06a7d5a2", url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34283/circleci-cli_0.1.34283_windows_amd64.zip"}
 
 [[tools.github-cli]]
 version = "2.83.2"
