@@ -12,6 +12,15 @@ CIRCLECI_ORB_NAME = "getoutreach/shared"
 
 ## <</Stencil::Block>>
 
+[hooks]
+enter = [
+  "$MISE_PROJECT_ROOT/scripts/devbase.sh",
+]
+
+## <<Stencil::Block(customMiseHooks)>>
+
+## <</Stencil::Block>>
+
 [tools]
 "npm:prettier" = "2"
 circleci = "latest"
