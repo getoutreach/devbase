@@ -15,6 +15,10 @@ backend = "aqua:bats-core/bats-core"
 version = "1.60.0"
 backend = "aqua:bufbuild/buf"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:f50e4c4660e86d21558c48c3bc3ae381ed3416ad8bd1dd4445735ac899cacfbc", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Linux-aarch64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:f3d0588a1376973cdaa59f8daf4d9f41451edfb7f0702710ba2de8889fd6bd47", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Linux-x86_64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:62a1b054b532ace02df86a008c92ad78ca54f6abaf5db8c574338d8de741be77", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Darwin-x86_64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:b242cfa50230f56338bbe5bf18fc855d44907de3675ebdc01a98fbaad0f6f118", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Windows-x86_64.zip"}
 
 [[tools.circleci]]
 version = "0.1.34283"
@@ -29,23 +33,39 @@ backend = "aqua:CircleCI-Public/circleci-cli"
 version = "2.83.2"
 backend = "aqua:cli/cli"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:b1a0c0a0fcf18524e36996caddc92a062355ed014defc836203fe20fba75a38e", url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:ca6e7641214fbd0e21429cec4b64a7ba626fd946d8f9d6d191467545b092015e", url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:ba3e0396ebbc8da17256144ddda503e4e79c8b502166335569f8390d6b75fa8d", url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_macOS_arm64.zip"}
+"platforms.macos-x64" = { checksum = "sha256:6f1712519ccc768946791dc97da407bf188582345b73fef3d604d050ebf6f614", url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_macOS_amd64.zip"}
+"platforms.windows-x64" = { checksum = "sha256:b95bf2d953e3bf497bb2c0aed97ffcc5ed8471b80f0920d663a92a6111f05135", url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_windows_amd64.zip"}
 
 [[tools."github:getoutreach/ci"]]
 version = "1.6.14"
 backend = "github:getoutreach/ci"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:22f3349aa67028201bdb1691dfb8833ef39e4f7229c9aa73ecda9b88a91cc2ac", url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_linux_arm64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854918"}
 "platforms.linux-x64" = { checksum = "sha256:a8bbc112b45bdbc713397eff318b317e248288d9bc277598794a25173d83e1be", url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_linux_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854916"}
+"platforms.macos-arm64" = { checksum = "sha256:0df9e9ffc39585dbc85ba6d9da8fd62924e8eae86c172c71377b84df3e5f2572", url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_darwin_arm64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854914"}
+"platforms.macos-x64" = { checksum = "sha256:a27dfecb63877d3f25c3a0c0a1cbb60352e58d234df8e1cc81fe77169d6c7cb9", url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_darwin_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854925"}
 
 [[tools."github:getoutreach/lintroller"]]
 version = "1.19.0"
 backend = "github:getoutreach/lintroller"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:6b8e6f6e5d2f9af6d1238819252407d5e07c1d1d8c097f3a820de75060c2b443", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_linux_arm64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233163"}
+"platforms.linux-x64" = { checksum = "sha256:dfb7acb53a7db25badb780efe054e2eeafa8f0f221c378dbb77726531d37ef9f", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_linux_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233180"}
+"platforms.macos-arm64" = { checksum = "sha256:c55dd07f4f7ddeeea2b169cb552a627f26e6a33019afd9c186dbacaea24eb931", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_darwin_arm64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233170"}
+"platforms.macos-x64" = { checksum = "sha256:f1b854bea8c6d7ddd96f561738be2f1dee73d91154bb3c6eddbcb848ff0943e1", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_darwin_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233149"}
 
 [[tools.go-jsonnet]]
 version = "0.19.1"
 backend = "aqua:google/go-jsonnet"
 env = ["devbase"]
 "platforms.linux-x64" = { checksum = "sha256:80595aaec41f8c65b1fee503dc171ecc1d4706a37b5c4dd7d5c24cf2072deda5", url = "https://github.com/google/go-jsonnet/releases/download/v0.19.1/go-jsonnet_0.19.1_Linux_x86_64.tar.gz"}
+
+[[tools."go:github.com/go-delve/delve/cmd/dlv"]]
+version = "1.26.0"
+backend = "go:github.com/go-delve/delve/cmd/dlv"
 
 [[tools."go:github.com/go-delve/delve/cmd/dlv"]]
 version = "1.26.0"
@@ -71,11 +91,18 @@ env = ["devbase"]
 version = "0.12.18"
 backend = "aqua:itchyny/gojq"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:519601a973cc74621d0ee775a86cac791f45bb69a78bd1901aadd46701b4c571", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_linux_arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:7f00d3e5336749139199e650bcad89b93341b871f211a34e02fca79e59d5eb45", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_linux_amd64.tar.gz"}
 
 [[tools.golangci-lint]]
 version = "2.8.0"
 backend = "aqua:golangci/golangci-lint"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:2a58388db8af5ab9330791cea0ebdd4100723cd05ad7185d92febaaee272ec9a", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-linux-arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:7048bc6b25c9515ed092c83f9fa8709ca97937ead52d9ff317a143299ee97a50", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-linux-amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:6f8979a83117e0607d4b85ff486382ef0404440bbf54f0e6f003ceab6ccf641e", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-darwin-arm64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:164c72806d0e31ab19da4f08fff748a3fdc57e241851279b666c945ed9b91830", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-darwin-amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:22428168a9406f79853bf9a198b66e88ded9faa57cf85e5d225361f457f33513", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-windows-amd64.zip"}
 
 [[tools.gotestsum]]
 version = "1.13.0"
@@ -92,6 +119,11 @@ env = ["devbase"]
 version = "1.14.0"
 backend = "aqua:magefile/mage"
 env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:f9ad70938fbaf15233a574b89f7fa41566102f18114eab9b2aa37d64ad7f21de", url = "https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_Linux-ARM64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:a9eb55344ccf6728ab40fe55f809fb7cc0f1085858afd9e594753ed82e59b73f", url = "https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_Linux-64bit.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:4ff2119161d70c94bca2d5f870f566b5cd7f4ed73c94c92c96f83ed650a7c849", url = "https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_macOS-ARM64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:f7f4feb2971742caf77fe77553817c2eb9c448422b15a97cc6ab821ce683d610", url = "https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_macOS-64bit.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:28571e0a50955ea4e5a1596908bf98f5e0c345c6696c836cbd2c42e37b16da29", url = "https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_Windows-64bit.zip"}
 
 [[tools."npm:prettier"]]
 version = "2.8.8"
@@ -101,8 +133,18 @@ backend = "npm:prettier"
 version = "0.11.0"
 backend = "aqua:koalaman/shellcheck"
 env = ["devbase"]
+"platforms.linux-arm64" = { url = "https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.linux.aarch64.tar.xz"}
+"platforms.linux-x64" = { url = "https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.linux.x86_64.tar.xz"}
+"platforms.macos-arm64" = { url = "https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.darwin.x86_64.tar.xz"}
+"platforms.macos-x64" = { url = "https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.darwin.x86_64.tar.xz"}
+"platforms.windows-x64" = { url = "https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.zip"}
 
 [[tools.shfmt]]
 version = "3.7.0"
 backend = "aqua:mvdan/sh"
 env = ["devbase"]
+"platforms.linux-arm64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_arm64"}
+"platforms.linux-x64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64"}
+"platforms.macos-arm64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_darwin_arm64"}
+"platforms.macos-x64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_darwin_amd64"}
+"platforms.windows-x64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_windows_amd64.exe"}
