@@ -10,6 +10,8 @@ DEVBASE_LIB_DIR="$DIR/../shell/lib"
 source "$DEVBASE_LIB_DIR/bootstrap.sh"
 # shellcheck source=../shell/lib/logging.sh
 source "$DEVBASE_LIB_DIR/logging.sh"
+# shellcheck source=../shell/lib/mise.sh
+source "$DEVBASE_LIB_DIR/mise.sh"
 # shellcheck source=../shell/lib/shell.sh
 source "$DEVBASE_LIB_DIR/shell.sh"
 
@@ -32,7 +34,7 @@ if in_ci_environment; then
   extraArgs+=("--report-formatter" "junit" "--output" "$junitOutputPath")
 fi
 
-BATS_LIB_PATH="$DIR/bats/test_helper" bats "${extraArgs[@]}" "${test_files[@]}"
+BATS_LIB_PATH="$DIR/bats/test_helper" mise_exec_tool bats "${extraArgs[@]}" "${test_files[@]}"
 exitCode=$?
 
 # If we're running in CI, move the test-results to the path that gets
