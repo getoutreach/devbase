@@ -35,6 +35,10 @@ inject_mise_commands() {
 # Assumes that `gh` has already been set up.
 ghToken="$(gh auth token)"
 
+if [[ -f "$repoDir"/mise.lock ]]; then
+  mise settings set locked true
+fi
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
