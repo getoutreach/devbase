@@ -129,7 +129,6 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 
 	// Find the dependencies of this repo
 	foundDeps, err := findDependenciesInRepo(ctx, conf, serviceName)
-
 	if err != nil {
 		return errors.Wrap(err, "failed to grab dependencies")
 	}
