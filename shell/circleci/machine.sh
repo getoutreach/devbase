@@ -41,7 +41,7 @@ run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 bootstrap_github_token
 
 info "Installing tools via mise required in machine environment"
-devbase_mise install
+run_mise install --cd "$HOME"
 
 # Remove the existing yq, if it already exists
 # (usually the Go Version we don't support)
