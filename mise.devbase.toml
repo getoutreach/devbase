@@ -8,6 +8,8 @@ gojq = "0.12.18"
 gotestsum = "1.13.0"
 mage = "1.14.0"
 "github:getoutreach/ci" = "1.6.14"
+# Delibird telemetry
+"github:getoutreach/orc" = "latest"
 # linters
 buf = "1.60.0"
 go-jsonnet = "0.19.1"

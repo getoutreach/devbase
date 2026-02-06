@@ -57,6 +57,11 @@ env = ["devbase"]
 "platforms.macos-arm64" = { checksum = "sha256:c55dd07f4f7ddeeea2b169cb552a627f26e6a33019afd9c186dbacaea24eb931", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_darwin_arm64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233170"}
 "platforms.macos-x64" = { checksum = "sha256:f1b854bea8c6d7ddd96f561738be2f1dee73d91154bb3c6eddbcb848ff0943e1", url = "https://github.com/getoutreach/lintroller/releases/download/v1.19.0/lintroller_1.19.0_darwin_amd64.tar.gz", url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/332233149"}
 
+[[tools."github:getoutreach/orc"]]
+version = "1.122.0"
+backend = "github:getoutreach/orc"
+env = ["devbase"]
+
 [[tools.go-jsonnet]]
 version = "0.19.1"
 backend = "aqua:google/go-jsonnet"
