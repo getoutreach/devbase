@@ -9,10 +9,16 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="$DIR/../../lib"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "$LIB_DIR/bootstrap.sh"
+# shellcheck source=../../lib/logging.sh
+source "$LIB_DIR/logging.sh"
+# shellcheck source=../../lib/github.sh
+source "$LIB_DIR/github.sh"
 # shellcheck source=../../lib/box.sh
 source "$LIB_DIR/box.sh"
-# shellcheck source=../../lib/mise/stub.sh
-source "$LIB_DIR/mise/stub.sh"
+# shellcheck source=../../lib/mise.sh
+source "$LIB_DIR/mise.sh"
 
 # DELIBIRD_ENABLED denotes if the delibird log uploader should be
 # enabled or not. If the value is "true", then the delibird log uploader
@@ -37,8 +43,10 @@ find_vault() {
   echo "$vault_path"
 }
 
-# Configures the delibird log uploader.
-configure_delibird() {
+# install_delibird installs the delibird log uploader.
+install_delibird() {
+  install_latest_github_release getoutreach/orc false delibird
+
   # tokenPath is the path that the delibird token should be written to.
   local tokenPath="$HOME/.outreach/.delibird/token"
   mkdir -p "$(dirname "$tokenPath")"
@@ -60,12 +68,15 @@ if [[ $DELIBIRD_ENABLED != "true" ]]; then
   exit 0
 fi
 
-# Assume that delibird is installed via mise
-configure_delibird
+# Otherwise, check if the uploader is installed. If it isn't, attempt to
+# install it.
+if ! mise which delibird &>/dev/null; then
+  install_delibird
+fi
 
 info "Running the delibird log uploader"
 
 # Ensure the logs directory exists.
 mkdir -p "$HOME/.outreach/logs"
 
-mise_exec_tool_with_bin github:getoutreach/orc delibird --run-once start
+exec "$(mise which delibird)" --run-once start

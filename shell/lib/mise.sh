@@ -83,7 +83,6 @@ install_mise() {
     fi
   )
   run_mise settings set http_retries 3
-  run_mise settings set lockfile true
   run_mise settings set use_versions_host_track false
 }
 
