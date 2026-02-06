@@ -49,13 +49,12 @@
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
-"@getoutreach/semantic-release-circleci-orb@^2.0.1":
-  version "2.1.0"
-  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/2.1.0/eb88679935336ac2029e2b9097b1d2d7561f1455#eb88679935336ac2029e2b9097b1d2d7561f1455"
-  integrity sha512-heD0ZNZcbcmtb8YDsf/1egNV6K01qxXhaENJria4/Ds0Li7I0+gWbcEWI8v13tH+WMCQyK/NtaLN08cGfzEMZg==
+"@getoutreach/semantic-release-circleci-orb@^3.0.0":
+  version "3.0.0"
+  resolved "https://npm.pkg.github.com/download/@getoutreach/semantic-release-circleci-orb/3.0.0/2a61fbe31111b08254d5fea3a52905de273f8e13#2a61fbe31111b08254d5fea3a52905de273f8e13"
+  integrity sha512-DiW2eYRLbP2LUz+mRmPBorI52X96PVseK2cauVf2IdGT1UEtyVuq5kEoMex3thgklHfuf6cp2RpLIKVTFY531g==
   dependencies:
     "@semantic-release/error" "^4.0.0"
-    aggregate-error "^5.0.0"
     execa "^9.6.0"
 
 "@isaacs/balanced-match@^4.0.1":
@@ -1479,9 +1478,9 @@ isexe@^2.0.0:
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
 isexe@^3.1.1:
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/isexe/-/isexe-3.1.1.tgz#4a407e2bd78ddfb14bea0c27c6f7072dde775f0d"
-  integrity sha512-LpB/54B+/2J5hqQ7imZHfdU31OlgQqx7ZicVlkm9kzg9/w8GKLEcFfJl/t7DCEDueOyBAD6zCCwTO6Fzs0NoEQ==
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/isexe/-/isexe-3.1.2.tgz#08e5349db03ff0654f3b3efe798f94aa4bda4f8f"
+  integrity sha512-mIcis6w+JiQf3P7t7mg/35GKB4T1FQsBOtMIvuKw4YErj5RjtbhcTd5/I30fmkmGMwvI0WlzSNN+27K0QCMkAw==
 
 issue-parser@^7.0.0:
   version "7.0.1"
@@ -2581,9 +2580,9 @@ semver-regex@^4.0.5:
   integrity sha512-hunMQrEy1T6Jr2uEVjrAIqjwWcQTgOAcIM52C8MY1EZSD3DDNft04XzvYKPqjED65bNVVko0YI38nYeEHCX3yw==
 
 semver@^7.1.1, semver@^7.1.2, semver@^7.3.2, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.6.0, semver@^7.7.2, semver@^7.7.3:
-  version "7.7.3"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.3.tgz#4b5f4143d007633a8dc671cd0a6ef9147b8bb946"
-  integrity sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==
+  version "7.7.4"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.4.tgz#28464e36060e991fa7a11d0279d2d3f3b57a7e8a"
+  integrity sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==
 
 shebang-command@^2.0.0:
   version "2.0.0"
