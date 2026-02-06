@@ -24,10 +24,5 @@ bats = "latest"
 ## <</Stencil::Block>>
 
 ## <<Stencil::Block(extraMise)>>
-[tasks."stencil:post:mise"]
-description = "Upgrades the devbase tool config + lockfile"
-run = [
-  "./shell/mise.sh upgrade --env devbase --before 7d",
-  "./shell/mise.sh lock --env devbase",
-]
+
 ## <</Stencil::Block>>
