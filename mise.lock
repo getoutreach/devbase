@@ -66,10 +66,6 @@ env = ["devbase"]
 [[tools."go:github.com/go-delve/delve/cmd/dlv"]]
 version = "1.26.0"
 backend = "go:github.com/go-delve/delve/cmd/dlv"
-
-[[tools."go:github.com/go-delve/delve/cmd/dlv"]]
-version = "1.26.0"
-backend = "go:github.com/go-delve/delve/cmd/dlv"
 env = ["devbase"]
 
 [[tools."go:github.com/mattn/goveralls"]]
