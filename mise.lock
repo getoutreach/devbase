@@ -176,3 +176,13 @@ env = ["devbase"]
 "platforms.macos-arm64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_darwin_arm64"}
 "platforms.macos-x64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_darwin_amd64"}
 "platforms.windows-x64" = { url = "https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_windows_amd64.exe"}
+
+[[tools.tombi]]
+version = "0.7.27"
+backend = "aqua:tombi-toml/tombi"
+env = ["devbase"]
+"platforms.linux-arm64" = { checksum = "sha256:87528266b4aabbfa324cc4a60361d308a14b676921f0ebcf12946e19c7174c74", url = "https://github.com/tombi-toml/tombi/releases/download/v0.7.27/tombi-cli-0.7.27-aarch64-unknown-linux-musl.gz"}
+"platforms.linux-x64" = { checksum = "sha256:e791f39b44ed78031cdb7c6fc64efd831da2492be1889b737c85412b5794d5ad", url = "https://github.com/tombi-toml/tombi/releases/download/v0.7.27/tombi-cli-0.7.27-x86_64-unknown-linux-musl.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:d207e5824065d3b09d6ce4453627744195890b1cdb987d70711b46dfba635c42", url = "https://github.com/tombi-toml/tombi/releases/download/v0.7.27/tombi-cli-0.7.27-aarch64-apple-darwin.gz"}
+"platforms.macos-x64" = { checksum = "sha256:2f8144535288ce92bb1ed577cee5b111fe35a5e82c4876e81d143bb81840dd35", url = "https://github.com/tombi-toml/tombi/releases/download/v0.7.27/tombi-cli-0.7.27-x86_64-apple-darwin.gz"}
+"platforms.windows-x64" = { checksum = "sha256:ef9c2ff17a5153cb0ebd9bdce72c979f5e0630c36c2f86fc928fc5010443b65e", url = "https://github.com/tombi-toml/tombi/releases/download/v0.7.27/tombi-cli-0.7.27-x86_64-pc-windows-msvc.zip"}

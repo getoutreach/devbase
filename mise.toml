@@ -19,7 +19,6 @@ enter = ["$MISE_PROJECT_ROOT/scripts/devbase.sh"]
 [tools]
 "npm:prettier" = "2"
 circleci = "latest"
-
 ## <<Stencil::Block(customMiseTools)>>
 bats = "latest"
 ## <</Stencil::Block>>
