@@ -11,6 +11,9 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 
+# shellcheck source=./lib/mise.sh
+source "$DIR/lib/mise.sh"
+
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 
@@ -191,10 +194,9 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   else
     exitCode=0
 
-    GOTESTSUMPATH=$("$DIR/gobin.sh" -p gotest.tools/gotestsum@v"$(get_application_version "gotestsum")")
     (
       set -x
-      "$GOTESTSUMPATH" --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
+      mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"

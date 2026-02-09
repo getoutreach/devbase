@@ -18,7 +18,7 @@ ensure_mise_installed() {
     export PATH="$HOME/.local/bin:$PATH"
   fi
 
-  if ! command -v mise >/dev/null; then
+  if ! command_exists mise; then
     if [[ -n $is_root ]]; then
       export MISE_INSTALL_PATH=/usr/local/bin/mise
     fi
@@ -208,16 +208,22 @@ run_mise() {
   local mise_path
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
-    local wait_for_gh_rate_limit
-    set +e
-    wait_for_gh_rate_limit="$(find_tool wait-for-gh-rate-limit)"
-    set -e
-    if [[ -n $wait_for_gh_rate_limit ]]; then
-      # Send output to stderr so that it doesn't affect stdout of mise
-      "$wait_for_gh_rate_limit" >&2
-    fi
+    wait_for_gh_rate_limit
   fi
   "$mise_path" "$@"
+}
+
+# If `wait-for-gh-rate-limit` is installed, runs it to wait for
+# GitHub rate limits to clear.
+wait_for_gh_rate_limit() {
+  local binName
+  set +e
+  binName="$(find_tool wait-for-gh-rate-limit)"
+  set -e
+  if [[ -n $binName ]]; then
+    # Send output to stderr so that it doesn't affect stdout of mise
+    "$binName" >&2
+  fi
 }
 
 # find_tool TOOL_NAME
@@ -225,15 +231,17 @@ run_mise() {
 # Prints the path to a tool from either PATH or in the
 # mise environment.
 find_tool() {
-  local tool_name="$1"
-  if ! command -v "$tool_name" 2>/dev/null; then
-    local mise_path
-    mise_path="$(find_mise)"
-    if [[ -z $mise_path ]]; then
+  local toolName="$1"
+  # Deliberately not using command_exists here because we want to
+  # print the path.
+  if ! command -v "$toolName" 2>/dev/null; then
+    local misePath
+    misePath="$(find_mise)"
+    if [[ -z $misePath ]]; then
       error "mise not found (find_tool)"
       return 1
     fi
-    "$mise_path" which "$tool_name" 2>/dev/null
+    "$misePath" which "$toolName" 2>/dev/null
   fi
 }
 
@@ -275,6 +283,23 @@ mise_exec_tool_with_bin() {
   else
     MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
   fi
+}
+
+# xargs_mise_exec_tool_with_bin is a helper function that runs `mise exec` with xargs.
+# Only used when a tool doesn't need its own wrapper script.
+xargs_mise_exec_tool_with_bin() {
+  ensure_mise_installed
+
+  local maxArgs="$1"
+  shift
+  local tool="$1"
+  shift
+  local toolVersion
+  toolVersion="$(devbase_tool_version_from_mise "$tool")"
+  local mise
+  mise="$(find_mise)"
+
+  xargs -n "$maxArgs" "$mise" exec "$tool@$toolVersion" -- "$@"
 }
 
 asdf_shim_dir() {

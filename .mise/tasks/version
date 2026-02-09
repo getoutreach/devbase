@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 #MISE description="Prints the current application version."
+#MISE depends=["devbase:sync"]
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEVBASE_LIB_DIR="$DIR/../../shell/lib"

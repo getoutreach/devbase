@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+#MISE description="Ensure that the repository's devbase repo is the same version specified by Stencil."
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DEVBASE_LIB_DIR="$DIR/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/bootstrap.sh
+source "$DEVBASE_LIB_DIR/bootstrap.sh"
+
+exec "$(get_repo_directory)"/scripts/devbase.sh

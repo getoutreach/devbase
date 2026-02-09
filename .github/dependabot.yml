@@ -5,6 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
+      exclude:
+        - "github.com/getoutreach/*"
     # stencil-golang managed dependencies
     ignore:
       - dependency-name: github.com/getoutreach/gobox
@@ -18,6 +22,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
+      exclude:
+        - "@getoutreach/*"
     ignore:
       - dependency-name: "*"
 

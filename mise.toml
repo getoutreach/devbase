@@ -1,8 +1,5 @@
 [task_config]
-includes = [
-  ".bootstrap/.mise/tasks",
-  ".mise/tasks",
-]
+includes = [".bootstrap/.mise/tasks", ".mise/tasks"]
 
 [env]
 CIRCLECI_ORB_PATH = "orbs/shared"
@@ -12,10 +9,16 @@ CIRCLECI_ORB_NAME = "getoutreach/shared"
 
 ## <</Stencil::Block>>
 
+[hooks]
+enter = ["$MISE_PROJECT_ROOT/scripts/devbase.sh"]
+
+## <<Stencil::Block(customMiseHooks)>>
+
+## <</Stencil::Block>>
+
 [tools]
 "npm:prettier" = "2"
 circleci = "latest"
-
 ## <<Stencil::Block(customMiseTools)>>
 bats = "latest"
 ## <</Stencil::Block>>

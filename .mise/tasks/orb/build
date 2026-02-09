@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build the CircleCI orb."
+#MISE depends=["devbase:sync"]
 #MISE outputs=["orb.yml"]
 
 set -euo pipefail
