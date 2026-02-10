@@ -18,7 +18,14 @@ ensure_mise_installed() {
     export PATH="$HOME/.local/bin:$PATH"
   fi
 
-  if ! command_exists mise; then
+  if command_exists mise; then
+    local minMiseVersion
+    minMiseVersion="$(mise config get min_version.hard 2>/dev/null || true)"
+    if [[ -n $minMiseVersion ]] && ! mise_version_compatible "$minMiseVersion"; then
+      info "Upgrading mise from $(mise_version) to meet minimum version requirement of $minMiseVersion"
+      install_mise "$minMiseVersion"
+    fi
+  else
     if [[ -n $is_root ]]; then
       export MISE_INSTALL_PATH=/usr/local/bin/mise
     fi
@@ -58,28 +65,38 @@ ensure_mise_installed() {
     eval "$(mise activate bash --shims)"
   fi
 }
-
+# install_mise([version])
+#
 # Installs mise via the official install script (making sure that it is
 # signed via GPG). If that fails in CI and the CI worker is running
 # Ubuntu, install mise via the official apt repository.
+#
+# If a version is specified, installs that version, otherwise the
+# latest version is installed. The apt fallback will always install
+# the latest version.
 install_mise() {
+  local version="$1"
   local install_script=/tmp/mise-install.sh
 
   if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
     if ! retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d; then
       error "Could not import mise GPG release key"
-      install_mise_via_apt_if_ubuntu_in_ci
+      install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
     # ensure the install script is signed with the mise release key
     if ! download_mise_install_script | gpg --decrypt >"$install_script"; then
       error "Could not download or verify mise install script"
-      install_mise_via_apt_if_ubuntu_in_ci
+      install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
+  fi
+  if [[ -n $MISE_VERSION ]]; then
+    warn "MISE_VERSION is already set to '$MISE_VERSION', it will be overridden to '$version' for the installation process"
   fi
   (
     set +e
+    export MISE_VERSION="$version"
     if ! retry 5 5 sh "$install_script"; then
-      install_mise_via_apt_if_ubuntu_in_ci
+      install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
   )
   run_mise settings set http_retries 3
@@ -109,6 +126,7 @@ download_mise_install_script() {
 
 # Install mise via apt if running in CI on Ubuntu.
 install_mise_via_apt_if_ubuntu_in_ci() {
+  local version="$1"
   local distro
   if ! in_ci_environment; then
     warn "Falling back to apt installation of mise is only supported in CI environments"
@@ -119,6 +137,9 @@ install_mise_via_apt_if_ubuntu_in_ci() {
   if [[ $distro != "ubuntu" ]]; then
     warn "Falling back to apt installation of mise is only supported on Ubuntu"
     return 1
+  fi
+  if [[ -n $version ]]; then
+    warn "Cannot install specific version of mise, installing latest version instead"
   fi
   warn "Installing mise via apt, mise will be installed to /usr/bin/mise instead"
   install_mise_via_apt
@@ -364,12 +385,24 @@ devbase_configure_global_tools() {
 # Requires sourcing version.sh.
 devbase_install_mise_tools() {
   # experimental setting needed for Go backend
-  local miseVersion
-  miseVersion="$(mise version --json | gojq --raw-output .version | awk '{print $1}')"
-  if ! has_minimum_version "2025.10.11" "$miseVersion"; then
+  if ! mise_version_compatible "2025.10.11"; then
     mise settings set experimental true
   fi
   devbase_mise install --yes
+}
+
+# The current version of mise.
+mise_version() {
+  run_mise version --json | gojq --raw-output .version | awk '{print $1}'
+}
+
+# mise_version_compatible(minVersion)
+#
+# Whether the current mise version is >= the minimum version specified.
+mise_version_compatible() {
+  local minVersion miseVersion
+  miseVersion="$(mise_version)"
+  has_minimum_version "$minVersion" "$miseVersion"
 }
 
 # Installs a given tool via `mise install`, assuming that it's defined
