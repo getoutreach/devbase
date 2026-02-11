@@ -213,6 +213,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
         if [[ $testTag == "or_e2e" ]]; then
           TOOLCHAIN="$(e2e_go_toolchain)"
           export TOOLCHAIN
+          info_sub "Running E2E tests with Go toolchain $TOOLCHAIN"
           break
         fi
       done
