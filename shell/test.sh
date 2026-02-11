@@ -209,15 +209,12 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     exitCode=0
 
     (
-      for testTag in "${TEST_TAGS[@]}"; do
-        if [[ $testTag == "or_e2e" ]]; then
-          TOOLCHAIN="$(e2e_go_toolchain)"
-          export TOOLCHAIN
-          info_sub "Running E2E tests with Go toolchain $TOOLCHAIN"
-          break
-        fi
-      done
-      mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
+      if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
+        TOOLCHAIN="$(e2e_go_toolchain)"
+        export TOOLCHAIN
+        info_sub "Running E2E tests with Go toolchain $TOOLCHAIN"
+      fi
+      TOOLCHAIN="$TOOLCHAIN" mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
         -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
