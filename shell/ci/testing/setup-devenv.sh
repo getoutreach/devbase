@@ -4,8 +4,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=../../lib/bootstrap.sh
-source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=../../lib/logging.sh
 source "$DIR/../../lib/logging.sh"
 # shellcheck source=../../lib/github.sh
@@ -16,20 +14,6 @@ source "$DIR/../../lib/box.sh"
 source "$DIR/../../lib/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "$DIR/../../lib/shell.sh"
-
-# Generates the Go toolchain string to be used for E2E tests.
-# Go 1.25 and later have an issue with code coverage, so we append
-# "+auto" so that the `covdata` tool is available.
-# See: https://github.com/golang/go/issues/75031
-e2e_go_toolchain() {
-  local repoDir toolchain
-  repoDir="$(get_repo_directory)"
-  toolchain="$(grep ^toolchain "$repoDir/go.mod" | awk '{print $2}')"
-  if [[ -z $toolchain ]]; then
-    toolchain="go$(grep ^golang "$repoDir/.tool-versions" | awk '{print $2}')"
-  fi
-  echo "$toolchain+auto"
-}
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
@@ -90,6 +74,5 @@ fi
 
 if [[ $E2E == "true" ]]; then
   info "Starting E2E test runner"
-  TOOLCHAIN="$(e2e_go_toolchain)" TEST_TAGS=or_test,or_e2e exec \
-    "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/v2/e2e@$(cat "$DIR/../../../.version")")"
+  TEST_TAGS=or_test,or_e2e exec "$("$DIR/../../gobin.sh" -p "github.com/getoutreach/devbase/v2/e2e@$(cat "$DIR/../../../.version")")"
 fi
