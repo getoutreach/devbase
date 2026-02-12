@@ -2,7 +2,7 @@ module github.com/getoutreach/devbase/v2
 
 go 1.25.0
 
-toolchain go1.25.6
+toolchain go1.25.7
 
 require (
 	github.com/chainguard-dev/git-urls v1.0.2
