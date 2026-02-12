@@ -211,8 +211,9 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     (
       if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
         # Workaround from https://github.com/golang/go/issues/75031#issuecomment-3195256688
-        go env -w GOTOOLCHAIN="$(e2e_go_toolchain)"
-        info_sub "Running E2E tests with Go toolchain $TOOLCHAIN"
+        toolchain="$(e2e_go_toolchain)"
+        go env -w GOTOOLCHAIN="$toolchain"
+        info_sub "Running E2E tests with Go toolchain $toolchain"
       fi
       mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
