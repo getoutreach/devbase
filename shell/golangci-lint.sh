@@ -36,7 +36,8 @@ if in_ci_environment; then
   args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
 fi
 
-# Determine the version of golangci-lint to calculate compatibility.
+# Determine the version of Go and golangci-lint to calculate compatibility.
+GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
 GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
 # Only update this if something in devbase requires a specific version.
 # For example, if the config schema has a breaking change, or the templated
@@ -45,6 +46,10 @@ MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
 if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then
   fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
+fi
+
+if has_minimum_version "1.26.0" "$GO_VERSION" && ! has_minimum_version "2.9.0" "$GOLANGCI_LINT_VERSION"; then
+  fatal "Go 1.26 and later requires golangci-lint 2.9.0 or later"
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
