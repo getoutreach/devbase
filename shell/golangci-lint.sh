@@ -24,9 +24,30 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# Ensure that the configuration comes from the repo and not devbase.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
-args+=("--allow-parallel-runners" "--color=always" "--show-stats")
+subcmdsThatNeedConfigFlag=(config fmt formatters linters)
+args=("$@")
+needConfigFlag=
+needRunFlags=
+for arg in "${args[@]}"; do
+  if [[ $arg == run ]]; then
+    needRunFlags=true
+    break
+  fi
+  for subcmd in "${subcmdsThatNeedConfigFlag[@]}"; do
+    if [[ $arg == "$subcmd" ]]; then
+      needConfigFlag=true
+      break 2
+    fi
+  done
+done
+
+if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
+  # Ensure that the configuration comes from the repo and not devbase.
+  args+=("--config=${workspaceFolder}/scripts/golangci.yml")
+fi
+if [[ -n $needRunFlags ]]; then
+  args+=("--allow-parallel-runners" "--color=always" "--show-stats")
+fi
 
 if in_ci_environment; then
   TEST_DIR="${workspaceFolder}/bin"
