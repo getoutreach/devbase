@@ -99,6 +99,20 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
+# Generates the Go toolchain string to be used for E2E tests.
+# Go 1.25 and later have an issue with code coverage, so we append
+# "+auto" so that the `covdata` tool is available.
+# See: https://github.com/golang/go/issues/75031
+e2e_go_toolchain() {
+  local repoDir toolchain
+  repoDir="$(get_repo_directory)"
+  toolchain="$(grep ^toolchain "$repoDir/go.mod" | awk '{print $2}')"
+  if [[ -z $toolchain ]]; then
+    toolchain="go$(grep ^golang "$repoDir/.tool-versions" | awk '{print $2}')"
+  fi
+  echo "$toolchain+auto"
+}
+
 if in_ci_environment; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
@@ -195,7 +209,12 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     exitCode=0
 
     (
-      set -x
+      if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
+        # Workaround from https://github.com/golang/go/issues/75031#issuecomment-3195256688
+        toolchain="$(e2e_go_toolchain)"
+        go env -w GOTOOLCHAIN="$toolchain"
+        info_sub "Running E2E tests with Go toolchain $toolchain"
+      fi
       mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
