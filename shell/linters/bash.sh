@@ -8,6 +8,11 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 extensions=(sh bash bats)
 shebang_paths=(.mise/tasks)
 
+if [[ -n ${DEVBASE_LINT_SHELL_PATHS:-} ]]; then
+  IFS=" " read -r -a extraPaths <<<"$DEVBASE_LINT_SHELL_PATHS"
+  shebang_paths+=("${extraPaths[@]}")
+fi
+
 find_shell_files() {
   (
     find_files_with_extensions "${extensions[@]}"
