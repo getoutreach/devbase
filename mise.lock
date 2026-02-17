@@ -206,6 +206,7 @@ env = ["devbase"]
 [[tools.terraform]]
 version = "1.4.4"
 backend = "aqua:hashicorp/terraform"
+env = ["devbase"]
 "platforms.linux-arm64" = { checksum = "sha256:f0b4e092f2aa6de3324e5e4b5b51260ecf5e8c2f5335ff7a2ffdc4fb54a8922d", url = "https://releases.hashicorp.com/terraform/1.4.4/terraform_1.4.4_linux_arm64.zip"}
 "platforms.linux-x64" = { checksum = "sha256:67541c1f6631befcc25b764028e5605e59234d4424e60a256518ee1e8dd50593", url = "https://releases.hashicorp.com/terraform/1.4.4/terraform_1.4.4_linux_amd64.zip"}
 "platforms.macos-arm64" = { checksum = "sha256:75602d9ec491982ceabea813569579b2991093a4e0d76b7ca86ffd9b7a2a1d1e", url = "https://releases.hashicorp.com/terraform/1.4.4/terraform_1.4.4_darwin_arm64.zip"}

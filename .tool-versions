@@ -14,5 +14,4 @@ protoc 21.5
 ## <<Stencil::Block(toolver)>>
 # The below tools are used by all repositories when using devbase
 goreleaser 1.20.0
-terraform 1.4.4
 ## <</Stencil::Block>>
