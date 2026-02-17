@@ -135,6 +135,7 @@ env = ["devbase"]
 [[tools.goreleaser]]
 version = "1.20.0"
 backend = "aqua:goreleaser/goreleaser"
+env = ["devbase"]
 
 [[tools.gotestsum]]
 version = "1.13.0"
