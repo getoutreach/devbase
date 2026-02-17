@@ -28,6 +28,7 @@ bats = "latest"
 description = "Upgrades the devbase tool config + lockfile"
 run = [
   "./shell/mise.sh upgrade --env devbase --before 7d",
+  "MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=.tool-versions ./shell/mise.sh lock",
   "./shell/mise.sh lock --env devbase",
 ]
 ## <</Stencil::Block>>
