@@ -11,11 +11,11 @@ mise_fmt() {
 }
 
 tombi_format() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$DIR/tombi.sh" format --quiet
+  find_files_with_extensions "${extensions[@]}" | TOMBI_NO_CACHE=true TOMBI_OFFLINE=true xargs -n40 "$DIR/tombi.sh" format --quiet
 }
 
 tombi_format_check() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$DIR/tombi.sh" format --check --quiet
+  find_files_with_extensions "${extensions[@]}" | TOMBI_NO_CACHE=true TOMBI_OFFLINE=true xargs -n40 "$DIR/tombi.sh" format --check --quiet
 }
 
 tombi_lint() {
