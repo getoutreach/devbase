@@ -105,4 +105,4 @@ if [[ $installedAsdf == "true" ]]; then
 fi
 
 echo "🛠 Installing languages/plugins from all .tool-versions files"
-asdf_devbase_ensure
+ASDF_FORCE_RESHIM=1 asdf_devbase_ensure

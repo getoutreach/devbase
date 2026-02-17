@@ -94,6 +94,10 @@ asdf_devbase_ensure() {
     fi
   done
 
+  if [[ -n ${ASDF_FORCE_RESHIM:-} ]]; then
+    need_reshim=1
+  fi
+
   if [ "$need_reshim" == 1 ]; then
     # Reshim to ensure that the correct versions are used
     asdf reshim
