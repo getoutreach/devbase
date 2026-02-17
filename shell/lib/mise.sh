@@ -271,18 +271,27 @@ mise_exec_tool_with_bin() {
   binPath="$(find_tool "$binName")"
   set -e
 
+  local foundAsdfShim=
   if [[ $binPath == "$(asdf_shim_dir)"* ]]; then
+    foundAsdfShim=1
     remove_asdf_shim "$binName"
     set +e
     binPath="$(find_tool "$binName")"
     set -e
   fi
 
+  set +e
   if [[ -n $binPath ]]; then
     "$binPath" "$@"
   else
     MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
   fi
+  local exitCode=$?
+  if ! in_ci_environment && [[ -n $foundAsdfShim ]]; then
+    asdf reshim "$binName" >&2
+  fi
+  set -e
+  return $exitCode
 }
 
 # xargs_mise_exec_tool_with_bin is a helper function that runs `mise exec` with xargs.
