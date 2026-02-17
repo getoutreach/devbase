@@ -288,7 +288,7 @@ mise_exec_tool_with_bin() {
   fi
   local exitCode=$?
   if ! in_ci_environment && [[ -n $foundAsdfShim ]]; then
-    asdf reshim "$binName"
+    asdf reshim "$binName" >&2
   fi
   set -e
   return $exitCode
