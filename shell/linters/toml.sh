@@ -19,11 +19,12 @@ tombi_format_check() {
 }
 
 tombi_lint() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$DIR/tombi.sh" lint
+  find_files_with_extensions "${extensions[@]}" | TOMBI_NO_CACHE=true TOMBI_OFFLINE=true xargs -n40 "$DIR/tombi.sh" lint
 }
 
 linter() {
   run_command "tombi format (check)" tombi_format_check || return 1
+  run_command "tombi lint" tombi_lint || return 1
 }
 
 formatter() {
