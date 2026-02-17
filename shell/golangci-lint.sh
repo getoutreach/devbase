@@ -41,10 +41,6 @@ for arg in "${args[@]}"; do
   done
 done
 
-if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
-  # Ensure that the configuration comes from the repo and not devbase.
-  args+=("--config=${workspaceFolder}/scripts/golangci.yml")
-fi
 if [[ -n $needRunFlags ]]; then
   args+=("--allow-parallel-runners" "--color=always" "--show-stats")
 
@@ -71,6 +67,27 @@ fi
 
 if has_minimum_version "1.26.0" "$GO_VERSION" && ! has_minimum_version "2.9.0" "$GOLANGCI_LINT_VERSION"; then
   fatal "Go 1.26 and later requires golangci-lint 2.9.0 or later"
+fi
+
+if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
+  # Ensure that the configuration comes from the repo and not devbase.
+  configPath="$workspaceFolder/scripts/golangci.yml"
+  if [[ ! -f $configPath ]]; then
+    fatal "golangci-lint config file not found at $configPath"
+  fi
+  configVersion="$(gojq --yaml-input --raw-output .version "$configPath")"
+  if [[ $configVersion == null ]]; then
+    configVersion=1
+  fi
+  toolMajorVersion="$(echo "$GOLANGCI_LINT_VERSION" | cut -d. -f1)"
+  if [[ $configVersion != "$toolMajorVersion" ]]; then
+    errMsg="$configPath version ($configVersion) does not match golangci-lint major version ($toolMajorVersion)."
+    if [[ -n $(stencil_module_version github.com/getoutreach/stencil-golang) ]]; then
+      errMsg+=" Restencil to get the latest configuration file from stencil-golang."
+    fi
+    fatal "$errMsg"
+  fi
+  args+=("--config=${configPath}")
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
