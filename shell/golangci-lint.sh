@@ -75,6 +75,7 @@ if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
   if [[ ! -f $configPath ]]; then
     fatal "golangci-lint config file not found at $configPath"
   fi
+  # Ensure that the config version matches the golangci-lint major version to prevent compatibility issues.
   configVersion="$(gojq --yaml-input --raw-output .version "$configPath")"
   if [[ $configVersion == null ]]; then
     configVersion=1
