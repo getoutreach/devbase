@@ -22,6 +22,7 @@ backend = "aqua:bufbuild/buf"
 env = ["devbase"]
 "platforms.linux-arm64" = { checksum = "sha256:f50e4c4660e86d21558c48c3bc3ae381ed3416ad8bd1dd4445735ac899cacfbc", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Linux-aarch64.tar.gz"}
 "platforms.linux-x64" = { checksum = "sha256:f3d0588a1376973cdaa59f8daf4d9f41451edfb7f0702710ba2de8889fd6bd47", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Linux-x86_64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:31187d9c3005f71556e6babedb5ca851fd4f87299a1158ac2115442f3640952e", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Darwin-arm64.tar.gz"}
 "platforms.macos-x64" = { checksum = "sha256:62a1b054b532ace02df86a008c92ad78ca54f6abaf5db8c574338d8de741be77", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Darwin-x86_64.tar.gz"}
 "platforms.windows-x64" = { checksum = "sha256:b242cfa50230f56338bbe5bf18fc855d44907de3675ebdc01a98fbaad0f6f118", url = "https://github.com/bufbuild/buf/releases/download/v1.60.0/buf-Windows-x86_64.zip"}
 
@@ -121,16 +122,19 @@ backend = "aqua:itchyny/gojq"
 env = ["devbase"]
 "platforms.linux-arm64" = { checksum = "sha256:519601a973cc74621d0ee775a86cac791f45bb69a78bd1901aadd46701b4c571", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_linux_arm64.tar.gz"}
 "platforms.linux-x64" = { checksum = "sha256:7f00d3e5336749139199e650bcad89b93341b871f211a34e02fca79e59d5eb45", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_linux_amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:bb3794b179f45534120ae5834077c9d1114913bd014ffaa1e24856920d4ab331", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_darwin_arm64.zip"}
+"platforms.macos-x64" = { checksum = "sha256:6ca887b755e7c22330c64fe4cf9d974c19e9c1f081d362d8e4f0bf26f1635eda", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_darwin_amd64.zip"}
+"platforms.windows-x64" = { checksum = "sha256:ecf343e99fb0190fede177becd6e8602386c801c0a98c7e10905a8d832f612d8", url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_windows_amd64.zip"}
 
 [[tools.golangci-lint]]
-version = "2.8.0"
+version = "2.9.0"
 backend = "aqua:golangci/golangci-lint"
 env = ["devbase"]
-"platforms.linux-arm64" = { checksum = "sha256:2a58388db8af5ab9330791cea0ebdd4100723cd05ad7185d92febaaee272ec9a", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-linux-arm64.tar.gz"}
-"platforms.linux-x64" = { checksum = "sha256:7048bc6b25c9515ed092c83f9fa8709ca97937ead52d9ff317a143299ee97a50", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-linux-amd64.tar.gz"}
-"platforms.macos-arm64" = { checksum = "sha256:6f8979a83117e0607d4b85ff486382ef0404440bbf54f0e6f003ceab6ccf641e", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-darwin-arm64.tar.gz"}
-"platforms.macos-x64" = { checksum = "sha256:164c72806d0e31ab19da4f08fff748a3fdc57e241851279b666c945ed9b91830", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-darwin-amd64.tar.gz"}
-"platforms.windows-x64" = { checksum = "sha256:22428168a9406f79853bf9a198b66e88ded9faa57cf85e5d225361f457f33513", url = "https://github.com/golangci/golangci-lint/releases/download/v2.8.0/golangci-lint-2.8.0-windows-amd64.zip"}
+"platforms.linux-arm64" = { checksum = "sha256:94e80cdb51c73c20a313bd3afa1fb23137728813c19fd730248a1e8678fcc46d", url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:493aaaca2eba6c8bcef847d92716bbd91bbac4b22cdbb0ab5b6a581b32946091", url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:a86eabba3507deddd21f2a01a1df2a0ee5bc5c8178d4165cdcaaad8597358760", url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-darwin-arm64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:ba29a353be54a74c45946763983808dc8305eeeca73db1761b5ab112f87f8157", url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-darwin-amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:130fca8fa959eb840267c5e231f030a948e0de1e768bf6a31785505d1061632c", url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-windows-amd64.zip"}
 
 [[tools.goreleaser]]
 version = "1.20.0"
