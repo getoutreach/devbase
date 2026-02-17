@@ -47,14 +47,14 @@ if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
 fi
 if [[ -n $needRunFlags ]]; then
   args+=("--allow-parallel-runners" "--color=always" "--show-stats")
-fi
 
-if in_ci_environment; then
-  TEST_DIR="${workspaceFolder}/bin"
-  TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
-  mkdir -p "$TEST_DIR"
-  # Support multiple output formats (stdout, JUnit)
-  args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+  if in_ci_environment; then
+    TEST_DIR="${workspaceFolder}/bin"
+    TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
+    mkdir -p "$TEST_DIR"
+    # Support multiple output formats (stdout, JUnit)
+    args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+  fi
 fi
 
 # Determine the version of Go and golangci-lint to calculate compatibility.
@@ -118,6 +118,6 @@ fi
 
 mise_exec_tool golangci-lint "${args[@]}"
 
-if in_ci_environment; then
+if in_ci_environment && [[ -n $needRunFlags ]]; then
   mv "$TEST_FILENAME" /tmp/test-results/
 fi
