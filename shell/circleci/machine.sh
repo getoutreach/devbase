@@ -40,6 +40,10 @@ run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 
 bootstrap_github_token
 
+if [[ -z $GITHUB_TOKEN ]]; then
+  fatal "GitHub token not configured in environment, needed for installing tools via mise."
+fi
+
 info "Installing tools via mise required in machine environment"
 run_mise install --cd "$HOME"
 
