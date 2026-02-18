@@ -31,10 +31,6 @@ fi
 ensure_mise_installed
 devbase_configure_global_tools
 
-if [[ -z $GITHUB_TOKEN && -z $MISE_GITHUB_TOKEN ]]; then
-  fatal "GitHub token not pre-configured in environment."
-fi
-
 if [[ $OSTYPE == "darwin"* && -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]] || ! command -v go >/dev/null; then
   install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
   install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
@@ -48,8 +44,6 @@ bootstrap_github_token
 if [[ -z $GITHUB_TOKEN ]]; then
   fatal "GitHub token not configured in environment, needed for installing tools via mise."
 fi
-# Testing only
-fatal "Testing, ignore"
 
 info "Installing tools via mise required in machine environment"
 run_mise install --cd "$HOME"
