@@ -13,7 +13,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 AUTH_DIR="${DIR}/../auth"
 LIB_DIR="${DIR}/../../lib"
 DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
-ROOT_DIR="${DIR}/../../.."
 
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
@@ -24,15 +23,11 @@ source "${LIB_DIR}/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
-tool_version() {
-  local tool="$1"
-  grep "^$tool:" "$ROOT_DIR"/versions.yaml | awk '{print $2}'
-}
-
 info "Ensuring that 'gh' is installed"
 
-install_tool_with_mise github-cli "$(tool_version gh)"
-install_tool_with_mise gojq "$(tool_version gojq)"
+ensure_mise_installed
+devbase_configure_global_tools
+run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 
 info "🔓 Authenticating to GitHub"
 
