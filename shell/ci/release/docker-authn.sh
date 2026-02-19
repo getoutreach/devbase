@@ -14,6 +14,9 @@ AUTH_DIR="${DIR}/../auth"
 LIB_DIR="${DIR}/../../lib"
 DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
 
+# shellcheck source=../../lib/github.sh
+source "${LIB_DIR}/github.sh"
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -27,6 +30,7 @@ info "Ensuring that 'gh' is installed"
 
 ensure_mise_installed
 devbase_configure_global_tools
+bootstrap_github_token
 run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 
 info "🔓 Authenticating to GitHub"
