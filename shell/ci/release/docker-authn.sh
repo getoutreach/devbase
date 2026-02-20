@@ -14,6 +14,9 @@ AUTH_DIR="${DIR}/../auth"
 LIB_DIR="${DIR}/../../lib"
 DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
