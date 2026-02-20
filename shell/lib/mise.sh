@@ -401,6 +401,7 @@ mise_version() {
 # Whether the current mise version is >= the minimum version specified.
 mise_version_compatible() {
   local minVersion miseVersion
+  minVersion="$1"
   miseVersion="$(mise_version)"
   has_minimum_version "$minVersion" "$miseVersion"
 }
