@@ -7,7 +7,7 @@ toolchain go1.25.7
 require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.110.5
-	github.com/getoutreach/localizer v1.15.18
+	github.com/getoutreach/localizer v1.15.19
 	github.com/magefile/mage v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
@@ -65,7 +65,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zalando/go-keyring v0.2.6 // indirect
