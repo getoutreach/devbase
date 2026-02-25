@@ -26,6 +26,7 @@ teardown() {
   touch moduleA/go.mod
   touch moduleB/submodule/go.mod
   touch go.mod
+  git add .
 
   run go_mod_dirs
   assert_success

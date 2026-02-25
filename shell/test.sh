@@ -138,7 +138,7 @@ run_tests() {
   else
     # Replace path separators with dashes for the junit file name
     local sanitizedDir
-    sanitizedDir="$(echo "$projectDir" | tr '/' '--')"
+    sanitizedDir="$(echo "$projectDir" | tr '/' '-')"
     junitFile="$repoDir/bin/unit-tests-${sanitizedDir}.xml"
   fi
 
@@ -172,7 +172,7 @@ if in_ci_environment; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
 
-  # Ensure that all processes recieve the value of GOFLAGS.
+  # Ensure that all processes receive the value of GOFLAGS.
   export GOFLAGS
   # Coverage results directory
   mkdir -p /tmp/test-results
