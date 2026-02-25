@@ -39,6 +39,7 @@ teardown() {
   touch moduleB/submodule/go.mod
   touch moduleC/go.mod
   touch go.mod
+  git add .
 
   IGNORED_GO_MOD_DIRS="moduleB/submodule moduleC" run go_mod_dirs
   assert_success

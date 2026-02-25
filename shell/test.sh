@@ -163,7 +163,7 @@ run_tests() {
 
   if [[ $exitCode -ne 0 ]]; then
     error "Tests failed in $projectDir with exit code $exitCode"
-    exit $exitCode
+    return $exitCode
   fi
   popd >/dev/null || fatal "Failed to change directory back from $projectDir"
 }

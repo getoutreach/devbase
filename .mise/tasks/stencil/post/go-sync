@@ -42,7 +42,8 @@ if [[ -z $gomodGoVersion ]]; then
   exit 0
 fi
 
-for gomod in $(go_mod_dirs); do
+for godir in $(go_mod_dirs); do
+  gomod="$godir/go.mod"
   if managed_by_stencil "$gomod"; then
     continue
   fi
