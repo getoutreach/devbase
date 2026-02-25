@@ -11,6 +11,9 @@ source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/github.sh
 source "$DIR/lib/github.sh"
 
+# shellcheck source=./lib/go.sh
+source "$DIR/lib/go.sh"
+
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 
@@ -116,12 +119,60 @@ e2e_go_toolchain() {
   echo "$toolchain+auto"
 }
 
+go_ldflags() {
+  echo "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"
+}
+
+run_tests() {
+  local projectDir="$1"
+  pushd "$projectDir" >/dev/null || fatal "Failed to change directory to $projectDir"
+  info "Running go test (${TEST_TAGS[*]}) in $projectDir"
+  local exitCode=0
+
+  local junitFile
+  if [[ $projectDir == "." ]]; then
+    junitFile="$REPODIR/bin/unit-tests.xml"
+  else
+    # Replace path separators with dashes for the junit file name
+    local sanitizedDir
+    sanitizedDir="$(echo "$projectDir" | tr '/\' '--')"
+    junitFile="$REPODIR/bin/unit-tests-${sanitizedDir}.xml"
+  fi
+
+  (
+    if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
+      # Workaround from https://github.com/golang/go/issues/75031#issuecomment-3195256688
+      local toolchain
+      toolchain="$(e2e_go_toolchain)"
+      go env -w GOTOOLCHAIN="$toolchain"
+      info_sub "Running E2E tests with Go toolchain $toolchain"
+    fi
+    mise_exec_tool gotestsum --junitfile "$junitFile" --format "$format" -- \
+      "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
+      -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
+  ) || exitCode=$?
+
+  if in_ci_environment; then
+    # Move this to a temporary directory so that we can control
+    # what gets uploaded via the store_test_results call
+    mv "$junitFile" /tmp/test-results/
+  fi
+
+  if [[ $exitCode -ne 0 ]]; then
+    error "Tests failed in $projectDir with exit code $exitCode"
+    exit $exitCode
+  fi
+  popd >/dev/null || fatal "Failed to change directory back from $projectDir"
+}
+
 if in_ci_environment; then
   GOFLAGS+=(-mod=readonly)
   WITH_COVERAGE="true"
 
   # Ensure that all processes recieve the value of GOFLAGS.
   export GOFLAGS
+  # Coverage results directory
+  mkdir -p /tmp/test-results
 fi
 
 # If GO_TEST_TIMEOUT is set, we pass it to `go test` as a timeout.
@@ -160,8 +211,6 @@ if [[ -e $testInclude ]]; then
 fi
 
 if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
-  info "Running go test (${TEST_TAGS[*]})"
-
   format="dots-v2"
   if in_ci_environment; then
     # When in CI, always use the pkgname format because it's easier to
@@ -201,36 +250,15 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # complex linker flags very well right now (v1.7.3).
     go test -c -o "${TESTBIN}" \
       "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
-      -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
-      -tags="$test_tags_string" "$PACKAGE_TO_DEBUG"
+      -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$PACKAGE_TO_DEBUG"
 
     # We pass along command line args to the executable so you can specify
     # `-test.run <regex>`, `-test.bench <regex>`, etc. if desired.  Try `-help`
     # for more information.
     exec "$DIR/dlv.sh" exec "${TESTBIN}" -- "$@"
   else
-    exitCode=0
-
-    (
-      if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
-        # Workaround from https://github.com/golang/go/issues/75031#issuecomment-3195256688
-        toolchain="$(e2e_go_toolchain)"
-        go env -w GOTOOLCHAIN="$toolchain"
-        info_sub "Running E2E tests with Go toolchain $toolchain"
-      fi
-      mise_exec_tool gotestsum --junitfile "$REPODIR/bin/unit-tests.xml" --format "$format" -- \
-        "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
-        -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing" \
-        -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
-    ) || exitCode=$?
-
-    if in_ci_environment; then
-      # Move this to a temporary directory so that we can control
-      # what gets uploaded via the store_test_results call
-      mkdir -p /tmp/test-results
-      mv "$REPODIR/bin/unit-tests.xml" /tmp/test-results/
-    fi
-
-    exit $exitCode
+    for godir in $(go_mod_dirs); do
+      run_tests "$godir" || fatal "Tests failed in $godir"
+    done
   fi
 fi
