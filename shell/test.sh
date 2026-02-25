@@ -135,7 +135,7 @@ run_tests() {
   else
     # Replace path separators with dashes for the junit file name
     local sanitizedDir
-    sanitizedDir="$(echo "$projectDir" | tr '/\' '--')"
+    sanitizedDir="$(echo "$projectDir" | tr '/' '--')"
     junitFile="$REPODIR/bin/unit-tests-${sanitizedDir}.xml"
   fi
 
