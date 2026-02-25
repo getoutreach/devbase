@@ -105,14 +105,17 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
+# repoDir is the base directory of the repository.
+repoDir=$(get_repo_directory)
+
 # Generates the Go toolchain string to be used for E2E tests.
 # Go 1.25 and later have an issue with code coverage, so we append
 # "+auto" so that the `covdata` tool is available.
 # See: https://github.com/golang/go/issues/75031
 e2e_go_toolchain() {
-  local repoDir toolchain
-  repoDir="$(get_repo_directory)"
-  toolchain="$(grep ^toolchain "$repoDir/go.mod" | awk '{print $2}')"
+  local goDir="$1"
+  local toolchain
+  toolchain="$(grep ^toolchain "$goDir/go.mod" | awk '{print $2}')"
   if [[ -z $toolchain ]]; then
     toolchain="go$(grep ^golang "$repoDir/.tool-versions" | awk '{print $2}')"
   fi
@@ -131,19 +134,19 @@ run_tests() {
 
   local junitFile
   if [[ $projectDir == "." ]]; then
-    junitFile="$REPODIR/bin/unit-tests.xml"
+    junitFile="$repoDir/bin/unit-tests.xml"
   else
     # Replace path separators with dashes for the junit file name
     local sanitizedDir
     sanitizedDir="$(echo "$projectDir" | tr '/' '--')"
-    junitFile="$REPODIR/bin/unit-tests-${sanitizedDir}.xml"
+    junitFile="$repoDir/bin/unit-tests-${sanitizedDir}.xml"
   fi
 
   (
     if [[ ${TEST_TAGS[*]} =~ "or_e2e" ]]; then
       # Workaround from https://github.com/golang/go/issues/75031#issuecomment-3195256688
       local toolchain
-      toolchain="$(e2e_go_toolchain)"
+      toolchain="$(e2e_go_toolchain "$projectDir")"
       go env -w GOTOOLCHAIN="$toolchain"
       info_sub "Running E2E tests with Go toolchain $toolchain"
     fi
@@ -179,9 +182,6 @@ fi
 if [[ -n $GO_TEST_TIMEOUT ]]; then
   TEST_FLAGS+=(-timeout "$GO_TEST_TIMEOUT")
 fi
-
-# REPODIR is the base directory of the repository.
-REPODIR=$(get_repo_directory)
 
 # Catches test dependencies by shuffling tests if the installed Go version supports it
 currentver="$(go version | awk '{ print $3 }' | sed 's|go||')"
