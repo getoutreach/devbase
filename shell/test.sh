@@ -126,8 +126,13 @@ go_ldflags() {
   echo "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing -X github.com/getoutreach/gobox/pkg/app.Version=testing"
 }
 
-run_tests() {
+# run_go_tests <projectDir> [args...]
+#
+# Runs Go tests with gotestsum for the given project directory,
+# with optional additional arguments.
+run_go_tests() {
   local projectDir="$1"
+  shift
   pushd "$projectDir" >/dev/null || fatal "Failed to change directory to $projectDir"
   info "Running go test (${TEST_TAGS[*]}) in $projectDir"
   local exitCode=0
@@ -258,7 +263,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     exec "$DIR/dlv.sh" exec "${TESTBIN}" -- "$@"
   else
     for godir in $(go_mod_dirs); do
-      run_tests "$godir" || fatal "Tests failed in $godir"
+      run_go_tests "$godir" "$@" || fatal "Tests failed in $godir"
     done
   fi
 fi
