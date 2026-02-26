@@ -262,6 +262,10 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # for more information.
     exec "$DIR/dlv.sh" exec "${TESTBIN}" -- "$@"
   else
+    if in_ci_environment; then
+      # Ensure that environment variables from mise.toml are loaded
+      eval "$(mise env --cd "$repoDir" --shell bash)"
+    fi
     for godir in $(go_mod_dirs); do
       run_go_tests "$godir" "$@" || fatal "Tests failed in $godir"
     done
