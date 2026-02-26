@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Linters for Golang
 
+# shellcheck source=../lib/go.sh
+source "$DIR/lib/go.sh"
+
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=("go")
@@ -24,11 +27,18 @@ gofumpt() {
 }
 
 linter() {
-  run_command "go mod tidy" go mod tidy -diff || return 1
-  # gofmt/goimports/gofumpt checking is done by golangci-lint
-  run_command "golangci-lint" \
-    "$DIR/golangci-lint.sh" --build-tags "or_e2e,or_test" --timeout 10m run ./... || return 1
-  run_command "lintroller" lintroller || return 1
+  for godir in $(go_mod_dirs); do
+    pushd "$godir" >/dev/null || return 1
+    if [[ $godir != "." ]]; then
+      info "Linting module in $godir"
+    fi
+    run_command "go mod tidy" go mod tidy -diff || return 1
+    # gofmt/goimports/gofumpt checking is done by golangci-lint
+    run_command "golangci-lint" \
+      "$DIR/golangci-lint.sh" --build-tags "or_e2e,or_test" --timeout 10m run ./... || return 1
+    run_command "lintroller" lintroller || return 1
+    popd >/dev/null || return 1
+  done
 }
 
 formatter() {
@@ -37,13 +47,20 @@ formatter() {
   if [[ -f "$(get_repo_directory)/go.work" ]]; then
     run_command "go work use" go work use || return 1
   fi
-  run_command "go mod tidy" go mod tidy || return 1
-  if [[ -z $goFormatter || $goFormatter == "null" || $goFormatter == "gofmt" ]]; then
-    run_command goimports goimports || return 1
-    run_command gofmt gofmt || return 1
-  elif [[ $goFormatter == gofumpt ]]; then
-    run_command gofumpt gofumpt || return 1
-  else
-    fatal "Unknown Go formatter: $goFormatter"
-  fi
+  for godir in $(go_mod_dirs); do
+    pushd "$godir" >/dev/null || return 1
+    if [[ $godir != "." ]]; then
+      info "Formatting module in $godir"
+    fi
+    run_command "go mod tidy" go mod tidy || return 1
+    if [[ -z $goFormatter || $goFormatter == "null" || $goFormatter == "gofmt" ]]; then
+      run_command goimports goimports || return 1
+      run_command gofmt gofmt || return 1
+    elif [[ $goFormatter == gofumpt ]]; then
+      run_command gofumpt gofumpt || return 1
+    else
+      fatal "Unknown Go formatter: $goFormatter"
+    fi
+    popd >/dev/null || return 1
+  done
 }
