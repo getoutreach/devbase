@@ -25,7 +25,7 @@ if in_ci_environment; then
   bootstrap_github_token
   # Ensure that environment variables from mise.toml are loaded
   # TODO[DT-5181]: remove this block and re-test once we move `make lint` to `mise run lint`.
-  eval "$(mise env --cd "$repoDir" --shell bash)"
+  eval "$(mise env --cd "$(get_repo_directory)" --shell bash)"
 else
   GITHUB_TOKEN="$(github_token)"
   export GITHUB_TOKEN
