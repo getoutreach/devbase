@@ -7,11 +7,11 @@
 # directories) to skip specific directories.
 go_mod_dirs() {
   git ls-files --cached --others --modified --exclude-standard go.mod '**/go.mod' | xargs dirname | while read -r gomodDir; do
+    info "Ignored go.mod directories: ${IGNORED_GO_MOD_DIRS:-none}"
     for ignored in ${IGNORED_GO_MOD_DIRS:-}; do
       if [[ $gomodDir == "$ignored" ]]; then
         continue 2
       fi
     done
-    echo "$gomodDir"
   done | sort | uniq | xargs echo
 }
