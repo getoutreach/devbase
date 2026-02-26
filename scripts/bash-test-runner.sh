@@ -6,13 +6,13 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEVBASE_LIB_DIR="$DIR/../shell/lib"
 
-# shellcheck source=../../shell/lib/bootstrap.sh
+# shellcheck source=../shell/lib/bootstrap.sh
 source "$DEVBASE_LIB_DIR"/bootstrap.sh
 
-# shellcheck source=../../shell/lib/logging.sh
+# shellcheck source=../shell/lib/logging.sh
 source "$DEVBASE_LIB_DIR"/logging.sh
 
-# shellcheck source=../../shell/lib/shell.sh
+# shellcheck source=../shell/lib/shell.sh
 source "$DEVBASE_LIB_DIR"/shell.sh
 
 # Check if the bats test helpers are installed and usable.
