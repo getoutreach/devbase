@@ -120,7 +120,7 @@ lint:: pre-test pre-lint
 ## test:            run unit tests
 .PHONY: test
 test:: pre-test lint
-	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
+	$(BASE_TEST_ENV) mise exec -- ./scripts/shell-wrapper.sh test.sh
 
 ## test-e2e:        run only e2e test (use inside a dev pod)
 .PHONY: test-e2e
