@@ -264,6 +264,7 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
   else
     if in_ci_environment; then
       # Ensure that environment variables from mise.toml are loaded
+      # TODO[DT-5181]: remove this block and re-test once we move `make test` to `mise run test`.
       eval "$(mise env --cd "$repoDir" --shell bash)"
     fi
     for godir in $(go_mod_dirs); do
