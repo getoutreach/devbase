@@ -12,5 +12,6 @@ go_mod_dirs() {
         continue 2
       fi
     done
+    echo "$gomodDir"
   done | sort | uniq | xargs echo
 }
