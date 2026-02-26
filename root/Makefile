@@ -115,7 +115,7 @@ build:: pre-build gobuild
 lint:: pre-test pre-lint
 	@# Note that this requires the ensure_asdf.sh invocation at the top of
 	@# this file.
-	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
+	$(BASE_TEST_ENV) mise exec -- ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
 .PHONY: test
