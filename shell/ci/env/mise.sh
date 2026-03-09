@@ -38,14 +38,14 @@ ghToken="$(gh auth token)"
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
-  if [[ -z ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]; then
+  if mise_manages_tool_versions; then
+    info_sub "🧑‍🍳 allowing mise to manage .tool-versions"
+    MISE_GITHUB_TOKEN="$ghToken" mise install --cd "$repoDir" --yes
+  else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
     MISE_GITHUB_TOKEN="$ghToken" \
       MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="none" \
       mise install --cd "$repoDir" --yes
-  else
-    info_sub "🧑‍🍳 allowing mise to manage .tool-versions"
-    MISE_GITHUB_TOKEN="$ghToken" mise install --cd "$repoDir" --yes
   fi
 fi
 
