@@ -215,7 +215,14 @@ run_mise() {
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     wait_for_gh_rate_limit
   fi
-  "$mise_path" "$@"
+
+  local tool_versions_override=""
+  if ! mise_manages_tool_versions; then
+    tool_versions_override="none"
+  fi
+
+  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+    "$mise_path" "$@"
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
