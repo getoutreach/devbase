@@ -23,6 +23,7 @@ source "$DEVBASE_LIB_DIR"/sed.sh
 appDir="$(get_repo_directory)"
 
 goVersion="$(grep "^golang " "$appDir"/.tool-versions | awk '{print $2}')"
+gomodGoVersion=""
 if [[ -f "$appDir/go.mod" ]]; then
   gomodGoVersion="$(grep "^go " "$appDir/go.mod" | awk '{print $2}')"
 fi
