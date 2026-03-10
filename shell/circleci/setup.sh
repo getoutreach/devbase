@@ -30,7 +30,7 @@ if gh_installed; then
   bootstrap_github_token
 fi
 
-if [[ -z $ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS ]]; then
+if ! mise_manages_tool_versions; then
   # Ensure that asdf is ready to be used
   info "🔨 Setting up asdf"
   "$CI_DIR/env/asdf.sh"

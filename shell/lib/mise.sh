@@ -33,8 +33,6 @@ ensure_mise_installed() {
 
     "$mise_bin" --version
 
-    local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
-
     if [[ -n $BASH_ENV ]]; then
       info_sub "Adding mise to BASH_ENV: $BASH_ENV"
       # shellcheck disable=SC2016
@@ -43,14 +41,14 @@ ensure_mise_installed() {
         if [[ -z $is_root ]]; then
           echo 'export PATH="$HOME/.local/bin:$PATH"'
         fi
-        if [[ -z $mise_manages_tool_versions ]]; then
+        if ! mise_manages_tool_versions; then
           echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
         fi
         echo 'eval "$(mise activate bash --shims)"'
       } >>"$BASH_ENV"
     fi
 
-    if [[ -z $mise_manages_tool_versions ]]; then
+    if ! mise_manages_tool_versions; then
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     fi
@@ -200,6 +198,12 @@ find_mise() {
   fi
 }
 
+# Whether `mise` manages tools declared in `.tool-versions`, in addition to `mise.toml`.
+# If not, asdf manages the declared tools.
+mise_manages_tool_versions() {
+  [[ -n ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]
+}
+
 # run_mise ARGS...
 #
 # Runs `mise`. If in CI, `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set, and
@@ -211,7 +215,14 @@ run_mise() {
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
     wait_for_gh_rate_limit
   fi
-  "$mise_path" "$@"
+
+  local tool_versions_override=""
+  if ! mise_manages_tool_versions; then
+    tool_versions_override="none"
+  fi
+
+  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+    "$mise_path" "$@"
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
