@@ -124,7 +124,11 @@ download_mise_install_script() {
   http_fetch "https://mise.jdx.dev/install.sh.sig"
 }
 
+# install_mise_via_apt_if_ubuntu_in_ci([version])
+#
 # Install mise via apt if running in CI on Ubuntu.
+# The `version` parameter is only used to warn the user that you can't
+# install a custom version via apt.
 install_mise_via_apt_if_ubuntu_in_ci() {
   local version="$1"
   local distro
