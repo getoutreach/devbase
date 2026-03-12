@@ -416,8 +416,10 @@ devbase_install_mise_tools() {
 }
 
 # The current version of mise.
+# Does not use JSON+gojq as it's mise-installed and could possibly fail
+# if the version is too old for the project mise config.
 mise_version() {
-  run_mise version --json | gojq --raw-output .version | awk '{print $1}'
+  run_mise version --quiet | tail -n 1 | awk '{print $1}'
 }
 
 # mise_version_compatible(minVersion)
