@@ -83,6 +83,8 @@ install_mise() {
   run_mise settings set http_retries 3
   run_mise settings set lockfile true
   run_mise settings set use_versions_host_track false
+  # TODO: remove when the default changes, reportedly in 2026.8.0
+  run_mise settings set ruby.compile true
 }
 
 # Fetch a URL via either curl or wget, with retries, with the response body going to stdout.
