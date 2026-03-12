@@ -24,6 +24,9 @@ source "${LIB_DIR}/mise.sh"
 # shellcheck source=../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+info "🔨 Setting up mise 🧑‍🍳"
+ensure_mise_installed
+
 if gh_installed; then
   # shellcheck disable=SC2119
   # Why: no extra args needed to pass to ghaccesstoken in this case.
@@ -35,9 +38,6 @@ if ! mise_manages_tool_versions; then
   info "🔨 Setting up asdf"
   "$CI_DIR/env/asdf.sh"
 fi
-
-info "🔨 Setting up mise 🧑‍🍳"
-ensure_mise_installed
 
 "$CI_DIR/env/mise.sh"
 
