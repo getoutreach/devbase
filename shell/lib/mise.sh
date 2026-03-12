@@ -423,6 +423,7 @@ mise_version() {
 # mise_version_compatible(minVersion)
 #
 # Whether the current mise version is >= the minimum version specified.
+# Requires sourcing version.sh.
 mise_version_compatible() {
   local minVersion miseVersion
   minVersion="$1"
