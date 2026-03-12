@@ -24,6 +24,9 @@ source "${LIB_DIR}/mise.sh"
 # shellcheck source=../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+# shellcheck source=../lib/version.sh
+source "${LIB_DIR}/version.sh"
+
 info "🔨 Setting up mise 🧑‍🍳"
 ensure_mise_installed
 
