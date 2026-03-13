@@ -19,7 +19,6 @@ source "$DEVBASE_LIB_DIR/shell.sh"
 ensure_mise_installed 1>&2
 
 misePath="$(find_mise)"
-
 ghToken="$(gh auth token)"
 
 GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
