@@ -20,5 +20,7 @@ ensure_mise_installed 1>&2
 
 misePath="$(find_mise)"
 
-wait_for_gh_rate_limit
-MISE_GITHUB_TOKEN="$(gh auth token)" exec "$misePath" "$@"
+ghToken="$(gh auth token)"
+
+GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
+MISE_GITHUB_TOKEN="$ghToken" exec "$misePath" "$@"
