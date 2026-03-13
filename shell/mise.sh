@@ -16,7 +16,7 @@ source "$DEVBASE_LIB_DIR/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DEVBASE_LIB_DIR/shell.sh"
 
-# shellcheck source=./lib/shell.sh
+# shellcheck source=./lib/version.sh
 source "$DEVBASE_LIB_DIR/version.sh"
 
 ensure_mise_installed 1>&2
