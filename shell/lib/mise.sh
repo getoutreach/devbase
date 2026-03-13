@@ -215,7 +215,8 @@ run_mise() {
   local mise_path
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
-    wait_for_gh_rate_limit
+    local ghToken="${MISE_GITHUB_TOKEN:-$GITHUB_TOKEN}"
+    GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
   fi
 
   local tool_versions_override=""
