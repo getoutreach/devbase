@@ -63,7 +63,7 @@ ensure_mise_installed() {
 install_mise() {
   local install_script=/tmp/mise-install.sh
 
-  if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
+  if [[ ! -f $install_script || "$(wc -c "$install_script" | awk '{print $1}')" -eq 0 ]]; then
     if ! retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d; then
       error "Could not import mise GPG release key"
       install_mise_via_apt_if_ubuntu_in_ci
