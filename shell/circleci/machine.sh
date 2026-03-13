@@ -22,6 +22,9 @@ source "$LIB_DIR"/mise.sh
 # shellcheck source=../lib/shell.sh
 source "$LIB_DIR"/shell.sh
 
+# shellcheck source=../lib/version.sh
+source "$LIB_DIR"/version.sh
+
 if [[ $OSTYPE == "darwin"* ]]; then
   brew install bash docker gnupg gnu-sed
   # Rosetta is required for awscli installed by mise
