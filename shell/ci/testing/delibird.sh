@@ -44,7 +44,7 @@ configure_delibird() {
   mkdir -p "$(dirname "$tokenPath")"
 
   # Fetch the delibird token from Vault.
-  DELIBIRD_TOKEN=$("$(find_vault)" kv get -format=json deploy/delibird/development/upload | jq -r '.data.data.token')
+  DELIBIRD_TOKEN=$("$(find_vault)" kv get -field token deploy/delibird/development/upload)
   if [[ -z $DELIBIRD_TOKEN ]]; then
     echo "Error: Failed to fetch delibird token from Vault." \
       "Please ensure that the deploy/delibird/development/upload secret exists and" \
