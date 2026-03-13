@@ -29,6 +29,9 @@ source "${LIB_DIR}/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+# shellcheck source=../../lib/version.sh
+source "${LIB_DIR}/version.sh"
+
 info "Ensuring that 'gh' is installed"
 
 ensure_mise_installed
