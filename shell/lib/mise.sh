@@ -24,6 +24,8 @@ ensure_mise_installed() {
     if [[ -n $minMiseVersion ]] && ! mise_version_compatible "$minMiseVersion"; then
       info "Upgrading mise from $(mise_version) to meet minimum version requirement of $minMiseVersion"
       install_mise "$minMiseVersion"
+
+      mise --version
     fi
   else
     if [[ -n $is_root ]]; then
@@ -133,7 +135,7 @@ download_mise_install_script() {
 # The `version` parameter is only used to warn the user that you can't
 # install a custom version via apt.
 install_mise_via_apt_if_ubuntu_in_ci() {
-  local version="$1"
+  local version="${1:-}"
   local distro
   if ! in_ci_environment; then
     warn "Falling back to apt installation of mise is only supported in CI environments"
@@ -422,7 +424,7 @@ devbase_install_mise_tools() {
 # Does not use JSON+gojq as it's mise-installed and could possibly fail
 # if the version is too old for the project mise config.
 mise_version() {
-  run_mise version --quiet | tail -n 1 | awk '{print $1}'
+  "$(find_mise)" version --quiet | tail -n 1 | awk '{print $1}'
 }
 
 # mise_version_compatible(minVersion)
