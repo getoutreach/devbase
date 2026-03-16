@@ -63,6 +63,7 @@ ensure_mise_installed() {
     eval "$(mise activate bash --shims)"
   fi
 }
+
 # install_mise([version])
 #
 # Installs mise via the official install script (making sure that it is
