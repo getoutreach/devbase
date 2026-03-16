@@ -88,12 +88,14 @@ install_mise() {
       install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
   fi
-  if [[ -n $MISE_VERSION ]]; then
+  if [[ -n $MISE_VERSION && -n $version ]]; then
     warn "MISE_VERSION is already set to '$MISE_VERSION', it will be overridden to '$version' for the installation process"
   fi
   (
     set +e
-    export MISE_VERSION="$version"
+    if [[ -n $version ]]; then
+      export MISE_VERSION="$version"
+    fi
     if ! retry 5 5 sh "$install_script"; then
       install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
