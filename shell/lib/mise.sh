@@ -74,7 +74,7 @@ ensure_mise_installed() {
 # latest version is installed. The apt fallback will always install
 # the latest version.
 install_mise() {
-  local version="$1"
+  local version="${1:-}"
   local install_script=/tmp/mise-install.sh
 
   if [[ ! -f $install_script || "$(wc -c "$install_script" | awk '{print $1}')" -eq 0 ]]; then
@@ -88,7 +88,7 @@ install_mise() {
       install_mise_via_apt_if_ubuntu_in_ci "$version"
     fi
   fi
-  if [[ -n $MISE_VERSION && -n $version ]]; then
+  if [[ -n ${MISE_VERSION:-} && -n $version ]]; then
     warn "MISE_VERSION is already set to '$MISE_VERSION', it will be overridden to '$version' for the installation process"
   fi
   (
