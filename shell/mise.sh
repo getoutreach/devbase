@@ -7,22 +7,13 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEVBASE_LIB_DIR="$DIR/lib"
 
-# shellcheck source=./lib/logging.sh
-source "$DEVBASE_LIB_DIR/logging.sh"
-
-# shellcheck source=./lib/mise.sh
-source "$DEVBASE_LIB_DIR/mise.sh"
-
-# shellcheck source=./lib/shell.sh
-source "$DEVBASE_LIB_DIR/shell.sh"
-
-# shellcheck source=./lib/version.sh
-source "$DEVBASE_LIB_DIR/version.sh"
+# shellcheck source=./lib/mise/stub.sh
+source "$DEVBASE_LIB_DIR/mise/stub.sh"
 
 ensure_mise_installed 1>&2
 
 misePath="$(find_mise)"
-ghToken="$(gh auth token)"
+ghToken="$(run_gh auth token)"
 
 GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
 MISE_GITHUB_TOKEN="$ghToken" exec "$misePath" "$@"

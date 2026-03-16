@@ -15,3 +15,5 @@ source "$DEVBASE_LIB_DIR/logging.sh"
 source "$DEVBASE_LIB_DIR/mise.sh"
 # shellcheck source=../shell.sh
 source "$DEVBASE_LIB_DIR/shell.sh"
+# shellcheck source=../version.sh
+source "$DEVBASE_LIB_DIR/version.sh"
