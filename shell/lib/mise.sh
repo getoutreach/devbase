@@ -366,12 +366,18 @@ devbase_tool_version_from_mise() {
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
-# Copies mise.devbase.toml to a user-wide config so that shims in CI
-# know what to run.
+# Copies mise.devbase.toml and its lockfile to a user-wide config so
+# that shims in CI know what to run, with limited network calls.
 devbase_configure_global_tools() {
-  local miseConfdDir="$HOME/.config/mise/conf.d"
+  local miseConfigDir="${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/mise}"
+  local miseConfdDir="$miseConfigDir/conf.d"
+  local userMiseLock="$miseConfigDir/mise.lock"
+  local devbaseDir
+  devbaseDir="$(get_devbase_directory)"
   mkdir -p "$miseConfdDir"
-  cp "$(get_devbase_directory)/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+  cp "$devbaseDir/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+  echo >>"$userMiseLock" # touch the lockfile to prevent errors about it not existing
+  cat "$devbaseDir/mise.devbase.lock" >>"$userMiseLock"
 }
 
 # Installs devbase specific tools if they're not already installed.

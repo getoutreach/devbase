@@ -31,21 +31,21 @@ fi
 ensure_mise_installed
 devbase_configure_global_tools
 
-if ([[ $OSTYPE == "darwin"* ]] && ! mise_manages_tool_versions) || ! command_exists go; then
-  install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
-  install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
-fi
-run_mise trust --env devbase --cd "$ROOT_DIR"
-
 if [[ -z $GITHUB_TOKEN ]]; then
   # Minimum amount of tools to install to bootstrap the GitHub token
-  run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
+  devbase_mise install --yes github-cli github:getoutreach/ci gojq
 
   bootstrap_github_token
 
   if [[ -z $GITHUB_TOKEN ]]; then
     fatal "GitHub token not configured in environment, needed for installing tools via mise."
   fi
+
+  if ([[ $OSTYPE == "darwin"* ]] && ! mise_manages_tool_versions) || ! command_exists go; then
+    install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
+    install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
+  fi
+  devbase_mise trust
 fi
 
 info "Installing tools via mise required in machine environment"
