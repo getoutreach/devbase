@@ -86,13 +86,7 @@ post-stencil::
 ## release:         tag a new release with goreleaser
 .PHONY: release
 release:: pre-release
-	@# Create a tag for our version
-	@git tag -d "$(APP_VERSION)" >&2 >/dev/null || true
-	@git tag "$(APP_VERSION)" >&2
-	@GORELEASER_CURRENT_TAG=$(APP_VERSION) ASDF_GORELEASER_VERSION=$(shell cat "$(BOOTSTRAP_DIR)/.tool-versions" | grep goreleaser | awk '{ print $$2 }') \
-		goreleaser release --skip-announce --skip-publish --skip-validate --clean
-	@# Delete the tag once we are done.
-	@git tag -d "$(APP_VERSION)" >&2
+	@./scripts/shell-wrapper.sh release.sh
 
 ## help             show this help
 .PHONY: help
@@ -121,12 +115,12 @@ build:: pre-build gobuild
 lint:: pre-test pre-lint
 	@# Note that this requires the ensure_asdf.sh invocation at the top of
 	@# this file.
-	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh linters.sh
+	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh mise.sh exec -- ./scripts/shell-wrapper.sh linters.sh
 
 ## test:            run unit tests
 .PHONY: test
 test:: pre-test lint
-	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh test.sh
+	$(BASE_TEST_ENV) ./scripts/shell-wrapper.sh mise.sh exec -- ./scripts/shell-wrapper.sh test.sh
 
 ## test-e2e:        run only e2e test (use inside a dev pod)
 .PHONY: test-e2e

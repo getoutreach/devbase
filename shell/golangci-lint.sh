@@ -24,19 +24,37 @@ if [[ -z $workspaceFolder ]]; then
   workspaceFolder="$(get_repo_directory)"
 fi
 
-# Ensure that the configuration comes from the repo and not devbase.
-args=("--config=${workspaceFolder}/scripts/golangci.yml" "$@")
-args+=("--allow-parallel-runners" "--color=always" "--show-stats")
+subcmdsThatNeedConfigFlag=(config fmt formatters linters)
+args=("$@")
+needConfigFlag=
+needRunFlags=
+for arg in "${args[@]}"; do
+  if [[ $arg == run ]]; then
+    needRunFlags=true
+    break
+  fi
+  for subcmd in "${subcmdsThatNeedConfigFlag[@]}"; do
+    if [[ $arg == "$subcmd" ]]; then
+      needConfigFlag=true
+      break 2
+    fi
+  done
+done
 
-if in_ci_environment; then
-  TEST_DIR="${workspaceFolder}/bin"
-  TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
-  mkdir -p "$TEST_DIR"
-  # Support multiple output formats (stdout, JUnit)
-  args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+if [[ -n $needRunFlags ]]; then
+  args+=("--allow-parallel-runners" "--color=always" "--show-stats")
+
+  if in_ci_environment; then
+    TEST_DIR="${workspaceFolder}/bin"
+    TEST_FILENAME="${TEST_DIR}/golangci-lint-tests.xml"
+    mkdir -p "$TEST_DIR"
+    # Support multiple output formats (stdout, JUnit)
+    args+=("--output.junit-xml.path=${TEST_FILENAME}" "--output.junit-xml.extended")
+  fi
 fi
 
-# Determine the version of golangci-lint to calculate compatibility.
+# Determine the version of Go and golangci-lint to calculate compatibility.
+GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
 GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
 # Only update this if something in devbase requires a specific version.
 # For example, if the config schema has a breaking change, or the templated
@@ -45,6 +63,32 @@ MIN_GOLANGCI_LINT_VERSION="2.7.2"
 
 if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; then
   fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
+fi
+
+if has_minimum_version "1.26.0" "$GO_VERSION" && ! has_minimum_version "2.9.0" "$GOLANGCI_LINT_VERSION"; then
+  fatal "Go 1.26 and later requires golangci-lint 2.9.0 or later"
+fi
+
+if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
+  # Ensure that the configuration comes from the repo and not devbase.
+  configPath="$workspaceFolder/scripts/golangci.yml"
+  if [[ ! -f $configPath ]]; then
+    fatal "golangci-lint config file not found at $configPath"
+  fi
+  # Ensure that the config version matches the golangci-lint major version to prevent compatibility issues.
+  configVersion="$(gojq --yaml-input --raw-output .version "$configPath")"
+  if [[ $configVersion == null ]]; then
+    configVersion=1
+  fi
+  toolMajorVersion="$(echo "$GOLANGCI_LINT_VERSION" | cut -d. -f1)"
+  if [[ $configVersion != "$toolMajorVersion" ]]; then
+    errMsg="$configPath version ($configVersion) does not match golangci-lint major version ($toolMajorVersion)."
+    if [[ -n $(stencil_module_version github.com/getoutreach/stencil-golang) ]]; then
+      errMsg+=" Restencil to get the latest configuration file from stencil-golang."
+    fi
+    fatal "$errMsg"
+  fi
+  args+=("--config=${configPath}")
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
@@ -92,6 +136,6 @@ fi
 
 mise_exec_tool golangci-lint "${args[@]}"
 
-if in_ci_environment; then
+if in_ci_environment && [[ -n $needRunFlags ]]; then
   mv "$TEST_FILENAME" /tmp/test-results/
 fi

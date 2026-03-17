@@ -33,8 +33,6 @@ ensure_mise_installed() {
 
     "$mise_bin" --version
 
-    local mise_manages_tool_versions="${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-}"
-
     if [[ -n $BASH_ENV ]]; then
       info_sub "Adding mise to BASH_ENV: $BASH_ENV"
       # shellcheck disable=SC2016
@@ -43,14 +41,14 @@ ensure_mise_installed() {
         if [[ -z $is_root ]]; then
           echo 'export PATH="$HOME/.local/bin:$PATH"'
         fi
-        if [[ -z $mise_manages_tool_versions ]]; then
+        if ! mise_manages_tool_versions; then
           echo 'export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none'
         fi
         echo 'eval "$(mise activate bash --shims)"'
       } >>"$BASH_ENV"
     fi
 
-    if [[ -z $mise_manages_tool_versions ]]; then
+    if ! mise_manages_tool_versions; then
       # Let asdf manage .tool-versions for now
       export MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none
     fi
@@ -65,7 +63,7 @@ ensure_mise_installed() {
 install_mise() {
   local install_script=/tmp/mise-install.sh
 
-  if [[ ! -f $install_script || "$(wc -c "$install_script")" -eq 0 ]]; then
+  if [[ ! -f $install_script || "$(wc -c "$install_script" | awk '{print $1}')" -eq 0 ]]; then
     if ! retry 5 5 gpg --keyserver hkps://keys.openpgp.org --recv-keys 0x24853ec9f655ce80b48e6c3a8b81c9d17413a06d; then
       error "Could not import mise GPG release key"
       install_mise_via_apt_if_ubuntu_in_ci
@@ -83,7 +81,10 @@ install_mise() {
     fi
   )
   run_mise settings set http_retries 3
+  run_mise settings set lockfile true
   run_mise settings set use_versions_host_track false
+  # TODO: remove when the default changes, reportedly in 2026.8.0
+  run_mise settings set ruby.compile true
 }
 
 # Fetch a URL via either curl or wget, with retries, with the response body going to stdout.
@@ -199,6 +200,12 @@ find_mise() {
   fi
 }
 
+# Whether `mise` manages tools declared in `.tool-versions`, in addition to `mise.toml`.
+# If not, asdf manages the declared tools.
+mise_manages_tool_versions() {
+  [[ -n ${ALLOW_MISE_TO_MANAGE_TOOL_VERSIONS:-} ]]
+}
+
 # run_mise ARGS...
 #
 # Runs `mise`. If in CI, `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set, and
@@ -208,9 +215,17 @@ run_mise() {
   local mise_path
   mise_path="$(find_mise)"
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
-    wait_for_gh_rate_limit
+    local ghToken="${MISE_GITHUB_TOKEN:-$GITHUB_TOKEN}"
+    GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
   fi
-  "$mise_path" "$@"
+
+  local tool_versions_override=""
+  if ! mise_manages_tool_versions; then
+    tool_versions_override="none"
+  fi
+
+  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+    "$mise_path" "$@"
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
@@ -271,18 +286,27 @@ mise_exec_tool_with_bin() {
   binPath="$(find_tool "$binName")"
   set -e
 
+  local foundAsdfShim=
   if [[ $binPath == "$(asdf_shim_dir)"* ]]; then
+    foundAsdfShim=1
     remove_asdf_shim "$binName"
     set +e
     binPath="$(find_tool "$binName")"
     set -e
   fi
 
+  set +e
   if [[ -n $binPath ]]; then
     "$binPath" "$@"
   else
     MISE_GITHUB_TOKEN=$(github_token) run_mise exec "$toolName@$(devbase_tool_version_from_mise "$toolName")" -- "$binName" "$@"
   fi
+  local exitCode=$?
+  if ! in_ci_environment && [[ -n $foundAsdfShim ]]; then
+    asdf reshim "$binName" >&2
+  fi
+  set -e
+  return $exitCode
 }
 
 # xargs_mise_exec_tool_with_bin is a helper function that runs `mise exec` with xargs.
@@ -342,12 +366,18 @@ devbase_tool_version_from_mise() {
     gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
 }
 
-# Copies mise.devbase.toml to a user-wide config so that shims in CI
-# know what to run.
+# Copies mise.devbase.toml and its lockfile to a user-wide config so
+# that shims in CI know what to run, with limited network calls.
 devbase_configure_global_tools() {
-  local miseConfdDir="$HOME/.config/mise/conf.d"
+  local miseConfigDir="${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/mise}"
+  local miseConfdDir="$miseConfigDir/conf.d"
+  local userMiseLock="$miseConfigDir/mise.lock"
+  local devbaseDir
+  devbaseDir="$(get_devbase_directory)"
   mkdir -p "$miseConfdDir"
-  cp "$(get_devbase_directory)/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+  cp "$devbaseDir/mise.devbase.toml" "$miseConfdDir/devbase.toml"
+  echo >>"$userMiseLock" # touch the lockfile to prevent errors about it not existing
+  cat "$devbaseDir/mise.devbase.lock" >>"$userMiseLock"
 }
 
 # Installs devbase specific tools if they're not already installed.

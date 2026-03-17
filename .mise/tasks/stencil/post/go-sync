@@ -11,6 +11,9 @@ DEVBASE_LIB_DIR="$DEVBASE_ROOT_DIR/shell/lib"
 # shellcheck source=../../../../shell/lib/bootstrap.sh
 source "$DEVBASE_LIB_DIR"/bootstrap.sh
 
+# shellcheck source=../../../../shell/lib/go.sh
+source "$DEVBASE_LIB_DIR"/go.sh
+
 # shellcheck source=../../../../shell/lib/logging.sh
 source "$DEVBASE_LIB_DIR"/logging.sh
 
@@ -20,6 +23,7 @@ source "$DEVBASE_LIB_DIR"/sed.sh
 appDir="$(get_repo_directory)"
 
 goVersion="$(grep "^golang " "$appDir"/.tool-versions | awk '{print $2}')"
+gomodGoVersion=""
 if [[ -f "$appDir/go.mod" ]]; then
   gomodGoVersion="$(grep "^go " "$appDir/go.mod" | awk '{print $2}')"
 fi
@@ -39,16 +43,11 @@ if [[ -z $gomodGoVersion ]]; then
   exit 0
 fi
 
-git ls-files '**/go.mod' | while read -r gomod; do
+for godir in $(go_mod_dirs); do
+  gomod="$godir/go.mod"
   if managed_by_stencil "$gomod"; then
     continue
   fi
-  for ignored in ${IGNORED_GO_MOD_DIRS:-}; do
-    if [[ "$(dirname "$gomod")" == "$ignored" ]]; then
-      warn "Ignoring $gomod as per IGNORED_GO_MOD_DIRS"
-      continue 2
-    fi
-  done
   info "Syncing Go version/toolchain in $gomod to $gomodGoVersion/$goVersion"
 
   sed_replace '^go .*$' "go $gomodGoVersion" "$appDir/$gomod"

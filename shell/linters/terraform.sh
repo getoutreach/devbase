@@ -13,7 +13,7 @@ tflint() {
       continue
     fi
 
-    if ! terraform fmt -diff -check "$tfdir"; then
+    if ! mise_exec_tool terraform fmt -diff -check "$tfdir"; then
       error "terraform fmt (./$tfdir) failed on some files. Run 'make fmt' to fix."
       exit 1
     fi
@@ -26,7 +26,7 @@ terraform_fmt() {
       continue
     fi
 
-    terraform fmt "$tfdir"
+    mise_exec_tool terraform fmt "$tfdir"
   done
 }
 
