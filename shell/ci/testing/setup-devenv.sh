@@ -14,6 +14,8 @@ source "$DIR/../../lib/box.sh"
 source "$DIR/../../lib/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "$DIR/../../lib/shell.sh"
+# shellcheck source=../../lib/version.sh
+source "$DIR/../../lib/version.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
