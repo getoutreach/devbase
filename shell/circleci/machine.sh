@@ -30,6 +30,7 @@ fi
 
 ensure_mise_installed
 devbase_configure_global_tools
+devbase_mise trust
 
 if [[ -z $GITHUB_TOKEN ]]; then
   # Minimum amount of tools to install to bootstrap the GitHub token
@@ -45,7 +46,6 @@ if [[ -z $GITHUB_TOKEN ]]; then
     install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
     install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
   fi
-  devbase_mise trust
 fi
 
 info "Installing tools via mise required in machine environment"
