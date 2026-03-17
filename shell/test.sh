@@ -23,6 +23,9 @@ source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
 
+# shellcheck source=./lib/version.sh
+source "$DIR/lib/version.sh"
+
 # TEST_FLAGS is an array of flags to pass to `go test`. TEST_FLAGS must
 # be a string value. It will be split on spaces.
 #

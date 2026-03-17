@@ -16,6 +16,8 @@ source "$DIR/lib/logging.sh"
 source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
+# shellcheck source=./lib/version.sh
+source "$DIR/lib/version.sh"
 
 # add extra (per project) linters
 linters=("$DIR/linters"/*.sh)
