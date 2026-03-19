@@ -8,7 +8,7 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.110.5
 	github.com/getoutreach/localizer v1.15.19
-	github.com/magefile/mage v1.16.0
+	github.com/magefile/mage v1.16.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
 	google.golang.org/grpc v1.79.2
