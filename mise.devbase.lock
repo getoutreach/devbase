@@ -278,7 +278,7 @@ version = "0.0.11"
 backend = "go:github.com/mattn/goveralls"
 
 [[tools."go:golang.org/x/tools/cmd/goimports"]]
-version = "0.5.0"
+version = "0.43.0"
 backend = "go:golang.org/x/tools/cmd/goimports"
 
 [[tools.gofumpt]]
