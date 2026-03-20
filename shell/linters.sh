@@ -15,6 +15,8 @@ source "$DIR/lib/logging.sh"
 source "$DIR/lib/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "$DIR/lib/shell.sh"
+# shellcheck source=./lib/version.sh
+source "$DIR/lib/version.sh"
 
 if [[ -n $SKIP_LINTERS ]] || [[ -n $SKIP_VALIDATE ]]; then
   info "Skipping linters"
