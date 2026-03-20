@@ -53,8 +53,8 @@ formatter() {
       info "Formatting module in $godir"
     fi
     run_command "go mod tidy" go mod tidy || return 1
+    run_command goimports goimports || return 1
     if [[ -z $goFormatter || $goFormatter == "null" || $goFormatter == "gofmt" ]]; then
-      run_command goimports goimports || return 1
       run_command gofmt gofmt || return 1
     elif [[ $goFormatter == gofumpt ]]; then
       run_command gofumpt gofumpt || return 1
