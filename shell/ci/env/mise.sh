@@ -40,8 +40,7 @@ ghToken="$(gh auth token)"
 # --locked to fail. _MISE_INSTALL_CONFIG_DIR is picked up by run_mise() and
 # applied only to the mise binary invocation, so shims (e.g.
 # wait-for-gh-rate-limit) still resolve against the real global config.
-_mise_empty_config_dir="$(mktemp -d)"
-export _MISE_INSTALL_CONFIG_DIR="$_mise_empty_config_dir"
+export _MISE_INSTALL_CONFIG_DIR="$(mktemp -d)"
 
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
@@ -64,8 +63,8 @@ fi
 
 MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
 
+rm -rf "$_MISE_INSTALL_CONFIG_DIR"
 unset _MISE_INSTALL_CONFIG_DIR
-rm -rf "$_mise_empty_config_dir"
 
 devbase_configure_global_tools
 
