@@ -427,10 +427,17 @@ devbase_install_mise_tools() {
     mise settings set experimental true
   fi
   # go: backend tools compile from source and can't produce lockfile URLs,
-  # so --locked always fails for them. Install in two passes:
-  # 1) all lockable tools with --locked (no GitHub API calls)
-  # 2) go: tools without --locked (they use Go module proxy, not GitHub API)
-  MISE_DISABLE_BACKENDS=go devbase_mise install --yes --locked
+  # so --locked always fails for them (mise bug: go backend doesn't override
+  # supports_lockfile_url). MISE_DISABLE_BACKENDS=go also doesn't work for
+  # explicitly declared tools (mise bug: get() bypasses the filter).
+  # Workaround: use MISE_DISABLE_TOOLS with the actual go: tool names.
+  local devbaseDir
+  devbaseDir="$(get_devbase_directory)"
+  local go_tools
+  go_tools=$(grep '^"go:' "$devbaseDir/mise.devbase.toml" | cut -d'"' -f2 | paste -sd, -)
+  # Pass 1: all lockable tools with --locked (no GitHub API calls)
+  MISE_DISABLE_TOOLS="$go_tools" devbase_mise install --yes --locked
+  # Pass 2: go: tools without --locked (they use Go module proxy, not GitHub API)
   devbase_mise install --yes
 }
 
