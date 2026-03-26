@@ -35,6 +35,11 @@ inject_mise_commands() {
 # Assumes that `gh` has already been set up.
 ghToken="$(gh auth token)"
 
+# Use strict lockfile mode to avoid GitHub API calls for version resolution.
+# All tools resolve from pre-resolved URLs in their lockfile instead of
+# hitting api.github.com. Set MISE_LOCKED=0 in CircleCI project env to opt out.
+export MISE_LOCKED="${MISE_LOCKED:-1}"
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
