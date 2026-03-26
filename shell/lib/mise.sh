@@ -426,8 +426,12 @@ devbase_install_mise_tools() {
   if ! mise_version_compatible "2025.10.11"; then
     mise settings set experimental true
   fi
-  # devbase always has mise.devbase.lock, so --locked is safe here.
-  devbase_mise install --yes --locked
+  # go: backend tools compile from source and can't produce lockfile URLs,
+  # so --locked always fails for them. Install in two passes:
+  # 1) all lockable tools with --locked (no GitHub API calls)
+  # 2) go: tools without --locked (they use Go module proxy, not GitHub API)
+  MISE_DISABLE_BACKENDS=go devbase_mise install --yes --locked
+  devbase_mise install --yes
 }
 
 # The current version of mise.
