@@ -35,13 +35,13 @@ inject_mise_commands() {
 # Assumes that `gh` has already been set up.
 ghToken="$(gh auth token)"
 
-# Isolate from global mise config during tool installation.
-# Global tools (from orc setup or pre-built CI image in ~/.config/mise/)
-# don't have lockfiles and cause --locked to fail. MISE_CONFIG_DIR redirects
-# global config discovery to an empty directory so only project-level and
-# devbase-level configs are visible. Restored after install for shim setup.
-_mise_original_config_dir="${MISE_CONFIG_DIR:-}"
-export MISE_CONFIG_DIR="$(mktemp -d)"
+# Isolate mise install from global config. Global tools (from orc setup or
+# pre-built CI image in ~/.config/mise/) don't have lockfiles and cause
+# --locked to fail. _MISE_INSTALL_CONFIG_DIR is picked up by run_mise() and
+# applied only to the mise binary invocation, so shims (e.g.
+# wait-for-gh-rate-limit) still resolve against the real global config.
+_mise_empty_config_dir="$(mktemp -d)"
+export _MISE_INSTALL_CONFIG_DIR="$_mise_empty_config_dir"
 
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
@@ -64,13 +64,8 @@ fi
 
 MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
 
-# Restore global config dir for shim setup.
-rm -rf "$MISE_CONFIG_DIR"
-if [[ -n "$_mise_original_config_dir" ]]; then
-  MISE_CONFIG_DIR="$_mise_original_config_dir"
-else
-  unset MISE_CONFIG_DIR
-fi
+unset _MISE_INSTALL_CONFIG_DIR
+rm -rf "$_mise_empty_config_dir"
 
 devbase_configure_global_tools
 

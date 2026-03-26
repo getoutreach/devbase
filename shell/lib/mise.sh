@@ -254,8 +254,17 @@ run_mise() {
     tool_versions_override="none"
   fi
 
-  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
-    "$mise_path" "$@"
+  # _MISE_INSTALL_CONFIG_DIR, when set, overrides MISE_CONFIG_DIR only for
+  # the mise binary — not for helper tools like wait-for-gh-rate-limit
+  # that run via mise shims and need the real global config.
+  if [[ -n "${_MISE_INSTALL_CONFIG_DIR:-}" ]]; then
+    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+      MISE_CONFIG_DIR="$_MISE_INSTALL_CONFIG_DIR" \
+      "$mise_path" "$@"
+  else
+    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+      "$mise_path" "$@"
+  fi
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
