@@ -417,7 +417,8 @@ devbase_install_mise_tools() {
   if ! mise_version_compatible "2025.10.11"; then
     mise settings set experimental true
   fi
-  devbase_mise install --yes
+  # devbase always has mise.devbase.lock, so --locked is safe here.
+  devbase_mise install --yes --locked
 }
 
 # The current version of mise.
