@@ -437,8 +437,9 @@ devbase_install_mise_tools() {
   go_tools=$(grep '^"go:' "$devbaseDir/mise.devbase.toml" | cut -d'"' -f2 | paste -sd, -)
   # Pass 1: all lockable tools with --locked (no GitHub API calls)
   MISE_DISABLE_TOOLS="$go_tools" devbase_mise install --yes --locked
-  # Pass 2: go: tools without --locked (they use Go module proxy, not GitHub API)
-  devbase_mise install --yes
+  # Pass 2: go: tools without --locked (they use Go module proxy, not GitHub API).
+  # MISE_LOCKFILE=false prevents lockfile writes — CI must never mutate lockfiles.
+  MISE_LOCKFILE=false devbase_mise install --yes
 }
 
 # The current version of mise.
