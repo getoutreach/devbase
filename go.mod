@@ -10,7 +10,7 @@ require (
 	github.com/getoutreach/localizer v1.15.19
 	github.com/magefile/mage v1.16.1
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 	google.golang.org/grpc v1.79.3
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.5.2
@@ -53,7 +53,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
