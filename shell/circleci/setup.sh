@@ -24,6 +24,9 @@ source "${LIB_DIR}/mise.sh"
 # shellcheck source=../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+# shellcheck source=../lib/rate_limit.sh
+source "${LIB_DIR}/rate_limit.sh"
+
 # shellcheck source=../lib/version.sh
 source "${LIB_DIR}/version.sh"
 
@@ -59,6 +62,21 @@ else
     info "🔒 Setting up $authName access"
     "$CI_DIR/auth/$authName.sh"
   done
+
+  # Log GitHub API rate limit after auth setup for observability.
+  # Extract the PAT from ~/.npmrc (written by github_packages.sh)
+  # rather than re-invoking ghaccesstoken (which costs 2 API calls).
+  _rl_token=""
+  if [[ -f "$HOME/.npmrc" ]]; then
+    _rl_token="$(grep -o '//npm.pkg.github.com/:_authToken=.*' "$HOME/.npmrc" | cut -d= -f2 || true)"
+  fi
+  if [[ -z $_rl_token ]]; then
+    _rl_token="${GITHUB_TOKEN:-}"
+  fi
+  if [[ -n $_rl_token ]]; then
+    log_github_rate_limit "$_rl_token" "setup_end"
+  fi
+  unset _rl_token
 fi
 
 # Setup $TEST_RESULTS if it's set
