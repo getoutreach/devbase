@@ -19,30 +19,51 @@ source "$LIB_DIR/logging.sh"
 # shellcheck source=github.sh
 source "$LIB_DIR/github.sh"
 
+# classify_github_token returns a token_source label based on the
+# token's prefix. GitHub tokens have well-known prefixes:
+#   ghp_       — Personal Access Token (classic)
+#   github_pat_— Fine-grained PAT
+#   gho_       — OAuth access token
+#   ghu_       — GitHub App user-to-server token
+#   ghs_       — GitHub App installation token (server-to-server)
+#
+# $1: token string
+# Prints the classified source label to stdout.
+classify_github_token() {
+  local token="${1:-}"
+  case "$token" in
+  ghp_* | github_pat_*) echo "pat" ;;
+  ghs_*) echo "ghapp" ;;
+  gho_*) echo "oauth" ;;
+  ghu_*) echo "ghapp_user" ;;
+  *) echo "unknown" ;;
+  esac
+}
+
 # resolve_github_token prints "token token_source" for rate-limit
 # checking. Prefers the PAT from ~/.npmrc (the ghaccesstoken PAT
 # pool, most likely to hit rate limits); falls back to the token
 # configured in `gh auth` (typically a GitHub App installation token
-# set up by bootstrap_github_token).
+# set up by bootstrap_github_token); then falls back to the
+# $GITHUB_TOKEN env var, classifying it by prefix.
 #
 # Callers read the result with:
 #   read -r token token_source <<<"$(resolve_github_token)"
 resolve_github_token() {
-  local token="" source=""
+  local token="" token_source=""
   if [[ -f "$HOME/.npmrc" ]]; then
     token="$(grep -o '//npm.pkg.github.com/:_authToken=.*' "$HOME/.npmrc" | cut -d= -f2 || true)"
-    [[ -n $token ]] && source="pat_pool"
+    [[ -n $token ]] && token_source="pat_pool"
   fi
   if [[ -z $token ]]; then
-    # github_token() wraps `gh auth token`, which returns whatever
-    # token gh is currently authenticated with (typically the GHAPP
-    # installation token from bootstrap_github_token).
-    set +e
-    token="$(github_token 2>/dev/null)"
-    set -e
-    [[ -n $token ]] && source="ghapp"
+    token="$(github_token 2>/dev/null || true)"
+    [[ -n $token ]] && token_source="ghapp"
   fi
-  echo "$token $source"
+  if [[ -z $token && -n ${GITHUB_TOKEN:-} ]]; then
+    token="$GITHUB_TOKEN"
+    token_source="env:$(classify_github_token "$token")"
+  fi
+  echo "$token $token_source"
 }
 
 # log_github_rate_limit queries the GitHub rate limit API and logs
@@ -73,14 +94,11 @@ log_github_rate_limit() {
 
   # GH_TOKEN overrides the active gh auth so we check the specific PAT.
   # GET /rate_limit does not count against the rate limit.
-  set +e
   local fields
   fields="$(GH_TOKEN="$token" run_gh api /rate_limit \
-    --jq '.resources.core | "\(.limit) \(.used) \(.remaining) \(.reset)"' 2>/dev/null)"
-  local gh_exit=$?
-  set -e
+    --jq '.resources.core | "\(.limit) \(.used) \(.remaining) \(.reset)"' 2>/dev/null || true)"
 
-  if [[ $gh_exit -ne 0 || -z $fields ]]; then
+  if [[ -z $fields ]]; then
     info_sub "rate limit: skipped (gh api failed)"
     return 0
   fi
@@ -96,9 +114,7 @@ log_github_rate_limit() {
   local now resets_in
   now="$(date +%s)"
   resets_in=$((reset_epoch - now))
-  if [[ $resets_in -lt 0 ]]; then
-    resets_in=0
-  fi
+  ((resets_in < 0)) && resets_in=0
 
   local pct_used=0
   if [[ $limit -gt 0 ]]; then
