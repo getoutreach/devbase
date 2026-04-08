@@ -204,38 +204,38 @@ url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintr
 url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233421"
 
 [[tools."github:getoutreach/orc"]]
-version = "1.122.0"
+version = "1.124.1"
 backend = "github:getoutreach/orc"
 
 [tools."github:getoutreach/orc"."platforms.linux-arm64"]
-checksum = "sha256:e09e6d42ded7d7ef3881fd59a2a93f133c9a64d6d24b1c6d0494e1bc10396111"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431840"
+checksum = "sha256:c75c0f67e37c72779289877605915cbee94efa254462b194abed7cb303fa99af"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057594"
 
 [tools."github:getoutreach/orc"."platforms.linux-arm64-musl"]
-checksum = "sha256:e09e6d42ded7d7ef3881fd59a2a93f133c9a64d6d24b1c6d0494e1bc10396111"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431840"
+checksum = "sha256:c75c0f67e37c72779289877605915cbee94efa254462b194abed7cb303fa99af"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057594"
 
 [tools."github:getoutreach/orc"."platforms.linux-x64"]
-checksum = "sha256:1267c41533bcde798efe17df5acb73d0124bec21e7b28c8ff100a44f94ae8ea4"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431854"
+checksum = "sha256:d5c61577ab79f5dbc0201ae2634df4ed506ea309c59f4fb459bdb9ecbdea1d59"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057606"
 
 [tools."github:getoutreach/orc"."platforms.linux-x64-musl"]
-checksum = "sha256:1267c41533bcde798efe17df5acb73d0124bec21e7b28c8ff100a44f94ae8ea4"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431854"
+checksum = "sha256:d5c61577ab79f5dbc0201ae2634df4ed506ea309c59f4fb459bdb9ecbdea1d59"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057606"
 
 [tools."github:getoutreach/orc"."platforms.macos-arm64"]
-checksum = "sha256:6b589499c7f1f69f8b00c95766502654fcf8882f9f5e332a13cdd1723f324984"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431846"
+checksum = "sha256:9f6e3abfd402c9d31c79fbce9ede6069977679ee9dbd12d4ffb60f3b8c6a5773"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057587"
 
 [tools."github:getoutreach/orc"."platforms.macos-x64"]
-checksum = "sha256:d728675288ea004b808d72559a32d6a367c8082ded93c530c157067234d79a8d"
-url = "https://github.com/getoutreach/orc/releases/download/v1.122.0/orc_1.122.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/324431863"
+checksum = "sha256:93c99e9fccca74eed64dee405e454e5ede73c8b4d1593114d2101a548ec8192a"
+url = "https://github.com/getoutreach/orc/releases/download/v1.124.1/orc_1.124.1_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/orc/releases/assets/378057612"
 
 [[tools.go-jsonnet]]
 version = "0.19.1"
