@@ -6,7 +6,7 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 @test "log_github_rate_limit skips gracefully with empty token" {
-  run log_github_rate_limit "" "test_phase"
+  run log_github_rate_limit "" "test_phase" "pat_pool"
   assert_success
   assert_output --partial "skipped (no token available)"
 }

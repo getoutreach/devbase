@@ -64,19 +64,14 @@ else
   done
 
   # Log GitHub API rate limit after auth setup for observability.
-  # Extract the PAT from ~/.npmrc (written by github_packages.sh)
-  # rather than re-invoking ghaccesstoken (which costs 2 API calls).
-  _rl_token=""
-  if [[ -f "$HOME/.npmrc" ]]; then
-    _rl_token="$(grep -o '//npm.pkg.github.com/:_authToken=.*' "$HOME/.npmrc" | cut -d= -f2 || true)"
-  fi
-  if [[ -z $_rl_token ]]; then
-    _rl_token="${GITHUB_TOKEN:-}"
-  fi
+  # resolve_github_token prefers the PAT from ~/.npmrc (written by
+  # github_packages.sh) over GITHUB_TOKEN, avoiding an extra
+  # ghaccesstoken invocation (which costs 2 API calls).
+  read -r _rl_token _rl_source <<<"$(resolve_github_token)"
   if [[ -n $_rl_token ]]; then
-    log_github_rate_limit "$_rl_token" "setup_end"
+    log_github_rate_limit "$_rl_token" "setup_end" "$_rl_source"
   fi
-  unset _rl_token
+  unset _rl_token _rl_source
 fi
 
 # Setup $TEST_RESULTS if it's set

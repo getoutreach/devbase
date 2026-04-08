@@ -18,19 +18,11 @@ source "${LIB_DIR}/rate_limit.sh"
 
 phase="${1:-job_end}"
 
-# Prefer the PAT from ~/.npmrc (the ghaccesstoken PAT pool, most
-# likely to hit rate limits). Fall back to GITHUB_TOKEN (GHAPP).
-token=""
-if [[ -f "$HOME/.npmrc" ]]; then
-  token="$(grep -o '//npm.pkg.github.com/:_authToken=.*' "$HOME/.npmrc" | cut -d= -f2 || true)"
-fi
-if [[ -z $token ]]; then
-  token="${GITHUB_TOKEN:-}"
-fi
+read -r token token_source <<<"$(resolve_github_token)"
 
 if [[ -z $token ]]; then
   info_sub "rate limit: skipped (no token in environment)"
   exit 0
 fi
 
-log_github_rate_limit "$token" "$phase"
+log_github_rate_limit "$token" "$phase" "$token_source"
