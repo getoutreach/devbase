@@ -21,8 +21,9 @@ source "$LIB_DIR/github.sh"
 
 # resolve_github_token prints "token token_source" for rate-limit
 # checking. Prefers the PAT from ~/.npmrc (the ghaccesstoken PAT
-# pool, most likely to hit rate limits); falls back to GITHUB_TOKEN
-# (GitHub App installation token).
+# pool, most likely to hit rate limits); falls back to the token
+# configured in `gh auth` (typically a GitHub App installation token
+# set up by bootstrap_github_token).
 #
 # Callers read the result with:
 #   read -r token token_source <<<"$(resolve_github_token)"
@@ -33,7 +34,12 @@ resolve_github_token() {
     [[ -n $token ]] && source="pat_pool"
   fi
   if [[ -z $token ]]; then
-    token="${GITHUB_TOKEN:-}"
+    # github_token() wraps `gh auth token`, which returns whatever
+    # token gh is currently authenticated with (typically the GHAPP
+    # installation token from bootstrap_github_token).
+    set +e
+    token="$(github_token 2>/dev/null)"
+    set -e
     [[ -n $token ]] && source="ghapp"
   fi
   echo "$token $source"
