@@ -60,7 +60,7 @@ steps:
       steps:
         - restore_cache:
             keys:
-              - v2-toggle-daily-cache-{{ arch }}-{{ .Revision }}
+              - v1-toggle-daily-cache-{{ arch }}-{{ .Revision }}
         - run:
             name: Check cache flag
             command: |
@@ -77,15 +77,20 @@ steps:
         - run:
             name: Run tests
             command: make test
+        # Daily cache restored by all jobs (Docker and machine executors)
         - save_cache:
-            key: v2-daily-cache-{{ arch }}-{{ epoch }}
+            key: v1-daily-cache-{{ arch }}-{{ epoch }}
             paths:
               - "~/.cache"
-              - "~/.asdf"
               - "~/.outreach/.cache"
+        # E2E cache with asdf/mise tool installs for machine-executor jobs
+        - save_cache:
+            key: v1-e2e-daily-cache-{{ arch }}-{{ epoch }}
+            paths:
+              - "~/.asdf"
               - "~/.local/share/mise"
         - save_cache:
-            key: v2-toggle-daily-cache-{{ arch }}-{{ .Revision }}
+            key: v1-toggle-daily-cache-{{ arch }}-{{ .Revision }}
             paths:
               - "~/cache-toggle"
 
