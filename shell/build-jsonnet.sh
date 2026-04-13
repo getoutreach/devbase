@@ -5,8 +5,6 @@
 set -eo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-# shellcheck source=./lib/bootstrap.sh
-source "$SCRIPTS_DIR/lib/bootstrap.sh"
 
 # shellcheck source=./lib/box.sh
 source "$SCRIPTS_DIR/lib/box.sh"
@@ -14,11 +12,8 @@ source "$SCRIPTS_DIR/lib/box.sh"
 # shellcheck source=./lib/docker.sh
 source "$SCRIPTS_DIR/lib/docker.sh"
 
-# shellcheck source=./lib/logging.sh
-source "$SCRIPTS_DIR/lib/logging.sh"
-
-# shellcheck source=./lib/mise.sh
-source "$SCRIPTS_DIR/lib/mise.sh"
+# shellcheck source=./lib/mise/stub.sh
+source "$SCRIPTS_DIR/lib/mise/stub.sh"
 
 # Cache a local copy of the `jsonnet-libs` directory on disk if it doesn't yet exist. Do this
 # because it helps us avoid accessing jsonnet-libs via raw.githubusercontent.com, which has
@@ -50,7 +45,7 @@ host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
 email="${DEV_EMAIL:-$(git config user.email || echo 'devbase@outreach.io')}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
 
-"$(find_tool kubecfg)" \
+mise_exec_tool_with_bin github:getoutreach/kubecfg kubecfg \
   --jpath "$JSONNET_LIBS_REPO" \
   --jurl http://k8s-clusters.outreach.cloud/ \
   -n "$namespace" \

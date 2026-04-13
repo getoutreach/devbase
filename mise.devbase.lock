@@ -110,30 +110,37 @@ backend = "aqua:cli/cli"
 [tools.github-cli."platforms.linux-arm64"]
 checksum = "sha256:b1a0c0a0fcf18524e36996caddc92a062355ed014defc836203fe20fba75a38e"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_arm64.tar.gz"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-arm64-musl"]
 checksum = "sha256:b1a0c0a0fcf18524e36996caddc92a062355ed014defc836203fe20fba75a38e"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_arm64.tar.gz"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-x64"]
 checksum = "sha256:ca6e7641214fbd0e21429cec4b64a7ba626fd946d8f9d6d191467545b092015e"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-x64-musl"]
 checksum = "sha256:ca6e7641214fbd0e21429cec4b64a7ba626fd946d8f9d6d191467545b092015e"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_linux_amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.macos-arm64"]
 checksum = "sha256:ba3e0396ebbc8da17256144ddda503e4e79c8b502166335569f8390d6b75fa8d"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_macOS_arm64.zip"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.macos-x64"]
 checksum = "sha256:6f1712519ccc768946791dc97da407bf188582345b73fef3d604d050ebf6f614"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_macOS_amd64.zip"
+provenance = "github-attestations"
 
 [tools.github-cli."platforms.windows-x64"]
 checksum = "sha256:b95bf2d953e3bf497bb2c0aed97ffcc5ed8471b80f0920d663a92a6111f05135"
 url = "https://github.com/cli/cli/releases/download/v2.83.2/gh_2.83.2_windows_amd64.zip"
+provenance = "github-attestations"
 
 [[tools."github:getoutreach/ci"]]
 version = "1.6.14"
@@ -168,6 +175,39 @@ url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854914
 checksum = "sha256:a27dfecb63877d3f25c3a0c0a1cbb60352e58d234df8e1cc81fe77169d6c7cb9"
 url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_darwin_amd64.tar.gz"
 url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854925"
+
+[[tools."github:getoutreach/kubecfg"]]
+version = "0.34.0"
+backend = "github:getoutreach/kubecfg"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-arm64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-linux-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756988"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-arm64-musl"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-linux-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756988"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-x64"]
+checksum = "blake3:df4998293212035182610843ab76857d54adb811f765a9c4e2da86aeec8c1e78"
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-linux-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756987"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-x64-musl"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-linux-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756987"
+
+[tools."github:getoutreach/kubecfg"."platforms.macos-arm64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-darwin-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756989"
+
+[tools."github:getoutreach/kubecfg"."platforms.macos-x64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-darwin-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756990"
+
+[tools."github:getoutreach/kubecfg"."platforms.windows-x64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-windows-amd64.exe"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756986"
 
 [[tools."github:getoutreach/lintroller"]]
 version = "1.20.0"
@@ -352,30 +392,37 @@ backend = "aqua:golangci/golangci-lint"
 [tools.golangci-lint."platforms.linux-arm64"]
 checksum = "sha256:94e80cdb51c73c20a313bd3afa1fb23137728813c19fd730248a1e8678fcc46d"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-arm64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-arm64-musl"]
 checksum = "sha256:94e80cdb51c73c20a313bd3afa1fb23137728813c19fd730248a1e8678fcc46d"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-arm64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64"]
 checksum = "sha256:493aaaca2eba6c8bcef847d92716bbd91bbac4b22cdbb0ab5b6a581b32946091"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64-musl"]
 checksum = "sha256:493aaaca2eba6c8bcef847d92716bbd91bbac4b22cdbb0ab5b6a581b32946091"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-linux-amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-arm64"]
 checksum = "sha256:a86eabba3507deddd21f2a01a1df2a0ee5bc5c8178d4165cdcaaad8597358760"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-darwin-arm64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-x64"]
 checksum = "sha256:ba29a353be54a74c45946763983808dc8305eeeca73db1761b5ab112f87f8157"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-darwin-amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.windows-x64"]
 checksum = "sha256:130fca8fa959eb840267c5e231f030a948e0de1e768bf6a31785505d1061632c"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.9.0/golangci-lint-2.9.0-windows-amd64.zip"
+provenance = "github-attestations"
 
 [[tools.goreleaser]]
 version = "1.20.0"
