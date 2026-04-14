@@ -16,12 +16,11 @@ require (
 	gotest.tools/v3 v3.5.2
 )
 
-require github.com/google/go-github/v84 v84.0.0 // indirect
+require github.com/google/go-github/v84 v84.0.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/google/go-github/v71 v71.0.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 )
 
