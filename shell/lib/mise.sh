@@ -254,8 +254,17 @@ run_mise() {
     tool_versions_override="none"
   fi
 
-  MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
-    "$mise_path" "$@"
+  # _MISE_INSTALL_CONFIG_DIR, when set, overrides MISE_CONFIG_DIR only for
+  # the mise binary — not for helper tools like wait-for-gh-rate-limit
+  # that run via mise shims and need the real global config.
+  if [[ -n ${_MISE_INSTALL_CONFIG_DIR:-} ]]; then
+    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+      MISE_CONFIG_DIR="$_MISE_INSTALL_CONFIG_DIR" \
+      "$mise_path" "$@"
+  else
+    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES="$tool_versions_override" \
+      "$mise_path" "$@"
+  fi
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
@@ -417,7 +426,20 @@ devbase_install_mise_tools() {
   if ! mise_version_compatible "2025.10.11"; then
     mise settings set experimental true
   fi
-  devbase_mise install --yes
+  # go: backend tools compile from source and can't produce lockfile URLs,
+  # so --locked always fails for them (mise bug: go backend doesn't override
+  # supports_lockfile_url). MISE_DISABLE_BACKENDS=go also doesn't work for
+  # explicitly declared tools (mise bug: get() bypasses the filter).
+  # Workaround: use MISE_DISABLE_TOOLS with the actual go: tool names.
+  local devbaseDir
+  devbaseDir="$(get_devbase_directory)"
+  local go_tools
+  go_tools=$(grep '^"go:' "$devbaseDir/mise.devbase.toml" | cut -d'"' -f2 | paste -sd, -)
+  # Pass 1: all lockable tools with --locked (no GitHub API calls)
+  MISE_DISABLE_TOOLS="$go_tools" devbase_mise install --yes --locked
+  # Pass 2: go: tools without --locked (they use Go module proxy, not GitHub API).
+  # MISE_LOCKFILE=false prevents lockfile writes — CI must never mutate lockfiles.
+  MISE_LOCKFILE=false devbase_mise install --yes
 }
 
 # The current version of mise.

@@ -35,6 +35,14 @@ inject_mise_commands() {
 # Assumes that `gh` has already been set up.
 ghToken="$(gh auth token)"
 
+# Isolate mise install from global config. Global tools (from orc setup or
+# pre-built CI image in ~/.config/mise/) don't have lockfiles and cause
+# --locked to fail. _MISE_INSTALL_CONFIG_DIR is picked up by run_mise() and
+# applied only to the mise binary invocation, so shims (e.g.
+# wait-for-gh-rate-limit) still resolve against the real global config.
+_MISE_INSTALL_CONFIG_DIR="$(mktemp -d)"
+export _MISE_INSTALL_CONFIG_DIR
+
 # TODO(malept): feature parity with asdf.sh in the same folder.
 if [[ -f "$repoDir"/mise.toml ]]; then
   info_sub "🧑‍🍳 installing tool versions via mise"
@@ -43,10 +51,22 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
   fi
-  MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" --yes
+
+  # Use --locked when a lockfile exists to prevent GitHub API calls for
+  # version resolution. Repos without mise.lock fall back to normal install.
+  locked_flag=""
+  if [[ -f "$repoDir"/mise.lock ]]; then
+    locked_flag="--locked"
+  fi
+  # shellcheck disable=SC2086
+  MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" $locked_flag --yes
 fi
 
 MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
+
+rm -rf "$_MISE_INSTALL_CONFIG_DIR"
+unset _MISE_INSTALL_CONFIG_DIR
+
 devbase_configure_global_tools
 
 if [[ -n ${BASH_ENV:-} ]]; then
