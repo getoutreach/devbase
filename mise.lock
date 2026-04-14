@@ -51,6 +51,10 @@ url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34
 checksum = "sha256:a715c72780c91b4226e16d32f5715dd568c1675a09942b4e4941266fb8e0564c"
 url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_darwin_amd64.tar.gz"
 
+[tools.circleci."platforms.windows-x64"]
+checksum = "sha256:6f3fca347ee19fdf40a41d9e151bcbcb06c99ce0c1838a9dac11d503075fcd84"
+url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_windows_amd64.zip"
+
 [[tools."npm:prettier"]]
 version = "2.8.8"
 backend = "npm:prettier"
