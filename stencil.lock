@@ -1,14 +1,14 @@
-version: v1.43.0
+version: v1.43.2
 modules:
     - name: github.com/getoutreach/devbase
       url: file://./
       version: local
     - name: github.com/getoutreach/stencil-base
       url: https://github.com/getoutreach/stencil-base
-      version: v0.18.0-rc.9
+      version: v0.19.0
     - name: github.com/getoutreach/stencil-circleci
       url: https://github.com/getoutreach/stencil-circleci
-      version: v1.17.2-rc.1
+      version: v1.17.3-rc.1
     - name: github.com/getoutreach/stencil-golang
       url: https://github.com/getoutreach/stencil-golang
       version: unstable
@@ -21,7 +21,7 @@ files:
       module: github.com/getoutreach/stencil-base
     - name: .gitattributes
       template: .gitattributes.tpl
-      module: github.com/getoutreach/stencil-golang
+      module: github.com/getoutreach/stencil-base
     - name: .github/CODEOWNERS
       template: .github/CODEOWNERS.tpl
       module: github.com/getoutreach/stencil-base
@@ -63,9 +63,6 @@ files:
       module: github.com/getoutreach/stencil-base
     - name: Makefile
       template: Makefile.tpl
-      module: github.com/getoutreach/stencil-golang
-    - name: devenv.yaml
-      template: devenv.yaml.tpl
       module: github.com/getoutreach/stencil-golang
     - name: go.mod
       template: go.mod.tpl
