@@ -11,6 +11,9 @@ source "$DEVBASE_LIB_DIR/box.sh"
 # shellcheck source=../../lib/mise.sh
 source "$DEVBASE_LIB_DIR/mise.sh"
 
+# shellcheck source=../../lib/shell.sh
+source "$DEVBASE_LIB_DIR/shell.sh"
+
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
   VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" "$(find_tool vault)" write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
