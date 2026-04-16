@@ -22,6 +22,12 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
+  restore_e2e_cache:
+    description: >-
+      Restore the e2e daily cache containing asdf/mise tool installs.
+      Use for machine executor jobs that need tool binaries.
+    type: boolean
+    default: false
   checkout_method:
     description: checkout method per https://circleci.com/docs/reference/configuration-reference/#checkout
     type: enum
@@ -37,7 +43,13 @@ steps:
       steps:
         - restore_cache:
             keys:
-              - v2-daily-cache-{{ arch }}-
+              - v1-daily-cache-{{ arch }}-
+  - when:
+      condition: << parameters.restore_e2e_cache >>
+      steps:
+        - restore_cache:
+            keys:
+              - v1-e2e-daily-cache-{{ arch }}-
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   - when:
