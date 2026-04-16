@@ -9,7 +9,7 @@ DEVBASE_LIB_DIR="$DIR/../../lib"
 source "$DEVBASE_LIB_DIR/box.sh"
 
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
-  VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" vault write auth/approle/login \
+  VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" "$(find_tool vault)" write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
     jq .auth.client_token -r >"$HOME/.vault-token"
 else
