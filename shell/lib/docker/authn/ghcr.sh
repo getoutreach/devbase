@@ -12,5 +12,7 @@ ghcr_auth() {
   local org="$1"
 
   echo "$GITHUB_TOKEN" |
-    docker login ghcr.io --username="$org" --password-stdin
+    # The Docker daemon only supports <= v1.43, so pin the API version.
+    DOCKER_API_VERSION=1.43 \
+      docker login ghcr.io --username="$org" --password-stdin
 }
