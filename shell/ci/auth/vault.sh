@@ -8,9 +8,6 @@ DEVBASE_LIB_DIR="$DIR/../../lib"
 # shellcheck source=../../lib/box.sh
 source "$DEVBASE_LIB_DIR/box.sh"
 
-# shellcheck source=../../lib/logging.sh
-source "$DEVBASE_LIB_DIR/logging.sh"
-
 # shellcheck source=../../lib/mise.sh
 source "$DEVBASE_LIB_DIR/mise.sh"
 
@@ -18,13 +15,9 @@ source "$DEVBASE_LIB_DIR/mise.sh"
 source "$DEVBASE_LIB_DIR/shell.sh"
 
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
-  ls ~/.config/mise/conf.d/*.toml
-  cat ~/.config/mise/conf.d/*.toml
-  info_sub "Vault: $(find_tool vault) auth with AppRole"
-  mise ls --global vault
   VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" "$(find_tool vault)" write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
-    jq .auth.client_token -r >"$HOME/.vault-token"
+    "$(find_tool gojq)" --raw-output .auth.client_token >"$HOME/.vault-token"
 else
   echo "Skipped: VAULT_ROLE_ID or VAULT_SECRET_ID is not set."
 fi
