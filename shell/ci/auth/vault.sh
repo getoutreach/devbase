@@ -15,6 +15,8 @@ source "$DEVBASE_LIB_DIR/mise.sh"
 source "$DEVBASE_LIB_DIR/shell.sh"
 
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
+  info_sub "Vault: $(find_tool vault) auth with AppRole"
+  mise ls --global vault
   VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" "$(find_tool vault)" write auth/approle/login \
     role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" -format=json |
     jq .auth.client_token -r >"$HOME/.vault-token"
