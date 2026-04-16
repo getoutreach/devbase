@@ -17,9 +17,9 @@ source "$DEVBASE_LIB_DIR/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "$DEVBASE_LIB_DIR/shell.sh"
 
-info_sub "Determining if we need to auth to Vault"
-
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
+  ls ~/.config/mise/conf.d/*.toml
+  cat ~/.config/mise/conf.d/*.toml
   info_sub "Vault: $(find_tool vault) auth with AppRole"
   mise ls --global vault
   VAULT_ADDR="$(get_box_field devenv.vault.addressCI)" "$(find_tool vault)" write auth/approle/login \
