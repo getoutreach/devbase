@@ -14,6 +14,8 @@ source "$DEVBASE_LIB_DIR/mise.sh"
 # shellcheck source=../../lib/shell.sh
 source "$DEVBASE_LIB_DIR/shell.sh"
 
+info_sub "Determining if we need to auth to Vault"
+
 if [[ -n $VAULT_ROLE_ID ]] && [[ -n $VAULT_SECRET_ID ]]; then
   info_sub "Vault: $(find_tool vault) auth with AppRole"
   mise ls --global vault
