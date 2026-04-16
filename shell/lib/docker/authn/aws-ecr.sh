@@ -14,7 +14,10 @@ ecr_auth() {
   region="$(echo "$registry" | cut -d. -f4)"
   info_sub "Authenticating with AWS ECR in $registry"
   # See: https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html#registry-auth-token
-  aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry"
+  aws ecr get-login-password --region "$region" |
+    # The Docker24 daemon only supports <= v1.43, so pin the API version.
+    DOCKER_API_VERSION=1.43 \
+      docker login --username AWS --password-stdin "$registry"
 }
 
 # ensure_ecr_repository ensures that an ECR repository exists.
