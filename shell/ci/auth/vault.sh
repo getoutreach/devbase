@@ -8,6 +8,9 @@ DEVBASE_LIB_DIR="$DIR/../../lib"
 # shellcheck source=../../lib/box.sh
 source "$DEVBASE_LIB_DIR/box.sh"
 
+# shellcheck source=../../lib/logging.sh
+source "$DEVBASE_LIB_DIR/logging.sh"
+
 # shellcheck source=../../lib/mise.sh
 source "$DEVBASE_LIB_DIR/mise.sh"
 
