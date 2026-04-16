@@ -67,6 +67,3 @@ install_tool_with_mise pipx:yq
 if [[ ! -e /opt/vault ]]; then
   sudo rm -rf /opt/vault
 fi
-
-# Tiny app to work around GitHub token rate limits
-install_tool_with_mise wait-for-gh-rate-limit
