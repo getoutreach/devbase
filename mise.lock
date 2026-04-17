@@ -18,6 +18,7 @@ url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"
 url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"
 
 [tools.bats."platforms.macos-arm64"]
+checksum = "blake3:d34af9fd0f9101d5309b2de31f3d1699e56a574d7d4b5e6380580a9e758a9744"
 url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.13.0.tar.gz"
 
 [tools.bats."platforms.macos-x64"]

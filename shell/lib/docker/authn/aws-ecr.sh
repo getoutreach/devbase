@@ -16,7 +16,7 @@ ecr_auth() {
   # See: https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html#registry-auth-token
   # Capture the password first to avoid pipe stdin issues in non-TTY CI environments.
   ecr_password="$(aws ecr get-login-password --region "$region")"
-  docker login --username AWS --password-stdin "$registry" <<< "$ecr_password"
+  docker login --username AWS --password-stdin "$registry" <<<"$ecr_password"
 }
 
 # ensure_ecr_repository ensures that an ECR repository exists.
