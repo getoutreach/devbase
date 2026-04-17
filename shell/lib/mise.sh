@@ -242,19 +242,89 @@ mise_manages_tool_versions() {
 # `wait-for-gh-rate-limit` is installed, makes sure that the token
 # isn't rate limited before calling `mise`.
 run_mise() {
-  local mise_path
-  mise_path="$(find_mise)"
+  local exitCode ghToken misePath
+  misePath="$(find_mise)"
 
   if in_ci_environment && [[ -n ${MISE_GITHUB_TOKEN:-} || -n ${GITHUB_TOKEN:-} ]]; then
-    local ghToken="${MISE_GITHUB_TOKEN:-$GITHUB_TOKEN}"
+    ghToken="${MISE_GITHUB_TOKEN:-$GITHUB_TOKEN}"
     GITHUB_TOKEN="$ghToken" wait_for_gh_rate_limit
   fi
 
   if mise_manages_tool_versions; then
-    "$mise_path" "$@"
+    "$misePath" "$@" || exitCode=$?
   else
-    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none "$mise_path" "$@"
+    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none "$misePath" "$@" || exitCode=$?
   fi
+  exitCode=${exitCode:-0}
+
+  if [[ -n ${ghToken:-} ]]; then
+    GITHUB_TOKEN="$ghToken" report_gh_rate_limit_to_datadog "${1:-unknown}"
+  fi
+
+  return "$exitCode"
+}
+
+# report_gh_rate_limit_to_datadog MISE_COMMAND
+#
+# Best-effort submission of the current GitHub API rate-limit state
+# as Datadog gauge metrics, tagged with the mise subcommand, repo, and
+# CI job. Silently no-ops when not in CI, when DATADOG_API_KEY is unset,
+# when `gh` or `gojq` are unavailable, or when the rate-limit query
+# fails. Never returns a non-zero exit code.
+report_gh_rate_limit_to_datadog() {
+  local ddPayload miseCommand now rateLimit remaining tags used
+  miseCommand="$1"
+
+  if ! in_ci_environment || [[ -z ${DATADOG_API_KEY:-} ]] || ! command_exists gh || ! command_exists gojq; then
+    return 0
+  fi
+
+  rateLimit="$(gh api /rate_limit --jq .rate 2>/dev/null || true)"
+  if [[ -z $rateLimit ]]; then return 0; fi
+  # Validate JSON before feeding to --argjson; a malformed response would
+  # otherwise make gojq exit non-zero and, under `set -e` in callers, kill
+  # the parent script.
+  if ! gojq --exit-status . <<<"$rateLimit" >/dev/null 2>&1; then return 0; fi
+
+  # Why: jq vars, not shell vars
+  # shellcheck disable=SC2016
+  used="$(gojq --null-input --argjson r "$rateLimit" '$r.used')"
+  # Why: jq vars, not shell vars
+  # shellcheck disable=SC2016
+  remaining="$(gojq --null-input --argjson r "$rateLimit" '$r.remaining')"
+  now="$(date +%s)"
+  # Why: jq vars, not shell vars
+  # shellcheck disable=SC2016
+  tags="$(gojq --null-input --compact-output \
+    --arg c "$miseCommand" \
+    --arg r "${CIRCLE_PROJECT_REPONAME:-unknown}" \
+    --arg j "${CIRCLE_JOB:-unknown}" \
+    '["mise_command:" + $c, "repo:" + $r, "ci_job:" + $j]')"
+  # type=3 is gauge
+  ddPayload=$(
+    cat <<EOF
+{
+  "series": [
+    {
+      "metric": "devbase.github.app.rate_limit_used",
+      "type": 3,
+      "points": [{"timestamp": $now, "value": $used}],
+      "tags": $tags
+    },
+    {
+      "metric": "devbase.github.app.rate_limit_remaining",
+      "type": 3,
+      "points": [{"timestamp": $now, "value": $remaining}],
+      "tags": $tags
+    }
+  ]
+}
+EOF
+  )
+  curl --silent --show-error --request POST "https://api.datadoghq.com/api/v2/series" \
+    --header "Content-Type: application/json" \
+    --header "DD-API-KEY: $DATADOG_API_KEY" \
+    --data "$ddPayload" >/dev/null || true
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
