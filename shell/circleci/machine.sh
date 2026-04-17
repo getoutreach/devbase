@@ -64,6 +64,6 @@ install_tool_with_mise uv
 mise config set settings.pipx.uvx true
 install_tool_with_mise pipx:yq
 
-if [[ ! -e /opt/vault ]]; then
+if [[ -e /opt/vault ]]; then
   sudo rm -rf /opt/vault
 fi
