@@ -280,11 +280,17 @@ report_gh_rate_limit_to_datadog() {
   fi
 
   rateLimit="$(gh api /rate_limit --jq .rate 2>/dev/null || true)"
-  if [[ -z $rateLimit ]]; then return 0; fi
+  if [[ -z $rateLimit ]]; then
+    warn "Could not get rate limit from GitHub API, skipping" >&2
+    return 0
+  fi
   # Validate JSON before feeding to --argjson; a malformed response would
   # otherwise make gojq exit non-zero and, under `set -e` in callers, kill
   # the parent script.
-  if ! gojq --exit-status . <<<"$rateLimit" >/dev/null 2>&1; then return 0; fi
+  if ! gojq --exit-status . <<<"$rateLimit" >/dev/null 2>&1; then
+    warn "Returned rate limit is not valid JSON, skipping" >&2
+    return 0
+  fi
 
   # Why: jq vars, not shell vars
   # shellcheck disable=SC2016
