@@ -1,6 +1,6 @@
 description: Build an ARM64 Docker image.
 executor:
-  name: testbed-docker-aws
+  name: testbed-docker-noauth
   docker_image: ubuntu
   docker_tag: "24.04"
 resource_class: arm.xlarge

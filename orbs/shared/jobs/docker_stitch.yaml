@@ -1,6 +1,6 @@
 description: Stitch together (optionally push) a multi-arch Docker image. Pushes only on release (or default) branches
 executor:
-  name: testbed-docker-aws
+  name: testbed-docker-noauth
   docker_image: ubuntu
   docker_tag: "24.04"
 resource_class: medium
