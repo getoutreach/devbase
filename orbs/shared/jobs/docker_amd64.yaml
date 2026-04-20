@@ -1,6 +1,8 @@
 description: Build an AMD64 Docker image.
 executor:
-  name: testbed-machine
+  name: testbed-docker-aws
+  docker_image: ubuntu
+  docker_tag: "24.04"
 resource_class: xlarge
 parameters:
   push_registries:

@@ -17,6 +17,9 @@ DOCKER_AUTH_DIR="${LIB_DIR}/docker/authn"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/docker.sh
+source "${LIB_DIR}/docker.sh"
+
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
 
@@ -32,12 +35,14 @@ source "${LIB_DIR}/shell.sh"
 # shellcheck source=../../lib/version.sh
 source "${LIB_DIR}/version.sh"
 
-info "Ensuring that 'gh' is installed"
+info "Ensuring that 'gh' and Docker-related tools are installed"
 
+if ! command_exists docker; then
+  install_docker
+fi
 ensure_mise_installed
-devbase_configure_global_tools
+devbase_mise install github-cli github:getoutreach/ci gojq aws-cli
 bootstrap_github_token
-run_mise install --cd "$HOME" github-cli github:getoutreach/ci gojq
 
 info "🔓 Authenticating to GitHub"
 
@@ -56,9 +61,6 @@ GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 source "${LIB_DIR}/box.sh"
 
 download_box
-
-# shellcheck source=../../lib/docker.sh
-source "${LIB_DIR}/docker.sh"
 
 # shellcheck source=../../lib/github.sh
 source "${LIB_DIR}/github.sh"
