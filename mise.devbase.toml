@@ -1,4 +1,5 @@
 [tools]
+aws-cli = "2.34.31"
 "aqua:fullstorydev/grpcui" = "1.3.1"
 # For provenance verification
 cosign = "3.0.5"
@@ -11,8 +12,11 @@ goreleaser = "1.20.0"
 gotestsum = "1.13.0"
 mage = "1.14.0"
 "github:getoutreach/ci" = "1.6.14"
+vault = "2.0.0"
+# Work around GitHub token rate limits
+wait-for-gh-rate-limit = "1.1.1"
 # Delibird telemetry
-"github:getoutreach/orc" = "latest"
+"github:getoutreach/orc" = "1.124.1"
 # linters
 buf = "1.60.0"
 go-jsonnet = "0.19.1"
@@ -23,5 +27,6 @@ shellcheck = "0.11.0"
 shfmt = "3.7.0"
 terraform = "1.4.4"
 tombi = "0.7.27"
+"github:getoutreach/kubecfg" = "0.34.0"
 "github:getoutreach/lintroller" = "1.20.0"
 "go:golang.org/x/tools/cmd/goimports" = "0.43.0"

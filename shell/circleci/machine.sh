@@ -64,16 +64,6 @@ install_tool_with_mise uv
 mise config set settings.pipx.uvx true
 install_tool_with_mise pipx:yq
 
-if ! command -v vault >/dev/null 2>&1; then
-  install_tool_with_mise vault
+if [[ -e /opt/vault ]]; then
   sudo rm -rf /opt/vault
 fi
-
-# install AWS CLI
-
-if ! command -v aws >/dev/null; then
-  install_tool_with_mise aws-cli
-fi
-
-# Tiny app to work around GitHub token rate limits
-install_tool_with_mise wait-for-gh-rate-limit
