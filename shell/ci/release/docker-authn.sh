@@ -55,7 +55,10 @@ source "${AUTH_DIR}/github.sh"
 # shellcheck source=../auth/ssh.sh
 source "${AUTH_DIR}/ssh.sh"
 
-git config --global --remove-section url."ssh://git@github.com"
+if git config list --global --name-only | grep -q '^url\.ssh://git@github\.com\.'; then
+  info_sub "Removing existing ssh:// section from git config"
+  git config --global --remove-section url."ssh://git@github.com"
+fi
 GH_NO_UPDATE_NOTIFIER=true gh auth setup-git
 
 # shellcheck source=../../lib/box.sh
