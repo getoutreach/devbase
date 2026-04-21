@@ -41,6 +41,7 @@ if ! command_exists docker; then
   install_docker
 fi
 ensure_mise_installed
+devbase_configure_global_tools
 devbase_mise install github-cli github:getoutreach/ci gojq aws-cli
 bootstrap_github_token
 
