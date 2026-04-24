@@ -1,8 +1,8 @@
 description: Build an ARM64 Docker image.
 executor:
-  name: testbed-docker-noauth
-  docker_image: ubuntu
-  docker_tag: "24.04"
+  name: testbed-docker-aws
+  docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-docker
+  docker_tag: latest
 resource_class: arm.xlarge
 parameters:
   push_registries:

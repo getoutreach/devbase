@@ -1,8 +1,0 @@
-description: Standard executor for Docker based runtimes (no auth)
-parameters:
-  docker_tag:
-    type: string
-  docker_image:
-    type: string
-docker:
-  - image: << parameters.docker_image >>:<< parameters.docker_tag >>
