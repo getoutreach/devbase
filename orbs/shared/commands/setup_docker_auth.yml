@@ -16,6 +16,7 @@ steps:
       command: |
         git submodule sync
         git submodule update --init --recursive
+  - use_docker
   - run:
       name: Authenticate to Docker registries
       command: ./scripts/shell-wrapper.sh ci/release/docker-authn.sh
