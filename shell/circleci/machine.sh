@@ -19,6 +19,9 @@ source "$LIB_DIR"/logging.sh
 # shellcheck source=../lib/mise.sh
 source "$LIB_DIR"/mise.sh
 
+# shellcheck source=../lib/mise/e2e.sh
+source "$LIB_DIR"/mise/e2e.sh
+
 # shellcheck source=../lib/shell.sh
 source "$LIB_DIR"/shell.sh
 
@@ -51,18 +54,25 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 fi
 
-info "Installing tools via mise required in machine environment"
-run_mise install --cd "$HOME"
+if [[ ${E2E_MODE:-false} == "true" ]]; then
+  info "E2E mode: skipping broad mise install; installing pinned E2E tools (devenv, kubectl)"
+  e2e_configure_global_tools
+  e2e_mise trust
+  e2e_install_mise_tools
+else
+  info "Installing tools via mise required in machine environment"
+  run_mise install --cd "$HOME"
 
-# Remove the existing yq, if it already exists
-# (usually the Go Version we don't support)
-info "Removing existing Go-based (incompatible) yq"
-sudo rm -f "$(command -v yq)"
+  # Remove the existing yq, if it already exists
+  # (usually the Go Version we don't support)
+  info "Removing existing Go-based (incompatible) yq"
+  sudo rm -f "$(command -v yq)"
 
-info "Installing yq (Python)"
-install_tool_with_mise uv
-mise config set settings.pipx.uvx true
-install_tool_with_mise pipx:yq
+  info "Installing yq (Python)"
+  install_tool_with_mise uv
+  mise config set settings.pipx.uvx true
+  install_tool_with_mise pipx:yq
+fi
 
 if [[ -e /opt/vault ]]; then
   sudo rm -rf /opt/vault

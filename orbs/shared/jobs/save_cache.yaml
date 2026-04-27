@@ -77,18 +77,13 @@ steps:
         - run:
             name: Run tests
             command: make test
-        # Daily cache restored by all jobs (Docker and machine executors)
+        # Daily cache restored by all Docker-executor jobs (and machine jobs that opt in)
         - save_cache:
             key: v1-daily-cache-{{ arch }}-{{ epoch }}
             paths:
               - "~/.cache"
-              - "~/.outreach/.cache"
-        # E2E cache with asdf/mise tool installs for machine-executor jobs
-        - save_cache:
-            key: v1-e2e-daily-cache-{{ arch }}-{{ epoch }}
-            paths:
               - "~/.asdf"
-              - "~/.local/share/mise"
+              - "~/.outreach/.cache"
         - save_cache:
             key: v1-toggle-daily-cache-{{ arch }}-{{ .Revision }}
             paths:

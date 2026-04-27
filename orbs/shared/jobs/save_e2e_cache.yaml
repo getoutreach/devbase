@@ -1,0 +1,63 @@
+description: >-
+  Runs the necessary steps to populate and save the E2E cache on the machine
+  executor. The E2E cache contains mise tool installs and Go build/module
+  caches that the machine-executor E2E job consumes.
+parameters:
+  app_name:
+    description: Name of the application
+    type: string
+  pre_setup_script:
+    default: ""
+    description: Environment variable that contains a shell path to run before running tests in CircleCI
+    type: string
+  skip:
+    description: If this is set to true all steps in this job will be skipped
+    type: boolean
+    default: false
+
+executor:
+  name: testbed-machine
+
+environment:
+  PRE_SETUP_SCRIPT: << parameters.pre_setup_script >>
+steps:
+  - when:
+      condition:
+        not: << parameters.skip >>
+      steps:
+        - restore_cache:
+            keys:
+              - v1-toggle-e2e-daily-cache-{{ arch }}-{{ .Revision }}
+        - run:
+            name: Check cache flag
+            command: |
+              if [[ -f "/home/circleci/cache-toggle-e2e" ]]; then
+                echo "E2E cache for this commit already exists"
+                curl -X POST "https://circleci.com/api/v2/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/job/$CIRCLE_BUILD_NUM/cancel?circle-token=$CIRCLECI_API_TOKEN"
+              fi
+        - run:
+            name: Create an E2E cache flag file
+            command: touch ~/cache-toggle-e2e && echo "true" > ~/cache-toggle-e2e
+        - setup_environment:
+            machine: true
+            restore_cache: false
+            e2e_mode: true
+        - run:
+            name: Build to populate Go build/module caches
+            command: make build
+        # E2E cache with mise tool installs and Go caches for machine-executor jobs
+        - save_cache:
+            key: v1-e2e-daily-cache-{{ arch }}-{{ epoch }}
+            paths:
+              - "~/.local/share/mise"
+              - "~/.cache/go-build"
+              - "~/go/pkg/mod"
+        - save_cache:
+            key: v1-toggle-e2e-daily-cache-{{ arch }}-{{ .Revision }}
+            paths:
+              - "~/cache-toggle-e2e"
+
+  - when:
+      condition: << parameters.skip >>
+      steps:
+        - run: echo "skip parameter in CI config was set to true, skipping"

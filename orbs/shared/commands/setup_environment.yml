@@ -22,10 +22,14 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
-  restore_e2e_cache:
+  e2e_mode:
     description: >-
-      Restore the e2e daily cache containing asdf/mise tool installs.
-      Use for machine executor jobs that need tool binaries.
+      E2E execution mode. When true:
+      (1) restores the v1-e2e-daily-cache (asdf/mise tool installs and
+      Go build/module caches),
+      (2) installs only the E2E tool allow-list (go, node, devenv,
+      kubectl) and skips asdf entirely.
+      Used by E2E jobs and the save_e2e_cache job.
     type: boolean
     default: false
   checkout_method:
@@ -45,7 +49,7 @@ steps:
             keys:
               - v1-daily-cache-{{ arch }}-
   - when:
-      condition: << parameters.restore_e2e_cache >>
+      condition: << parameters.e2e_mode >>
       steps:
         - restore_cache:
             keys:
@@ -67,11 +71,14 @@ steps:
         - run:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
+            environment:
+              E2E_MODE: << parameters.e2e_mode >>
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
       environment:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
+        E2E_MODE: << parameters.e2e_mode >>
   - when:
       condition: << parameters.setup_devenv >>
       steps:

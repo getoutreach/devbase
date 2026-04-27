@@ -53,9 +53,13 @@ environment:
   TEST_FLAGS: << parameters.test_flags >>
 resource_class: << parameters.resource_class >>
 steps:
+  # restore_cache: false skips the daily cache (unreachable from machine
+  # jobs anyway, due to executor-arch scoping); e2e_mode: true restores
+  # the e2e cache instead.
   - setup_environment:
       machine: true
-      restore_e2e_cache: true
+      restore_cache: false
+      e2e_mode: true
   - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
