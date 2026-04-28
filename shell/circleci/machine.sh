@@ -35,14 +35,17 @@ if [[ $OSTYPE == "darwin"* ]]; then
 fi
 
 ensure_mise_installed
-if ! circleci_e2e_mode_enabled; then
-  devbase_configure_global_tools
+if circleci_e2e_mode_enabled; then
+  miseEnv=e2e
+else
+  miseEnv=devbase
 fi
-devbase_mise trust
+mise_configure_global_tools_for_env "$miseEnv"
+mise_for_env "$miseEnv" trust
 
 if [[ -z $GITHUB_TOKEN ]]; then
   # Minimum amount of tools to install to bootstrap the GitHub token
-  devbase_mise install --yes github-cli github:getoutreach/ci gojq
+  mise_for_env "$miseEnv" install --yes github-cli github:getoutreach/ci gojq
 
   bootstrap_github_token
 
@@ -58,8 +61,6 @@ fi
 
 if circleci_e2e_mode_enabled; then
   info "E2E mode: skipping broad mise install; installing pinned E2E tools (devenv, kubectl)"
-  mise_configure_global_tools_for_env e2e
-  mise_for_env e2e trust
   mise_install_tools_for_env e2e
 else
   info "Installing tools via mise required in machine environment"

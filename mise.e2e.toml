@@ -2,3 +2,9 @@
 "github:getoutreach/devenv" = "1.64.7"
 "github:getoutreach/kubecfg" = "0.28.1"
 kubectl = "1.29.15"
+
+# For GitHub tokens, copied from mise.devbase.toml (sync versions from there)
+"github:getoutreach/ci" = "1.6.14"
+github-cli = "2.83.2"
+## Sync with templates/scripts/devbase.sh.tpl
+gojq = "0.12.18"
