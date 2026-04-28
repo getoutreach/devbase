@@ -60,7 +60,7 @@ if [[ -z $GITHUB_TOKEN ]]; then
 fi
 
 if circleci_e2e_mode_enabled; then
-  info "E2E mode: skipping broad mise install; installing pinned E2E tools (devenv, kubectl)"
+  info "E2E mode: skipping broad mise install; installing only tools pinned in mise.e2e.toml"
   mise_install_tools_for_env e2e
 else
   info "Installing tools via mise required in machine environment"
