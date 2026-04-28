@@ -51,6 +51,7 @@ environment:
   RESTORE_TIMEOUT: << parameters.snapshot_restore_timeout >>
   USE_DEVSPACE: << parameters.use_devspace >>
   TEST_FLAGS: << parameters.test_flags >>
+  E2E_MODE: "true"
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
