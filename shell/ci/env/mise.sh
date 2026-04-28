@@ -65,8 +65,10 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   fi
 fi
 
-MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
-devbase_configure_global_tools
+if ! circleci_e2e_mode_enabled; then
+  MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
+  devbase_configure_global_tools
+fi
 
 if [[ -n ${BASH_ENV:-} ]]; then
   inject_mise_commands >>"$BASH_ENV"
