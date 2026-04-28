@@ -9,6 +9,9 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/circleci.sh
+source "${LIB_DIR}/circleci.sh"
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -43,7 +46,7 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
   fi
-  if [[ ${E2E_MODE:-false} == "true" ]]; then
+  if circleci_e2e_mode_enabled; then
     info_sub "🧑‍🍳 E2E mode: installing only go, node, and pinned E2E tools (devenv, kubectl)"
     export MISE_GITHUB_TOKEN="$ghToken"
     if [[ -f "$repoDir/.tool-versions" ]]; then

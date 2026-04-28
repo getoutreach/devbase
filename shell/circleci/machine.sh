@@ -10,6 +10,9 @@ ROOT_DIR="$DIR/../.."
 # shellcheck source=../lib/bootstrap.sh
 source "$LIB_DIR"/bootstrap.sh
 
+# shellcheck source=../lib/circleci.sh
+source "$LIB_DIR"/circleci.sh
+
 # shellcheck source=../lib/github.sh
 source "$LIB_DIR"/github.sh
 
@@ -51,7 +54,7 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 fi
 
-if [[ ${E2E_MODE:-false} == "true" ]]; then
+if circleci_e2e_mode_enabled; then
   info "E2E mode: skipping broad mise install; installing pinned E2E tools (devenv, kubectl)"
   mise_configure_global_tools_for_env e2e
   mise_for_env e2e trust
