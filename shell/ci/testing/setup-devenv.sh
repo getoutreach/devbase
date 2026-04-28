@@ -21,6 +21,7 @@ source "$DIR/../../lib/version.sh"
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
 E2E="${E2E:-"false"}"
+DEVENV_PRE_RELEASE="${DEVENV_PRE_RELEASE:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   info "e2e was set, ignoring provision"
@@ -62,7 +63,11 @@ if in_ci_environment; then
   fi
 
   if ! command_exists devenv; then
-    install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
+    if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
+      install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
+    else
+      install_tool_with_mise github:getoutreach/devenv "$(tool_version_from_mise_env e2e github:getoutreach/devenv)"
+    fi
   fi
 
   info "Setting up Git"
