@@ -41,11 +41,13 @@ if in_ci_environment; then
   eval "$("$mise_path" activate bash --shims)"
 
   if ! command -v kubectl >/dev/null; then
-    install_tool_with_mise kubectl 1.29
+    kubectlVersion="${KUBECTL_VERSION:-"$(get_box_field devenv.versions.kubectl)"}"
+    install_tool_with_mise kubectl "${kubectlVersion:-1.29.15}"
   fi
 
   if ! command -v kubecfg >/dev/null; then
-    install_tool_with_mise github:getoutreach/kubecfg v0.28.1
+    kubecfgVersion="${KUBECFG_VERSION:-"$(get_box_field devenv.versions.kubecfg)"}"
+    install_tool_with_mise github:getoutreach/kubecfg "${kubecfgVersion:-v0.28.1}"
   fi
 
   if ! command -v devenv >/dev/null; then
