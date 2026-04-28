@@ -10,3 +10,5 @@ aws-cli = "2.34.31"
 github-cli = "2.83.2"
 ## Sync with templates/scripts/devbase.sh.tpl
 gojq = "0.12.18"
+## E2E auth (devenv provision uses vault)
+vault = "2.0.0"

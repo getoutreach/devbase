@@ -224,3 +224,31 @@ url = "https://dl.k8s.io/v1.34.7/bin/darwin/amd64/kubectl"
 [tools.kubectl."platforms.windows-x64"]
 checksum = "sha256:cd158f0f6e4e7624a7d82706d13b9fa8c70aa3026658217a2cf260d0933c4aa9"
 url = "https://dl.k8s.io/v1.34.7/bin/windows/amd64/kubectl.exe"
+
+[[tools.vault]]
+version = "2.0.0"
+backend = "aqua:hashicorp/vault"
+
+[tools.vault."platforms.linux-arm64"]
+checksum = "sha256:5f04207fd0fbabbb8c6cca494fdee96f81bb0a82e1176670649e1aeeaadf0281"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_linux_arm64.zip"
+
+[tools.vault."platforms.linux-arm64-musl"]
+checksum = "sha256:5f04207fd0fbabbb8c6cca494fdee96f81bb0a82e1176670649e1aeeaadf0281"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_linux_arm64.zip"
+
+[tools.vault."platforms.linux-x64"]
+checksum = "sha256:0367bdd46dd1fff1ff19fc44e60df48866515bb519c80527236b3808ea879ac2"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_linux_amd64.zip"
+
+[tools.vault."platforms.linux-x64-musl"]
+checksum = "sha256:0367bdd46dd1fff1ff19fc44e60df48866515bb519c80527236b3808ea879ac2"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_linux_amd64.zip"
+
+[tools.vault."platforms.macos-arm64"]
+checksum = "sha256:3b8ad2cc6de8b6cc13e030465e83729aec1070ef91327a55be0a28af81a530bf"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_darwin_arm64.zip"
+
+[tools.vault."platforms.macos-x64"]
+checksum = "sha256:4fe88b981fcf14917a5f1b1c1ffaf4f9231c3f646ab778ba44e71dfb80e5b234"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_darwin_amd64.zip"
