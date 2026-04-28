@@ -518,12 +518,33 @@ devbase_install_mise_tools() {
   mise_install_tools_for_env devbase
 }
 
+# Determines the requested version of a tool as defined in the given
+# mise env's `mise.<env>.toml`.
+tool_version_from_mise_env() {
+  local env="$1"
+  local toolName="$2"
+
+  if [[ -z $env ]] || [[ -z $toolName ]]; then
+    fatal "Running tool_version_from_mise_env requires an env and a tool name"
+  fi
+
+  local version
+  # shellcheck disable=SC2016 # $tool/$env are jq variables, not shell vars
+  version=$(mise_for_env "$env" ls --local --json |
+    gojq --raw-output --arg tool "$toolName" --arg env "$env" \
+      '.[$tool][] | select(.source.path | endswith("mise." + $env + ".toml")).requested_version')
+
+  if [[ -z $version ]]; then
+    fatal "Could not find $toolName in mise.$env.toml"
+  fi
+
+  echo "$version"
+}
+
 # Determines the requested version of a tool as defined in
 # devbase's `mise.devbase.toml`.
 devbase_tool_version_from_mise() {
-  local toolName="$1"
-  devbase_mise ls --local --json |
-    gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
+  tool_version_from_mise_env devbase "$1"
 }
 
 # The current version of mise.
