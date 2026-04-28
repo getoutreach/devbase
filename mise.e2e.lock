@@ -193,6 +193,38 @@ url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_
 checksum = "sha256:ecf343e99fb0190fede177becd6e8602386c801c0a98c7e10905a8d832f612d8"
 url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_windows_amd64.zip"
 
+[[tools.gotestsum]]
+version = "1.13.0"
+backend = "aqua:gotestyourself/gotestsum"
+
+[tools.gotestsum."platforms.linux-arm64"]
+checksum = "sha256:7644a4c5cd1bb978d56245aeab25a586ac5ac62adebed20a399548867c13499d"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_arm64.tar.gz"
+
+[tools.gotestsum."platforms.linux-arm64-musl"]
+checksum = "sha256:7644a4c5cd1bb978d56245aeab25a586ac5ac62adebed20a399548867c13499d"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_arm64.tar.gz"
+
+[tools.gotestsum."platforms.linux-x64"]
+checksum = "sha256:11ccddeaf708ef228889f9fe2f68291a75b27013ddfc3b18156e094f5f40e8ee"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_amd64.tar.gz"
+
+[tools.gotestsum."platforms.linux-x64-musl"]
+checksum = "sha256:11ccddeaf708ef228889f9fe2f68291a75b27013ddfc3b18156e094f5f40e8ee"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_amd64.tar.gz"
+
+[tools.gotestsum."platforms.macos-arm64"]
+checksum = "sha256:509cb27aef747f48faf9bce424f59dcf79572c905204b990ee935bbfcc7fa0e9"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_darwin_arm64.tar.gz"
+
+[tools.gotestsum."platforms.macos-x64"]
+checksum = "sha256:99529350f4c7b780b1efc543ca0d9721b09f0a4228f0efa9281261f58fefa05a"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_darwin_amd64.tar.gz"
+
+[tools.gotestsum."platforms.windows-x64"]
+checksum = "sha256:fd5a6dc69e46a0970593e70d85a7e75f16714e9c61d6d72ccc324eb82df5bb8a"
+url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_windows_amd64.tar.gz"
+
 [[tools.kubectl]]
 version = "1.34.7"
 backend = "aqua:kubernetes/kubernetes/kubectl"
@@ -252,3 +284,7 @@ url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_darwin_arm64.zip"
 [tools.vault."platforms.macos-x64"]
 checksum = "sha256:4fe88b981fcf14917a5f1b1c1ffaf4f9231c3f646ab778ba44e71dfb80e5b234"
 url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_darwin_amd64.zip"
+
+[tools.vault."platforms.windows-x64"]
+checksum = "sha256:6ba79a7937360f96502dcbca84395b96d4299e770497e342805a3c4dcadb6de2"
+url = "https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_windows_amd64.zip"
