@@ -16,5 +16,11 @@ steps:
   - run:
       name: Setting up devenv
       command: |-
+        # E2E (distinct from the orb-level E2E_MODE env var) is a
+        # behavior flag primarily consumed by ci/testing/setup-devenv.sh:
+        # when true, that script asserts E2E tools are on PATH and
+        # runs the E2E test suite after provisioning. E2E_MODE governs
+        # which mise toolset gets installed during CI bootstrap; E2E
+        # governs runtime behavior once setup-devenv.sh is invoked.
         PROVISION="<< parameters.provision >>" E2E="<< parameters.e2e >>" PROVISION_ARGS="<< parameters.provision_args >>" \
           ./scripts/shell-wrapper.sh ci/testing/setup-devenv.sh

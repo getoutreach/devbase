@@ -51,6 +51,11 @@ environment:
   RESTORE_TIMEOUT: << parameters.snapshot_restore_timeout >>
   USE_DEVSPACE: << parameters.use_devspace >>
   TEST_FLAGS: << parameters.test_flags >>
+  # E2E_MODE gates *CI machine bootstrap* tool installation: when true,
+  # circleci/machine.sh and ci/env/mise.sh install only the slim
+  # mise.e2e.toml allow-list instead of the full mise.devbase.toml.
+  # This is distinct from the E2E variable (set later by `make e2e`),
+  # which gates *test-runner* behavior inside ci/testing/setup-devenv.sh.
   E2E_MODE: "true"
 resource_class: << parameters.resource_class >>
 steps:

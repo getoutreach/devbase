@@ -20,6 +20,11 @@ source "$DIR/../../lib/version.sh"
 # Arguments
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
+# E2E is this script's behavior flag (set by `make e2e` or the orb's
+# setup_devenv command): when true, this script asserts E2E tools on
+# PATH and runs the test suite. Distinct from E2E_MODE, which is the
+# CI-bootstrap flag (see shell/circleci/machine.sh, shell/ci/env/mise.sh)
+# that picks mise.e2e.toml over mise.devbase.toml before this script runs.
 E2E="${E2E:-"false"}"
 DEVENV_PRE_RELEASE="${DEVENV_PRE_RELEASE:-"false"}"
 

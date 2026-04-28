@@ -135,6 +135,10 @@ coverage:: pre-coverage
 
 .PHONY: e2e
 e2e:: pre-e2e
+	# E2E=true is read by ci/testing/setup-devenv.sh to run the E2E
+	# test suite after provisioning. This is unrelated to the
+	# orb-level E2E_MODE env var (which controls which mise toolset
+	# CI installs); see orbs/shared/jobs/e2e.yaml for that.
 	$(BASE_TEST_ENV) E2E=true OUTREACH_ACCOUNTS_BASE_URL=$(ACCOUNTS_URL) MY_NAMESPACE=$(E2E_NAMESPACE) \
 	MY_CLUSTER=$(E2E_CLUSTER) MY_ENVIRONMENT=$(E2E_ENVIRONMENT) \
 	MY_POD_SERVICE_ACCOUNT=$(E2E_SERVICE_ACCOUNT) OUTREACH_DOMAIN=$(OUTREACH_DOMAIN) \
