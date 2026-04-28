@@ -35,7 +35,9 @@ if [[ $OSTYPE == "darwin"* ]]; then
 fi
 
 ensure_mise_installed
-devbase_configure_global_tools
+if ! circleci_e2e_mode_enabled; then
+  devbase_configure_global_tools
+fi
 devbase_mise trust
 
 if [[ -z $GITHUB_TOKEN ]]; then
