@@ -40,17 +40,30 @@ if in_ci_environment; then
   mise_path="$(find_mise)"
   eval "$("$mise_path" activate bash --shims)"
 
-  if ! command -v kubectl >/dev/null; then
+  # In E2E mode, setup_environment installs kubectl/kubecfg/devenv from
+  # mise.e2e.lock before this script runs. If any are missing, the
+  # lockfile-based install drifted from this script's expectations;
+  # fail loudly rather than silently falling through to unpinned
+  # installs below.
+  if [[ $E2E == "true" ]]; then
+    for tool in kubectl kubecfg devenv; do
+      if ! command_exists "$tool"; then
+        fatal "$tool not on PATH in E2E mode; expected setup_environment to install it from mise.e2e.lock"
+      fi
+    done
+  fi
+
+  if ! command_exists kubectl; then
     kubectlVersion="${KUBECTL_VERSION:-"$(get_box_field devenv.versions.kubectl)"}"
     install_tool_with_mise kubectl "${kubectlVersion:-1.29.15}"
   fi
 
-  if ! command -v kubecfg >/dev/null; then
+  if ! command_exists kubecfg; then
     kubecfgVersion="${KUBECFG_VERSION:-"$(get_box_field devenv.versions.kubecfg)"}"
     install_tool_with_mise github:getoutreach/kubecfg "${kubecfgVersion:-v0.28.1}"
   fi
 
-  if ! command -v devenv >/dev/null; then
+  if ! command_exists devenv; then
     install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
   fi
 

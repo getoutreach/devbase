@@ -51,18 +51,25 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 fi
 
-info "Installing tools via mise required in machine environment"
-run_mise install --cd "$HOME"
+if [[ ${E2E_MODE:-false} == "true" ]]; then
+  info "E2E mode: skipping broad mise install; installing pinned E2E tools (devenv, kubectl)"
+  mise_configure_global_tools_for_env e2e
+  mise_for_env e2e trust
+  mise_install_tools_for_env e2e
+else
+  info "Installing tools via mise required in machine environment"
+  run_mise install --cd "$HOME"
 
-# Remove the existing yq, if it already exists
-# (usually the Go Version we don't support)
-info "Removing existing Go-based (incompatible) yq"
-sudo rm -f "$(command -v yq)"
+  # Remove the existing yq, if it already exists
+  # (usually the Go Version we don't support)
+  info "Removing existing Go-based (incompatible) yq"
+  sudo rm -f "$(command -v yq)"
 
-info "Installing yq (Python)"
-install_tool_with_mise uv
-mise config set settings.pipx.uvx true
-install_tool_with_mise pipx:yq
+  info "Installing yq (Python)"
+  install_tool_with_mise uv
+  mise config set settings.pipx.uvx true
+  install_tool_with_mise pipx:yq
+fi
 
 if [[ -e /opt/vault ]]; then
   sudo rm -rf /opt/vault

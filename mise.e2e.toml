@@ -1,0 +1,4 @@
+[tools]
+"github:getoutreach/devenv" = "1.64.7"
+"github:getoutreach/kubecfg" = "0.28.1"
+kubectl = "1.29.15"

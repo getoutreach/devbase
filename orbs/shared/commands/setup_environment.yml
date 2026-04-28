@@ -22,6 +22,13 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
+  e2e_mode:
+    description: >-
+      E2E execution mode. When true, installs only the E2E tool
+      allow-list (go, node, devenv, kubecfg, kubectl) and skips asdf
+      entirely. Used by E2E jobs.
+    type: boolean
+    default: false
   checkout_method:
     description: checkout method per https://circleci.com/docs/reference/configuration-reference/#checkout
     type: enum
@@ -55,11 +62,14 @@ steps:
         - run:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
+            environment:
+              E2E_MODE: << parameters.e2e_mode >>
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
       environment:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
+        E2E_MODE: << parameters.e2e_mode >>
   - when:
       condition: << parameters.setup_devenv >>
       steps:

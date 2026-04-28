@@ -43,7 +43,23 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
   fi
-  MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" --yes
+  if [[ ${E2E_MODE:-false} == "true" ]]; then
+    info_sub "🧑‍🍳 E2E mode: installing only go, node, and pinned E2E tools (devenv, kubectl)"
+    export MISE_GITHUB_TOKEN="$ghToken"
+    if [[ -f "$repoDir/.tool-versions" ]]; then
+      install_tool_with_mise go \
+        "$(grep ^golang "$repoDir/.tool-versions" | awk '{print $2}')"
+      install_tool_with_mise node \
+        "$(grep ^nodejs "$repoDir/.tool-versions" | awk '{print $2}')"
+    else
+      install_tool_with_mise go
+      install_tool_with_mise node
+    fi
+    mise_install_tools_for_env e2e
+    mise_configure_global_tools_for_env e2e
+  else
+    MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" --yes
+  fi
 fi
 
 MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
