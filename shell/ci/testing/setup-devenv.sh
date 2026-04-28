@@ -54,13 +54,11 @@ if in_ci_environment; then
   fi
 
   if ! command_exists kubectl; then
-    kubectlVersion="${KUBECTL_VERSION:-"$(get_box_field devenv.versions.kubectl)"}"
-    install_tool_with_mise kubectl "${kubectlVersion:-1.29.15}"
+    install_tool_with_mise kubectl 1.29.15
   fi
 
   if ! command_exists kubecfg; then
-    kubecfgVersion="${KUBECFG_VERSION:-"$(get_box_field devenv.versions.kubecfg)"}"
-    install_tool_with_mise github:getoutreach/kubecfg "${kubecfgVersion:-v0.28.1}"
+    install_tool_with_mise github:getoutreach/kubecfg v0.28.1
   fi
 
   if ! command_exists devenv; then
