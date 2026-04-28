@@ -13,3 +13,5 @@ gojq = "0.12.18"
 ## E2E auth (devenv provision uses vault)
 vault = "2.0.0"
 gotestsum = "1.13.0"
+# Work around GitHub token rate limits
+wait-for-gh-rate-limit = "1.1.1"
