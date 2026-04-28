@@ -24,8 +24,11 @@ circleci_param_is_true() {
   esac
 }
 
-# Returns 0 if the job is running in E2E mode (i.e. the `e2e_mode` bool
-# parameter was set to `true` and exported as `E2E_MODE`).
-circleci_e2e_mode_enabled() {
-  circleci_param_is_true "${E2E_MODE:-}"
+# Returns 0 if the slim E2E mise toolset (mise.e2e.toml) should be
+# installed during CI machine bootstrap, in lieu of the broader
+# mise.devbase.toml. Driven by the `install_e2e_tools` bool parameter
+# on the `setup_environment` orb command, which is exported as
+# `INSTALL_E2E_TOOLS` to this layer.
+circleci_should_install_e2e_tools() {
+  circleci_param_is_true "${INSTALL_E2E_TOOLS:-}"
 }

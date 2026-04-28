@@ -46,7 +46,7 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
   fi
-  if circleci_e2e_mode_enabled; then
+  if circleci_should_install_e2e_tools; then
     info_sub "🧑‍🍳 E2E mode: installing only go, node, and tools pinned in mise.e2e.toml"
     export MISE_GITHUB_TOKEN="$ghToken"
     if [[ -f "$repoDir/.tool-versions" ]]; then
@@ -65,7 +65,7 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   fi
 fi
 
-if ! circleci_e2e_mode_enabled; then
+if ! circleci_should_install_e2e_tools; then
   MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
   devbase_configure_global_tools
 fi

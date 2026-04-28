@@ -35,7 +35,7 @@ if [[ $OSTYPE == "darwin"* ]]; then
 fi
 
 ensure_mise_installed
-if circleci_e2e_mode_enabled; then
+if circleci_should_install_e2e_tools; then
   miseEnv=e2e
 else
   miseEnv=devbase
@@ -59,7 +59,7 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 fi
 
-if circleci_e2e_mode_enabled; then
+if circleci_should_install_e2e_tools; then
   info "E2E mode: skipping broad mise install; installing only tools pinned in mise.e2e.toml"
   mise_install_tools_for_env e2e
 else
