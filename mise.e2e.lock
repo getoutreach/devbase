@@ -34,6 +34,38 @@ checksum = "sha256:4b559b6c5e504ecc086eb384e609307f064f011b1d8729e72401765653643
 url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_darwin_amd64.tar.gz"
 url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329482011"
 
+[[tools."github:getoutreach/kubecfg"]]
+version = "0.28.1"
+backend = "github:getoutreach/kubecfg"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-arm64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754694"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-arm64-musl"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754694"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-x64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754691"
+
+[tools."github:getoutreach/kubecfg"."platforms.linux-x64-musl"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-linux-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754691"
+
+[tools."github:getoutreach/kubecfg"."platforms.macos-arm64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-darwin-arm64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754693"
+
+[tools."github:getoutreach/kubecfg"."platforms.macos-x64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-darwin-amd64"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754695"
+
+[tools."github:getoutreach/kubecfg"."platforms.windows-x64"]
+url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-windows-amd64.exe"
+url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754692"
+
 [[tools.kubectl]]
 version = "1.29.15"
 backend = "aqua:kubernetes/kubernetes/kubectl"
