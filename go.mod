@@ -11,7 +11,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/magefile/mage v1.17.1
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.35.0
+	github.com/rs/zerolog v1.35.1
 	google.golang.org/grpc v1.80.0
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.5.2

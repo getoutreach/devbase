@@ -28,7 +28,8 @@ parameters:
       mise toolset pinned in mise.e2e.toml (currently kubectl, kubecfg,
       devenv, and a small set of bootstrap tools) and skips asdf
       entirely. Also restores the v1-e2e-daily-cache populated by
-      save_e2e_cache. Used by E2E jobs.
+      save_e2e_cache. When false, the broader mise.devbase.toml
+      toolset is installed. Used by E2E jobs.
     type: boolean
     default: false
   checkout_method:
