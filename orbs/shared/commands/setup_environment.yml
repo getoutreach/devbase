@@ -27,8 +27,9 @@ parameters:
       When true, the CI machine bootstrap installs only the slim E2E
       mise toolset pinned in mise.e2e.toml (currently kubectl, kubecfg,
       devenv, and a small set of bootstrap tools) and skips asdf
-      entirely. When false, the broader mise.devbase.toml toolset is
-      installed. Used by E2E jobs.
+      entirely. Also restores the v1-e2e-daily-cache populated by
+      save_e2e_cache. When false, the broader mise.devbase.toml
+      toolset is installed. Used by E2E jobs.
     type: boolean
     default: false
   checkout_method:
@@ -46,7 +47,13 @@ steps:
       steps:
         - restore_cache:
             keys:
-              - v2-daily-cache-{{ arch }}-
+              - v1-daily-cache-{{ arch }}-
+  - when:
+      condition: << parameters.install_e2e_tools >>
+      steps:
+        - restore_cache:
+            keys:
+              - v1-e2e-daily-cache-{{ arch }}-
   # Adds a github org scoped SSH key to the project added by Wheatley
   - add_ssh_keys
   - when:

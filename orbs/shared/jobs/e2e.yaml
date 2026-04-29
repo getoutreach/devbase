@@ -59,8 +59,12 @@ environment:
   INSTALL_E2E_TOOLS: "true"
 resource_class: << parameters.resource_class >>
 steps:
+  # restore_cache: false skips the daily cache (unreachable from machine
+  # jobs anyway, due to executor-arch scoping); install_e2e_tools: true
+  # restores the e2e cache and installs the slim E2E toolset.
   - setup_environment:
       machine: true
+      restore_cache: false
       install_e2e_tools: true
   - run:
       name: Run E2E Tests
