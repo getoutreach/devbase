@@ -50,14 +50,10 @@ if [[ -f "$repoDir"/mise.toml ]]; then
     info_sub "🧑‍🍳 E2E mode: installing only go, node, and tools pinned in mise.e2e.toml"
     export MISE_GITHUB_TOKEN="$ghToken"
     if [[ -f "$repoDir/.tool-versions" ]]; then
-      goVersion="$(awk '$1 == "golang" {print $2}' "$repoDir/.tool-versions")"
-      nodeVersion="$(awk '$1 == "nodejs" {print $2}' "$repoDir/.tool-versions")"
-      if [[ -z $goVersion ]]; then
+      goVersion="$(version_from_toolversions "$repoDir" golang)" ||
         fatal "golang version not found in $repoDir/.tool-versions"
-      fi
-      if [[ -z $nodeVersion ]]; then
+      nodeVersion="$(version_from_toolversions "$repoDir" nodejs)" ||
         fatal "nodejs version not found in $repoDir/.tool-versions"
-      fi
       install_tool_with_mise go "$goVersion"
       install_tool_with_mise node "$nodeVersion"
     else

@@ -54,8 +54,12 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 
   if ([[ $OSTYPE == "darwin"* ]] && ! mise_manages_tool_versions) || ! command_exists go; then
-    install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
-    install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
+    goVersion="$(version_from_toolversions "$ROOT_DIR" golang)" ||
+      fatal "golang version not found in $ROOT_DIR/.tool-versions"
+    nodeVersion="$(version_from_toolversions "$ROOT_DIR" nodejs)" ||
+      fatal "nodejs version not found in $ROOT_DIR/.tool-versions"
+    install_tool_with_mise go "$goVersion"
+    install_tool_with_mise node "$nodeVersion"
   fi
 fi
 
