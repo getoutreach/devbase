@@ -22,6 +22,15 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
+  install_e2e_tools:
+    description: >-
+      When true, the CI machine bootstrap installs only the slim E2E
+      mise toolset pinned in mise.e2e.toml (currently kubectl, kubecfg,
+      devenv, and a small set of bootstrap tools) and skips asdf
+      entirely. When false, the broader mise.devbase.toml toolset is
+      installed. Used by E2E jobs.
+    type: boolean
+    default: false
   checkout_method:
     description: checkout method per https://circleci.com/docs/reference/configuration-reference/#checkout
     type: enum
@@ -55,11 +64,14 @@ steps:
         - run:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
+            environment:
+              INSTALL_E2E_TOOLS: << parameters.install_e2e_tools >>
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
       environment:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
+        INSTALL_E2E_TOOLS: << parameters.install_e2e_tools >>
   - when:
       condition: << parameters.setup_devenv >>
       steps:

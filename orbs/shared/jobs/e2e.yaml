@@ -51,10 +51,17 @@ environment:
   RESTORE_TIMEOUT: << parameters.snapshot_restore_timeout >>
   USE_DEVSPACE: << parameters.use_devspace >>
   TEST_FLAGS: << parameters.test_flags >>
+  # INSTALL_E2E_TOOLS gates *CI machine bootstrap* tool installation:
+  # when true, circleci/machine.sh and ci/env/mise.sh install only the
+  # slim mise.e2e.toml toolset instead of the full mise.devbase.toml.
+  # This is distinct from the E2E variable (set later by `make e2e`),
+  # which gates *test-runner* behavior inside ci/testing/setup-devenv.sh.
+  INSTALL_E2E_TOOLS: "true"
 resource_class: << parameters.resource_class >>
 steps:
   - setup_environment:
       machine: true
+      install_e2e_tools: true
   - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e

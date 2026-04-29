@@ -10,6 +10,9 @@ ROOT_DIR="$DIR/../.."
 # shellcheck source=../lib/bootstrap.sh
 source "$LIB_DIR"/bootstrap.sh
 
+# shellcheck source=../lib/circleci.sh
+source "$LIB_DIR"/circleci.sh
+
 # shellcheck source=../lib/github.sh
 source "$LIB_DIR"/github.sh
 
@@ -32,12 +35,17 @@ if [[ $OSTYPE == "darwin"* ]]; then
 fi
 
 ensure_mise_installed
-devbase_configure_global_tools
-devbase_mise trust
+if circleci_should_install_e2e_tools; then
+  miseEnv=e2e
+else
+  miseEnv=devbase
+fi
+mise_configure_global_tools_for_env "$miseEnv"
+mise_for_env "$miseEnv" trust
 
 if [[ -z $GITHUB_TOKEN ]]; then
   # Minimum amount of tools to install to bootstrap the GitHub token
-  devbase_mise install --yes github-cli github:getoutreach/ci gojq
+  mise_for_env "$miseEnv" install --yes github-cli github:getoutreach/ci gojq
 
   bootstrap_github_token
 
@@ -46,23 +54,32 @@ if [[ -z $GITHUB_TOKEN ]]; then
   fi
 
   if ([[ $OSTYPE == "darwin"* ]] && ! mise_manages_tool_versions) || ! command_exists go; then
-    install_tool_with_mise go "$(grep ^golang "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
-    install_tool_with_mise node "$(grep ^nodejs "$ROOT_DIR/.tool-versions" | awk '{print $2}')"
+    goVersion="$(version_from_toolversions "$ROOT_DIR" golang)" ||
+      fatal "golang version not found in $ROOT_DIR/.tool-versions"
+    nodeVersion="$(version_from_toolversions "$ROOT_DIR" nodejs)" ||
+      fatal "nodejs version not found in $ROOT_DIR/.tool-versions"
+    install_tool_with_mise go "$goVersion"
+    install_tool_with_mise node "$nodeVersion"
   fi
 fi
 
-info "Installing tools via mise required in machine environment"
-run_mise install --cd "$HOME"
+if circleci_should_install_e2e_tools; then
+  info "E2E mode: skipping broad mise install; installing only tools pinned in mise.e2e.toml"
+  mise_install_tools_for_env e2e
+else
+  info "Installing tools via mise required in machine environment"
+  run_mise install --cd "$HOME"
 
-# Remove the existing yq, if it already exists
-# (usually the Go Version we don't support)
-info "Removing existing Go-based (incompatible) yq"
-sudo rm -f "$(command -v yq)"
+  # Remove the existing yq, if it already exists
+  # (usually the Go Version we don't support)
+  info "Removing existing Go-based (incompatible) yq"
+  sudo rm -f "$(command -v yq)"
 
-info "Installing yq (Python)"
-install_tool_with_mise uv
-mise config set settings.pipx.uvx true
-install_tool_with_mise pipx:yq
+  info "Installing yq (Python)"
+  install_tool_with_mise uv
+  mise config set settings.pipx.uvx true
+  install_tool_with_mise pipx:yq
+fi
 
 if [[ -e /opt/vault ]]; then
   sudo rm -rf /opt/vault

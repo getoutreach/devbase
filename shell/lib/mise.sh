@@ -451,48 +451,116 @@ remove_asdf_shim() {
   fi
 }
 
-# Runs mise in the context of the repo's devbase directory and devbase env
-devbase_mise() {
-  local subcommand="$1"
-  shift
+# Runs mise in the context of the repo's devbase directory under the
+# given mise env. The env name corresponds to the [env.<env>] table
+# (and `mise.<env>.toml` / `mise.<env>.lock` files) shipped with
+# devbase.
+mise_for_env() {
+  local env="$1"
+  local subcommand="$2"
+  shift 2
 
-  if [[ -z $subcommand ]]; then
-    fatal "Running devbase_mise requires at least one argument"
+  if [[ -z $env ]] || [[ -z $subcommand ]]; then
+    fatal "Running mise_for_env requires an env and a subcommand"
   fi
 
-  run_mise "$subcommand" --cd "$(get_devbase_directory)" --env devbase "$@"
+  run_mise "$subcommand" --cd "$(get_devbase_directory)" --env "$env" "$@"
 }
 
-# Determines the requested version of a tool as defined in
-# devbase's `mise.devbase.toml`.
-devbase_tool_version_from_mise() {
-  local toolName="$1"
-  devbase_mise ls --local --json |
-    gojq --raw-output ".[\"$toolName\"][] | "'select(.source.path | endswith("mise.devbase.toml")).requested_version'
-}
-
-# Copies mise.devbase.toml and its lockfile to a user-wide config so
+# Copies mise.<env>.toml and its lockfile to a user-wide config so
 # that shims in CI know what to run, with limited network calls.
-devbase_configure_global_tools() {
+mise_configure_global_tools_for_env() {
+  local env="$1"
+  if [[ -z $env ]]; then
+    fatal "Running mise_configure_global_tools_for_env requires an env"
+  fi
+
   local miseConfigDir="${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/mise}"
   local miseConfdDir="$miseConfigDir/conf.d"
   local userMiseLock="$miseConfigDir/mise.lock"
   local devbaseDir
   devbaseDir="$(get_devbase_directory)"
   mkdir -p "$miseConfdDir"
-  cp "$devbaseDir/mise.devbase.toml" "$miseConfdDir/devbase.toml"
-  echo >>"$userMiseLock" # touch the lockfile to prevent errors about it not existing
-  cat "$devbaseDir/mise.devbase.lock" >>"$userMiseLock"
+  cp "$devbaseDir/mise.$env.toml" "$miseConfdDir/$env.toml"
+  touch "$userMiseLock" # ensure the lockfile exists before appending
+  cat "$devbaseDir/mise.$env.lock" >>"$userMiseLock"
+}
+
+# Installs the tools declared in the given mise env, if not already
+# installed.
+mise_install_tools_for_env() {
+  local env="$1"
+  if [[ -z $env ]]; then
+    fatal "Running mise_install_tools_for_env requires an env"
+  fi
+
+  # experimental setting needed for Go backend
+  if ! mise_version_compatible "2025.10.11"; then
+    mise settings set experimental true
+  fi
+  mise_for_env "$env" install --yes
+}
+
+# Runs mise in the context of the repo's devbase directory and devbase env.
+devbase_mise() {
+  mise_for_env devbase "$@"
+}
+
+# Copies mise.devbase.toml and its lockfile to a user-wide config so
+# that shims in CI know what to run, with limited network calls.
+devbase_configure_global_tools() {
+  mise_configure_global_tools_for_env devbase
 }
 
 # Installs devbase specific tools if they're not already installed.
 # Requires sourcing version.sh.
 devbase_install_mise_tools() {
-  # experimental setting needed for Go backend
-  if ! mise_version_compatible "2025.10.11"; then
-    mise settings set experimental true
+  mise_install_tools_for_env devbase
+}
+
+# Determines the requested version of a tool as defined in the given
+# mise env's `mise.<env>.toml`.
+tool_version_from_mise_env() {
+  local env="$1"
+  local toolName="$2"
+
+  if [[ -z $env ]] || [[ -z $toolName ]]; then
+    fatal "Running tool_version_from_mise_env requires an env and a tool name"
   fi
-  devbase_mise install --yes
+
+  local version
+  # shellcheck disable=SC2016 # $tool/$env are jq variables, not shell vars
+  version=$(mise_for_env "$env" ls --local --json |
+    gojq --raw-output --arg tool "$toolName" --arg env "$env" \
+      '.[$tool][] | select(.source.path | endswith("mise." + $env + ".toml")).requested_version')
+
+  if [[ -z $version ]]; then
+    fatal "Could not find $toolName in mise.$env.toml"
+  fi
+
+  echo "$version"
+}
+
+# Determines the requested version of a tool as defined in
+# devbase's `mise.devbase.toml`.
+devbase_tool_version_from_mise() {
+  tool_version_from_mise_env devbase "$1"
+}
+
+# Parse the given tool's version from the given repo's .tool-versions file.
+# Echoes the version on success; returns 1 (with no output) if the tool is not
+# found, so callers can detect the failure with `||` even when invoked via
+# command substitution (where a `fatal` inside the subshell would not abort
+# the parent).
+version_from_toolversions() {
+  local repoDir="$1"
+  local tool="$2"
+  local version
+  version="$(awk -v tool="$tool" '$1 == tool {print $2}' "$repoDir/.tool-versions")"
+  if [[ -z $version ]]; then
+    return 1
+  fi
+  echo "$version"
 }
 
 # The current version of mise.

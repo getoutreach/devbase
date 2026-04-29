@@ -9,6 +9,9 @@ LIB_DIR="${DIR}/../../lib"
 # shellcheck source=../../lib/bootstrap.sh
 source "${LIB_DIR}/bootstrap.sh"
 
+# shellcheck source=../../lib/circleci.sh
+source "${LIB_DIR}/circleci.sh"
+
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
@@ -43,11 +46,31 @@ if [[ -f "$repoDir"/mise.toml ]]; then
   else
     info_sub "🧑‍🍳 ignoring .tool-versions (managed by asdf)"
   fi
-  MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" --yes
+  if circleci_should_install_e2e_tools; then
+    info_sub "🧑‍🍳 E2E mode: installing only go, node, and tools pinned in mise.e2e.toml"
+    export MISE_GITHUB_TOKEN="$ghToken"
+    if [[ -f "$repoDir/.tool-versions" ]]; then
+      goVersion="$(version_from_toolversions "$repoDir" golang)" ||
+        fatal "golang version not found in $repoDir/.tool-versions"
+      nodeVersion="$(version_from_toolversions "$repoDir" nodejs)" ||
+        fatal "nodejs version not found in $repoDir/.tool-versions"
+      install_tool_with_mise go "$goVersion"
+      install_tool_with_mise node "$nodeVersion"
+    else
+      install_tool_with_mise go
+      install_tool_with_mise node
+    fi
+    mise_install_tools_for_env e2e
+    mise_configure_global_tools_for_env e2e
+  else
+    MISE_GITHUB_TOKEN="$ghToken" run_mise install --cd "$repoDir" --yes
+  fi
 fi
 
-MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
-devbase_configure_global_tools
+if ! circleci_should_install_e2e_tools; then
+  MISE_GITHUB_TOKEN="$ghToken" devbase_install_mise_tools
+  devbase_configure_global_tools
+fi
 
 if [[ -n ${BASH_ENV:-} ]]; then
   inject_mise_commands >>"$BASH_ENV"
