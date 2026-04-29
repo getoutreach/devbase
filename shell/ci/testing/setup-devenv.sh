@@ -51,9 +51,15 @@ if in_ci_environment; then
   # mise.e2e.lock before this script runs. If any are missing, the
   # lockfile-based install drifted from this script's expectations;
   # fail loudly rather than silently falling through to unpinned
-  # installs below.
+  # installs below. devenv is excluded when DEVENV_PRE_RELEASE=true,
+  # since the pre-release path below intentionally overrides whatever
+  # mise.e2e.lock provided.
   if [[ $E2E == "true" ]]; then
-    for tool in kubectl kubecfg devenv; do
+    required_tools=(kubectl kubecfg)
+    if [[ $DEVENV_PRE_RELEASE != "true" ]]; then
+      required_tools+=(devenv)
+    fi
+    for tool in "${required_tools[@]}"; do
       if ! command_exists "$tool"; then
         fatal "$tool not on PATH in E2E mode; expected setup_environment to install it from mise.e2e.lock"
       fi
@@ -68,12 +74,13 @@ if in_ci_environment; then
     install_tool_with_mise github:getoutreach/kubecfg "$(tool_version_from_mise_env e2e github:getoutreach/kubecfg)"
   fi
 
-  if ! command_exists devenv; then
-    if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
-      install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
-    else
-      install_tool_with_mise github:getoutreach/devenv "$(tool_version_from_mise_env e2e github:getoutreach/devenv)"
-    fi
+  # DEVENV_PRE_RELEASE forces the pre-release install regardless of
+  # whether mise.e2e.lock already provided devenv, so the requested
+  # behavior wins.
+  if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
+    install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
+  elif ! command_exists devenv; then
+    install_tool_with_mise github:getoutreach/devenv "$(tool_version_from_mise_env e2e github:getoutreach/devenv)"
   fi
 
   info "Setting up Git"
