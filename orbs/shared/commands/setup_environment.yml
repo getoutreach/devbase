@@ -22,14 +22,13 @@ parameters:
     description: Skips restoring the cache in case a clean slate is needed.
     type: boolean
     default: true
-  e2e_mode:
+  install_e2e_tools:
     description: >-
-      E2E execution mode. When true:
-      (1) restores the v1-e2e-daily-cache (asdf/mise tool installs and
-      Go build/module caches),
-      (2) installs only the E2E tool allow-list (go, node, devenv,
-      kubectl) and skips asdf entirely.
-      Used by E2E jobs and the save_e2e_cache job.
+      When true, the CI machine bootstrap installs only the slim E2E
+      mise toolset pinned in mise.e2e.toml (currently kubectl, kubecfg,
+      devenv, and a small set of bootstrap tools) and skips asdf
+      entirely. Also restores the v1-e2e-daily-cache populated by
+      save_e2e_cache. Used by E2E jobs.
     type: boolean
     default: false
   checkout_method:
@@ -49,7 +48,7 @@ steps:
             keys:
               - v1-daily-cache-{{ arch }}-
   - when:
-      condition: << parameters.e2e_mode >>
+      condition: << parameters.install_e2e_tools >>
       steps:
         - restore_cache:
             keys:
@@ -72,13 +71,13 @@ steps:
             name: Install Dependencies
             command: ./scripts/shell-wrapper.sh circleci/machine.sh
             environment:
-              E2E_MODE: << parameters.e2e_mode >>
+              INSTALL_E2E_TOOLS: << parameters.install_e2e_tools >>
   - run:
       name: Setup CI Environment
       command: ./scripts/shell-wrapper.sh circleci/setup.sh
       environment:
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
-        E2E_MODE: << parameters.e2e_mode >>
+        INSTALL_E2E_TOOLS: << parameters.install_e2e_tools >>
   - when:
       condition: << parameters.setup_devenv >>
       steps:

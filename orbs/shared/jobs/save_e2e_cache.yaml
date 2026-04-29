@@ -41,7 +41,7 @@ steps:
         - setup_environment:
             machine: true
             restore_cache: false
-            e2e_mode: true
+            install_e2e_tools: true
         - run:
             name: Build to populate Go build/module caches
             command: make build

@@ -20,7 +20,14 @@ source "$DIR/../../lib/version.sh"
 # Arguments
 PROVISION="${PROVISION:-"false"}"
 PROVISION_ARGS="${PROVISION_ARGS:-""}"
+# E2E is this script's behavior flag (set by `make e2e` or the orb's
+# setup_devenv command): when true, this script asserts E2E tools on
+# PATH and runs the test suite. Distinct from INSTALL_E2E_TOOLS, which
+# is the CI-bootstrap flag (see shell/circleci/machine.sh,
+# shell/ci/env/mise.sh) that picks mise.e2e.toml over mise.devbase.toml
+# before this script runs.
 E2E="${E2E:-"false"}"
+DEVENV_PRE_RELEASE="${DEVENV_PRE_RELEASE:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   info "e2e was set, ignoring provision"
@@ -40,18 +47,40 @@ if in_ci_environment; then
   mise_path="$(find_mise)"
   eval "$("$mise_path" activate bash --shims)"
 
-  if ! command -v kubectl >/dev/null; then
-    kubectlVersion="${KUBECTL_VERSION:-"$(get_box_field devenv.versions.kubectl)"}"
-    install_tool_with_mise kubectl "${kubectlVersion:-1.29.15}"
+  # In E2E mode, setup_environment installs kubectl/kubecfg/devenv from
+  # mise.e2e.lock before this script runs. If any are missing, the
+  # lockfile-based install drifted from this script's expectations;
+  # fail loudly rather than silently falling through to unpinned
+  # installs below. devenv is excluded when DEVENV_PRE_RELEASE=true,
+  # since the pre-release path below intentionally overrides whatever
+  # mise.e2e.lock provided.
+  if [[ $E2E == "true" ]]; then
+    required_tools=(kubectl kubecfg)
+    if [[ $DEVENV_PRE_RELEASE != "true" ]]; then
+      required_tools+=(devenv)
+    fi
+    for tool in "${required_tools[@]}"; do
+      if ! command_exists "$tool"; then
+        fatal "$tool not on PATH in E2E mode; expected setup_environment to install it from mise.e2e.lock"
+      fi
+    done
   fi
 
-  if ! command -v kubecfg >/dev/null; then
-    kubecfgVersion="${KUBECFG_VERSION:-"$(get_box_field devenv.versions.kubecfg)"}"
-    install_tool_with_mise github:getoutreach/kubecfg "${kubecfgVersion:-v0.28.1}"
+  if ! command_exists kubectl; then
+    install_tool_with_mise kubectl "$(tool_version_from_mise_env e2e kubectl)"
   fi
 
-  if ! command -v devenv >/dev/null; then
+  if ! command_exists kubecfg; then
+    install_tool_with_mise github:getoutreach/kubecfg "$(tool_version_from_mise_env e2e github:getoutreach/kubecfg)"
+  fi
+
+  # DEVENV_PRE_RELEASE forces the pre-release install regardless of
+  # whether mise.e2e.lock already provided devenv, so the requested
+  # behavior wins.
+  if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
     install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
+  elif ! command_exists devenv; then
+    install_tool_with_mise github:getoutreach/devenv "$(tool_version_from_mise_env e2e github:getoutreach/devenv)"
   fi
 
   info "Setting up Git"
