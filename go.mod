@@ -9,7 +9,7 @@ require (
 	github.com/getoutreach/gobox v1.111.4
 	github.com/getoutreach/localizer v1.15.19
 	github.com/google/go-github/v84 v84.0.0
-	github.com/magefile/mage v1.17.1
+	github.com/magefile/mage v1.17.2
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	google.golang.org/grpc v1.80.0
