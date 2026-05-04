@@ -63,3 +63,9 @@ teardown() {
   run "$(mise which stencil)" --version
   assert_output --regexp "(rc|unstable)"
 }
+
+@test "report_gh_rate_limit_to_datadog fails when tokenType is empty" {
+  run report_gh_rate_limit_to_datadog ""
+  assert_failure
+  assert_output --partial "tokenType is required"
+}

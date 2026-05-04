@@ -71,3 +71,6 @@ fi
 info_sub "Docker"
 
 GITHUB_TOKEN="$GITHUB_PACKAGES_TOKEN" ghcr_auth "$ORG"
+
+# Best-effort report of PAT rate-limit usage to Datadog.
+GITHUB_TOKEN="$GITHUB_PACKAGES_TOKEN" report_gh_rate_limit_to_datadog pat consumer:github_packages

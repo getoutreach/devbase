@@ -82,6 +82,7 @@ registries=$(echo "$pullRegistry $pushRegistries" | tr ' ' '\n' | sort --unique 
 
 info "🔓 Authenticating to Docker registries"
 
+usedGitHubPAT=false
 for crURL in $registries; do
   case $crURL in
   gcr.io/*)
@@ -95,9 +96,16 @@ for crURL in $registries; do
     info_sub "🔓 GHCR ($crURL)"
     # Need the PAT because app-based tokens cannot publish containers.
     GITHUB_TOKEN="$(github_pat_from_ci)" ghcr_auth "$(get_box_field org)"
+    usedGitHubPAT=true
     ;;
   *)
     warn "No authentication script found for registry: $crURL"
     ;;
   esac
 done
+
+# Best-effort report of PAT rate-limit usage to Datadog, after all
+# GHCR registries have authenticated.
+if [[ $usedGitHubPAT == true ]]; then
+  GITHUB_TOKEN="$(github_pat_from_ci)" report_gh_rate_limit_to_datadog pat consumer:docker_authn
+fi
