@@ -14,6 +14,14 @@ parameters:
     description: If this is set to true all steps in this job will be skipped
     type: boolean
     default: false
+  aws_region:
+    description: Unused, needed so that it can be run with *rebuild-cache workflows
+    type: string
+    default: ""
+  docker_image:
+    description: Unused, needed so that it can be run with *rebuild-cache workflows
+    type: string
+    default: ""
   docker_tag:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
