@@ -19,7 +19,7 @@ parameters:
     type: string
     default: ""
   resource_class:
-    description: The resource class to use for the release
+    description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
     default: "large"
   docker_image:
