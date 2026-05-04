@@ -18,6 +18,10 @@ parameters:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
     default: ""
+  resource_class:
+    description: The resource class to use for the release
+    type: string
+    default: "large"
   docker_image:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
@@ -31,6 +35,7 @@ parameters:
     type: string
     default: ""
 
+resource_class: << parameters.resource_class >>
 executor:
   name: testbed-machine
 
