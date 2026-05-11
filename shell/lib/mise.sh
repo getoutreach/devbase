@@ -246,7 +246,8 @@ mise_manages_tool_versions() {
 #
 # Runs `mise`. If in CI, `MISE_GITHUB_TOKEN` or `GITHUB_TOKEN` is set, and
 # `wait-for-gh-rate-limit` is installed, makes sure that the token
-# isn't rate limited before calling `mise`.
+# isn't rate limited before calling `mise`. Reports the GitHub API
+# rate-limit usage to Datadog after the `mise` invocation.
 run_mise() {
   local exitCode ghToken misePath
   misePath="$(find_mise)"
