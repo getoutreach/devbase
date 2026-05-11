@@ -15,6 +15,9 @@ source "${LIB_DIR}/github.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/metrics.sh
+source "${LIB_DIR}/metrics.sh"
+
 # shellcheck source=../../lib/docker/authn/ghcr.sh
 source "${LIB_DIR}/docker/authn/ghcr.sh"
 
