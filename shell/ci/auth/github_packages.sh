@@ -15,6 +15,9 @@ source "${LIB_DIR}/github.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/metrics.sh
+source "${LIB_DIR}/metrics.sh"
+
 # shellcheck source=../../lib/docker/authn/ghcr.sh
 source "${LIB_DIR}/docker/authn/ghcr.sh"
 
@@ -71,3 +74,6 @@ fi
 info_sub "Docker"
 
 GITHUB_TOKEN="$GITHUB_PACKAGES_TOKEN" ghcr_auth "$ORG"
+
+# Best-effort report of PAT rate-limit usage to Datadog.
+GITHUB_TOKEN="$GITHUB_PACKAGES_TOKEN" report_gh_rate_limit_to_datadog pat consumer:github_packages
