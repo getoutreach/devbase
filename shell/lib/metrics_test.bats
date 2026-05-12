@@ -93,7 +93,7 @@ curl_payload() {
   # function builds the payload via gojq and emits `empty` when used
   # or remaining is null. Skip if gojq isn't on PATH (e.g., barebones
   # container).
-  if ! command -v gojq >/dev/null 2>&1; then
+  if ! command_exists gojq; then
     skip "gojq not installed"
   fi
   # Valid JSON, but .used and .remaining are absent.
@@ -107,7 +107,7 @@ curl_payload() {
 }
 
 @test "report_gh_rate_limit_to_datadog posts a well-formed Datadog payload on success" {
-  if ! command -v gojq >/dev/null 2>&1; then
+  if ! command_exists gojq; then
     skip "gojq not installed"
   fi
   stub_command gh '{"used":42,"remaining":4958}'
@@ -155,7 +155,7 @@ curl_payload() {
 }
 
 @test "report_gh_rate_limit_to_datadog JSON-encodes tokenType with quotes safely" {
-  if ! command -v gojq >/dev/null 2>&1; then
+  if ! command_exists gojq; then
     skip "gojq not installed"
   fi
   stub_command gh '{"used":1,"remaining":2}'
