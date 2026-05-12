@@ -265,7 +265,7 @@ run_mise() {
   exitCode=${exitCode:-0}
 
   if [[ -n ${ghToken:-} ]]; then
-    GITHUB_TOKEN="$ghToken" report_gh_rate_limit_to_datadog app "mise_command:${1:-unknown}"
+    GITHUB_TOKEN="$ghToken" report_gh_rate_limit_to_datadog app consumer:mise "mise_command:${1:-unknown}"
   fi
 
   return "$exitCode"

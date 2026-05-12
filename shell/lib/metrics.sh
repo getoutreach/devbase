@@ -9,12 +9,18 @@
 # (for whatever token is in $GITHUB_TOKEN) as Datadog gauge metrics
 # under `devbase.github.<token_type>.rate_limit_{used,remaining}`. Always
 # tagged with `repo` and `ci_job`; any additional `key:value` tags
-# passed as arguments are appended. Silently no-ops when not in CI,
-# when DATADOG_API_KEY is unset, when `gh` or `gojq` are unavailable,
-# or when the rate-limit query fails. Never returns a non-zero exit
-# code.
+# passed as arguments are appended.
+#
+# Silently no-ops (returns 0) when not in CI, when DATADOG_API_KEY is
+# unset, when `gh` or `gojq` are unavailable, or when the rate-limit
+# query fails for any reason (network, malformed JSON, missing fields,
+# Datadog rejection).
+#
+# Exits the calling shell via `fatal` if TOKEN_TYPE is empty -- this is
+# a programmer error (a caller passed an unset variable) and should
+# fail loudly rather than emit metrics under a meaningless key.
 report_gh_rate_limit_to_datadog() {
-  local ddPayload tokenType now rateLimit remaining tags used
+  local ddPayload tokenType now rateLimit
   tokenType="${1:-}"
   if [[ -z $tokenType ]]; then
     fatal "report_gh_rate_limit_to_datadog: tokenType is required"
@@ -38,50 +44,53 @@ report_gh_rate_limit_to_datadog() {
     return 0
   fi
 
-  # Why: jq vars, not shell vars
-  # shellcheck disable=SC2016
-  used="$(gojq --null-input --argjson r "$rateLimit" '$r.used')"
-  # Why: jq vars, not shell vars
-  # shellcheck disable=SC2016
-  remaining="$(gojq --null-input --argjson r "$rateLimit" '$r.remaining')"
-  # Guard against `gh api /rate_limit --jq .rate` returning a payload
-  # where `.used` or `.remaining` is missing/null (e.g., on auth errors
-  # or schema drift). Datadog rejects null numeric values and `curl`'s
-  # error is swallowed below, so the metric would silently drop.
-  if [[ $used == "null" || $remaining == "null" ]]; then
+  now="$(date +%s)"
+  # Build the entire Datadog payload with gojq so every dynamic value
+  # (including `tokenType` and the extra tags) is properly JSON-encoded.
+  # type=3 is gauge.
+  # shellcheck disable=SC2016 # jq vars, not shell vars
+  ddPayload="$(gojq --null-input --compact-output \
+    --argjson rateLimit "$rateLimit" \
+    --argjson now "$now" \
+    --arg tokenType "$tokenType" \
+    --arg repo "${CIRCLE_PROJECT_REPONAME:-unknown}" \
+    --arg job "${CIRCLE_JOB:-unknown}" \
+    --args \
+    '
+      ($rateLimit.used) as $used |
+      ($rateLimit.remaining) as $remaining |
+      (["repo:" + $repo, "ci_job:" + $job] + $ARGS.positional) as $tags |
+      if ($used == null or $remaining == null) then
+        empty
+      else
+        {
+          series: [
+            {
+              metric: ("devbase.github." + $tokenType + ".rate_limit_used"),
+              type: 3,
+              points: [{ timestamp: $now, value: $used }],
+              tags: $tags
+            },
+            {
+              metric: ("devbase.github." + $tokenType + ".rate_limit_remaining"),
+              type: 3,
+              points: [{ timestamp: $now, value: $remaining }],
+              tags: $tags
+            }
+          ]
+        }
+      end
+    ' \
+    -- "$@")"
+
+  # gojq emitted `empty` -- used or remaining was null. Datadog rejects
+  # null numeric values; warn and skip rather than send a malformed
+  # request that would be silently swallowed by `curl || true` below.
+  if [[ -z $ddPayload ]]; then
     warn "Rate limit response missing used/remaining, skipping" >&2
     return 0
   fi
-  now="$(date +%s)"
-  # Why: jq vars, not shell vars
-  # shellcheck disable=SC2016
-  tags="$(gojq --null-input --compact-output \
-    --arg r "${CIRCLE_PROJECT_REPONAME:-unknown}" \
-    --arg j "${CIRCLE_JOB:-unknown}" \
-    --args \
-    '["repo:" + $r, "ci_job:" + $j] + $ARGS.positional' \
-    -- "$@")"
-  # type=3 is gauge
-  ddPayload=$(
-    cat <<EOF
-{
-  "series": [
-    {
-      "metric": "devbase.github.${tokenType}.rate_limit_used",
-      "type": 3,
-      "points": [{"timestamp": $now, "value": $used}],
-      "tags": $tags
-    },
-    {
-      "metric": "devbase.github.${tokenType}.rate_limit_remaining",
-      "type": 3,
-      "points": [{"timestamp": $now, "value": $remaining}],
-      "tags": $tags
-    }
-  ]
-}
-EOF
-  )
+
   curl --silent --show-error --request POST "https://api.datadoghq.com/api/v2/series" \
     --header "Content-Type: application/json" \
     --header "DD-API-KEY: $DATADOG_API_KEY" \
