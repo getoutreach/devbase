@@ -44,6 +44,14 @@ report_gh_rate_limit_to_datadog() {
   # Why: jq vars, not shell vars
   # shellcheck disable=SC2016
   remaining="$(gojq --null-input --argjson r "$rateLimit" '$r.remaining')"
+  # Guard against `gh api /rate_limit --jq .rate` returning a payload
+  # where `.used` or `.remaining` is missing/null (e.g., on auth errors
+  # or schema drift). Datadog rejects null numeric values and `curl`'s
+  # error is swallowed below, so the metric would silently drop.
+  if [[ $used == "null" || $remaining == "null" ]]; then
+    warn "Rate limit response missing used/remaining, skipping" >&2
+    return 0
+  fi
   now="$(date +%s)"
   # Why: jq vars, not shell vars
   # shellcheck disable=SC2016

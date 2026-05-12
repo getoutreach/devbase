@@ -2,11 +2,11 @@
 #
 # mise related functions. Assumes logging.sh and shell.sh are sourced.
 
-# LIB_DIR is the directory that shell script libraries live in.
-LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# DEVBASE_LIB_DIR is the directory that devbase shell script libraries live in.
+DEVBASE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # shellcheck source=./metrics.sh
-source "${LIB_DIR}/metrics.sh"
+source "${DEVBASE_LIB_DIR}/metrics.sh"
 
 # Installs `mise` if it isn't already found in PATH.
 # If running as root, install to /usr/local/bin. Otherwise, install
