@@ -413,6 +413,19 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		}(&wg)
 	}
 
+	// If the pre-deploy script for e2e exists, run it. This runs after provision
+	// and devconfig but before the main `devenv apps deploy --with-deps .` so the
+	// service has a hook to set up any prerequisite cluster state (e.g. CRDs that
+	// must be applied + Ready before the app pods can start) that isn't expressible
+	// via the devenv.yaml `dependencies.required` list.
+	if _, err := os.Stat("scripts/devenv/pre-e2e-deploy.sh"); err == nil {
+		log.Info().Msg("Running scripts/devenv/pre-e2e-deploy.sh")
+
+		if err := osStdInOutErr(exec.CommandContext(ctx, "scripts/devenv/pre-e2e-deploy.sh")).Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to run scripts/devenv/pre-e2e-deploy.sh")
+		}
+	}
+
 	if dc.Service {
 		log.Info().Msg("Deploying current application into cluster")
 		if err := runDevenvPassthrough(ctx, "apps", "deploy", "--with-deps", "."); err != nil {
