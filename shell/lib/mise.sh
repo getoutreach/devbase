@@ -490,15 +490,32 @@ devbase_tool_version_from_mise() {
 # found, so callers can detect the failure with `||` even when invoked via
 # command substitution (where a `fatal` inside the subshell would not abort
 # the parent).
+# Note: Only the first matching entry is returned. Use version_all_from_toolversions
+# to get all declared versions for a tool.
 version_from_toolversions() {
   local repoDir="$1"
   local tool="$2"
   local version
-  version="$(awk -v tool="$tool" '$1 == tool {print $2}' "$repoDir/.tool-versions")"
+  version="$(awk -v tool="$tool" '$1 == tool {print $2; exit}' "$repoDir/.tool-versions")"
   if [[ -z $version ]]; then
     return 1
   fi
   echo "$version"
+}
+
+# Parse all declared versions of a tool from the given repo's .tool-versions file.
+# Echoes one version per line on success; returns 1 (with no output) if the tool
+# is not found. Use this instead of version_from_toolversions when multiple versions
+# of the same tool may be declared (e.g. two nodejs entries for different consumers).
+version_all_from_toolversions() {
+  local repoDir="$1"
+  local tool="$2"
+  local versions
+  versions="$(awk -v tool="$tool" '$1 == tool {print $2}' "$repoDir/.tool-versions")"
+  if [[ -z $versions ]]; then
+    return 1
+  fi
+  echo "$versions"
 }
 
 # The current version of mise.
