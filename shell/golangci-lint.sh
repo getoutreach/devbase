@@ -89,6 +89,7 @@ if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
     fatal "$errMsg"
   fi
   args+=("--config=${configPath}")
+  args+=("--path-prefix=$(basename "$workspaceFolder")")
 fi
 
 # If GOGC or GOMEMLIMIT aren't set, we attempt to set them to better
