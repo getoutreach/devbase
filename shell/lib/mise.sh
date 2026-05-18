@@ -503,21 +503,6 @@ version_from_toolversions() {
   echo "$version"
 }
 
-# Parse all declared versions of a tool from the given repo's .tool-versions file.
-# Echoes one version per line on success; returns 1 (with no output) if the tool
-# is not found. Use this instead of version_from_toolversions when multiple versions
-# of the same tool may be declared (e.g. two nodejs entries for different consumers).
-version_all_from_toolversions() {
-  local repoDir="$1"
-  local tool="$2"
-  local versions
-  versions="$(awk -v tool="$tool" '$1 == tool {print $2}' "$repoDir/.tool-versions")"
-  if [[ -z $versions ]]; then
-    return 1
-  fi
-  echo "$versions"
-}
-
 # The current version of mise.
 # Does not use JSON+gojq as it's mise-installed and could possibly fail
 # if the version is too old for the project mise config.
