@@ -53,10 +53,12 @@ if [[ -f "$repoDir"/mise.toml ]]; then
       goVersion="$(version_from_toolversions "$repoDir" golang)" ||
         fatal "golang version not found in $repoDir/.tool-versions"
       install_tool_with_mise go "$goVersion"
-      while IFS= read -r nodeVersion; do
+      nodeVersionsRaw="$(version_all_from_toolversions "$repoDir" nodejs)" ||
+        fatal "nodejs version not found in $repoDir/.tool-versions"
+      mapfile -t nodeVersions <<<"$nodeVersionsRaw"
+      for nodeVersion in "${nodeVersions[@]}"; do
         install_tool_with_mise node "$nodeVersion"
-      done < <(version_all_from_toolversions "$repoDir" nodejs ||
-        fatal "nodejs version not found in $repoDir/.tool-versions")
+      done
     else
       install_tool_with_mise go
       install_tool_with_mise node

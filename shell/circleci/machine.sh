@@ -57,10 +57,12 @@ if [[ -z $GITHUB_TOKEN ]]; then
     goVersion="$(version_from_toolversions "$ROOT_DIR" golang)" ||
       fatal "golang version not found in $ROOT_DIR/.tool-versions"
     install_tool_with_mise go "$goVersion"
-    while IFS= read -r nodeVersion; do
+    nodeVersionsRaw="$(version_all_from_toolversions "$ROOT_DIR" nodejs)" ||
+      fatal "nodejs version not found in $ROOT_DIR/.tool-versions"
+    mapfile -t nodeVersions <<<"$nodeVersionsRaw"
+    for nodeVersion in "${nodeVersions[@]}"; do
       install_tool_with_mise node "$nodeVersion"
-    done < <(version_all_from_toolversions "$ROOT_DIR" nodejs ||
-      fatal "nodejs version not found in $ROOT_DIR/.tool-versions")
+    done
   fi
 fi
 
