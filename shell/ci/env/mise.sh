@@ -55,10 +55,9 @@ if [[ -f "$repoDir"/mise.toml ]]; then
       install_tool_with_mise go "$goVersion"
       nodeVersionsRaw="$(version_all_from_toolversions "$repoDir" nodejs)" ||
         fatal "nodejs version not found in $repoDir/.tool-versions"
-      mapfile -t nodeVersions <<<"$nodeVersionsRaw"
-      for nodeVersion in "${nodeVersions[@]}"; do
+      while IFS= read -r nodeVersion; do
         install_tool_with_mise node "$nodeVersion"
-      done
+      done <<<"$nodeVersionsRaw"
     else
       install_tool_with_mise go
       install_tool_with_mise node
