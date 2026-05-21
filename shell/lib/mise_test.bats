@@ -16,7 +16,9 @@ teardown() {
   rm -rf "$REPO_DIR"
 }
 
-# Helper: write a .tool-versions file in $REPO_DIR
+# write_tool_versions [entry...]
+#
+# Write a .tool-versions file in $REPO_DIR with one or more entries.
 write_tool_versions() {
   printf '%s\n' "$@" >"$REPO_DIR/.tool-versions"
 }
