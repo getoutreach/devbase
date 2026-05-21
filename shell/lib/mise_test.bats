@@ -3,8 +3,6 @@
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
-load logging.sh
-load shell.sh
 load mise.sh
 load test_helper.sh
 
