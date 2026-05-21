@@ -23,8 +23,6 @@ write_tool_versions() {
   printf '%s\n' "$@" >"$REPO_DIR/.tool-versions"
 }
 
-# --- version_from_toolversions ---
-
 @test "version_from_toolversions returns the version for a single-entry tool" {
   write_tool_versions "nodejs 20.11.0"
   run version_from_toolversions "$REPO_DIR" nodejs
