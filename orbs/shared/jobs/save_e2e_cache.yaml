@@ -21,7 +21,7 @@ parameters:
   resource_class:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
-    default: "large"
+    default: "large.gen2"
   docker_image:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string

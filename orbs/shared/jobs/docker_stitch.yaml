@@ -3,7 +3,7 @@ executor:
   name: testbed-docker-aws
   docker_image: $DOCKER_PULL_REGISTRY_URL/bootstrap/ci-docker
   docker_tag: latest
-resource_class: medium
+resource_class: medium.gen2
 parameters:
   push_registries:
     type: string

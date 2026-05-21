@@ -18,7 +18,7 @@ parameters:
   resource_class:
     description: The resource class to use for the release
     type: string
-    default: "large"
+    default: "large.gen2"
   no_output_timeout:
     description: The timeout that gets applied when CircleCI receives no output during the running of tests.
     type: string
