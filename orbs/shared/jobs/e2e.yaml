@@ -15,7 +15,7 @@ parameters:
   resource_class:
     description: The resource class to use for the e2e tests
     type: string
-    default: "xlarge"
+    default: "xlarge.gen2"
   no_output_timeout:
     description: The timeout that gets applied when CircleCI receives no output during the running of e2e tests.
     type: string

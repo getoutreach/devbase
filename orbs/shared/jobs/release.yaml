@@ -15,7 +15,7 @@ parameters:
   resource_class:
     description: The resource class to use for the release
     type: string
-    default: "large"
+    default: "large.gen2"
   release_failure_slack_channel:
     description: The slack channel to notify if the release fails
     type: string
