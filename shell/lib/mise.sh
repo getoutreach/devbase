@@ -486,6 +486,7 @@ devbase_tool_version_from_mise() {
 }
 
 # Parse the given tool's version from the given repo's .tool-versions file.
+# When multiple versions of the same tool are declared, only the first is returned.
 # Echoes the version on success; returns 1 (with no output) if the tool is not
 # found, so callers can detect the failure with `||` even when invoked via
 # command substitution (where a `fatal` inside the subshell would not abort
@@ -494,7 +495,7 @@ version_from_toolversions() {
   local repoDir="$1"
   local tool="$2"
   local version
-  version="$(awk -v tool="$tool" '$1 == tool {print $2}' "$repoDir/.tool-versions")"
+  version="$(awk -v tool="$tool" '$1 == tool {print $2; exit}' "$repoDir/.tool-versions")"
   if [[ -z $version ]]; then
     return 1
   fi
