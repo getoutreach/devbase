@@ -63,6 +63,8 @@ if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
     warn "Failed to read Github personal access token" >&2
   fi
 
+  run_gh auth setup-git
+
   MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
     yarn --frozen-lockfile semantic-release --dry-run
 
