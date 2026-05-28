@@ -60,7 +60,7 @@ if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
 
   GITHUB_TOKEN="$(github_token)"
   if [[ -z $GITHUB_TOKEN ]]; then
-    warn "Failed to read Github personal access token" >&2
+    warn "Failed to read GitHub token" >&2
   fi
 
   run_gh auth setup-git

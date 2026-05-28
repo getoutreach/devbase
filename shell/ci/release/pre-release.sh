@@ -87,7 +87,7 @@ if [[ $COMMIT_MESSAGE =~ "chore: Release" ]]; then
   # Retrieve the GH_TOKEN
   GH_TOKEN=$(github_token)
   if [[ -z $GH_TOKEN ]]; then
-    echo "Failed to read Github personal access token" >&2
+    echo "Failed to read GitHub token" >&2
   fi
   # Unset NPM_TOKEN to force it to use the configured ~/.npmrc
   NPM_TOKEN='' GH_TOKEN=$GH_TOKEN \
