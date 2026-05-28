@@ -70,6 +70,8 @@ if [[ $CIRCLE_BRANCH != "$prereleasesBranch" ]] && [[ $DRYRUN == "false" ]]; the
   exit 0
 fi
 
+run_gh auth setup-git
+
 # If we're in dry-run mode, skip creating the release.
 if [[ $DRYRUN == "true" ]]; then
   exit 0

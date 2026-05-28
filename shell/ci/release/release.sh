@@ -17,6 +17,8 @@ if [[ -z $GITHUB_TOKEN ]]; then
   error "Failed to read GitHub personal access token"
 fi
 
+run_gh auth setup-git
+
 send_failure_notification() {
   if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
     fatal "Failed to release"
