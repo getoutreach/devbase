@@ -14,8 +14,10 @@ source "${LIB_DIR}/logging.sh"
 # Retrieve the GH_TOKEN
 GITHUB_TOKEN="$(github_token)"
 if [[ -z $GITHUB_TOKEN ]]; then
-  error "Failed to read GitHub personal access token"
+  error "Failed to read GitHub token"
 fi
+
+run_gh auth setup-git
 
 send_failure_notification() {
   if [[ -z $RELEASE_FAILURE_SLACK_CHANNEL ]]; then
