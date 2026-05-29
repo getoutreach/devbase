@@ -15,3 +15,5 @@ vault = "2.0.0"
 gotestsum = "1.13.0"
 # Work around GitHub token rate limits
 wait-for-gh-rate-limit = "1.1.1"
+# Build Go apps/services
+mage = "1.14.0"
