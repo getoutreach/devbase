@@ -46,16 +46,24 @@ github_token() {
 }
 
 # Determines the latest release version of a GitHub repository.
+#
+# This uses the REST API rather than `gh release list` because the
+# latter relies on GitHub's GraphQL API, which intermittently returns
+# 401 Unauthorized for some organization repositories.
 latest_github_release_version() {
   local slug="$1"
   local use_pre_releases="$2"
 
-  local gh_args=(--limit 1 --json tagName --jq '.[].tagName' --exclude-drafts)
+  # Filter out drafts, and pre-releases unless they're requested, then
+  # print the tag name of the most recent matching release. Releases are
+  # returned newest-first by the API.
+  local jq_filter='[.[] | select(.draft == false)'
   if [[ $use_pre_releases != "true" ]]; then
-    gh_args+=(--exclude-pre-releases)
+    jq_filter+=' | select(.prerelease == false)'
   fi
+  jq_filter+='] | first | .tag_name // empty'
 
-  run_gh release --repo "$slug" list "${gh_args[@]}"
+  run_gh api "repos/$slug/releases" --jq "$jq_filter"
 }
 
 # install_latest_github_release downloads the latest version of a tool
