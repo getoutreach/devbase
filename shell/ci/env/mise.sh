@@ -74,4 +74,18 @@ fi
 
 if [[ -n ${BASH_ENV:-} ]]; then
   inject_mise_commands >>"$BASH_ENV"
+
+  # In E2E mode the slim toolset is installed via mise (mise.e2e.toml) and
+  # asdf is intentionally absent. INSTALL_E2E_TOOLS is only set as step-scoped
+  # environment on the setup steps, so any later step in the same job (e.g. the
+  # separate `make build` step in the save_e2e_cache job) loses the E2E context:
+  # ensure_asdf.sh falls back to the asdf path ("asdf: command not found") and
+  # the mage shim cannot resolve a version ("No version is set for shim: mage").
+  # Persist the selection to BASH_ENV so every subsequent step inherits it.
+  if circleci_should_install_e2e_tools; then
+    {
+      echo 'export INSTALL_E2E_TOOLS=true'
+      echo 'export MISE_ENV=e2e'
+    } >>"$BASH_ENV"
+  fi
 fi
