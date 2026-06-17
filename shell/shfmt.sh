@@ -9,7 +9,4 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=./lib/mise/stub.sh
 source "$DIR/lib/mise/stub.sh"
 
-# Always set simplify mode.
-args=("--simplify" "$@")
-
-mise_exec_tool shfmt "${args[@]}"
+mise_exec_tool shfmt "$@"
