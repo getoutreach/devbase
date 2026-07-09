@@ -66,6 +66,10 @@ while IFS= read -r dir; do
   k8sSparseDirs+=("$dir")
 done < <(kubeconform_k8s_sparse_dirs "$@")
 
+if [[ ${#k8sSparseDirs[@]} -eq 0 ]]; then
+  warn "no -kubernetes-version given; cloning the full kubernetes-json-schema repo (large)" >&2
+fi
+
 info "Schema cache: Kubernetes" >&2
 k8sCacheDir="$(cache_git_repo https://github.com/yannh/kubernetes-json-schema \
   kubeconform "${k8sSparseDirs[@]}")"

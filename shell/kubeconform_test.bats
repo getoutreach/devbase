@@ -3,9 +3,9 @@
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
-# Source only the helper under test. kubeconform.sh runs side effects at
-# load time, so we extract the pure function into a sourceable position and
-# guard the side-effecting body (see implementation step).
+# Loading kubeconform.sh runs its stub/bootstrap sourcing chain, but a
+# sourced-guard (BASH_SOURCE != $0) returns before the side-effecting wrapper
+# body, so only the pure functions are defined for these tests.
 load kubeconform.sh
 
 @test "kubeconform_k8s_sparse_dirs derives both standalone dirs from -kubernetes-version" {

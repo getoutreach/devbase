@@ -20,7 +20,7 @@ DEVBASE_CACHE_DIR="$HOME/.outreach/.cache"
 # Assumes that logging.sh is sourced. (Logs are sent to stderr.)
 cache_git_repo() {
   local gitURL="$1"
-  local cacheSubdir="$2"
+  local cacheSubdir="${2:-}"
   shift 2 || shift $#
   local sparsePaths=("$@")
 
@@ -32,7 +32,7 @@ cache_git_repo() {
     cacheDir="$DEVBASE_CACHE_DIR/$cacheBasename"
   fi
 
-  if [[ -d $cacheDir ]]; then
+  if [[ -d $cacheDir ]] && git -C "$cacheDir" rev-parse --git-dir >/dev/null 2>&1; then
     info_sub "Updating local cache" >&2
     git -C "$cacheDir" fetch --depth 1
     git -C "$cacheDir" reset --hard -q origin/HEAD
@@ -40,6 +40,9 @@ cache_git_repo() {
       git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"
     fi
   else
+    # A leftover directory that is not a healthy git repo (e.g. an
+    # interrupted clone) is treated as a cache miss: remove it and re-clone.
+    [[ -d $cacheDir ]] && rm -rf "$cacheDir"
     info_sub "Setting up local cache" >&2
     if [[ ${#sparsePaths[@]} -gt 0 ]]; then
       git clone --depth 1 --single-branch --filter=blob:none --sparse \

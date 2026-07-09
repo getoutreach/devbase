@@ -94,3 +94,18 @@ teardown() {
   local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
   assert_output "$cacheDir"
 }
+
+@test "cache_git_repo self-heals a corrupt (non-git) cache dir" {
+  # Simulate an interrupted clone: the cache dir exists but is not a git
+  # repo. The old code took the update path and `git fetch` errored; the
+  # function must instead treat this as a cache miss and re-clone.
+  local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
+  mkdir -p "$cacheDir"
+  echo 'partial junk' >"$cacheDir/leftover.txt"
+
+  run --separate-stderr cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  assert_success
+  assert_output "$cacheDir"
+  # Proves it re-cloned rather than aborting on the corrupt dir.
+  assert [ -f "$cacheDir/v1.25.16-standalone-strict/deployment-apps-v1.json" ]
+}
