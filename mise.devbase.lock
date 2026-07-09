@@ -484,36 +484,36 @@ checksum = "sha256:fd5a6dc69e46a0970593e70d85a7e75f16714e9c61d6d72ccc324eb82df5b
 url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_windows_amd64.tar.gz"
 
 [[tools.kubeconform]]
-version = "0.6.4"
+version = "0.8.0"
 backend = "aqua:yannh/kubeconform"
 
 [tools.kubeconform."platforms.linux-arm64"]
-checksum = "sha256:582a8a3eb3c33feb065928728ddac6e544c4f0b1234fd78fc1e4c4175a422b22"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-arm64.tar.gz"
+checksum = "sha256:1f53fc8e81258197a35e8603054162a5af1de8c5af13746c71ab680d9534ed87"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-arm64.tar.gz"
 
 [tools.kubeconform."platforms.linux-arm64-musl"]
-checksum = "sha256:582a8a3eb3c33feb065928728ddac6e544c4f0b1234fd78fc1e4c4175a422b22"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-arm64.tar.gz"
+checksum = "sha256:1f53fc8e81258197a35e8603054162a5af1de8c5af13746c71ab680d9534ed87"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-arm64.tar.gz"
 
 [tools.kubeconform."platforms.linux-x64"]
-checksum = "sha256:2b4ebeaa4d5ac4843cf8f7b7e66a8874252b6b71bc7cbfc4ef1cbf85acec7c07"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz"
+checksum = "sha256:9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz"
 
 [tools.kubeconform."platforms.linux-x64-musl"]
-checksum = "sha256:2b4ebeaa4d5ac4843cf8f7b7e66a8874252b6b71bc7cbfc4ef1cbf85acec7c07"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz"
+checksum = "sha256:9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz"
 
 [tools.kubeconform."platforms.macos-arm64"]
-checksum = "sha256:95f9097e54c2c1abe9099d0fedc57a2d5c674b2e32231b901a6e60411899afdd"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-darwin-arm64.tar.gz"
+checksum = "sha256:f84f4dfbebf4a6b0b230385fa065a39ea35e02608c2b50d025dcf64775a69d67"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-arm64.tar.gz"
 
 [tools.kubeconform."platforms.macos-x64"]
-checksum = "sha256:805bbc2ab900925be01b8e72039d3689c0a6d4f8aa4b2fad24dd1243387a2b18"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-darwin-amd64.tar.gz"
+checksum = "sha256:71dbc87ac9f24099a62b93570e65aa06312ba6ac8aea63b7f86e9d999edf5a92"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-amd64.tar.gz"
 
 [tools.kubeconform."platforms.windows-x64"]
-checksum = "sha256:1f6ad9eaab24d14363433897aee4b9049184b10ac3681de0d23105f3a114bf69"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-windows-amd64.zip"
+checksum = "sha256:e3f56102bcf4f50b034a567e2482a1c5330799983ddd655952310211aef73d93"
+url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-windows-amd64.zip"
 
 [[tools.mage]]
 version = "1.14.0"
