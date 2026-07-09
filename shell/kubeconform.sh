@@ -6,10 +6,11 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+# shellcheck source=./lib/git_cache.sh
+source "$DIR/lib/git_cache.sh"
+
 # shellcheck source=./lib/mise/stub.sh
 source "$DIR/lib/mise/stub.sh"
-
-CACHE_DIR="$HOME/.outreach/.cache"
 
 # Do not add default to this list. Verified in v0.8.0, the magic
 # "default" value adds the raw.githubusercontent.com URL template for
@@ -19,26 +20,21 @@ schemaLocations=()
 # Cache the given git repository URL to avoid using
 # raw.githubusercontent.com URL templates, which are rate limited
 # by GitHub.
-upsert_cache() {
+upsert_kubeconform_cache() {
   local gitURL="$1"
   local cacheType="$2"
   local pathTemplate="$3"
-  local cacheDir
-  cacheDir="$CACHE_DIR/$(basename "$gitURL")"
-  if [[ -d $cacheDir ]]; then
-    info "Updating local $cacheType cache for manifest validation" >&2
-    git -C "$cacheDir" fetch --depth 1
-    git -C "$cacheDir" reset --hard origin/HEAD
-  else
-    info "Setting up local $cacheType cache for manifest validation" >&2
-    git clone --depth 1 --single-branch "$gitURL" "$cacheDir"
-  fi
+  local cacheBasename cacheDir
+  cacheBasename="$(basename "gitURL")"
+
+  info "Schema cache: $cacheType" >&2
+  cacheDir="$(cache_git_repo "$gitURL" kubeconform)"
   schemaLocations+=("$cacheDir/$pathTemplate")
 }
 
-upsert_cache https://github.com/yannh/kubernetes-json-schema "Kubernetes schema" \
+upsert_kubeconform_cache https://github.com/yannh/kubernetes-json-schema Kubernetes \
   "{{ .NormalizedKubernetesVersion }}-standalone{{ .StrictSuffix }}/{{ .ResourceKind }}{{ .KindSuffix }}.json"
-upsert_cache https://github.com/datreeio/CRDs-catalog "CRDs catalog" \
+upsert_kubeconform_cache https://github.com/datreeio/CRDs-catalog "CRDs catalog" \
   "{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json"
 
 args=()

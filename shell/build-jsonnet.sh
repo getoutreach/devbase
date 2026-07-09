@@ -12,6 +12,9 @@ source "$SCRIPTS_DIR/lib/box.sh"
 # shellcheck source=./lib/docker.sh
 source "$SCRIPTS_DIR/lib/docker.sh"
 
+# shellcheck source=./lib/git_cache.sh
+source "$SCRIPTS_DIR/lib/git_cache.sh"
+
 # shellcheck source=./lib/mise/stub.sh
 source "$SCRIPTS_DIR/lib/mise/stub.sh"
 
@@ -19,16 +22,8 @@ source "$SCRIPTS_DIR/lib/mise/stub.sh"
 # because it helps us avoid accessing jsonnet-libs via raw.githubusercontent.com, which has
 # aggressive rate limits that we can easily hit. Estimated API usage reduction is +10x since before
 # we'd make 1 request per file (15+ *sonnet files), now we clone at most once per run.
-JSONNET_LIBS_REPO="$HOME/.outreach/.cache/jsonnet-libs"
-
-if [[ -d $JSONNET_LIBS_REPO ]]; then
-  pushd "$JSONNET_LIBS_REPO" >/dev/null || fatal "Could not find jsonnet-libs cache dir"
-  git pull --quiet
-  popd >/dev/null || fatal "Could not change directory out of jsonnet-libs cache dir"
-else
-  mkdir -p "$(dirname "$JSONNET_LIBS_REPO")"
-  git clone --quiet --single-branch git@github.com:getoutreach/jsonnet-libs "$JSONNET_LIBS_REPO" >/dev/null
-fi
+info "Caching jsonnet-libs" >&2
+jsonnetLibsCacheDir="$(cache_git_repo https://github.com/getoutreach/jsonnet-libs)"
 
 action=$1
 
@@ -46,7 +41,7 @@ email="${DEV_EMAIL:-$(git config user.email || echo 'devbase@outreach.io')}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
 
 mise_exec_tool_with_bin github:getoutreach/kubecfg kubecfg \
-  --jpath "$JSONNET_LIBS_REPO" \
+  --jpath "$jsonnetLibsCacheDir" \
   --jurl http://k8s-clusters.outreach.cloud/ \
   -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/$jsonnetSourcePath/$jsonnetManifestPath" \
