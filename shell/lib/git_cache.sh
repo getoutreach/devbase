@@ -12,12 +12,12 @@ DEVBASE_CACHE_DIR="$HOME/.outreach/.cache"
 #
 # Prints out the cache directory path.
 #
-# Assumes that logging.sh is sourced. (Logs are sent to stderr.)
+# Assumes that logging.sh is sourced. ()
 cache_git_repo() {
   local gitURL="$1"
   local cacheSubdir="$2"
   local cacheDir cacheBasename
-  cacheBasename="$(basename "gitURL")"
+  cacheBasename="$(basename "$gitURL")"
   if [[ -n $cacheSubdir ]]; then
     cacheDir="$DEVBASE_CACHE_DIR/$cacheSubdir/$cacheBasename"
   else
