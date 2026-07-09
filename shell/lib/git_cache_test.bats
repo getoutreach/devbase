@@ -75,3 +75,22 @@ teardown() {
   assert [ -f "$cacheDir/v1.25.16-standalone-strict/deployment-apps-v1.json" ]
   assert [ ! -d "$cacheDir/unwanted" ]
 }
+
+@test "cache_git_repo sparse update prints only the cache dir path on stdout" {
+  # Warm the cache, then update. The update path must not leak git reset
+  # output (e.g. "HEAD is now at ...") onto stdout; callers capture stdout as
+  # the cache dir path, so it must be EXACTLY the path.
+  cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  run --separate-stderr cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  assert_success
+  local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
+  assert_output "$cacheDir"
+}
+
+@test "cache_git_repo non-sparse update prints only the cache dir path on stdout" {
+  cache_git_repo "file://$ORIGIN" kubeconform
+  run --separate-stderr cache_git_repo "file://$ORIGIN" kubeconform
+  assert_success
+  local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
+  assert_output "$cacheDir"
+}

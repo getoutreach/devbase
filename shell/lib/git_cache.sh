@@ -35,7 +35,7 @@ cache_git_repo() {
   if [[ -d $cacheDir ]]; then
     info_sub "Updating local cache" >&2
     git -C "$cacheDir" fetch --depth 1
-    git -C "$cacheDir" reset --hard origin/HEAD
+    git -C "$cacheDir" reset --hard -q origin/HEAD
     if [[ ${#sparsePaths[@]} -gt 0 ]]; then
       git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"
     fi
