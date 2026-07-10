@@ -16,6 +16,12 @@ source "$DIR/lib/mise/stub.sh"
 # callers) so we can both cache the matching schemas and tell kubeconform
 # which version to use.
 k8sVersion="$(get_tool_version kubernetes)"
+# get_tool_version prints "null" when the key is missing. Guard against it:
+# an unset version would cache non-existent "vnull-standalone" dirs and, with
+# -ignore-missing-schemas, silently skip all validation while reporting green.
+if [[ -z $k8sVersion || $k8sVersion == "null" ]]; then
+  fatal "Could not determine the kubernetes version from versions.yaml"
+fi
 
 # Do not add default to this list. Verified in v0.8.0, the magic
 # "default" value adds the raw.githubusercontent.com URL template for

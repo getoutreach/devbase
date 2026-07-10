@@ -21,6 +21,9 @@ DEVBASE_CACHE_DIR="$HOME/.outreach/.cache"
 cache_git_repo() {
   local gitURL="$1"
   local cacheSubdir="${2:-}"
+  # Drop the two leading positional args so "$@" is just the sparse paths.
+  # `shift 2` fails when fewer than two args were passed (e.g. a caller that
+  # omits cacheSubdir), so fall back to shifting whatever is present.
   shift 2 || shift $#
   local sparsePaths=("$@")
 
@@ -45,7 +48,11 @@ cache_git_repo() {
       warn "Could not refresh cache at $cacheDir; using the existing checkout" >&2
     fi
     if [[ ${#sparsePaths[@]} -gt 0 ]]; then
-      git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"
+      # Re-applying sparsity is a local operation, but tolerate failure so a
+      # transient problem cannot abort a run that already has a usable cache.
+      if ! git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"; then
+        warn "Could not update sparse paths at $cacheDir; using the existing checkout" >&2
+      fi
     fi
   else
     # A leftover directory that is not a healthy git repo (e.g. an

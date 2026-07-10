@@ -20,8 +20,9 @@ source "$SCRIPTS_DIR/lib/mise/stub.sh"
 
 # Cache a local copy of the `jsonnet-libs` directory on disk if it doesn't yet exist. Do this
 # because it helps us avoid accessing jsonnet-libs via raw.githubusercontent.com, which has
-# aggressive rate limits that we can easily hit. Estimated API usage reduction is +10x since before
-# we'd make 1 request per file (15+ *sonnet files), now we clone at most once per run.
+# aggressive rate limits that we can easily hit. cache_git_repo clones the repo once and then
+# refreshes it with a shallow fetch on later runs, instead of one request per file (15+ *sonnet
+# files) as before.
 info "Caching jsonnet-libs" >&2
 jsonnetLibsCacheDir="$(cache_git_repo https://github.com/getoutreach/jsonnet-libs)"
 
