@@ -39,19 +39,31 @@ cache_git_repo() {
     cacheDir="$DEVBASE_CACHE_DIR/$cacheBasename"
   fi
 
+  # True if every requested sparse path is present and non-empty. A blobless
+  # sparse checkout can leave a path unmaterialized after a failed fetch.
+  _sparse_paths_materialized() {
+    local path
+    for path in "${sparsePaths[@]}"; do
+      [[ -n "$(find "$cacheDir/$path" -type f -print -quit 2>/dev/null)" ]] || return 1
+    done
+  }
+
   if [[ -d $cacheDir ]] && git -C "$cacheDir" rev-parse --git-dir >/dev/null 2>&1; then
     info_sub "Updating local cache" >&2
-    # A transient fetch failure should not be fatal: a usable checkout
-    # already exists, so warn and fall back to it rather than aborting.
+    # A usable checkout already exists; tolerate a transient refresh failure.
     if ! { git -C "$cacheDir" fetch --depth 1 &&
       git -C "$cacheDir" reset --hard -q origin/HEAD; }; then
       warn "Could not refresh cache at $cacheDir; using the existing checkout" >&2
     fi
     if [[ ${#sparsePaths[@]} -gt 0 ]]; then
-      # Re-applying sparsity is a local operation, but tolerate failure so a
-      # transient problem cannot abort a run that already has a usable cache.
+      # Local re-apply; tolerate failure so a blip cannot abort a usable cache.
       if ! git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"; then
         warn "Could not update sparse paths at $cacheDir; using the existing checkout" >&2
+      fi
+      # A cache missing its schemas would let -ignore-missing-schemas pass
+      # vacuously; fail loudly instead.
+      if ! _sparse_paths_materialized; then
+        fatal "Cache at $cacheDir is missing requested paths: ${sparsePaths[*]}"
       fi
     fi
   else

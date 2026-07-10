@@ -126,3 +126,21 @@ teardown() {
   # Proves it re-cloned rather than aborting on the corrupt dir.
   assert [ -f "$cacheDir/v1.25.16-standalone-strict/deployment-apps-v1.json" ]
 }
+
+@test "cache_git_repo fails when the cache is missing requested paths and cannot refresh" {
+  # A cache dir can be a healthy git repo yet lack the requested schema
+  # directory (e.g. a blobless fetch failed while switching versions). If it
+  # cannot be refreshed, returning it would let kubeconform
+  # -ignore-missing-schemas silently pass without validating anything, so the
+  # function must fail loudly instead.
+  cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
+  # Remove the materialized schemas but leave the git repo intact, and make
+  # origin unreachable so the refresh cannot restore them.
+  rm -rf "$cacheDir/v1.25.16-standalone-strict"
+  rm -rf "$ORIGIN"
+
+  run cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  assert_failure
+  assert_output --partial "missing requested paths"
+}
