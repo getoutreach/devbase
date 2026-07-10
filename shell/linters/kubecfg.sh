@@ -23,7 +23,6 @@ kubecfg_kubeconform() {
   if ! "$DIR/kubeconform.sh" \
     -ignore-missing-schemas \
     -strict \
-    -kubernetes-version "$(get_tool_version kubernetes)" \
     <"$tempFile"; then
     error "Failed to validate generated YAML"
     return 1
