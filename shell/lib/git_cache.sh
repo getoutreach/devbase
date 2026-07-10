@@ -24,8 +24,12 @@ cache_git_repo() {
   shift 2 || shift $#
   local sparsePaths=("$@")
 
-  local cacheDir cacheBasename
-  cacheBasename="$(basename "$gitURL")"
+  # Derive the cache dir name from the repo's last path segment. Normalize a
+  # trailing slash and a ".git" suffix first so equivalent URLs map to the
+  # same name. Callers caching repos whose last segment could collide must
+  # pass distinct cacheSubdir values to disambiguate them.
+  local cacheDir cacheBasename normalizedURL="${gitURL%/}"
+  cacheBasename="$(basename "${normalizedURL%.git}")"
   if [[ -n $cacheSubdir ]]; then
     cacheDir="$DEVBASE_CACHE_DIR/$cacheSubdir/$cacheBasename"
   else
@@ -34,8 +38,12 @@ cache_git_repo() {
 
   if [[ -d $cacheDir ]] && git -C "$cacheDir" rev-parse --git-dir >/dev/null 2>&1; then
     info_sub "Updating local cache" >&2
-    git -C "$cacheDir" fetch --depth 1
-    git -C "$cacheDir" reset --hard -q origin/HEAD
+    # A transient fetch failure should not be fatal: a usable checkout
+    # already exists, so warn and fall back to it rather than aborting.
+    if ! { git -C "$cacheDir" fetch --depth 1 &&
+      git -C "$cacheDir" reset --hard -q origin/HEAD; }; then
+      warn "Could not refresh cache at $cacheDir; using the existing checkout" >&2
+    fi
     if [[ ${#sparsePaths[@]} -gt 0 ]]; then
       git -C "$cacheDir" sparse-checkout set "${sparsePaths[@]}"
     fi

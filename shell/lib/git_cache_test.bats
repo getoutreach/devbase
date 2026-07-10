@@ -95,6 +95,23 @@ teardown() {
   assert_output "$cacheDir"
 }
 
+@test "cache_git_repo warns and reuses the checkout when a warm-cache fetch fails" {
+  # Warm the cache, then make origin unreachable to simulate a transient
+  # network failure on a later run. A usable local checkout already exists,
+  # so the fetch failure must be tolerated: the function warns (on stderr)
+  # and returns the cache dir with the previously-materialized schemas intact.
+  cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  rm -rf "$ORIGIN"
+
+  run --separate-stderr cache_git_repo "file://$ORIGIN" kubeconform v1.25.16-standalone-strict
+  assert_success
+  local cacheDir="$DEVBASE_CACHE_DIR/kubeconform/origin"
+  assert_output "$cacheDir"
+  assert [ -f "$cacheDir/v1.25.16-standalone-strict/deployment-apps-v1.json" ]
+  # The failure is reported clearly rather than leaking a bare git "fatal:".
+  assert [ -n "$stderr" ]
+}
+
 @test "cache_git_repo self-heals a corrupt (non-git) cache dir" {
   # Simulate an interrupted clone: the cache dir exists but is not a git
   # repo. The old code took the update path and `git fetch` errored; the
