@@ -18,8 +18,11 @@ setup() {
   export MISE_GLOBAL_CONFIG_ROOT="$MISE_CONFIG_DIR"
   export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG_DIR/global.toml"
   export MISE_OVERRIDE_CONFIG_FILENAMES="global.toml"
-  echo '[tools]' >>"$MISE_GLOBAL_CONFIG_FILE"
-  echo 'github-cli = "latest"' >>"$MISE_GLOBAL_CONFIG_FILE"
+  {
+    echo '[tools]'
+    echo 'github-cli = "latest"'
+    echo 'wait-for-gh-rate-limit = "1.1.1"'
+  } >>"$MISE_GLOBAL_CONFIG_FILE"
 }
 
 teardown() {
