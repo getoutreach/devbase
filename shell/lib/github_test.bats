@@ -52,6 +52,7 @@ teardown() {
   assert mise which stencil
 
   run "$(mise which stencil)" --version
+  assert_success
 }
 
 @test "install_latest_github_release should be able to download and install the latest pre-release of a repo" {
@@ -64,5 +65,6 @@ teardown() {
   assert mise which stencil
 
   run "$(mise which stencil)" --version
+  assert_success
   assert_output --regexp "(rc|unstable)"
 }
