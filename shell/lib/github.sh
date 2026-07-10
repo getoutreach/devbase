@@ -85,6 +85,13 @@ install_latest_github_release() {
 
   info "Using $slug:${binary_name} version: ($tag)"
 
+  # Strip a leading `v` (before a digit) so mise receives a normalized version.
+  # mise 2026.6.14+ drops the `v` when installing a pre-release tag but re-adds
+  # it during `mise which`/`mise where`, so the tool resolves as not installed.
+  if [[ $tag =~ ^v[0-9] ]]; then
+    tag="${tag#v}"
+  fi
+
   # Need to export GITHUB_TOKEN so that future calls to `mise`
   # continue to use it for the configured private repos.
   if [[ -z ${GITHUB_TOKEN:-} ]]; then
