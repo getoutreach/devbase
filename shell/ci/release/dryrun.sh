@@ -20,8 +20,8 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
-# shellcheck source=./base-branch.sh
-source "${DIR}/base-branch.sh"
+# shellcheck source=../../lib/release.sh
+source "${LIB_DIR}/release.sh"
 
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
@@ -48,7 +48,7 @@ DEFAULT_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 
 # Resolve the branch to preview against. Stable promotions preview against
 # the release branch; everything else against the default branch.
-CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH" "$(get_service_yaml)")"
+CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH")"
 
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH

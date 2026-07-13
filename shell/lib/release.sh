@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
-# Resolves the branch a release dry-run should be previewed against.
+# Helpers for the CI release flow.
 
-BASE_BRANCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-
-# shellcheck source=../../lib/yaml.sh
-source "${BASE_BRANCH_DIR}/../../lib/yaml.sh"
-
-# resolve_release_base_branch echoes the branch to preview a release against.
+# resolve_release_base_branch echoes the branch a release dry-run should be
+# previewed against.
+#
+# Requires bootstrap.sh to be sourced (for stencil_arg).
 #
 # $1 repo directory (git operations run here)
 # $2 current branch
 # $3 default branch (origin/HEAD)
-# $4 path to service.yaml
 resolve_release_base_branch() {
   local repo_dir="$1"
   local current="$2"
   local default_branch="$3"
-  local service_yaml="$4"
 
   if [[ -n ${RELEASE_BASE_BRANCH:-} ]]; then
     printf "%s" "$RELEASE_BASE_BRANCH"
@@ -24,9 +20,12 @@ resolve_release_base_branch() {
   fi
 
   local prereleases prereleasesBranch
-  prereleases="$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$service_yaml")"
-  prereleasesBranch="$(yaml_get_field ".arguments.releaseOptions.prereleasesBranch" "$service_yaml")"
-  prereleasesBranch="${prereleasesBranch:-main}"
+  prereleases="$(stencil_arg "releaseOptions.enablePrereleases")"
+  prereleasesBranch="$(stencil_arg "releaseOptions.prereleasesBranch")"
+  # stencil_arg returns the literal string "null" for an unset field.
+  if [[ -z $prereleasesBranch || $prereleasesBranch == "null" ]]; then
+    prereleasesBranch="main"
+  fi
 
   # A stable promotion branch is created from an RC tag, so it is an ancestor
   # of the prereleases branch. RC and feature branches are ahead of it.

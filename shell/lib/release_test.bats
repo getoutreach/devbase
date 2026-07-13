@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 # shellcheck disable=SC2155
 
-load base-branch.sh
+load release.sh
+load bootstrap.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
@@ -12,7 +13,6 @@ bats_load_library "bats-assert/load.bash"
 
 setup() {
   REPO="$(mktemp -d)"
-  YAML="$(mktemp)"
   git -C "$REPO" init -q
   git -C "$REPO" config user.email t@t.io
   git -C "$REPO" config user.name t
@@ -22,22 +22,23 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$REPO" "$YAML"
+  rm -rf "$REPO"
 }
 
 prereleases_on() {
-  printf 'arguments:\n  releaseOptions:\n    enablePrereleases: true\n    prereleasesBranch: main\n' >"$YAML"
+  printf 'arguments:\n  releaseOptions:\n    enablePrereleases: true\n    prereleasesBranch: main\n' >"$REPO/service.yaml"
 }
 
 prereleases_off() {
-  printf 'arguments:\n  releaseOptions:\n    enablePrereleases: false\n' >"$YAML"
+  printf 'arguments:\n  releaseOptions:\n    enablePrereleases: false\n' >"$REPO/service.yaml"
 }
 
 @test "feature branch ahead of main resolves to default branch" {
   prereleases_on
   git -C "$REPO" checkout -q -b feature
   git -C "$REPO" commit -q --allow-empty -m "work"
-  run resolve_release_base_branch "$REPO" feature main "$YAML"
+  cd "$REPO"
+  run resolve_release_base_branch "$REPO" feature main
   assert_output "main"
 }
 
@@ -47,7 +48,8 @@ prereleases_off() {
   git -C "$REPO" checkout -q main
   git -C "$REPO" commit -q --allow-empty -m "newer"
   git -C "$REPO" checkout -q -b tmp rc
-  run resolve_release_base_branch "$REPO" tmp main "$YAML"
+  cd "$REPO"
+  run resolve_release_base_branch "$REPO" tmp main
   assert_output "release"
 }
 
@@ -57,14 +59,16 @@ prereleases_off() {
   git -C "$REPO" checkout -q main
   git -C "$REPO" commit -q --allow-empty -m "newer"
   git -C "$REPO" checkout -q -b tmp rc
-  run resolve_release_base_branch "$REPO" tmp main "$YAML"
+  cd "$REPO"
+  run resolve_release_base_branch "$REPO" tmp main
   assert_output "main"
 }
 
 @test "RELEASE_BASE_BRANCH override wins" {
   prereleases_on
   git -C "$REPO" checkout -q -b feature
-  RELEASE_BASE_BRANCH=custom run resolve_release_base_branch "$REPO" feature main "$YAML"
+  cd "$REPO"
+  RELEASE_BASE_BRANCH=custom run resolve_release_base_branch "$REPO" feature main
   assert_output "custom"
 }
 
@@ -72,6 +76,7 @@ prereleases_off() {
   prereleases_on
   git -C "$REPO" checkout -q -b tmp-rc
   git -C "$REPO" commit -q --allow-empty -m "chore: Release RC"
-  run resolve_release_base_branch "$REPO" tmp-rc main "$YAML"
+  cd "$REPO"
+  run resolve_release_base_branch "$REPO" tmp-rc main
   assert_output "main"
 }
