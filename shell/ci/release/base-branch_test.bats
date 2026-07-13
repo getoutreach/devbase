@@ -6,6 +6,10 @@ load base-branch.sh
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
+# Note: base resolution is unit-tested here. The "No changes to release" no-op
+# guard for an ancestor-of-base branch (spec case 6) lives in dryrun.sh, an
+# orchestration script exercised by the CI/manual dry-run path rather than bats.
+
 setup() {
   REPO="$(mktemp -d)"
   YAML="$(mktemp)"

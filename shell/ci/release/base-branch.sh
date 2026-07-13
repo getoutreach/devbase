@@ -23,15 +23,15 @@ resolve_release_base_branch() {
     return 0
   fi
 
-  local prereleases prereleaseBranch
+  local prereleases prereleasesBranch
   prereleases="$(yaml_get_field ".arguments.releaseOptions.enablePrereleases" "$service_yaml")"
-  prereleaseBranch="$(yaml_get_field ".arguments.releaseOptions.prereleasesBranch" "$service_yaml")"
-  prereleaseBranch="${prereleaseBranch:-main}"
+  prereleasesBranch="$(yaml_get_field ".arguments.releaseOptions.prereleasesBranch" "$service_yaml")"
+  prereleasesBranch="${prereleasesBranch:-main}"
 
   # A stable promotion branch is created from an RC tag, so it is an ancestor
   # of the prereleases branch. RC and feature branches are ahead of it.
   if [[ $prereleases == "true" ]] &&
-    git -C "$repo_dir" merge-base --is-ancestor "$current" "$prereleaseBranch" 2>/dev/null; then
+    git -C "$repo_dir" merge-base --is-ancestor "$current" "$prereleasesBranch" 2>/dev/null; then
     printf "%s" "release"
     return 0
   fi
