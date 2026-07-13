@@ -63,3 +63,11 @@ prereleases_off() {
   RELEASE_BASE_BRANCH=custom run resolve_release_base_branch "$REPO" feature main "$YAML"
   assert_output "custom"
 }
+
+@test "rc-style branch one commit ahead of main resolves to default branch" {
+  prereleases_on
+  git -C "$REPO" checkout -q -b tmp-rc
+  git -C "$REPO" commit -q --allow-empty -m "chore: Release RC"
+  run resolve_release_base_branch "$REPO" tmp-rc main "$YAML"
+  assert_output "main"
+}
