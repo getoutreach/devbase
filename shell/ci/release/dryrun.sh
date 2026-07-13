@@ -5,6 +5,9 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LIB_DIR="${DIR}/../../lib"
 
+# shellcheck source=../../lib/bootstrap.sh
+source "${LIB_DIR}/bootstrap.sh"
+
 # shellcheck source=../../lib/circleci.sh
 source "${LIB_DIR}/circleci.sh"
 
@@ -50,9 +53,11 @@ CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
 
-# Checkout the HEAD (default) branch and ensure it's up-to-date.
-git checkout "$CIRCLE_BRANCH"
-git pull
+# Fetch and checkout the base branch we are previewing against, ensuring it
+# is present locally and up-to-date. The base may be the default branch or the
+# stable release branch, so fetch it explicitly rather than assuming a local ref.
+git fetch origin "$CIRCLE_BRANCH"
+git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
 
 git checkout "$OLD_CIRCLE_BRANCH"
 # Merge all of the commit messages from the branch into a single commit message.
