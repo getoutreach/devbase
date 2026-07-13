@@ -17,6 +17,9 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+# shellcheck source=./base-branch.sh
+source "${DIR}/base-branch.sh"
+
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
   exit 0
@@ -38,7 +41,11 @@ unset CI_PULL_REQUESTS
 
 # Store what branch we are really on
 OLD_CIRCLE_BRANCH="$CIRCLE_BRANCH"
-CIRCLE_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
+DEFAULT_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
+
+# Resolve the branch to preview against. Stable promotions preview against
+# the release branch; everything else against the default branch.
+CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH" "$(get_service_yaml)")"
 
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
@@ -54,8 +61,14 @@ git checkout "$CIRCLE_BRANCH"
 
 # Squash our branch onto the HEAD (default) branch to mimic
 # what would happen after merge.
-if ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
+if git merge-base --is-ancestor "$OLD_CIRCLE_BRANCH" "$CIRCLE_BRANCH"; then
+  echo "No changes to release"
+elif ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
   git merge --squash "$OLD_CIRCLE_BRANCH"
+  if git diff --cached --quiet; then
+    echo "No changes to release"
+    exit 0
+  fi
   git commit -m "$COMMIT_MESSAGE"
 
   GITHUB_TOKEN="$(github_token)"
