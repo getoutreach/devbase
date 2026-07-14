@@ -42,28 +42,28 @@ rc=$?
 set -e
 
 case "$rc" in
-  0)
-    COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref")"
-    squash_branch "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref" "$COMMIT_MESSAGE"
+0)
+  COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref")"
+  squash_branch "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref" "$COMMIT_MESSAGE"
 
-    # Set GitHub Actions builtin variables to not trigger the PR message.
-    # From: https://github.com/semantic-release/env-ci/blob/master/services/github.js
-    GH_TOKEN="$GITHUB_TOKEN" \
-      GITHUB_EVENT_NAME="nonexistent" \
-      GITHUB_REF="$GITHUB_BASE_REF" \
-      yarn --frozen-lockfile semantic-release --dry-run
+  # Set GitHub Actions builtin variables to not trigger the PR message.
+  # From: https://github.com/semantic-release/env-ci/blob/master/services/github.js
+  GH_TOKEN="$GITHUB_TOKEN" \
+    GITHUB_EVENT_NAME="nonexistent" \
+    GITHUB_REF="$GITHUB_BASE_REF" \
+    yarn --frozen-lockfile semantic-release --dry-run
 
-    # If we don't have pre-releasing enabled, notify.
-    if [[ "$(stencil_arg "releaseOptions.enablePrereleases")" != "true" ]]; then
-      echo "releaseOptions.enablePrereleases is not true, skipping unstable release"
-      exit 0
-    fi
-    ;;
-  1)
-    echo "No changes to release"
-    ;;
-  *)
-    # release_has_changes already logged the diagnostic report to stderr.
-    exit 1
-    ;;
+  # If we don't have pre-releasing enabled, notify.
+  if [[ "$(stencil_arg "releaseOptions.enablePrereleases")" != "true" ]]; then
+    echo "releaseOptions.enablePrereleases is not true, skipping unstable release"
+    exit 0
+  fi
+  ;;
+1)
+  echo "No changes to release"
+  ;;
+*)
+  # release_has_changes already logged the diagnostic report to stderr.
+  exit 1
+  ;;
 esac

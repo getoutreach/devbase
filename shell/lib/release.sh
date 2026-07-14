@@ -104,28 +104,28 @@ release_has_changes() {
   merge_rc=$?
 
   case "$merge_rc" in
-    0)
-      # Clean merge. First line of stdout is the written tree OID.
-      local result_tree base_tree
-      result_tree="$(printf '%s\n' "$merge_output" | head -n1)"
-      base_tree="$(git -C "$repo_dir" rev-parse "$base^{tree}")"
-      if [[ $result_tree == "$base_tree" ]]; then
-        return 1
-      fi
-      return 0
-      ;;
-    1)
-      _release_conflict_report "$repo_dir" "$base" "$head" "$merge_output" >&2
-      return 2
-      ;;
-    *)
-      {
-        echo "release_has_changes: operational error (not a conflict) merging $head onto $base"
-        echo "  git merge-tree exited $merge_rc"
-        echo "$merge_output"
-      } >&2
-      return 2
-      ;;
+  0)
+    # Clean merge. First line of stdout is the written tree OID.
+    local result_tree base_tree
+    result_tree="$(printf '%s\n' "$merge_output" | head -n1)"
+    base_tree="$(git -C "$repo_dir" rev-parse "$base^{tree}")"
+    if [[ $result_tree == "$base_tree" ]]; then
+      return 1
+    fi
+    return 0
+    ;;
+  1)
+    _release_conflict_report "$repo_dir" "$base" "$head" "$merge_output" >&2
+    return 2
+    ;;
+  *)
+    {
+      echo "release_has_changes: operational error (not a conflict) merging $head onto $base"
+      echo "  git merge-tree exited $merge_rc"
+      echo "$merge_output"
+    } >&2
+    return 2
+    ;;
   esac
 }
 

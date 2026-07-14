@@ -142,9 +142,11 @@ prereleases_off() {
   run release_has_changes "$REPO" main feature
   [ "$status" -eq 2 ]
   # required report fields
-  assert_output --partial "main"          # base ref named in header
-  assert_output --partial "feature"       # head ref named in header
-  assert_output --partial "f.txt"         # conflicted path
+  assert_output --partial "main"           # base ref named in header
+  assert_output --partial "feature"        # head ref named in header
+  assert_output --partial "f.txt"          # conflicted path
+  assert_output --partial "cannot preview" # conflict report header
+  assert_output --partial "merge-base:"    # merge-base field
 }
 
 @test "release_has_changes returns 2 (operational error) for a nonexistent ref" {

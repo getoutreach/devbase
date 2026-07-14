@@ -51,7 +51,7 @@ DEFAULT_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 
 # Resolve the branch to preview against. Stable promotions preview against
 # the release branch; everything else against the default branch.
-CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH")"
+CIRCLE_BRANCH="$(resolve_release_base_branch "$(get_repo_directory)" "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH")"
 
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
@@ -74,29 +74,29 @@ rc=$?
 set -e
 
 case "$rc" in
-  0)
-    COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH")"
-    squash_branch "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" "$COMMIT_MESSAGE"
+0)
+  COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH")"
+  squash_branch "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" "$COMMIT_MESSAGE"
 
-    GITHUB_TOKEN="$(github_token)"
-    if [[ -z $GITHUB_TOKEN ]]; then
-      warn "Failed to read GitHub token" >&2
-    fi
+  GITHUB_TOKEN="$(github_token)"
+  if [[ -z $GITHUB_TOKEN ]]; then
+    warn "Failed to read GitHub token" >&2
+  fi
 
-    run_gh auth setup-git
+  run_gh auth setup-git
 
-    MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
-      yarn --frozen-lockfile semantic-release --dry-run
+  MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
+    yarn --frozen-lockfile semantic-release --dry-run
 
-    # Handle prereleases for CLIs, pre-conditions for this exist
-    # in the script.
-    "$DIR/pre-release.sh" --dry-run
-    ;;
-  1)
-    echo "No changes to release"
-    ;;
-  *)
-    # release_has_changes already logged the diagnostic report to stderr.
-    exit 1
-    ;;
+  # Handle prereleases for CLIs, pre-conditions for this exist
+  # in the script.
+  "$DIR/pre-release.sh" --dry-run
+  ;;
+1)
+  echo "No changes to release"
+  ;;
+*)
+  # release_has_changes already logged the diagnostic report to stderr.
+  exit 1
+  ;;
 esac
