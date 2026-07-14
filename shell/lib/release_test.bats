@@ -4,6 +4,7 @@
 load release.sh
 load bootstrap.sh
 load version.sh
+load test_helper.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
@@ -13,7 +14,7 @@ bats_load_library "bats-assert/load.bash"
 # script exercised by the CI/manual dry-run path rather than bats.
 
 setup() {
-  REPO="$(mktemp -d)"
+  REPO="$(mktempdir devbase-release-XXXXXX)"
   git -C "$REPO" init -q
   git -C "$REPO" config user.email t@t.io
   git -C "$REPO" config user.name t
@@ -177,7 +178,7 @@ prereleases_off() {
 
 @test "base-ref guard: origin/release resolves when the release branch is present" {
   git -C "$REPO" branch release
-  CLONE="$(mktemp -d)"
+  CLONE="$(mktempdir devbase-release-clone-XXXXXX)"
   git clone -q "$REPO" "$CLONE"
   run git -C "$CLONE" rev-parse --verify "origin/release"
   [ "$status" -eq 0 ]
@@ -185,7 +186,7 @@ prereleases_off() {
 }
 
 @test "base-ref guard: origin/release fails to resolve when the release branch is missing" {
-  CLONE="$(mktemp -d)"
+  CLONE="$(mktempdir devbase-release-clone-XXXXXX)"
   git clone -q "$REPO" "$CLONE"
   run git -C "$CLONE" rev-parse --verify "origin/release"
   [ "$status" -ne 0 ]
@@ -194,7 +195,7 @@ prereleases_off() {
 
 @test "merge-base guard: a shallow clone with no common history has no merge-base" {
   # Build a second root so the two branches share no common ancestor.
-  UNRELATED="$(mktemp -d)"
+  UNRELATED="$(mktempdir devbase-release-unrelated-XXXXXX)"
   git -C "$UNRELATED" init -q
   git -C "$UNRELATED" config user.email t@t.io
   git -C "$UNRELATED" config user.name t
