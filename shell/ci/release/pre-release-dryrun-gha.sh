@@ -32,6 +32,9 @@ fi
 : "${GITHUB_REF:?GITHUB_REF must be set (GitHub Actions ref context)}"
 : "${GITHUB_BASE_REF:?GITHUB_BASE_REF must be set (GitHub Actions base ref context)}"
 
+# This assumes a full clone (the release-dryrun workflow checks out with
+# fetch-depth: 0), so the merge-base with the PR head is present and no
+# unshallow step is needed (unlike the CircleCI dryrun.sh path).
 git pull origin "$GITHUB_BASE_REF"
 
 pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
