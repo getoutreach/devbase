@@ -184,5 +184,5 @@ squash_branch() {
 
   git -C "$repo_dir" checkout "$base"
   git -C "$repo_dir" merge --squash "$head"
-  git -C "$repo_dir" commit -m "$message"
+  git -C "$repo_dir" commit --message "$message"
 }

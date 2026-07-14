@@ -85,6 +85,8 @@ if ! git rev-parse --verify "origin/$CIRCLE_BRANCH" >/dev/null 2>&1; then
   fatal "Prerelease-enabled repos must have the '$CIRCLE_BRANCH' branch pushed to origin."
 fi
 
+# checkout -B creates or resets the local base branch to the fetched remote
+# tip (no long flag equivalent), so the preview starts from origin's state.
 git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
 
 # A missing merge-base means the unshallow above did not fetch enough history
