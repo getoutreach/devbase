@@ -65,8 +65,6 @@ if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
 fi
 git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
 
-git checkout "$CIRCLE_BRANCH"
-
 # Decide whether the branch has anything to release, then squash and preview.
 # The tri-state exit code keeps a merge conflict from being silently treated
 # as "no changes".
