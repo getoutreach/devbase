@@ -153,3 +153,21 @@ prereleases_off() {
   assert_output --partial "operational error"
   assert_output --partial "does-not-exist"
 }
+
+@test "squash_branch commits the delta onto base with the given message" {
+  git -C "$REPO" checkout -q -b feature
+  echo "feature work" >"$REPO/work.txt"
+  git -C "$REPO" add work.txt
+  git -C "$REPO" commit -q -m "feature work"
+
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+
+  squash_branch "$REPO" main feature "squashed message"
+
+  # base (main) now has a new commit with the message and the merged file.
+  run git -C "$REPO" log -1 --format=%B main
+  assert_output --partial "squashed message"
+  run git -C "$REPO" show "main:work.txt"
+  assert_output "feature work"
+}

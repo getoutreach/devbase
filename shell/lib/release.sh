@@ -140,3 +140,22 @@ _release_conflict_report() {
   echo "  merge-tree output:"
   echo "$merge_output"
 }
+
+# squash_branch squashes <head> onto <base> as a single commit with <message>.
+# Only call after release_has_changes has confirmed a delta (exit 0). Runs
+# under the caller's set -e, so any failure aborts loudly.
+#
+# $1 repo directory (git operations run here)
+# $2 base ref
+# $3 head ref
+# $4 commit message
+squash_branch() {
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+  local message="$4"
+
+  git -C "$repo_dir" checkout "$base"
+  git -C "$repo_dir" merge --squash "$head"
+  git -C "$repo_dir" commit -m "$message"
+}
