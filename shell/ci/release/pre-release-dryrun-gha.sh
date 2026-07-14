@@ -27,6 +27,11 @@ if in_ci_environment; then
   yarn install --frozen-lockfile
 fi
 
+# Assert the GitHub Actions ref env vars are set before any git operation, so a
+# missing trigger context fails with a clear config error rather than mid-run.
+: "${GITHUB_REF:?GITHUB_REF must be set (GitHub Actions ref context)}"
+: "${GITHUB_BASE_REF:?GITHUB_BASE_REF must be set (GitHub Actions base ref context)}"
+
 git pull origin "$GITHUB_BASE_REF"
 
 pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
@@ -43,6 +48,9 @@ set -e
 
 case "$rc" in
 0)
+  # squash_branch merges PR branch content ("$pull_ref"). This is safe only
+  # under the fork-isolated `pull_request` trigger; do NOT switch this workflow
+  # to `pull_request_target`, which would run untrusted PR code with write creds.
   COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref")"
   squash_branch "$(get_repo_directory)" "$GITHUB_BASE_REF" "$pull_ref" "$COMMIT_MESSAGE"
 

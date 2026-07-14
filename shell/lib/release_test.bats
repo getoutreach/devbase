@@ -9,8 +9,9 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 # Note: base resolution is unit-tested here. The "No changes to release" no-op
-# guard for an ancestor-of-base branch (spec case 6) lives in dryrun.sh, an
-# orchestration script exercised by the CI/manual dry-run path rather than bats.
+# guard for an ancestor-of-base branch (the ancestor-of-base no-op guard) lives
+# in dryrun.sh, an orchestration script exercised by the CI/manual dry-run path
+# rather than bats.
 
 setup() {
   REPO="$(mktemp -d)"
@@ -172,4 +173,41 @@ prereleases_off() {
   assert_output --partial "squashed message"
   run git -C "$REPO" show "main:work.txt"
   assert_output "feature work"
+}
+
+# The following integration tests exercise the git-level guards that dryrun.sh
+# relies on (base-ref existence and merge-base availability) against a locally
+# created clone, replacing the deferred manual-CI note.
+
+@test "base-ref guard: origin/release resolves when the release branch is present" {
+  git -C "$REPO" branch release
+  CLONE="$(mktemp -d)"
+  git clone -q "$REPO" "$CLONE"
+  run git -C "$CLONE" rev-parse --verify "origin/release"
+  [ "$status" -eq 0 ]
+  rm -rf "$CLONE"
+}
+
+@test "base-ref guard: origin/release fails to resolve when the release branch is missing" {
+  CLONE="$(mktemp -d)"
+  git clone -q "$REPO" "$CLONE"
+  run git -C "$CLONE" rev-parse --verify "origin/release"
+  [ "$status" -ne 0 ]
+  rm -rf "$CLONE"
+}
+
+@test "merge-base guard: a shallow clone with no common history has no merge-base" {
+  # Build a second root so the two branches share no common ancestor.
+  UNRELATED="$(mktemp -d)"
+  git -C "$UNRELATED" init -q
+  git -C "$UNRELATED" config user.email t@t.io
+  git -C "$UNRELATED" config user.name t
+  git -C "$UNRELATED" commit -q --allow-empty -m "unrelated root"
+  git -C "$UNRELATED" branch -M other
+
+  # Import the unrelated branch into $REPO without a shared ancestor.
+  git -C "$REPO" fetch -q "$UNRELATED" other:other
+  run git -C "$REPO" merge-base main other
+  [ "$status" -ne 0 ]
+  rm -rf "$UNRELATED"
 }

@@ -19,19 +19,37 @@ resolve_release_base_branch() {
     return 0
   fi
 
-  local prereleases prereleasesBranch
-  prereleases="$(stencil_arg "releaseOptions.enablePrereleases")"
-  prereleasesBranch="$(stencil_arg "releaseOptions.prereleasesBranch")"
+  # Branch-name conventions this helper assumes. Override the resolved
+  # base entirely via RELEASE_BASE_BRANCH.
+  local -r DEFAULT_PRERELEASES_BRANCH="main"
+  local -r STABLE_RELEASE_BRANCH="release"
+
+  local prereleases prereleasesBranch rc
+  prereleases="$(stencil_arg "releaseOptions.enablePrereleases")" || rc=$?
+  if [[ ${rc:-0} -ne 0 ]]; then
+    echo "resolve_release_base_branch: failed to read releaseOptions.enablePrereleases" >&2
+    return 1
+  fi
+  prereleasesBranch="$(stencil_arg "releaseOptions.prereleasesBranch")" || rc=$?
+  if [[ ${rc:-0} -ne 0 ]]; then
+    echo "resolve_release_base_branch: failed to read releaseOptions.prereleasesBranch" >&2
+    return 1
+  fi
   # stencil_arg returns the literal string "null" for an unset field.
   if [[ -z $prereleasesBranch || $prereleasesBranch == "null" ]]; then
-    prereleasesBranch="main"
+    prereleasesBranch="$DEFAULT_PRERELEASES_BRANCH"
+  fi
+  # Reject an invalid branch name before it is used as a git ref below.
+  if ! git check-ref-format --branch "$prereleasesBranch" >/dev/null 2>&1; then
+    echo "resolve_release_base_branch: invalid prereleasesBranch: $prereleasesBranch" >&2
+    return 1
   fi
 
   # A stable promotion branch is created from an RC tag, so it is an ancestor
   # of the prereleases branch. RC and feature branches are ahead of it.
   if [[ $prereleases == "true" ]] &&
     git -C "$repo_dir" merge-base --is-ancestor "$current" "$prereleasesBranch" 2>/dev/null; then
-    printf "%s" "release"
+    printf "%s" "$STABLE_RELEASE_BRANCH"
     return 0
   fi
 
@@ -115,7 +133,7 @@ release_has_changes() {
     return 0
     ;;
   1)
-    _release_conflict_report "$repo_dir" "$base" "$head" "$merge_output" >&2
+    _release_conflict_report "$repo_dir" "$base" "$head" "$merge_output"
     return 2
     ;;
   *)
@@ -133,17 +151,22 @@ release_has_changes() {
 # CI log alone explains the failure. $4 is the captured merge-tree output.
 _release_conflict_report() {
   local repo_dir="$1" base="$2" head="$3" merge_output="$4"
-  echo "release dry-run: cannot preview $head onto $base (merge conflict)"
-  echo "  head: $(git -C "$repo_dir" log -1 --oneline "$head")"
-  echo "  base: $(git -C "$repo_dir" log -1 --oneline "$base")"
-  echo "  merge-base: $(git -C "$repo_dir" merge-base "$base" "$head")"
-  echo "  merge-tree output:"
-  echo "$merge_output"
+  {
+    echo "release dry-run: cannot preview $head onto $base (merge conflict)"
+    echo "  head: $(git -C "$repo_dir" log -1 --oneline "$head")"
+    echo "  base: $(git -C "$repo_dir" log -1 --oneline "$base")"
+    echo "  merge-base: $(git -C "$repo_dir" merge-base "$base" "$head")"
+    echo "  merge-tree output:"
+    echo "$merge_output"
+  } >&2
 }
 
 # squash_branch squashes <head> onto <base> as a single commit with <message>.
 # Only call after release_has_changes has confirmed a delta (exit 0). Runs
 # under the caller's set -e, so any failure aborts loudly.
+#
+# On success this leaves the working tree checked out on <base> (the squash
+# commit is on <base>).
 #
 # $1 repo directory (git operations run here)
 # $2 base ref

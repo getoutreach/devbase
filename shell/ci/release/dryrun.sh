@@ -63,7 +63,25 @@ git fetch --no-tags origin "$CIRCLE_BRANCH"
 if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
   git fetch --unshallow --no-tags origin "$CIRCLE_BRANCH" || true
 fi
+
+# The base ref must exist on origin before we can check it out. A missing
+# stable release branch would otherwise fail with a raw checkout error.
+if ! git rev-parse --verify "origin/$CIRCLE_BRANCH" >/dev/null 2>&1; then
+  echo "error: stable release branch 'origin/$CIRCLE_BRANCH' not found on origin." >&2
+  echo "Prerelease-enabled repos must have the '$CIRCLE_BRANCH' branch pushed to origin." >&2
+  exit 1
+fi
+
 git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
+
+# A missing merge-base means the unshallow above did not fetch enough history
+# (the clone is likely still shallow), which would produce a truncated squash
+# message rather than a clear failure.
+if ! git merge-base "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" >/dev/null 2>&1; then
+  echo "error: unable to find merge-base for '$CIRCLE_BRANCH' and '$OLD_CIRCLE_BRANCH'." >&2
+  echo "The clone is likely still shallow (git fetch --unshallow failed)." >&2
+  exit 1
+fi
 
 # Decide whether the branch has anything to release, then squash and preview.
 # The tri-state exit code keeps a merge conflict from being silently treated
