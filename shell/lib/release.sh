@@ -85,6 +85,20 @@ release_has_changes() {
     return 2
   fi
 
+  # Validate both refs resolve. merge-tree exits 1 for a bad ref just as it does
+  # for a real conflict, so without this a nonexistent ref would be misreported
+  # as a merge conflict.
+  local ref
+  for ref in "$base" "$head"; do
+    if ! git -C "$repo_dir" rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
+      {
+        echo "release_has_changes: operational error (not a conflict)"
+        echo "  ref does not resolve to a commit: $ref"
+      } >&2
+      return 2
+    fi
+  done
+
   local merge_output merge_rc
   merge_output="$(git -C "$repo_dir" merge-tree --write-tree "$base" "$head" 2>&1)"
   merge_rc=$?

@@ -146,3 +146,10 @@ prereleases_off() {
   assert_output --partial "feature"       # head ref named in header
   assert_output --partial "f.txt"         # conflicted path
 }
+
+@test "release_has_changes returns 2 (operational error) for a nonexistent ref" {
+  run release_has_changes "$REPO" main does-not-exist
+  [ "$status" -eq 2 ]
+  assert_output --partial "operational error"
+  assert_output --partial "does-not-exist"
+}
