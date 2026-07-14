@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # Helpers for the CI release flow.
 
-# resolve_release_base_branch echoes the branch a release dry-run should be
-# previewed against.
+# resolve_release_base_branch <repo_dir> <current_branch> <default_branch>
 #
-# Requires bootstrap.sh to be sourced (for stencil_arg).
-#
-# $1 repo directory (git operations run here)
-# $2 current branch
-# $3 default branch (origin/HEAD)
+# Echoes the branch a release dry-run should be previewed against.
+# Requires bootstrap.sh to be sourced (for stencil_arg). <default_branch> is
+# origin/HEAD; git operations run in <repo_dir>.
 resolve_release_base_branch() {
   local repo_dir="$1"
   local current="$2"
@@ -68,12 +65,10 @@ resolve_release_base_branch() {
   printf "%s" "$default_branch"
 }
 
-# release_commit_message echoes the combined commit message for squashing
-# <head> onto <base>, in chronological order.
+# release_commit_message <repo_dir> <base> <head>
 #
-# $1 repo directory (git operations run here)
-# $2 base ref
-# $3 head ref
+# Echoes the combined commit message for squashing <head> onto <base>, in
+# chronological order. Git operations run in <repo_dir>.
 release_commit_message() {
   local repo_dir="$1"
   local base="$2"
@@ -82,21 +77,18 @@ release_commit_message() {
   git -C "$repo_dir" log "$base..$head" --reverse --format=%B
 }
 
-# release_has_changes decides whether merging <head> into <base> produces any
-# change, without mutating the working tree or HEAD. Uses git merge-tree
-# (requires git >= 2.38).
+# release_has_changes <repo_dir> <base> <head>
+#
+# Decides whether merging <head> into <base> produces any change, without
+# mutating the working tree or HEAD. Uses git merge-tree (requires git >= 2.38).
+# Requires bootstrap.sh and version.sh to be sourced. Git operations run in
+# <repo_dir>.
 #
 # Exit codes:
 #   0  clean merge with a real delta to release
 #   1  clean merge, no delta (head is an ancestor of base, or already merged)
 #   2  merge conflict, or operational error (bad ref, git < 2.38);
 #      a self-contained failure report is written to stderr
-#
-# Requires bootstrap.sh and version.sh to be sourced.
-#
-# $1 repo directory (git operations run here)
-# $2 base ref
-# $3 head ref
 release_has_changes() {
   local repo_dir="$1"
   local base="$2"
@@ -159,8 +151,10 @@ release_has_changes() {
   esac
 }
 
-# _release_conflict_report writes a self-contained conflict diagnostic so the
-# CI log alone explains the failure. $4 is the captured merge-tree output.
+# _release_conflict_report <repo_dir> <base> <head> <merge_output>
+#
+# Writes a self-contained conflict diagnostic to stderr so the CI log alone
+# explains the failure. <merge_output> is the captured merge-tree output.
 _release_conflict_report() {
   local repo_dir="$1" base="$2" head="$3" merge_output="$4"
   {
@@ -173,17 +167,12 @@ _release_conflict_report() {
   } >&2
 }
 
-# squash_branch squashes <head> onto <base> as a single commit with <message>.
-# Only call after release_has_changes has confirmed a delta (exit 0). Runs
-# under the caller's set -e, so any failure aborts loudly.
+# squash_branch <repo_dir> <base> <head> <message>
 #
-# On success this leaves the working tree checked out on <base> (the squash
-# commit is on <base>).
-#
-# $1 repo directory (git operations run here)
-# $2 base ref
-# $3 head ref
-# $4 commit message
+# Squashes <head> onto <base> as a single commit with <message>. Only call
+# after release_has_changes has confirmed a delta (exit 0). Runs under the
+# caller's set -e, so any failure aborts loudly. On success the working tree is
+# left checked out on <base> (the squash commit is on <base>).
 squash_branch() {
   local repo_dir="$1"
   local base="$2"
