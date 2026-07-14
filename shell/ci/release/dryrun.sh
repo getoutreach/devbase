@@ -65,9 +65,8 @@ CIRCLE_BRANCH="$(resolve_release_base_branch "$(get_repo_directory)" "$OLD_CIRCL
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
 
-# Fetch the resolved base branch explicitly. The base may be the default branch
-# or the stable release branch; in a shallow/single-branch CI clone the release
-# branch and its merge-base with HEAD may be absent, so unshallow when needed.
+# Fetch the resolved base branch, unshallowing as above. When it is the stable
+# release branch this is a different ref than the default branch fetched above.
 git fetch origin "$CIRCLE_BRANCH"
 if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
   git fetch --unshallow origin "$CIRCLE_BRANCH" || true

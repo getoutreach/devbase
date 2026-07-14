@@ -9,9 +9,8 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 # Note: base resolution is unit-tested here. The "No changes to release" no-op
-# guard for an ancestor-of-base branch (the ancestor-of-base no-op guard) lives
-# in dryrun.sh, an orchestration script exercised by the CI/manual dry-run path
-# rather than bats.
+# guard for an ancestor-of-base branch lives in dryrun.sh, an orchestration
+# script exercised by the CI/manual dry-run path rather than bats.
 
 setup() {
   REPO="$(mktemp -d)"
@@ -142,7 +141,6 @@ prereleases_off() {
   git -C "$REPO" commit -q -am "main change"
   run release_has_changes "$REPO" main feature
   [ "$status" -eq 2 ]
-  # required report fields
   assert_output --partial "main"           # base ref named in header
   assert_output --partial "feature"        # head ref named in header
   assert_output --partial "f.txt"          # conflicted path
@@ -168,16 +166,14 @@ prereleases_off() {
 
   squash_branch "$REPO" main feature "squashed message"
 
-  # base (main) now has a new commit with the message and the merged file.
   run git -C "$REPO" log -1 --format=%B main
   assert_output --partial "squashed message"
   run git -C "$REPO" show "main:work.txt"
   assert_output "feature work"
 }
 
-# The following integration tests exercise the git-level guards that dryrun.sh
-# relies on (base-ref existence and merge-base availability) against a locally
-# created clone, replacing the deferred manual-CI note.
+# Integration tests for the git-level guards dryrun.sh relies on: base-ref
+# existence and merge-base availability.
 
 @test "base-ref guard: origin/release resolves when the release branch is present" {
   git -C "$REPO" branch release

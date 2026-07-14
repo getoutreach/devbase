@@ -102,8 +102,8 @@ release_has_changes() {
   local base="$2"
   local head="$3"
 
-  # Fail-fast preflight: merge-tree --write-tree needs git >= 2.38. Without
-  # this, an old-git flag error (exit 129) would be reported as a conflict.
+  # Fail-fast preflight: without it, old git's flag error (exit 129) would be
+  # misreported as a conflict.
   local git_version
   git_version="$(git -C "$repo_dir" --version | awk '{print $3}')"
   if ! has_minimum_version "2.38.0" "$git_version"; then
