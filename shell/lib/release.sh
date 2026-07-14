@@ -51,3 +51,78 @@ release_commit_message() {
 
   git -C "$repo_dir" log "$base..$head" --reverse --format=%B
 }
+
+# release_has_changes decides whether merging <head> into <base> produces any
+# change, without mutating the working tree or HEAD. Uses git merge-tree
+# (requires git >= 2.38).
+#
+# Exit codes:
+#   0  clean merge with a real delta to release
+#   1  clean merge, no delta (head is an ancestor of base, or already merged)
+#   2  merge conflict, or operational error (bad ref, git < 2.38);
+#      a self-contained failure report is written to stderr
+#
+# Requires bootstrap.sh and version.sh to be sourced.
+#
+# $1 repo directory (git operations run here)
+# $2 base ref
+# $3 head ref
+release_has_changes() {
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+
+  # Fail-fast preflight: merge-tree --write-tree needs git >= 2.38. Without
+  # this, an old-git flag error (exit 129) would be reported as a conflict.
+  local git_version
+  git_version="$(git -C "$repo_dir" --version | awk '{print $3}')"
+  if ! has_minimum_version "2.38.0" "$git_version"; then
+    {
+      echo "release_has_changes: operational error (not a conflict)"
+      echo "  dry-run requires git >= 2.38; this environment has $git_version"
+      echo "  bump the CI image to a git >= 2.38 build"
+    } >&2
+    return 2
+  fi
+
+  local merge_output merge_rc
+  merge_output="$(git -C "$repo_dir" merge-tree --write-tree "$base" "$head" 2>&1)"
+  merge_rc=$?
+
+  case "$merge_rc" in
+    0)
+      # Clean merge. First line of stdout is the written tree OID.
+      local result_tree base_tree
+      result_tree="$(printf '%s\n' "$merge_output" | head -n1)"
+      base_tree="$(git -C "$repo_dir" rev-parse "$base^{tree}")"
+      if [[ $result_tree == "$base_tree" ]]; then
+        return 1
+      fi
+      return 0
+      ;;
+    1)
+      _release_conflict_report "$repo_dir" "$base" "$head" "$merge_output" >&2
+      return 2
+      ;;
+    *)
+      {
+        echo "release_has_changes: operational error (not a conflict) merging $head onto $base"
+        echo "  git merge-tree exited $merge_rc"
+        echo "$merge_output"
+      } >&2
+      return 2
+      ;;
+  esac
+}
+
+# _release_conflict_report writes a self-contained conflict diagnostic so the
+# CI log alone explains the failure. $4 is the captured merge-tree output.
+_release_conflict_report() {
+  local repo_dir="$1" base="$2" head="$3" merge_output="$4"
+  echo "release dry-run: cannot preview $head onto $base (merge conflict)"
+  echo "  head: $(git -C "$repo_dir" log -1 --oneline "$head")"
+  echo "  base: $(git -C "$repo_dir" log -1 --oneline "$base")"
+  echo "  merge-base: $(git -C "$repo_dir" merge-base "$base" "$head")"
+  echo "  merge-tree output:"
+  echo "$merge_output"
+}

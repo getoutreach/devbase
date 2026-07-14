@@ -3,6 +3,7 @@
 
 load release.sh
 load bootstrap.sh
+load version.sh
 
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
@@ -96,4 +97,52 @@ prereleases_off() {
   git -C "$REPO" checkout -q -b tmp rc
   run release_commit_message "$REPO" main tmp
   assert_output ""
+}
+
+@test "release_has_changes returns 0 when head has a real delta over base" {
+  git -C "$REPO" checkout -q -b feature
+  echo "feature work" >"$REPO/work.txt"
+  git -C "$REPO" add work.txt
+  git -C "$REPO" commit -q -m "feature work"
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+}
+
+@test "release_has_changes returns 1 when head is an ancestor of base" {
+  git -C "$REPO" tag rc
+  git -C "$REPO" commit -q --allow-empty -m "newer on main"
+  git -C "$REPO" checkout -q -b tmp rc
+  run release_has_changes "$REPO" main tmp
+  [ "$status" -eq 1 ]
+}
+
+@test "release_has_changes returns 1 when head change is already in base (empty-net)" {
+  echo "shared" >"$REPO/shared.txt"
+  git -C "$REPO" checkout -q -b feature
+  git -C "$REPO" add shared.txt
+  git -C "$REPO" commit -q -m "add shared on feature"
+  git -C "$REPO" checkout -q main
+  echo "shared" >"$REPO/shared.txt"
+  git -C "$REPO" add shared.txt
+  git -C "$REPO" commit -q -m "add identical shared on main"
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 1 ]
+}
+
+@test "release_has_changes returns 2 and reports on a divergent conflict" {
+  printf 'line1\n' >"$REPO/f.txt"
+  git -C "$REPO" add f.txt
+  git -C "$REPO" commit -q -m "base line"
+  git -C "$REPO" checkout -q -b feature
+  printf 'feature-version\n' >"$REPO/f.txt"
+  git -C "$REPO" commit -q -am "feature change"
+  git -C "$REPO" checkout -q main
+  printf 'main-version\n' >"$REPO/f.txt"
+  git -C "$REPO" commit -q -am "main change"
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 2 ]
+  # required report fields
+  assert_output --partial "main"          # base ref named in header
+  assert_output --partial "feature"       # head ref named in header
+  assert_output --partial "f.txt"         # conflicted path
 }
