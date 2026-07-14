@@ -15,6 +15,10 @@ resolve_release_base_branch() {
   local default_branch="$3"
 
   if [[ -n ${RELEASE_BASE_BRANCH:-} ]]; then
+    if ! git check-ref-format --branch "$RELEASE_BASE_BRANCH" >/dev/null 2>&1; then
+      echo "resolve_release_base_branch: invalid RELEASE_BASE_BRANCH: $RELEASE_BASE_BRANCH" >&2
+      return 1
+    fi
     printf "%s" "$RELEASE_BASE_BRANCH"
     return 0
   fi
@@ -45,10 +49,18 @@ resolve_release_base_branch() {
     return 1
   fi
 
+  # Resolve the prereleases branch to a ref that exists locally. In a
+  # single-branch CI clone only the remote-tracking ref may be present.
+  local prereleasesRef="$prereleasesBranch"
+  if ! git -C "$repo_dir" rev-parse --verify --quiet "$prereleasesBranch^{commit}" >/dev/null &&
+    git -C "$repo_dir" rev-parse --verify --quiet "origin/$prereleasesBranch^{commit}" >/dev/null; then
+    prereleasesRef="origin/$prereleasesBranch"
+  fi
+
   # A stable promotion branch is created from an RC tag, so it is an ancestor
   # of the prereleases branch. RC and feature branches are ahead of it.
   if [[ $prereleases == "true" ]] &&
-    git -C "$repo_dir" merge-base --is-ancestor "$current" "$prereleasesBranch" 2>/dev/null; then
+    git -C "$repo_dir" merge-base --is-ancestor "$current" "$prereleasesRef" 2>/dev/null; then
     printf "%s" "$STABLE_RELEASE_BRANCH"
     return 0
   fi

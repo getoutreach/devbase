@@ -49,6 +49,15 @@ unset CI_PULL_REQUESTS
 OLD_CIRCLE_BRANCH="$CIRCLE_BRANCH"
 DEFAULT_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 
+# Fetch the default branch (with tags) before resolving the base. Base
+# resolution runs `git merge-base --is-ancestor` against the prereleases
+# branch, so its history must be present; in a shallow/single-branch CI clone
+# it may be absent, which would misclassify a stable promotion.
+git fetch origin "$DEFAULT_BRANCH"
+if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
+  git fetch --unshallow origin "$DEFAULT_BRANCH" || true
+fi
+
 # Resolve the branch to preview against. Stable promotions preview against
 # the release branch; everything else against the default branch.
 CIRCLE_BRANCH="$(resolve_release_base_branch "$(get_repo_directory)" "$OLD_CIRCLE_BRANCH" "$DEFAULT_BRANCH")"
@@ -59,9 +68,9 @@ export CIRCLE_BRANCH
 # Fetch the resolved base branch explicitly. The base may be the default branch
 # or the stable release branch; in a shallow/single-branch CI clone the release
 # branch and its merge-base with HEAD may be absent, so unshallow when needed.
-git fetch --no-tags origin "$CIRCLE_BRANCH"
+git fetch origin "$CIRCLE_BRANCH"
 if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
-  git fetch --unshallow --no-tags origin "$CIRCLE_BRANCH" || true
+  git fetch --unshallow origin "$CIRCLE_BRANCH" || true
 fi
 
 # The base ref must exist on origin before we can check it out. A missing
