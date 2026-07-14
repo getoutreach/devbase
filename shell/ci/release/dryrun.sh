@@ -20,6 +20,9 @@ source "${LIB_DIR}/logging.sh"
 # shellcheck source=../../lib/shell.sh
 source "${LIB_DIR}/shell.sh"
 
+# shellcheck source=../../lib/version.sh
+source "${LIB_DIR}/version.sh"
+
 # shellcheck source=../../lib/release.sh
 source "${LIB_DIR}/release.sh"
 
@@ -53,42 +56,49 @@ CIRCLE_BRANCH="$(resolve_release_base_branch "." "$OLD_CIRCLE_BRANCH" "$DEFAULT_
 # Export the branch variable to the semantic-release command
 export CIRCLE_BRANCH
 
-# Fetch and checkout the base branch we are previewing against, ensuring it
-# is present locally and up-to-date. The base may be the default branch or the
-# stable release branch, so fetch it explicitly rather than assuming a local ref.
-git fetch origin "$CIRCLE_BRANCH"
+# Fetch the resolved base branch explicitly. The base may be the default branch
+# or the stable release branch; in a shallow/single-branch CI clone the release
+# branch and its merge-base with HEAD may be absent, so unshallow when needed.
+git fetch --no-tags origin "$CIRCLE_BRANCH"
+if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
+  git fetch --unshallow --no-tags origin "$CIRCLE_BRANCH" || true
+fi
 git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
 
-git checkout "$OLD_CIRCLE_BRANCH"
-# Merge all of the commit messages from the branch into a single commit message.
-COMMIT_MESSAGE="$(git log "$CIRCLE_BRANCH".."$OLD_CIRCLE_BRANCH" --reverse --format=%B)"
 git checkout "$CIRCLE_BRANCH"
 
-# Squash our branch onto the HEAD (default) branch to mimic
-# what would happen after merge.
-if git merge-base --is-ancestor "$OLD_CIRCLE_BRANCH" "$CIRCLE_BRANCH"; then
-  echo "No changes to release"
-elif ! git diff --quiet "$OLD_CIRCLE_BRANCH"; then
-  git merge --squash "$OLD_CIRCLE_BRANCH"
-  if git diff --cached --quiet; then
+# Decide whether the branch has anything to release, then squash and preview.
+# The tri-state exit code keeps a merge conflict from being silently treated
+# as "no changes".
+set +e
+release_has_changes "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH"
+rc=$?
+set -e
+
+case "$rc" in
+  0)
+    COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH")"
+    squash_branch "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" "$COMMIT_MESSAGE"
+
+    GITHUB_TOKEN="$(github_token)"
+    if [[ -z $GITHUB_TOKEN ]]; then
+      warn "Failed to read GitHub token" >&2
+    fi
+
+    run_gh auth setup-git
+
+    MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
+      yarn --frozen-lockfile semantic-release --dry-run
+
+    # Handle prereleases for CLIs, pre-conditions for this exist
+    # in the script.
+    "$DIR/pre-release.sh" --dry-run
+    ;;
+  1)
     echo "No changes to release"
-    exit 0
-  fi
-  git commit -m "$COMMIT_MESSAGE"
-
-  GITHUB_TOKEN="$(github_token)"
-  if [[ -z $GITHUB_TOKEN ]]; then
-    warn "Failed to read GitHub token" >&2
-  fi
-
-  run_gh auth setup-git
-
-  MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
-    yarn --frozen-lockfile semantic-release --dry-run
-
-  # Handle prereleases for CLIs, pre-conditions for this exist
-  # in the script.
-  "$DIR/pre-release.sh" --dry-run
-else
-  echo "No changes to release"
-fi
+    ;;
+  *)
+    # release_has_changes already logged the diagnostic report to stderr.
+    exit 1
+    ;;
+esac
