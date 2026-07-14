@@ -26,6 +26,18 @@ source "${LIB_DIR}/version.sh"
 # shellcheck source=../../lib/release.sh
 source "${LIB_DIR}/release.sh"
 
+# fetch_branch <branch>
+#
+# Fetches <branch> from origin, unshallowing the clone if it is shallow so the
+# branch's full history (needed for merge-base/squash) is present.
+fetch_branch() {
+  local branch="$1"
+  git fetch origin "$branch"
+  if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
+    git fetch --unshallow origin "$branch" || true
+  fi
+}
+
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
   exit 0
@@ -53,10 +65,7 @@ DEFAULT_BRANCH="$(git rev-parse --abbrev-ref origin/HEAD | sed 's/^origin\///')"
 # resolution runs `git merge-base --is-ancestor` against the prereleases
 # branch, so its history must be present; in a shallow/single-branch CI clone
 # it may be absent, which would misclassify a stable promotion.
-git fetch origin "$DEFAULT_BRANCH"
-if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
-  git fetch --unshallow origin "$DEFAULT_BRANCH" || true
-fi
+fetch_branch "$DEFAULT_BRANCH"
 
 # Resolve the branch to preview against. Stable promotions preview against
 # the release branch; everything else against the default branch.
@@ -67,10 +76,7 @@ export CIRCLE_BRANCH
 
 # Fetch the resolved base branch, unshallowing as above. When it is the stable
 # release branch this is a different ref than the default branch fetched above.
-git fetch origin "$CIRCLE_BRANCH"
-if [[ -f "$(git rev-parse --git-dir)/shallow" ]]; then
-  git fetch --unshallow origin "$CIRCLE_BRANCH" || true
-fi
+fetch_branch "$CIRCLE_BRANCH"
 
 # The base ref must exist on origin before we can check it out. A missing
 # stable release branch would otherwise fail with a raw checkout error.
