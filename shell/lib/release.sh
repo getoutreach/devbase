@@ -156,7 +156,10 @@ release_has_changes() {
 # Writes a self-contained conflict diagnostic to stderr so the CI log alone
 # explains the failure. <merge_output> is the captured merge-tree output.
 _release_conflict_report() {
-  local repo_dir="$1" base="$2" head="$3" merge_output="$4"
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+  local merge_output="$4"
   {
     echo "release dry-run: cannot preview $head onto $base (merge conflict)"
     echo "  head: $(git -C "$repo_dir" log -1 --oneline "$head")"
