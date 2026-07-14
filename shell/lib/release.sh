@@ -37,3 +37,17 @@ resolve_release_base_branch() {
 
   printf "%s" "$default_branch"
 }
+
+# release_commit_message echoes the combined commit message for squashing
+# <head> onto <base>, in chronological order.
+#
+# $1 repo directory (git operations run here)
+# $2 base ref
+# $3 head ref
+release_commit_message() {
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+
+  git -C "$repo_dir" log "$base..$head" --reverse --format=%B
+}

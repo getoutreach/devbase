@@ -80,3 +80,20 @@ prereleases_off() {
   run resolve_release_base_branch "$REPO" tmp-rc main
   assert_output "main"
 }
+
+@test "release_commit_message concatenates messages in order" {
+  git -C "$REPO" checkout -q -b feature
+  git -C "$REPO" commit -q --allow-empty -m "first"
+  git -C "$REPO" commit -q --allow-empty -m "second"
+  run release_commit_message "$REPO" main feature
+  assert_line --index 0 "first"
+  assert_line --index 1 "second"
+}
+
+@test "release_commit_message is empty when head is an ancestor of base" {
+  git -C "$REPO" tag rc
+  git -C "$REPO" commit -q --allow-empty -m "newer on main"
+  git -C "$REPO" checkout -q -b tmp rc
+  run release_commit_message "$REPO" main tmp
+  assert_output ""
+}
