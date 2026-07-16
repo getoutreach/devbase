@@ -34,6 +34,10 @@ parameters:
     description: Unused, needed so that it can be run with *rebuild-cache workflows
     type: string
     default: ""
+  setup_remote_docker:
+    description: Unused, needed so that it can be run with *rebuild-cache workflows
+    type: boolean
+    default: false
 
 resource_class: << parameters.resource_class >>
 executor:
