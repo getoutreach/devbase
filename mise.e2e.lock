@@ -96,38 +96,38 @@ url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_dar
 url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854925"
 
 [[tools."github:getoutreach/devenv"]]
-version = "1.64.7"
+version = "1.65.0"
 backend = "github:getoutreach/devenv"
 
 [tools."github:getoutreach/devenv"."platforms.linux-arm64"]
-checksum = "sha256:e5782996de89bdcce801e8b0337edba11c18d6eea2758d742cd6a74813c36f6b"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329481997"
+checksum = "sha256:32035e0d994ac005be989d1af764d29b9c831b35e166b6394fc0acf5f25726eb"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684008"
 
 [tools."github:getoutreach/devenv"."platforms.linux-arm64-musl"]
-checksum = "sha256:e5782996de89bdcce801e8b0337edba11c18d6eea2758d742cd6a74813c36f6b"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329481997"
+checksum = "sha256:32035e0d994ac005be989d1af764d29b9c831b35e166b6394fc0acf5f25726eb"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684008"
 
 [tools."github:getoutreach/devenv"."platforms.linux-x64"]
-checksum = "sha256:41b9ea93be82effa248b441191b2cf065170c93c2f6ac9149c51974db0157d8e"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329482017"
+checksum = "sha256:57ad5ccf137e2ac5b59fc2243684dc8d107dc72c5e61ec135b1fe8f2ba513091"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684027"
 
 [tools."github:getoutreach/devenv"."platforms.linux-x64-musl"]
-checksum = "sha256:41b9ea93be82effa248b441191b2cf065170c93c2f6ac9149c51974db0157d8e"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329482017"
+checksum = "sha256:57ad5ccf137e2ac5b59fc2243684dc8d107dc72c5e61ec135b1fe8f2ba513091"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684027"
 
 [tools."github:getoutreach/devenv"."platforms.macos-arm64"]
-checksum = "sha256:f1f5d92a3fd186d114b650a467a683092ecbf0cd9b747cbf8a721777e5149160"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329482004"
+checksum = "sha256:d72d1a823afe951e7a567b728a4f8f5a06bbdfefdcf822a91f26bad9e7421669"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684017"
 
 [tools."github:getoutreach/devenv"."platforms.macos-x64"]
-checksum = "sha256:4b559b6c5e504ecc086eb384e609307f064f011b1d8729e72401765653643afc"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.64.7/devenv_1.64.7_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/329482011"
+checksum = "sha256:c2d9c7319d0afa065fa6eadb2cf92a34ac3b8d186c7e38ce72b562a34116a31d"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.65.0/devenv_1.65.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/475684044"
 
 [[tools."github:getoutreach/kubecfg"]]
 version = "0.28.1"
