@@ -20,12 +20,9 @@ kubecfg_kubeconform() {
     return 1
   fi
 
-  if ! mise_exec_tool kubeconform \
-    -schema-location default \
+  if ! "$DIR/kubeconform.sh" \
     -ignore-missing-schemas \
     -strict \
-    -kubernetes-version "$(get_tool_version kubernetes)" \
-    -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
     <"$tempFile"; then
     error "Failed to validate generated YAML"
     return 1
