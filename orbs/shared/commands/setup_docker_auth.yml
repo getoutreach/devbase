@@ -8,6 +8,10 @@ parameters:
     type: string
     description: Space-separated list of container registries to push to.
     default: ""
+  docker_layer_caching:
+    type: boolean
+    description: Whether to enable Docker layer caching for the remote Docker environment.
+    default: true
 steps:
   - add_ssh_keys
   - checkout
@@ -16,7 +20,8 @@ steps:
       command: |
         git submodule sync
         git submodule update --init --recursive
-  - use_docker
+  - use_docker:
+      docker_layer_caching: << parameters.docker_layer_caching >>
   - run:
       name: Authenticate to Docker registries
       command: ./scripts/shell-wrapper.sh ci/release/docker-authn.sh

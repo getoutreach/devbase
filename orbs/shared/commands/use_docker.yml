@@ -1,5 +1,10 @@
 description: Sets up a remote docker image with a standard version being used
+parameters:
+  docker_layer_caching:
+    type: boolean
+    description: Whether to enable Docker layer caching for the remote Docker environment.
+    default: true
 steps:
   - setup_remote_docker:
-      docker_layer_caching: true
+      docker_layer_caching: << parameters.docker_layer_caching >>
       version: docker28
