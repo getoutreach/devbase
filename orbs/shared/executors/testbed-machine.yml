@@ -1,7 +1,12 @@
 description: Standard executor for machine runtimes
+parameters:
+  docker_layer_caching:
+    type: boolean
+    description: Whether to enable Docker layer caching for the machine executor.
+    default: true
 machine:
   image: ubuntu-2404:current
-  docker_layer_caching: true
+  docker_layer_caching: << parameters.docker_layer_caching >>
 environment:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/getoutreach/*

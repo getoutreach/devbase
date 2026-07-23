@@ -26,6 +26,7 @@ parameters:
 steps:
   - setup_docker_auth:
       push_registries: << parameters.push_registries >>
+      docker_layer_caching: false
   - stitch_docker_image:
       push_registries: << parameters.push_registries >>
       versioning_scheme: << parameters.versioning_scheme >>
