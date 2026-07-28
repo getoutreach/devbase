@@ -82,7 +82,6 @@ for config in "${configFiles[@]}"; do
   info_sub "Updating $config"
   sed_replace "$org/shared@.\+" "$org/shared@$replaceVersion" "$config"
   if [[ $config == "$fullRepoCircleCIConfigPath" ]]; then
-    # An org slug requires authentication; the shared orb is public.
     circleci config validate "$config"
   fi
 done
