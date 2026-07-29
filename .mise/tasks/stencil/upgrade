@@ -4,4 +4,5 @@
 #MISE depends=["devbase:sync"]
 #MISE depends_post=["stencil:post"]
 
+mise upgrade github:getoutreach/stencil@latest
 exec stencil --skip-update
