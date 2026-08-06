@@ -22,6 +22,11 @@ source "$DEVBASE_LIB_DIR"/sed.sh
 
 appDir="$(get_repo_directory)"
 
+if ! grep -q '^golang ' "$appDir/.tool-versions"; then
+  info "No Go version found in $appDir/.tool-versions, skipping"
+  exit 0
+fi
+
 goVersion="$(grep "^golang " "$appDir"/.tool-versions | awk '{print $2}')"
 gomodGoVersion=""
 if [[ -f "$appDir/go.mod" ]]; then
