@@ -20,6 +20,7 @@ import (
 	"github.com/getoutreach/devbase/v2/e2e/config"
 	"github.com/getoutreach/gobox/pkg/box"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -53,7 +54,7 @@ func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 // is a flat list of all of the dependencies of the initial root
 // application who's dependency list was provided.
 func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, error) {
-	deps := make(map[string]struct{})
+	deps := make(set.Set[string])
 
 	dc, err := config.FromFile("devenv.yaml")
 	if err != nil {
@@ -66,17 +67,12 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 		}
 	}
 
-	depsList := make([]string, 0)
-	for d := range deps {
-		depsList = append(depsList, d)
-	}
-
-	return depsList, nil
+	return deps.Slice(), nil
 }
 
 // findDependenciesInRepo finds the dependencies in a repository
 // at all of the possible paths
-func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (map[string]struct{}, error) {
+func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (set.Set[string], error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
 	gh, err := githubauth.NewClient()
 	if err != nil {
@@ -100,11 +96,8 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 		return nil, nil
 	}
 
-	deps := make(map[string]struct{})
 	// We deploy just required transitive dependencies
-	for _, d := range dc.Dependencies.Required {
-		deps[d] = struct{}{}
-	}
+	deps := set.Of(dc.Dependencies.Required...)
 
 	return deps, nil
 }
@@ -113,7 +106,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
 // dependencies. New dependencies are inserted into the provided hash-map
-func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]struct{}, serviceName string) error {
+func grabDependencies(ctx context.Context, conf *box.Config, deps set.Set[string], serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
 	if serviceName == flagship {
@@ -121,7 +114,7 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 	}
 
 	// Skip if we've already been downloaded
-	if _, ok := deps[serviceName]; ok {
+	if deps.Contains(serviceName) {
 		return nil
 	}
 
@@ -135,9 +128,9 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps map[string]str
 
 	// Mark us as resolved to prevent inf dependency resolution
 	// when we encounter cyclical dependency.
-	deps[serviceName] = struct{}{}
+	deps.Insert(serviceName)
 
-	for d := range foundDeps {
+	for d := range foundDeps.All() {
 		if err := grabDependencies(ctx, conf, deps, d); err != nil {
 			return err
 		}
