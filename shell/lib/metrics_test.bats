@@ -6,55 +6,19 @@ bats_load_library "bats-assert/load.bash"
 load logging.sh
 load shell.sh
 load metrics.sh
+load test_helper.sh
 
 setup() {
-  STUB_DIR="$(mktemp -d -t metrics-stubs-XXXXXX)"
-  STUB_CALLS_FILE="$STUB_DIR/calls"
-  STUB_OUTPUTS_DIR="$STUB_DIR/outputs"
-  STUB_ARGS_DIR="$STUB_DIR/args"
-  mkdir -p "$STUB_OUTPUTS_DIR" "$STUB_ARGS_DIR"
-  : >"$STUB_CALLS_FILE"
-  export STUB_CALLS_FILE STUB_OUTPUTS_DIR STUB_ARGS_DIR
-  export PATH="$STUB_DIR:$PATH"
+  setup_command_stubs
 }
 
 teardown() {
-  rm -rf "$STUB_DIR"
-  unset STUB_CALLS_FILE STUB_OUTPUTS_DIR STUB_ARGS_DIR
-}
-
-# stub_command NAME OUTPUT [EXIT_CODE]
-#
-# Install an executable stub on PATH that records its invocation to
-# $STUB_CALLS_FILE (one line: "NAME ARGS..."), records its full argv to
-# $STUB_ARGS_DIR/NAME.argv (one arg per line, latest invocation only),
-# prints OUTPUT to stdout, and exits with EXIT_CODE (default 0).
-stub_command() {
-  local name="$1" output="$2" exitCode="${3:-0}"
-  printf '%s' "$output" >"$STUB_OUTPUTS_DIR/$name"
-  printf '%s' "$exitCode" >"$STUB_OUTPUTS_DIR/$name.exit"
-  cat >"$STUB_DIR/$name" <<'EOF'
-#!/usr/bin/env bash
-name="$(basename "$0")"
-echo "$name $*" >>"$STUB_CALLS_FILE"
-printf '%s\n' "$@" >"$STUB_ARGS_DIR/$name.argv"
-cat "$STUB_OUTPUTS_DIR/$name"
-exit "$(cat "$STUB_OUTPUTS_DIR/$name.exit")"
-EOF
-  chmod +x "$STUB_DIR/$name"
-}
-
-assert_stub_not_called() {
-  local name="$1"
-  # `run` swallows grep's non-zero exit when the count is 0, so we can
-  # assert the count directly without an explicit failure-path check.
-  run grep -c "^$name " "$STUB_CALLS_FILE"
-  assert_output "0"
+  teardown_command_stubs
 }
 
 # Extract the argument passed to curl's `--data` flag (the JSON payload).
 curl_payload() {
-  awk '/^--data$/ { getline; print; exit }' "$STUB_ARGS_DIR/curl.argv"
+  stub_argv curl | awk '/^--data$/ { getline; print; exit }'
 }
 
 @test "report_gh_rate_limit_to_datadog fails when tokenType is empty" {
@@ -125,7 +89,7 @@ curl_payload() {
   assert_output "1"
 
   # Verify endpoint and headers.
-  run cat "$STUB_ARGS_DIR/curl.argv"
+  run stub_argv curl
   assert_output --partial "https://api.datadoghq.com/api/v2/series"
   assert_output --partial "DD-API-KEY: fake-key"
   assert_output --partial "Content-Type: application/json"
