@@ -46,6 +46,11 @@ github_token() {
 }
 
 # Determines the latest release version of a GitHub repository.
+#
+# $1: The slug of the repo to query, e.g. "getoutreach/stencil".
+# $2: Whether to include pre-releases. `gh release list` returns
+#     releases newest-first, so "true" selects the newest release of any
+#     kind, which can be a stable one.
 latest_github_release_version() {
   local slug="$1"
   local use_pre_releases="$2"
@@ -63,10 +68,11 @@ latest_github_release_version() {
 #
 # $1: The slug of the repo to download from. This is the same as the
 #     repo name, e.g. "github/hub".
-# $2: Whether or not to use pre-releases. If "true", will download the
-#     latest pre-release. If "false", or empty, will download the
-#     latest stable release. "Pre-release", for Outreach releasing, is
-#     any release that is not marked stable (e.g., unstable or rc).
+# $2: Whether or not to include pre-releases. If "true", will download
+#     the newest release of any kind, stable or not; see
+#     latest_github_release_version. If "false", or empty, will download
+#     the latest stable release. "Pre-release", for Outreach releasing,
+#     is any release that is not marked stable (e.g., unstable or rc).
 # $3: The name of the binary to extract from the downloaded archive. If
 #     empty, will use the basename of the slug.
 install_latest_github_release() {
