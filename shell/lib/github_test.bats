@@ -23,6 +23,8 @@ setup() {
     echo 'github-cli = "latest"'
     echo 'wait-for-gh-rate-limit = "1.1.1"'
   } >>"$MISE_GLOBAL_CONFIG_FILE"
+
+  setup_command_stubs
 }
 
 teardown() {
@@ -35,11 +37,46 @@ teardown() {
   unset MISE_GLOBAL_CONFIG_ROOT
   unset MISE_GLOBAL_CONFIG_FILE
   unset MISE_OVERRIDE_CONFIG_FILENAMES
+
+  teardown_command_stubs
 }
 
 @test "separate mise install" {
   run mise doctor
   assert_output --partial "config: $MISE_CONFIG_DIR"
+}
+
+@test "latest_github_release_version asks gh to exclude pre-releases when they are not wanted" {
+  stub_command gh "v1.45.0"
+
+  run latest_github_release_version getoutreach/stencil false
+  assert_success
+  assert_output "v1.45.0"
+
+  run stub_argv gh
+  assert_line "getoutreach/stencil"
+  assert_line "--exclude-drafts"
+  assert_line "--exclude-pre-releases"
+}
+
+@test "latest_github_release_version takes the newest release of any kind when pre-releases are wanted" {
+  stub_command gh "v1.45.0"
+
+  run latest_github_release_version getoutreach/stencil true
+  assert_success
+  assert_output "v1.45.0"
+
+  run stub_argv gh
+  assert_line "--exclude-drafts"
+  refute_line "--exclude-pre-releases"
+}
+
+@test "install_latest_github_release fails when there is no release to install" {
+  stub_command gh ""
+
+  run install_latest_github_release getoutreach/stencil false stencil
+  assert_failure
+  assert_output --partial "Failed to determine version for getoutreach/stencil"
 }
 
 @test "install_latest_github_release should be able to download and install the latest release of a repo" {
@@ -59,6 +96,15 @@ teardown() {
   if circleci_pr_is_fork; then
     skip "Skipping test in fork PR, no GitHub token available to utilize gh."
   fi
+
+  # The newest release is the stable one between a release and the next
+  # commit to the repo, so a pre-release is not always available.
+  local tag
+  tag="$(latest_github_release_version getoutreach/stencil true)"
+  if [[ ! $tag =~ (rc|unstable) ]]; then
+    skip "Newest getoutreach/stencil release ($tag) is stable, not a pre-release."
+  fi
+
   install_latest_github_release getoutreach/stencil true stencil
 
   # We expect the stencil binary to be installed in the install dir.
