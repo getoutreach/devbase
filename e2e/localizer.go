@@ -45,7 +45,7 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 	return osStdInOutErr(exec.Command("sudo", "rm", "-f", localizer.Socket)).Run()
 }
 
-// runLocalizer runs localizer for devenv
+// runLocalizer runs localizer for devenv.
 func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 	if localizer.IsRunning() {
 		if err := ensureRunningLocalizerWorks(ctx); err != nil {
@@ -98,7 +98,7 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 			return nil, errors.Wrap(err, "failed to check if localizer is running")
 		}
 
-		if resp.Stable {
+		if resp.GetStable() {
 			break
 		}
 

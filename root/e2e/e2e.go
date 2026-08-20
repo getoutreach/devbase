@@ -13,16 +13,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// DirectoryWalker abstracts filepath.Walk
+// DirectoryWalker abstracts filepath.Walk.
 type DirectoryWalker = func(string, filepath.WalkFunc) error
 
-// DirectoryReader abstracts os.ReadDir
+// DirectoryReader abstracts os.ReadDir.
 type DirectoryReader = func(name string) ([]os.DirEntry, error)
 
-// FileReader abstracts os.ReadFile
+// FileReader abstracts os.ReadFile.
 type FileReader = func(name string) ([]byte, error)
 
-// GetE2eTestPaths returns list of paths of packages that contain at least one go file with or_e2e in it
+// GetE2eTestPaths returns list of paths of packages that contain at least one go file with or_e2e in it.
 func GetE2eTestPaths(rootDir string, walk DirectoryWalker, readDir DirectoryReader, readFile FileReader) ([]string, error) {
 	e2ePackages := make([]string, 0)
 	err := walk(rootDir, func(path string, info os.FileInfo, err error) error {
@@ -74,7 +74,7 @@ func GetE2eTestPaths(rootDir string, walk DirectoryWalker, readDir DirectoryRead
 	return e2ePackages, nil
 }
 
-// createFileNameFromPackagePath creates binary name for e2e test package
+// createFileNameFromPackagePath creates binary name for e2e test package.
 func createFileNameFromPackagePath(path string) string {
 	prefix := "e2e"
 	separator := "_"
@@ -83,11 +83,12 @@ func createFileNameFromPackagePath(path string) string {
 	return prefix + separator + pathWithoutSlashes
 }
 
-// RunGoCommand abstracts function that invokes go cmd
+// RunGoCommand abstracts function that invokes go cmd.
 type RunGoCommand = func(log zerolog.Logger, args ...string) error
 
 // BuildE2ETestPackages buils e2e packages for given package paths
-// nolint:gocritic // Why: hugeParam: 89 bytes is not "huge"
+//
+//nolint:gocritic // Why: hugeParam: 89 bytes is not "huge"
 func BuildE2ETestPackages(log zerolog.Logger, packagePaths []string, binDir string, runGoCommand RunGoCommand) error {
 	for _, e2ePackage := range packagePaths {
 		binaryName := createFileNameFromPackagePath(e2ePackage)

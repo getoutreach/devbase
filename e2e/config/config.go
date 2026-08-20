@@ -32,7 +32,7 @@ type Devenv struct {
 	} `yaml:"dependencies"`
 }
 
-// FromFile parses the devenv.yaml file and returns a DevenvConfig
+// FromFile parses the devenv.yaml file and returns a DevenvConfig.
 func FromFile(confPath string) (*Devenv, error) {
 	f, err := os.Open(confPath)
 	if err != nil {
@@ -48,7 +48,7 @@ func FromFile(confPath string) (*Devenv, error) {
 	return &dc, nil
 }
 
-// ReadServiceName reads service name from service.yaml
+// ReadServiceName reads service name from service.yaml.
 func ReadServiceName() (string, error) {
 	configFileName := "service.yaml"
 	b, err := os.ReadFile(configFileName)
@@ -69,7 +69,7 @@ func ReadServiceName() (string, error) {
 	return conf.Name, nil
 }
 
-// FromGitHub reads and parses DevenvConfig from GitHub
+// FromGitHub reads and parses DevenvConfig from GitHub.
 func FromGitHub(ctx context.Context, conf *box.Config, serviceName string,
 	gh *github.Client, configFileName string,
 ) (*Devenv, error) {
@@ -88,7 +88,7 @@ func FromGitHub(ctx context.Context, conf *box.Config, serviceName string,
 	return &dc, nil
 }
 
-// getDependencies returns all dependencies
+// getDependencies returns all dependencies.
 func (c *Devenv) GetAllDependencies() []string {
 	deps := make([]string, 0)
 	deps = append(deps, c.Dependencies.Required...)
