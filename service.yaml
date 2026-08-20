@@ -6,6 +6,8 @@ arguments:
   description: A collection of scripts and ci configuration
   go:
     formatter: gofumpt
+    linters:
+      strict: true
   lintroller: platinum
   notifications:
     slackChannel: "#dt-notifications"
