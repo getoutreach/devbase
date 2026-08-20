@@ -6,6 +6,8 @@ arguments:
   description: A collection of scripts and ci configuration
   go:
     formatter: gofumpt
+    linters:
+      strict: true
   lintroller: platinum
   notifications:
     slackChannel: "#dt-notifications"
@@ -26,6 +28,8 @@ arguments:
     - deploy/launchdarkly/%(environment)s/launchdarkly
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
+  versions:
+    prettier: "3"
 modules:
   - name: github.com/getoutreach/stencil-circleci
     channel: rc

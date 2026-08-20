@@ -9,11 +9,11 @@ package main
 import (
 	"context"
 	"encoding/xml"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -26,23 +26,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// flagship is the name of the flagship
+// flagship is the name of the flagship.
 const flagship = "flagship"
 
-// junitTestResultPath path to test results after we run (devenv apps e2e)
+// junitTestResultPath path to test results after we run (devenv apps e2e).
 const junitTestResultPath = "./bin/unit-tests.xml"
 
-// devenvAlreadyExists contains message when devenv exists
+// devenvAlreadyExists contains message when devenv exists.
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
 	"To ensure a clean operation, run `devenv destroy` before running tests"
 
-// osStdInOutErr is a helper function to use the os stdin/out/err
+// osStdInOutErr is a helper function to use the os stdin/out/err.
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
 	return osStdOutErr(c)
 }
 
-// osStdOutErr is a helper function to use the os stdout/err
+// osStdOutErr is a helper function to use the os stdout/err.
 func osStdOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
@@ -71,7 +71,7 @@ func BuildDependenciesList(ctx context.Context, conf *box.Config) ([]string, err
 }
 
 // findDependenciesInRepo finds the dependencies in a repository
-// at all of the possible paths
+// at all of the possible paths.
 func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName string) (set.Set[string], error) {
 	possibleFiles := []string{"devenv.yaml", "noncompat-service.yaml", "service.yaml"}
 	gh, err := githubauth.NewClient()
@@ -93,7 +93,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 	if dc == nil {
 		log.Warn().Str("service", serviceName).
 			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
-		return nil, nil
+		return make(set.Set[string]), nil
 	}
 
 	// We deploy just required transitive dependencies
@@ -105,7 +105,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 // grabDependencies traverses the dependency tree by calculating
 // it on the fly via git cloning of the dependencies. Passed in
 // is a hash map used to prevent infinite recursion and de-duplicate
-// dependencies. New dependencies are inserted into the provided hash-map
+// dependencies. New dependencies are inserted into the provided hash-map.
 func grabDependencies(ctx context.Context, conf *box.Config, deps set.Set[string], serviceName string) error {
 	// We special case this here to ensure we don't fail on deps that haven't updated
 	// their dependency yet.
@@ -139,8 +139,8 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps set.Set[string
 	return nil
 }
 
-// provisionNew destroys and re-provisions a devenv
-func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
+// provisionNew destroys and re-provisions a devenv.
+func provisionNew(ctx context.Context, target string) error {
 	devenv, err := newDevenvCmd(ctx, "destroy")
 	if err != nil {
 		return errors.Wrap(err, "Failed to create devenv destroy command")
@@ -155,17 +155,17 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 	return nil
 }
 
-// runDevconfig executes devconfig command
+// runDevconfig executes devconfig command.
 func runDevconfig(ctx context.Context) error {
 	out, err := exec.CommandContext(ctx, "./scripts/shell-wrapper.sh", "devconfig.sh").CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s", out)
+		return errors.New(string(out))
 	}
 	return nil
 }
 
 // shouldRunE2ETests denotes whether or not this needs to actually
-// run
+// run.
 func shouldRunE2ETests() (bool, error) {
 	var runEndToEndTests bool
 
@@ -235,16 +235,14 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		log.Info().Msg("Building binaries for devspace pod")
 		if err := osStdInOutErr(exec.CommandContext(ctx, "make", "devspace")).Run(); err != nil {
 			log.Error().Err(err).Msg("Error when building for devspace")
 			panic(err)
 		}
-	}()
+	})
 
 	log.Info().Msgf("Deploying latest stable version of %s application into cluster together with dependencies", serviceName)
 	if err := runDevenvPassthrough(ctx, "apps", "deploy", "--with-deps", serviceName); err != nil {
@@ -274,7 +272,7 @@ func runE2ETestsUsingDevspace(ctx context.Context, conf *box.Config) error {
 	return nil
 }
 
-// parseResultFromJunitReport parses if tests succeeded from junit xml file
+// parseResultFromJunitReport parses if tests succeeded from junit xml file.
 func parseResultFromJunitReport() (bool, error) {
 	type Testsuite struct {
 		XMLName  xml.Name `xml:"testsuites"`
@@ -364,7 +362,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 			err := provisionDevenv(ctx, conf)
 			if err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to provision devenv")
 				return
 			}
@@ -376,7 +373,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			wg.Wait() // To ensure that docker build is finished
 		} else {
 			log.Info().
-				//nolint:lll // Why: Message to user
 				Msg(devenvAlreadyExists)
 		}
 	}
@@ -445,7 +441,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to run localizer")
 		}
-		defer closer()
+		defer closer(ctx)
 	}
 
 	log.Info().Msg("Running e2e tests")
@@ -455,7 +451,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 }
 
-// provisionDevenv provisions devenv in correct target based on application dependencies
+// provisionDevenv provisions devenv in correct target based on application dependencies.
 func provisionDevenv(ctx context.Context, conf *box.Config) error {
 	deps, err := BuildDependenciesList(ctx, conf)
 	if err != nil {
@@ -466,13 +462,8 @@ func provisionDevenv(ctx context.Context, conf *box.Config) error {
 	target := "base"
 	if os.Getenv("PROVISION_TARGET") != "" {
 		target = os.Getenv("PROVISION_TARGET")
-	} else {
-		for _, d := range deps {
-			if d == "outreach" {
-				target = flagship
-				break
-			}
-		}
+	} else if slices.Contains(deps, "outreach") {
+		target = flagship
 	}
 
 	log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
@@ -492,10 +483,12 @@ func isDevenvProvisioned(ctx context.Context) bool {
 }
 
 func runningInCI() bool {
-	return os.Getenv("CI") == "true" //nolint:goconst // Why: true == true
+	return os.Getenv("CI") == "true"
 }
 
 // devenvPath is the cached path to the devenv binary.
+//
+//nolint:gochecknoglobals // Why: cache variable
 var devenvPath = ""
 
 // findDevenv finds the path to the devenv binary, via mise or PATH.
