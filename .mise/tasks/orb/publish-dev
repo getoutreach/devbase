@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Publish a dev version of the CircleCI orb to the registry."
-#MISE tools.circleci="latest"
 #MISE depends=["orb:build"]
 
 set -euo pipefail
@@ -17,4 +16,4 @@ fi
 
 CIRCLECI_ORB_VERSION="${1:-first}"
 
-exec circleci orb publish orb.yml "$CIRCLECI_ORB_NAME"@dev:"$CIRCLECI_ORB_VERSION"
+circleci orb publish orb.yml "$CIRCLECI_ORB_NAME"@dev:"$CIRCLECI_ORB_VERSION"

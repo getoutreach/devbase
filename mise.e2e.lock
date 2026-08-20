@@ -22,84 +22,6 @@ url = "https://awscli.amazonaws.com/AWSCLIV2-2.34.31.pkg"
 [tools.aws-cli."platforms.macos-x64"]
 url = "https://awscli.amazonaws.com/AWSCLIV2-2.34.31.pkg"
 
-[[tools.circleci]]
-version = "1.0.48490"
-backend = "aqua:CircleCI-Public/circleci-cli"
-
-[tools.circleci."platforms.linux-arm64"]
-checksum = "sha256:73b87ed545df5413ff8378f717b38e54d6dbdbbfd1fc9284ded23684342d21a7"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006637"
-
-[tools.circleci."platforms.linux-arm64-musl"]
-checksum = "sha256:73b87ed545df5413ff8378f717b38e54d6dbdbbfd1fc9284ded23684342d21a7"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006637"
-
-[tools.circleci."platforms.linux-x64"]
-checksum = "sha256:c541fe2adf42ebefd297f4f0abe8519796900aae00d3d9c1aa545ec8df085137"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006634"
-
-[tools.circleci."platforms.linux-x64-musl"]
-checksum = "sha256:c541fe2adf42ebefd297f4f0abe8519796900aae00d3d9c1aa545ec8df085137"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006634"
-
-[tools.circleci."platforms.macos-arm64"]
-checksum = "sha256:dc758213e9dd2b0cc1a01d114a377111ca8333dea079e557112c0979325b3ccd"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006672"
-
-[tools.circleci."platforms.macos-x64"]
-checksum = "sha256:51e4ad9bf7c5fe1a196b4e406c8f3e62e8cce624919097856379c2619722019f"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006633"
-
-[tools.circleci."platforms.windows-x64"]
-checksum = "sha256:2268a915f8054a364006b14751f7cba5da1c71ea3425e971afad16c7daaa605b"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v1.0.48490/circleci-cli_1.0.48490_windows_amd64.zip"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/520006681"
-
-[[tools.circleci]]
-version = "0.1.34950"
-backend = "aqua:CircleCI-Public/circleci-cli"
-
-[tools.circleci."platforms.linux-arm64"]
-checksum = "sha256:46386f98ea6a593d61e0a303de081cf767d6dfce60f7d043b1af3010c1af1cd4"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822790"
-
-[tools.circleci."platforms.linux-arm64-musl"]
-checksum = "sha256:46386f98ea6a593d61e0a303de081cf767d6dfce60f7d043b1af3010c1af1cd4"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822790"
-
-[tools.circleci."platforms.linux-x64"]
-checksum = "sha256:522af40b3415c572188831c067504f1f5a6bea5606d0b06c9cf4b8ae5910a8c9"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822788"
-
-[tools.circleci."platforms.linux-x64-musl"]
-checksum = "sha256:522af40b3415c572188831c067504f1f5a6bea5606d0b06c9cf4b8ae5910a8c9"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822788"
-
-[tools.circleci."platforms.macos-arm64"]
-checksum = "sha256:5465379de428e91254604afd5f4dff4997c92e3c19b5251db53f3d7f43b54617"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822789"
-
-[tools.circleci."platforms.macos-x64"]
-checksum = "sha256:a715c72780c91b4226e16d32f5715dd568c1675a09942b4e4941266fb8e0564c"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822858"
-
-[tools.circleci."platforms.windows-x64"]
-checksum = "sha256:6f3fca347ee19fdf40a41d9e151bcbcb06c99ce0c1838a9dac11d503075fcd84"
-url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_windows_amd64.zip"
-url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822791"
-
 [[tools.github-cli]]
 version = "2.83.2"
 backend = "aqua:cli/cli"
@@ -247,40 +169,6 @@ url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/1247
 url = "https://github.com/getoutreach/kubecfg/releases/download/v0.28.1/kubecfg-windows-amd64.exe"
 url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124754692"
 
-[[tools."github:getoutreach/stencil"]]
-version = "1.45.1"
-backend = "github:getoutreach/stencil"
-
-[tools."github:getoutreach/stencil"."platforms.linux-arm64"]
-checksum = "sha256:7cb2762fe036189a440e01f442a34f918e48ebeaf44c819b2a9b78e9d5500288"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171559"
-
-[tools."github:getoutreach/stencil"."platforms.linux-arm64-musl"]
-checksum = "sha256:7cb2762fe036189a440e01f442a34f918e48ebeaf44c819b2a9b78e9d5500288"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171559"
-
-[tools."github:getoutreach/stencil"."platforms.linux-x64"]
-checksum = "sha256:5c5e23d08b58a378805722ff419c87c016e0870ef75f56879cc52b944c4384e8"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171634"
-
-[tools."github:getoutreach/stencil"."platforms.linux-x64-musl"]
-checksum = "sha256:5c5e23d08b58a378805722ff419c87c016e0870ef75f56879cc52b944c4384e8"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171634"
-
-[tools."github:getoutreach/stencil"."platforms.macos-arm64"]
-checksum = "sha256:a97cf9be173b74f9307180d4863221f4d910f646ab848d7ff80ac565fbb4b37d"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171614"
-
-[tools."github:getoutreach/stencil"."platforms.macos-x64"]
-checksum = "sha256:33d1d006772cec02703ec44f6f21b526e61e857948cb970349fc57ae7e20ecad"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171581"
-
 [[tools.gojq]]
 version = "0.12.18"
 backend = "aqua:itchyny/gojq"
@@ -319,45 +207,6 @@ url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/323058119"
 checksum = "sha256:ecf343e99fb0190fede177becd6e8602386c801c0a98c7e10905a8d832f612d8"
 url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_windows_amd64.zip"
 url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/323058108"
-
-[[tools.gojq]]
-version = "0.12.19"
-backend = "aqua:itchyny/gojq"
-
-[tools.gojq."platforms.linux-arm64"]
-checksum = "sha256:b22794b4bebad11c42af52550bda317c5cd7ee79aaa729eb6ec91a63f623d8b5"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278786"
-
-[tools.gojq."platforms.linux-arm64-musl"]
-checksum = "sha256:b22794b4bebad11c42af52550bda317c5cd7ee79aaa729eb6ec91a63f623d8b5"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278786"
-
-[tools.gojq."platforms.linux-x64"]
-checksum = "sha256:bdfaf9acbe088973c549dadbf299c06dc9a84f1ca38c731ca04a08a901077f64"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278789"
-
-[tools.gojq."platforms.linux-x64-musl"]
-checksum = "sha256:bdfaf9acbe088973c549dadbf299c06dc9a84f1ca38c731ca04a08a901077f64"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278789"
-
-[tools.gojq."platforms.macos-arm64"]
-checksum = "sha256:40208d4c385c5cebe3798f9d5a30ff1123537d66e171f2450a110347933482f7"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278809"
-
-[tools.gojq."platforms.macos-x64"]
-checksum = "sha256:e8816cd2e1a276a03ed8f902475d2ed641043295f420aadc623929d717cd4314"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_darwin_amd64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278820"
-
-[tools.gojq."platforms.windows-x64"]
-checksum = "sha256:e7e874d54158c415aa22a8b5bafd8fe7b457b14d51c7033f7414155a907f52a0"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_windows_amd64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278782"
 
 [[tools.gotestsum]]
 version = "1.13.0"
