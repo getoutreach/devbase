@@ -68,40 +68,6 @@ checksum = "sha256:6f3fca347ee19fdf40a41d9e151bcbcb06c99ce0c1838a9dac11d503075fc
 url = "https://github.com/CircleCI-Public/circleci-cli/releases/download/v0.1.34950/circleci-cli_0.1.34950_windows_amd64.zip"
 url_api = "https://api.github.com/repos/CircleCI-Public/circleci-cli/releases/assets/384822791"
 
-[[tools."github:getoutreach/stencil"]]
-version = "1.45.1"
-backend = "github:getoutreach/stencil"
-
-[tools."github:getoutreach/stencil"."platforms.linux-arm64"]
-checksum = "sha256:7cb2762fe036189a440e01f442a34f918e48ebeaf44c819b2a9b78e9d5500288"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171559"
-
-[tools."github:getoutreach/stencil"."platforms.linux-arm64-musl"]
-checksum = "sha256:7cb2762fe036189a440e01f442a34f918e48ebeaf44c819b2a9b78e9d5500288"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171559"
-
-[tools."github:getoutreach/stencil"."platforms.linux-x64"]
-checksum = "sha256:5c5e23d08b58a378805722ff419c87c016e0870ef75f56879cc52b944c4384e8"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171634"
-
-[tools."github:getoutreach/stencil"."platforms.linux-x64-musl"]
-checksum = "sha256:5c5e23d08b58a378805722ff419c87c016e0870ef75f56879cc52b944c4384e8"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171634"
-
-[tools."github:getoutreach/stencil"."platforms.macos-arm64"]
-checksum = "sha256:a97cf9be173b74f9307180d4863221f4d910f646ab848d7ff80ac565fbb4b37d"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171614"
-
-[tools."github:getoutreach/stencil"."platforms.macos-x64"]
-checksum = "sha256:33d1d006772cec02703ec44f6f21b526e61e857948cb970349fc57ae7e20ecad"
-url = "https://github.com/getoutreach/stencil/releases/download/v1.45.1/stencil_1.45.1_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/stencil/releases/assets/509171581"
-
 [[tools.gojq]]
 version = "0.12.19"
 backend = "aqua:itchyny/gojq"

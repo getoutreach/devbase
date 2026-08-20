@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 #MISE description="Run Stencil on the current repo and update any module versions if available."
-#MISE tools={"github:getoutreach/stencil" = "latest"}
 #MISE depends=["devbase:sync"]
 #MISE depends_post=["stencil:post"]
 
-mise upgrade github:getoutreach/stencil@latest
-exec stencil --skip-update
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="$DIR/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/mise/stub.sh
+source "$LIB_DIR/mise/stub.sh"
+
+mise_exec_tool_with_bin github:getoutreach/stencil stencil --skip-update
