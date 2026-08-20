@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Sync CircleCI orb versions if files aren't managed by a Stencil module."
-#MISE tools={"circleci" = "0.1.34950", "gojq" = "latest"}
+#MISE tools={"circleci" = "0.1.34950"}
 #
 # Syncs the CircleCI orb definition with the version of devbase in the
 # stencil.lock file.  By default, it only updates .circleci/config.yml
