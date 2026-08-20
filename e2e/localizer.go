@@ -42,11 +42,11 @@ func ensureRunningLocalizerWorks(ctx context.Context) error {
 
 	// not responding to pings, or failed to connect, remove the socket
 	//nolint:gosec // Why: We're OK with this. It's a constant.
-	return osStdInOutErr(exec.Command("sudo", "rm", "-f", localizer.Socket)).Run()
+	return osStdInOutErr(exec.CommandContext(ctx, "sudo", "rm", "-f", localizer.Socket)).Run()
 }
 
 // runLocalizer runs localizer for devenv.
-func runLocalizer(ctx context.Context) (cleanup func(), err error) {
+func runLocalizer(ctx context.Context) (cleanup func(context.Context), err error) {
 	if localizer.IsRunning() {
 		if err := ensureRunningLocalizerWorks(ctx); err != nil {
 			return nil, err
@@ -105,9 +105,9 @@ func runLocalizer(ctx context.Context) (cleanup func(), err error) {
 		async.Sleep(ctx, time.Second*2)
 	}
 
-	return func() {
+	return func(ctx context.Context) {
 		log.Info().Msg("Killing the spawned localizer process (spawned by devenv tunnel)")
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 		if _, err := client.Kill(ctx, &localizerapi.Empty{}); err != nil {
 			log.Warn().Err(err).Msg("failed to kill running localizer server")

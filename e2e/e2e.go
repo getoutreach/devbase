@@ -9,7 +9,6 @@ package main
 import (
 	"context"
 	"encoding/xml"
-	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
@@ -94,7 +93,7 @@ func findDependenciesInRepo(ctx context.Context, conf *box.Config, serviceName s
 	if dc == nil {
 		log.Warn().Str("service", serviceName).
 			Msgf("Failed to find any of the following %v, will not try to calculate dependencies of this service", possibleFiles)
-		return nil, nil
+		return make(set.Set[string]), nil
 	}
 
 	// We deploy just required transitive dependencies
@@ -141,7 +140,7 @@ func grabDependencies(ctx context.Context, conf *box.Config, deps set.Set[string
 }
 
 // provisionNew destroys and re-provisions a devenv.
-func provisionNew(ctx context.Context, target string) error { // nolint:unparam // Why: keeping in the interface for now
+func provisionNew(ctx context.Context, target string) error {
 	devenv, err := newDevenvCmd(ctx, "destroy")
 	if err != nil {
 		return errors.Wrap(err, "Failed to create devenv destroy command")
@@ -160,7 +159,7 @@ func provisionNew(ctx context.Context, target string) error { // nolint:unparam 
 func runDevconfig(ctx context.Context) error {
 	out, err := exec.CommandContext(ctx, "./scripts/shell-wrapper.sh", "devconfig.sh").CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s", out)
+		return errors.New(string(out))
 	}
 	return nil
 }
@@ -363,7 +362,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 
 			err := provisionDevenv(ctx, conf)
 			if err != nil {
-				//nolint:gocritic // Why: need to get exit code >0
 				log.Fatal().Err(err).Msg("Failed to provision devenv")
 				return
 			}
@@ -375,7 +373,6 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 			wg.Wait() // To ensure that docker build is finished
 		} else {
 			log.Info().
-				//nolint:lll // Why: Message to user
 				Msg(devenvAlreadyExists)
 		}
 	}
@@ -444,7 +441,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to run localizer")
 		}
-		defer closer()
+		defer closer(ctx)
 	}
 
 	log.Info().Msg("Running e2e tests")
@@ -465,10 +462,8 @@ func provisionDevenv(ctx context.Context, conf *box.Config) error {
 	target := "base"
 	if os.Getenv("PROVISION_TARGET") != "" {
 		target = os.Getenv("PROVISION_TARGET")
-	} else {
-		if slices.Contains(deps, "outreach") {
-			target = flagship
-		}
+	} else if slices.Contains(deps, "outreach") {
+		target = flagship
 	}
 
 	log.Info().Strs("deps", deps).Str("target", target).Msg("Provisioning devenv")
@@ -488,10 +483,12 @@ func isDevenvProvisioned(ctx context.Context) bool {
 }
 
 func runningInCI() bool {
-	return os.Getenv("CI") == "true" //nolint:goconst // Why: true == true
+	return os.Getenv("CI") == "true"
 }
 
 // devenvPath is the cached path to the devenv binary.
+//
+//nolint:gochecknoglobals // Why: cache variable
 var devenvPath = ""
 
 // findDevenv finds the path to the devenv binary, via mise or PATH.

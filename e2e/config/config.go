@@ -88,9 +88,9 @@ func FromGitHub(ctx context.Context, conf *box.Config, serviceName string,
 	return &dc, nil
 }
 
-// getDependencies returns all dependencies.
+// GetAllDependencies returns all dependencies.
 func (c *Devenv) GetAllDependencies() []string {
-	deps := make([]string, 0)
+	deps := make([]string, 0, len(c.Dependencies.Required)+len(c.Dependencies.Optional))
 	deps = append(deps, c.Dependencies.Required...)
 	deps = append(deps, c.Dependencies.Optional...)
 	return deps

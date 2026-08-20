@@ -60,14 +60,16 @@ func TestGetE2eTestPathsSkippedFilesAndDirs(t *testing.T) {
 	assert.Equal(t, 0, len(dir))
 }
 
+var errOpenDir = errors.New("Error opening dir")
+
 func TestGetE2eTestPathsErrorOpening(t *testing.T) {
 	walker := func(path string, walk filepath.WalkFunc) error {
-		return errors.New("Error opening dir")
+		return errOpenDir
 	}
 
 	_, err := GetE2eTestPaths(".", walker, nofilesDirReader, emptyFileReader)
 
-	assert.Error(t, err, "Error opening dir")
+	assert.ErrorIs(t, err, errOpenDir)
 }
 
 func nofilesDirReader(name string) ([]os.DirEntry, error) {
@@ -93,5 +95,5 @@ func TestBuildE2ETestPackages(t *testing.T) {
 
 	err := BuildE2ETestPackages(zerolog.Logger{}, []string{"internal/e2e/prospects"}, "./bin", runGoCommand)
 	assert.NilError(t, err)
-	assert.Equal(t, called, true)
+	assert.Assert(t, called)
 }
