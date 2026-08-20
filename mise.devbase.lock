@@ -576,45 +576,6 @@ checksum = "sha256:ecf343e99fb0190fede177becd6e8602386c801c0a98c7e10905a8d832f61
 url = "https://github.com/itchyny/gojq/releases/download/v0.12.18/gojq_v0.12.18_windows_amd64.zip"
 url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/323058108"
 
-[[tools.gojq]]
-version = "0.12.19"
-backend = "aqua:itchyny/gojq"
-
-[tools.gojq."platforms.linux-arm64"]
-checksum = "sha256:b22794b4bebad11c42af52550bda317c5cd7ee79aaa729eb6ec91a63f623d8b5"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278786"
-
-[tools.gojq."platforms.linux-arm64-musl"]
-checksum = "sha256:b22794b4bebad11c42af52550bda317c5cd7ee79aaa729eb6ec91a63f623d8b5"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278786"
-
-[tools.gojq."platforms.linux-x64"]
-checksum = "sha256:bdfaf9acbe088973c549dadbf299c06dc9a84f1ca38c731ca04a08a901077f64"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278789"
-
-[tools.gojq."platforms.linux-x64-musl"]
-checksum = "sha256:bdfaf9acbe088973c549dadbf299c06dc9a84f1ca38c731ca04a08a901077f64"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278789"
-
-[tools.gojq."platforms.macos-arm64"]
-checksum = "sha256:40208d4c385c5cebe3798f9d5a30ff1123537d66e171f2450a110347933482f7"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278809"
-
-[tools.gojq."platforms.macos-x64"]
-checksum = "sha256:e8816cd2e1a276a03ed8f902475d2ed641043295f420aadc623929d717cd4314"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_darwin_amd64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278820"
-
-[tools.gojq."platforms.windows-x64"]
-checksum = "sha256:e7e874d54158c415aa22a8b5bafd8fe7b457b14d51c7033f7414155a907f52a0"
-url = "https://github.com/itchyny/gojq/releases/download/v0.12.19/gojq_v0.12.19_windows_amd64.zip"
-url_api = "https://api.github.com/repos/itchyny/gojq/releases/assets/386278782"
-
 [[tools.golangci-lint]]
 version = "2.9.0"
 backend = "aqua:golangci/golangci-lint"
