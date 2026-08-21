@@ -86,6 +86,9 @@ type federationDirective struct {
 	needsFieldSet bool
 }
 
+// federationDirectives are the Federation subgraph directives this
+// package knows how to synthesize, keyed by name.
+//
 //nolint:gochecknoglobals,lll // Why: a fixed lookup table, never mutated; Go has no map consts, and directive location lists can't be wrapped.
 var federationDirectives = map[string]federationDirective{
 	"key":          {sdl: "directive @%[1]s(fields: FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE", needsFieldSet: true},
