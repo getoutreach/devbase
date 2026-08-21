@@ -3,6 +3,8 @@ arguments:
   ciOptions:
     skipE2e: true
     skipDocker: true
+  commands:
+    - devbase
   description: A collection of scripts and ci configuration
   go:
     formatter: gofumpt
@@ -29,6 +31,7 @@ arguments:
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
   versions:
+    urfave-cli: v3
     prettier: "3"
 modules:
   - name: github.com/getoutreach/stencil-circleci
