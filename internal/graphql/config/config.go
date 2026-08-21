@@ -173,6 +173,27 @@ type LintConfig struct {
 	// individual lint rules, keyed by rule name. A rule absent from
 	// this map keeps its built-in default severity of "error".
 	Rules map[string]RuleConfig `yaml:"rules"`
+
+	// Federation, if set, is the Apollo Federation subgraph spec
+	// version (for example "v2.3") this repo's own schema links
+	// against via `extend schema @link(url: "https://specs.apollo.dev/
+	// federation/v2.3", import: [...])`. gqlparser has no built-in
+	// notion of @link or anything it imports -- composition tooling
+	// injects those, they're never declared via `directive @...` SDL
+	// in a subgraph's own files -- so setting this tells
+	// internal/graphql/lint to synthesize definitions for exactly the
+	// directives the schema's own @link imports. See that package's
+	// federation support for which versions and directives it
+	// understands, and how a mismatched or unrecognized import is
+	// reported.
+	Federation string `yaml:"federation"`
+
+	// Scalars lists custom scalar type names that are registered
+	// outside this repo's *.graphql files -- for example, at runtime
+	// in application code -- and so are never declared via `scalar X`
+	// SDL. Each name is merged into the schema as a bare `scalar X`
+	// declaration.
+	Scalars []string `yaml:"scalars"`
 }
 
 // MergeExcludes returns the config's exclude patterns extended with

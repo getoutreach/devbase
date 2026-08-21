@@ -5,17 +5,24 @@
 
 // Package lint runs the Tier 1 rule tier against a repository's
 // *.graphql files: 9 rules that gqlparser/v2 enforces for free while
-// parsing SDL, needing no custom rule code. FindGraphQLFiles discovers
-// the files to lint, respecting scripts/devbase.yaml's exclude
-// patterns; Files parses them as one combined schema via
-// gqlparser.LoadSchema and turns any resulting parse error into a
-// Violation tagged with the Tier 1 rule name it corresponds to, using
-// the classification verified in lint_test.go.
+// parsing SDL, needing no custom rule code beyond classifying its
+// errors. FindGraphQLFiles discovers the files to lint, respecting
+// scripts/devbase.yaml's exclude patterns; Files parses them as one
+// combined schema via gqlparser.LoadSchema and turns any resulting
+// parse error into a Violation tagged with the Tier 1 rule name it
+// corresponds to, using the classification verified in lint_test.go.
 //
 // gqlparser.LoadSchema stops at the first validation error it finds, so
 // Files can only ever report one violation per run; fixing it and
 // re-running surfaces the next one, the same behavior a contributor
 // would see running gqlparser-based tooling directly.
+//
+// federation.go is the one exception to "no custom rule code": Apollo
+// Federation directives and repo-specific custom scalars are never
+// declared via SDL a subgraph owns, so scripts/devbase.yaml's
+// federation and scalars settings tell Files what to synthesize and
+// merge in before validation, rather than gqlparser rejecting them
+// outright as undefined.
 //
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest
 // v2.5.x release as of 2026-08-21) so this behavior is stable and
@@ -64,7 +71,11 @@ func (v Violation) String() string {
 // Tier 1 violation gqlparser raised, if any. Files are read and parsed
 // together, not independently, so that a type defined in one file is
 // visible when validating a reference to it in another.
-func Files(paths []string) ([]Violation, error) {
+//
+// cfg supplies scripts/devbase.yaml's federation and scalars settings,
+// merged into the parsed sources before validation; a nil cfg parses
+// paths exactly as written, with no merged prelude.
+func Files(paths []string, cfg *config.LintConfig) ([]Violation, error) {
 	sources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -73,6 +84,25 @@ func Files(paths []string) ([]Violation, error) {
 		}
 		sources = append(sources, &ast.Source{Name: path, Input: string(data)})
 	}
+
+	extraSources, err := preludeSources(sources, cfg)
+	if err != nil {
+		// A plain syntax error in one of paths' own files surfaces here
+		// (preludeSources parses them looking for @link) rather than
+		// from gqlparser.LoadSchema below, but it's the same kind of
+		// error gqlparser.LoadSchema would otherwise classify into a
+		// Violation -- report it the same way, so a schema's own syntax
+		// errors read consistently whether or not graphql.lint.federation
+		// is configured. A federation- or scalars-specific error (which
+		// carries no gqlerror.Error, or one federationErrorf tagged with
+		// a sentinel via its Err field) is returned as-is instead.
+		var gqlErr *gqlerror.Error
+		if errors.As(err, &gqlErr) && gqlErr.Err == nil {
+			return []Violation{{err: gqlErr, Rule: ruleForMessage(gqlErr.Message)}}, nil
+		}
+		return nil, err
+	}
+	sources = append(sources, extraSources...)
 
 	if _, err := gqlparser.LoadSchema(sources...); err != nil {
 		var gqlErr *gqlerror.Error

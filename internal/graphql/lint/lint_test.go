@@ -129,7 +129,7 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			dir := t.TempDir()
 			path := writeFile(t, dir, "schema.graphql", c.sdl)
 
-			violations, err := Files([]string{path})
+			violations, err := Files([]string{path}, nil)
 			assert.NilError(t, err)
 			assert.Equal(t, len(violations), 1)
 			assert.Equal(t, violations[0].Rule, c.rule)
@@ -155,7 +155,7 @@ func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
 		type OtherQuery { a: String }
 	`)
 
-	violations, err := Files([]string{path})
+	violations, err := Files([]string{path}, nil)
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -168,7 +168,7 @@ func TestLintFilesCombinesMultipleFilesIntoOneSchema(t *testing.T) {
 	typesPath := writeFile(t, dir, "types.graphql", `type Foo { a: String }`)
 	queryPath := writeFile(t, dir, "query.graphql", `type Query { foo: Foo }`)
 
-	violations, err := Files([]string{typesPath, queryPath})
+	violations, err := Files([]string{typesPath, queryPath}, nil)
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -181,7 +181,7 @@ func TestLintFilesUnclassifiedRule(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Foo { __bar: String }`)
 
-	violations, err := Files([]string{path})
+	violations, err := Files([]string{path}, nil)
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, UnclassifiedRule)
