@@ -14,6 +14,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// NewLintGraphqlCommand returns the "graphql" subcommand of "lint",
+// which runs GraphQL schema lint checks.
 func NewLintGraphqlCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "graphql",
@@ -29,6 +31,9 @@ func NewLintGraphqlCommand() *cli.Command {
 	}
 }
 
+// lintGraphQL is the Action for the "graphql" subcommand. It resolves
+// scripts/devbase.yaml for the current working directory and logs the
+// effective exclude patterns and rule-override count.
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	cwd, err := os.Getwd()
 	if err != nil {
