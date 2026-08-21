@@ -35,7 +35,7 @@ type tier1Case struct {
 }
 
 // TestLintFilesClassifiesTier1Rules empirically confirms, for each of
-// the 9 Tier 1 rules, that Files both surfaces a gqlparser parse error
+// the 10 Tier 1 rules, that Files both surfaces a gqlparser parse error
 // for a minimal SDL fixture violating it and tags the resulting
 // Violation with that rule's name, using the gqlparser/v2 version
 // pinned in go.mod.
@@ -66,6 +66,16 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 				type Foo { b: String }
 			`,
 			wantErrSubstring: "Cannot redeclare type Foo.",
+		},
+		{
+			rule: config.RuleUniqueEnumValueNames,
+			sdl: `
+				enum Foo {
+					BAR
+					BAR
+				}
+			`,
+			wantErrSubstring: "Enum value Foo.BAR can only be defined once.",
 		},
 		{
 			rule: config.RuleKnownArgumentNames,
