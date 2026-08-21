@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
@@ -36,10 +37,12 @@ func newLintGraphQLCommand() *cli.Command {
 // lintGraphQL is the Action for the "graphql" subcommand. It resolves
 // scripts/devbase.yaml for the current working directory, finds the
 // *.graphql files under the given paths (the current directory if none
-// are given), runs the Tier 1 rules against them, and prints any
-// violation. It returns a non-zero exit code, with no further output,
-// if any violation was found -- every Tier 1 rule is "error" severity,
-// so a violation always fails the run.
+// are given), runs the Tier 1 and enabled Tier 2 rules against them,
+// and prints every violation found. It returns a non-zero exit code
+// only if at least one violation resolves to "error" severity --
+// every Tier 1 rule always does, since scripts/devbase.yaml can never
+// override it, but a Tier 2/3 rule configured as "warn" is printed
+// without failing the run.
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -73,14 +76,30 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("lint graphql files: %w", err)
 	}
 
-	for _, v := range violations {
-		if _, err := fmt.Fprintln(c.Writer, v.String()); err != nil {
-			return fmt.Errorf("write violation: %w", err)
-		}
+	hasError, err := reportViolations(c.Writer, violations, lintConfig)
+	if err != nil {
+		return err
 	}
-	if len(violations) > 0 {
+	if hasError {
 		return cli.Exit("", 1)
 	}
 
 	return nil
+}
+
+// reportViolations prints each of violations to w and reports whether
+// any of them resolved to "error" severity via cfg.SeverityOf -- the
+// signal lintGraphQL uses to decide whether the run failed. A "warn"
+// violation is still printed, but does not by itself make hasError
+// true.
+func reportViolations(w io.Writer, violations []lint.Violation, cfg *config.Lint) (hasError bool, err error) {
+	for _, v := range violations {
+		if _, err := fmt.Fprintln(w, v.String()); err != nil {
+			return false, fmt.Errorf("write violation: %w", err)
+		}
+		if cfg.SeverityOf(v.Rule) == config.SeverityError {
+			hasError = true
+		}
+	}
+	return hasError, nil
 }

@@ -277,6 +277,25 @@ func (c *Lint) Enabled(rule string) bool {
 	return ok && rc.Severity != SeverityOff
 }
 
+// SeverityOf resolves the severity that should apply to a violation
+// tagged with rule. A Tier 2/3 rule present in c.Rules (necessarily at
+// SeverityWarn or SeverityError, since a rule at SeverityOff -- or
+// absent altogether -- never produces a violation for Enabled to have
+// let through) uses that configured severity. Every other rule --
+// a Tier 1 rule, which scripts/devbase.yaml can never override, or an
+// unclassified gqlparser violation -- defaults to SeverityError. c may
+// be nil (no config file found), in which case every rule defaults to
+// SeverityError.
+func (c *Lint) SeverityOf(rule string) Severity {
+	if c == nil {
+		return SeverityError
+	}
+	if rc, ok := c.Rules[rule]; ok {
+		return rc.Severity
+	}
+	return SeverityError
+}
+
 // fileConfig mirrors the top-level shape of scripts/devbase.yaml.
 type fileConfig struct {
 	GraphQL struct {
