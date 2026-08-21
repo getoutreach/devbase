@@ -5,12 +5,12 @@
 
 // Package lint runs the Tier 1 rule tier against a repository's
 // *.graphql files: 9 rules that gqlparser/v2 enforces for free while
-// parsing SDL, needing no custom rule code beyond classifying its
-// errors. FindGraphQLFiles discovers the files to lint, respecting
-// scripts/devbase.yaml's exclude patterns; Files parses them as one
-// combined schema via gqlparser.LoadSchema and turns any resulting
-// parse error into a Violation tagged with the Tier 1 rule name it
-// corresponds to, using the classification verified in lint_test.go.
+// parsing SDL, needing no custom rule code. FindGraphQLFiles discovers
+// the files to lint, respecting scripts/devbase.yaml's exclude
+// patterns; Files parses them as one combined schema via
+// gqlparser.LoadSchema and turns any resulting parse error into a
+// Violation tagged with the Tier 1 rule name it corresponds to, using
+// the classification verified in lint_test.go.
 //
 // gqlparser.LoadSchema stops at the first validation error it finds, so
 // Files can only ever report one violation per run; fixing it and
@@ -19,10 +19,10 @@
 //
 // federation.go is the one exception to "no custom rule code": Apollo
 // Federation directives and repo-specific custom scalars are never
-// declared via SDL a subgraph owns, so scripts/devbase.yaml's
+// declared via SDL that a subgraph owns, so scripts/devbase.yaml's
 // federation and scalars settings tell Files what to synthesize and
-// merge in before validation, rather than gqlparser rejecting them
-// outright as undefined.
+// merge in before validation, instead of gqlparser rejecting them as
+// undefined.
 //
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest
 // v2.5.x release as of 2026-08-21) so this behavior is stable and
@@ -87,15 +87,12 @@ func Files(paths []string, cfg *config.LintConfig) ([]Violation, error) {
 
 	extraSources, err := preludeSources(sources, cfg)
 	if err != nil {
-		// A plain syntax error in one of paths' own files surfaces here
-		// (preludeSources parses them looking for @link) rather than
-		// from gqlparser.LoadSchema below, but it's the same kind of
-		// error gqlparser.LoadSchema would otherwise classify into a
-		// Violation -- report it the same way, so a schema's own syntax
-		// errors read consistently whether or not graphql.lint.federation
-		// is configured. A federation- or scalars-specific error (which
-		// carries no gqlerror.Error, or one federationErrorf tagged with
-		// a sentinel via its Err field) is returned as-is instead.
+		// preludeSources parses paths' own files looking for @link, so a
+		// plain syntax error can surface here instead of from
+		// gqlparser.LoadSchema below. Classify it into a Violation the
+		// same way, so syntax errors read consistently regardless of the
+		// federation setting. A federation- or scalars-specific error
+		// carries a sentinel in gqlErr.Err and is returned as-is.
 		var gqlErr *gqlerror.Error
 		if errors.As(err, &gqlErr) && gqlErr.Err == nil {
 			return []Violation{{err: gqlErr, Rule: ruleForMessage(gqlErr.Message)}}, nil

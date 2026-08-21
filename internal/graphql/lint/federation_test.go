@@ -13,10 +13,9 @@ import (
 )
 
 // TestFilesFederationImportedDirectivesPass confirms that a schema
-// using exactly the directives its own @link imports -- giraffe's
-// real-world shape, empirically confirmed against
-// getoutreach/giraffe -- passes with graphql.lint.federation set,
-// including a directive (@key) whose SDL references the FieldSet
+// using exactly the directives its own @link imports, matching
+// getoutreach/giraffe's real schema, passes with graphql.lint.federation
+// set, including a directive (@key) whose SDL references the FieldSet
 // scalar.
 func TestFilesFederationImportedDirectivesPass(t *testing.T) {
 	dir := t.TempDir()
@@ -95,9 +94,9 @@ func TestFilesFederationImportAsRenameHonored(t *testing.T) {
 }
 
 // TestFilesFederationVersionMismatchErrors confirms that a schema
-// linking a different Federation version than
-// scripts/devbase.yaml configures is a clear, named error rather than
-// a silent pass or fail against the wrong directive signatures.
+// linking a different Federation version than scripts/devbase.yaml
+// configures returns ErrFederationVersionMismatch, rather than
+// silently passing or failing against the wrong directive signatures.
 func TestFilesFederationVersionMismatchErrors(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `
@@ -110,8 +109,8 @@ func TestFilesFederationVersionMismatchErrors(t *testing.T) {
 }
 
 // TestFilesFederationUnsupportedConfiguredVersionErrors confirms that
-// an unrecognized graphql.lint.federation value is a clear, named
-// error rather than a silent no-op.
+// an unrecognized graphql.lint.federation value returns
+// ErrUnsupportedFederationVersion, rather than a silent no-op.
 func TestFilesFederationUnsupportedConfiguredVersionErrors(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Widget { id: ID! }`)
@@ -121,9 +120,10 @@ func TestFilesFederationUnsupportedConfiguredVersionErrors(t *testing.T) {
 }
 
 // TestFilesFederationUnsupportedImportedDirectiveErrors confirms that
-// importing a real Federation directive this package hasn't
+// importing a real Federation directive this package has not
 // implemented a signature for (added in a later spec version than
-// v2.3) is a clear, named error rather than a guessed-at signature.
+// v2.3) returns ErrUnsupportedFederationDirective, rather than
+// guessing at a signature.
 func TestFilesFederationUnsupportedImportedDirectiveErrors(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `
@@ -153,8 +153,8 @@ func TestFilesFederationUnrelatedLinkIgnored(t *testing.T) {
 }
 
 // TestFilesFederationConfiguredButUnusedIsANoop confirms that opting
-// into graphql.lint.federation doesn't affect a schema that never
-// actually links the Federation spec.
+// into graphql.lint.federation does not affect a schema that never
+// links the Federation spec.
 func TestFilesFederationConfiguredButUnusedIsANoop(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Widget { id: ID! }`)
@@ -165,8 +165,8 @@ func TestFilesFederationConfiguredButUnusedIsANoop(t *testing.T) {
 }
 
 // TestFilesFederationSyntaxErrorClassifiedSameAsWithoutFederation
-// confirms that a plain SDL syntax error -- unrelated to federation at
-// all -- is reported as the same kind of Violation whether or not
+// confirms that a plain SDL syntax error, unrelated to federation, is
+// reported as the same kind of Violation whether or not
 // graphql.lint.federation is configured, even though a configured
 // federation setting makes Files parse paths once looking for @link
 // before gqlparser.LoadSchema's own parse.

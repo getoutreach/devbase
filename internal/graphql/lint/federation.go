@@ -5,31 +5,31 @@
 // graphql.lint.scalars.
 
 // federation.go resolves a repository's own `extend schema
-// @link(url: ..., import: [...])` directive -- the mechanism Apollo
+// @link(url: ..., import: [...])` directive, the mechanism Apollo
 // Federation subgraphs use to bring spec directives like @key and
-// @shareable into scope -- and, when scripts/devbase.yaml opts in via
-// graphql.lint.federation, synthesizes SDL definitions for exactly the
-// directives that @link actually imports (honoring an `as` rename).
-// gqlparser has no built-in notion of any of this: @link, and
-// everything it imports, are injected by federation composition
+// @shareable into scope. When scripts/devbase.yaml opts in via
+// graphql.lint.federation, it synthesizes SDL definitions for the
+// directives that @link actually imports, honoring an `as` rename.
+// gqlparser has no built-in notion of any of this: @link and
+// everything it imports are injected by federation composition
 // tooling, never declared via `directive @...` SDL in a subgraph's
 // own files.
 //
-// Because the synthesized prelude defines only what a schema's own
-// @link actually imports, gqlparser's existing known-directives check
-// still fails a directive that's used but never imported, with the
-// same "Undefined directive" error -- classified as RuleKnownDirectives
-// the same way Files already classifies any other undeclared
-// directive. No separate import-list validation is needed.
+// The synthesized prelude defines only what a schema's own @link
+// imports, so gqlparser's existing known-directives check still fails
+// a directive that is used but never imported, with the same
+// "Undefined directive" error that Files classifies as
+// RuleKnownDirectives for any other undeclared directive. No separate
+// import-list validation is needed.
 //
-// Directive signatures below are taken from the Apollo Federation
-// subgraph specification (github.com/apollographql/federation,
+// Directive signatures below come from the Apollo Federation subgraph
+// specification (github.com/apollographql/federation,
 // docs/source/schema-design/federated-schemas/reference/subgraph-spec.mdx,
 // fetched 2026-08-21). Only the 9 directives named in
 // federationDirectives are supported; an import naming any other
-// directive (for example @interfaceObject or @authenticated, added in
-// later spec versions) is a clear, named error rather than a silent
-// guess at a signature this package hasn't verified.
+// directive, for example @interfaceObject or @authenticated added in
+// later spec versions, is reported by name instead of assuming an
+// unverified signature.
 
 package lint
 
@@ -61,9 +61,8 @@ var ErrFederationVersionMismatch = errors.New("federation version mismatch")
 var ErrUnsupportedFederationDirective = errors.New("unsupported federation directive import")
 
 // federationLinkURLPrefix identifies a `@link` as linking against the
-// Apollo Federation subgraph spec itself, as opposed to some other
-// spec a schema might separately `@link` to -- which this package
-// leaves untouched.
+// Apollo Federation subgraph spec itself. A schema may separately
+// `@link` to some other spec; this package leaves those untouched.
 const federationLinkURLPrefix = "https://specs.apollo.dev/federation/"
 
 // supportedFederationVersions are the Federation subgraph spec
@@ -77,11 +76,11 @@ var supportedFederationVersions = map[string]bool{
 }
 
 // federationDirective describes one Federation subgraph directive
-// this package knows how to synthesize: its SDL, with "%[1]s" standing
-// in for the directive's name so an `as` rename can be honored, and
-// whether that SDL references the FieldSet scalar, so the prelude
-// only declares FieldSet when a directive that needs it is actually
-// imported.
+// this package knows how to synthesize. sdl is its SDL definition,
+// with "%[1]s" standing in for the directive's name so an `as` rename
+// can be honored. needsFieldSet marks whether that SDL references the
+// FieldSet scalar, so the prelude declares FieldSet only when an
+// imported directive needs it.
 type federationDirective struct {
 	sdl           string
 	needsFieldSet bool
@@ -101,7 +100,7 @@ var federationDirectives = map[string]federationDirective{
 }
 
 // federationImport is a single entry from a `@link` import list,
-// resolved to the directive name it refers to and the name it's
+// resolved to the directive name it refers to and the name it is
 // imported as (equal to name unless the entry renamed it with `as`).
 type federationImport struct {
 	name  string
@@ -142,12 +141,12 @@ func scalarsPrelude(names []string) string {
 }
 
 // federationPrelude parses sources' raw `extend schema @link(...)`
-// directives -- without requiring @link or anything it imports to
-// already be declared, since parser.ParseSchemas performs no
-// directive validation, only syntax -- and returns the SDL Files
-// should merge in for wantVersion. It returns "", nil if sources
-// contain no `@link` to the Federation subgraph spec at all (cfg opted
-// in, but nothing in this repo's schema uses it yet).
+// directives and returns the SDL Files should merge in for
+// wantVersion. parser.ParseSchemas performs syntax parsing only, so
+// this works even though @link and anything it imports are not yet
+// declared. It returns "", nil if sources contain no `@link` to the
+// Federation subgraph spec: scripts/devbase.yaml opted in, but
+// nothing in this schema uses it yet.
 func federationPrelude(sources []*ast.Source, wantVersion string) (string, error) {
 	if !supportedFederationVersions[wantVersion] {
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFederationVersion, wantVersion)
@@ -169,7 +168,7 @@ func federationPrelude(sources []*ast.Source, wantVersion string) (string, error
 				return "", err
 			}
 			if gotVersion == "" {
-				continue // an @link to some other, unrelated spec.
+				continue // dir links to some other, unrelated spec.
 			}
 			if gotVersion != wantVersion {
 				return "", federationErrorf(ErrFederationVersionMismatch, dir.Position,
@@ -214,9 +213,8 @@ func federationPrelude(sources []*ast.Source, wantVersion string) (string, error
 }
 
 // federationLinkVersion extracts the Federation subgraph spec version
-// named by dir's `url` argument, or "" if url doesn't reference the
-// Federation spec at all -- a schema `@link`ing to some other,
-// unrelated spec, which this package leaves untouched.
+// named by dir's `url` argument, or "" if url does not reference the
+// Federation spec.
 func federationLinkVersion(dir *ast.Directive) (string, error) {
 	urlArg := dir.Arguments.ForName("url")
 	if urlArg == nil {
@@ -234,8 +232,8 @@ func federationLinkVersion(dir *ast.Directive) (string, error) {
 }
 
 // federationLinkImports extracts dir's `import` list, if any, as the
-// directive imports it names. It returns an error if an entry isn't
-// one this package can classify as a directive import.
+// directive imports it names. It returns an error if an entry cannot
+// be classified as a directive import.
 func federationLinkImports(dir *ast.Directive) ([]federationImport, error) {
 	importArg := dir.Arguments.ForName("import")
 	if importArg == nil {
@@ -259,16 +257,16 @@ func federationLinkImports(dir *ast.Directive) ([]federationImport, error) {
 }
 
 // parseFederationImportEntry classifies one entry of a `@link` import
-// list -- either a bare "@name" string, or a {name: "@name", as:
-// "@alias"} object -- as a directive import. pos positions any error
-// at the @link application the entry came from.
+// list, either a bare "@name" string or a {name: "@name", as:
+// "@alias"} object, as a directive import. pos anchors any returned
+// error to the @link application the entry came from.
 func parseFederationImportEntry(entry any, pos *ast.Position) (federationImport, error) {
 	switch v := entry.(type) {
 	case string:
 		name := strings.TrimPrefix(v, "@")
 		if name == v {
 			return federationImport{}, federationErrorf(ErrUnsupportedFederationDirective, pos,
-				"imports %q, which isn't a directive (expected a leading \"@\")", v)
+				"imports %q, which is not a directive (expected a leading \"@\")", v)
 		}
 		return federationImport{name: name, alias: name}, nil
 	case map[string]any:
@@ -281,15 +279,14 @@ func parseFederationImportEntry(entry any, pos *ast.Position) (federationImport,
 		return federationImport{name: name, alias: alias}, nil
 	default:
 		return federationImport{}, federationErrorf(ErrUnsupportedFederationDirective, pos,
-			"has an import entry this package doesn't recognize: %#v", entry)
+			"has an unrecognized import entry: %#v", entry)
 	}
 }
 
 // federationErrorf builds a position-anchored error for a single
-// `@link` application, formatted the same way Files' own Violation
-// messages are (via gqlerror.Error, whose Error() method renders
-// "<file>:<line>:<col>: <message>"), wrapping sentinel so callers can
-// still match it with errors.Is.
+// `@link` application, rendered the same way Files' own Violation
+// messages are, and wraps sentinel so callers can match it with
+// errors.Is.
 func federationErrorf(sentinel error, pos *ast.Position, format string, args ...any) error {
 	gqlErr := gqlerror.ErrorPosf(pos, format, args...)
 	gqlErr.Err = sentinel
