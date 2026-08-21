@@ -24,10 +24,14 @@ const scriptsDevbaseYAML = "scripts/devbase.yaml"
 // Severity is the severity level of a lint rule.
 type Severity string
 
-// Severity levels accepted in rule overrides.
 const (
-	SeverityOff   Severity = "off"
-	SeverityWarn  Severity = "warn"
+	// SeverityOff disables a rule.
+	SeverityOff Severity = "off"
+
+	// SeverityWarn reports a rule's violations without failing the lint run.
+	SeverityWarn Severity = "warn"
+
+	// SeverityError reports a rule's violations and fails the lint run.
 	SeverityError Severity = "error"
 )
 
