@@ -13,9 +13,12 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.10.1
+	github.com/vektah/gqlparser/v2 v2.5.36
 	google.golang.org/grpc v1.83.0
 	gotest.tools/v3 v3.5.2
 )
+
+require github.com/agnivade/levenshtein v1.2.1 // indirect
 
 require (
 	charm.land/bubbles/v2 v2.1.1 // indirect
