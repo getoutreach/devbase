@@ -39,10 +39,9 @@ func newLintGraphQLCommand() *cli.Command {
 // *.graphql files under the given paths (the current directory if none
 // are given), runs the Tier 1 and enabled Tier 2 rules against them,
 // and prints every violation found. It returns a non-zero exit code
-// only if at least one violation resolves to "error" severity --
-// every Tier 1 rule always does, since scripts/devbase.yaml can never
-// override it, but a Tier 2/3 rule configured as "warn" is printed
-// without failing the run.
+// only if at least one violation resolves to "error" severity: every
+// Tier 1 rule always does, since scripts/devbase.yaml can never
+// override it, but a Tier 2/3 rule configured as "warn" never does.
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -87,11 +86,10 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	return nil
 }
 
-// reportViolations prints each of violations to w and reports whether
-// any of them resolved to "error" severity via cfg.SeverityOf -- the
+// reportViolations prints each violation to w and reports whether any
+// of them resolved to "error" severity via cfg.SeverityOf -- the
 // signal lintGraphQL uses to decide whether the run failed. A "warn"
-// violation is still printed, but does not by itself make hasError
-// true.
+// violation is printed but never sets hasError.
 func reportViolations(w io.Writer, violations []lint.Violation, cfg *config.Lint) (hasError bool, err error) {
 	for _, v := range violations {
 		if _, err := fmt.Fprintln(w, v.String()); err != nil {

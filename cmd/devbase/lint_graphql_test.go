@@ -26,12 +26,10 @@ func writeSchema(t *testing.T, sdl string) string {
 	return path
 }
 
-// TestReportViolations confirms lintGraphQL's severity handling, per
-// DT-5506: a violation resolves to "error" severity -- and so should
-// fail the run -- only when its rule is either absent from cfg.Rules
-// (every Tier 1 rule, which scripts/devbase.yaml can never override)
-// or explicitly configured to SeverityError; a rule configured to
-// SeverityWarn is printed but does not by itself fail the run.
+// TestReportViolations confirms reportViolations sets hasError only
+// for a violation whose rule resolves to SeverityError, covering a
+// warn-only run, a run mixing warn and error, and a Tier 1 violation
+// that is never present in the config map.
 func TestReportViolations(t *testing.T) {
 	cases := []struct {
 		name         string
