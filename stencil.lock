@@ -34,6 +34,9 @@ files:
     - name: .gitignore
       template: .gitignore.tpl
       module: github.com/getoutreach/stencil-base
+    - name: .goreleaser.yml
+      template: .goreleaser.yml.tpl
+      module: github.com/getoutreach/stencil-golang
     - name: .prettierignore
       template: .prettierignore.tpl
       module: github.com/getoutreach/stencil-golang
@@ -69,6 +72,9 @@ files:
       module: github.com/getoutreach/stencil-base
     - name: Makefile
       template: Makefile.tpl
+      module: github.com/getoutreach/stencil-golang
+    - name: cmd/devbase/devbase.go
+      template: cmd/main_cli.go.tpl
       module: github.com/getoutreach/stencil-golang
     - name: docs/agents/stencil-commands.md
       template: docs/agents/stencil-commands.md.tpl
