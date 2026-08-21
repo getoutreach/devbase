@@ -3,15 +3,14 @@
 // Description: Discovers *.graphql files and runs Tier 1 spec
 // validation against them via gqlparser.
 
-// Package lint runs the Tier 1 rule tier from RFC 0006
-// (dt-rfcs/rfcs/0006-migrate-graphql-linting-to-go.md) against a
-// repository's *.graphql files: the 9 @graphql-eslint rules that
-// gqlparser/v2 enforces for free while parsing SDL, needing no custom
-// rule code. FindGraphQLFiles discovers the files to lint, respecting
-// scripts/devbase.yaml's exclude patterns; Files parses them as one
-// combined schema via gqlparser.LoadSchema and turns any resulting parse
-// error into a Violation tagged with the Tier 1 rule name it corresponds
-// to, using the classification verified in lint_test.go.
+// Package lint runs the Tier 1 rule tier against a repository's
+// *.graphql files: 9 rules that gqlparser/v2 enforces for free while
+// parsing SDL, needing no custom rule code. FindGraphQLFiles discovers
+// the files to lint, respecting scripts/devbase.yaml's exclude
+// patterns; Files parses them as one combined schema via
+// gqlparser.LoadSchema and turns any resulting parse error into a
+// Violation tagged with the Tier 1 rule name it corresponds to, using
+// the classification verified in lint_test.go.
 //
 // gqlparser.LoadSchema stops at the first validation error it finds, so
 // Files can only ever report one violation per run; fixing it and
@@ -19,11 +18,11 @@
 // would see running gqlparser-based tooling directly.
 //
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest
-// v2.5.x release as of 2026-08-21), not the v2.5.16 RFC 0006's "Extra
-// spec validations" appendix was audited against; that section has an
-// addendum recording the one behavioral difference found while
-// re-verifying against v2.5.36, relevant to the future
-// unique-enum-value-names (Tier 2) gap-fill work.
+// v2.5.x release as of 2026-08-21) so this behavior is stable and
+// reviewable across releases. gqlparser/v2 also performs a set of
+// spec-mandated schema validations beyond the 9 rules classified here
+// (for example, rejecting a reserved "__" name prefix, or a zero-field
+// object type); those surface as violations tagged UnclassifiedRule.
 package lint
 
 import (
@@ -43,13 +42,12 @@ import (
 
 // UnclassifiedRule tags a violation that gqlparser raises while parsing
 // SDL but that does not correspond to one of the 9 named Tier 1 rules --
-// one of the "extra" spec validations documented in RFC 0006's "Extra
-// spec validations performed by gqlparser/v2" section (for example, a
-// reserved "__" name prefix, or a zero-field object type).
+// one of gqlparser's other spec-mandated schema validations (for
+// example, a reserved "__" name prefix, or a zero-field object type).
 const UnclassifiedRule = "gqlparser"
 
-// Violation is a single Tier 1 lint finding, formatted per RFC 0006's
-// output contract: "<file>:<line>:<col>: <message> [<rule>]".
+// Violation is a single Tier 1 lint finding, formatted as
+// "<file>:<line>:<col>: <message> [<rule>]".
 type Violation struct {
 	err  *gqlerror.Error
 	Rule string
@@ -90,8 +88,8 @@ func Files(paths []string) ([]Violation, error) {
 // ruleForMessage classifies a gqlparser schema-validation error message
 // by the Tier 1 rule it corresponds to, using the exact message shapes
 // verified in lint_test.go against the gqlparser/v2 version pinned in
-// go.mod. A message matching none of them is one of gqlparser's "extra"
-// spec validations (RFC 0006) rather than a named Tier 1 rule.
+// go.mod. A message matching none of them is one of gqlparser's other
+// spec validations rather than a named Tier 1 rule.
 func ruleForMessage(msg string) string {
 	switch {
 	case strings.HasPrefix(msg, "Cannot redeclare directive "):

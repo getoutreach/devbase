@@ -46,11 +46,10 @@ var ErrInvalidRuleConfig = errors.New("invalid rule config")
 // severity, and cannot be turned off or downgraded.
 var ErrTier1RuleNotConfigurable = errors.New("tier 1 rule severity cannot be overridden")
 
-// Names of the 9 Tier 1 rules from RFC 0006
-// (dt-rfcs/rfcs/0006-migrate-graphql-linting-to-go.md): spec validations
-// gqlparser performs for free while parsing SDL. Named as constants so
-// internal/graphql/lint can tag violations with the same identifiers
-// this package validates against.
+// Names of the 9 Tier 1 rules: spec validations gqlparser performs for
+// free while parsing SDL. Named as constants so internal/graphql/lint
+// can tag violations with the same identifiers this package validates
+// against.
 const (
 	// RuleUniqueDirectiveNames requires directive definitions to have
 	// unique names.

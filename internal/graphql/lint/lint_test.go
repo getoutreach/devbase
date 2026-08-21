@@ -35,10 +35,10 @@ type tier1Case struct {
 }
 
 // TestLintFilesClassifiesTier1Rules empirically confirms, for each of
-// the 9 Tier 1 rules from RFC 0006, that Files both surfaces a
-// gqlparser parse error for a minimal SDL fixture violating it and tags
-// the resulting Violation with that rule's name, using the gqlparser/v2
-// version pinned in go.mod.
+// the 9 Tier 1 rules, that Files both surfaces a gqlparser parse error
+// for a minimal SDL fixture violating it and tags the resulting
+// Violation with that rule's name, using the gqlparser/v2 version
+// pinned in go.mod.
 func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 	cases := []tier1Case{
 		{
@@ -139,7 +139,7 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 }
 
 // TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap documents
-// the unique-operation-types gap from RFC 0006: gqlparser only rejects
+// a gap in the unique-operation-types rule: gqlparser only rejects
 // multiple schema { } blocks. Two "query:" entries inside a single block
 // parse without error, and gqlparser silently keeps the last one, so
 // Files reports no violation here. A Tier 2 gap-fill pass is
@@ -175,8 +175,8 @@ func TestLintFilesCombinesMultipleFilesIntoOneSchema(t *testing.T) {
 
 // TestLintFilesUnclassifiedRule confirms that a gqlparser schema error
 // outside the 9 named Tier 1 rules -- here, the reserved "__" name
-// prefix from RFC 0006's "Extra spec validations" appendix -- is still
-// reported, tagged with UnclassifiedRule rather than dropped.
+// prefix gqlparser also rejects -- is still reported, tagged with
+// UnclassifiedRule rather than dropped.
 func TestLintFilesUnclassifiedRule(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Foo { __bar: String }`)
