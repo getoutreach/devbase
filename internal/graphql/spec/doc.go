@@ -5,17 +5,10 @@
 
 // Package spec empirically verifies the Tier 1 rule tier from RFC 0006
 // (dt-rfcs/rfcs/0006-migrate-graphql-linting-to-go.md): the 9
-// @graphql-eslint rules that gqlparser/v2 is expected to enforce for free
-// while parsing SDL via gqlparser.LoadSchema, needing no custom lint code.
-//
-// gqlparser_coverage_test.go confirms, for each of the 9 rules, that a
-// minimal SDL fixture violating the rule produces a parse error from
-// gqlparser.LoadSchema. It also confirms the documented
-// unique-operation-types gap: gqlparser rejects multiple `schema { }`
-// blocks, but silently keeps the last of several `query`/`mutation`/
-// `subscription` entries declared within a single `schema { }` block. That
-// within-block case is not covered here and needs the Tier 2 gap-fill pass
-// described in RFC 0006.
+// @graphql-eslint rules that gqlparser/v2 enforces for free while parsing
+// SDL via gqlparser.LoadSchema, needing no custom lint code. See
+// gqlparser_coverage_test.go for the per-rule fixtures and the
+// unique-operation-types gap they document.
 //
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest v2.5.x
 // release as of 2026-08-21), not the v2.5.16 the RFC's appendix was

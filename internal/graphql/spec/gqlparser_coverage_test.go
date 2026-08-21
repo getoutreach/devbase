@@ -15,8 +15,8 @@ import (
 
 // tier1Case is a single Tier 1 rule's minimal SDL fixture: sdl violates
 // exactly the rule under test, and wantErrSubstring is a substring of the
-// gqlparser.LoadSchema error message that confirms the violation was
-// caught for that reason rather than some other one.
+// gqlparser.LoadSchema error confirming the fixture failed for that rule,
+// not some other validation.
 type tier1Case struct {
 	rule             string
 	sdl              string
