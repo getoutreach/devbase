@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-github/v84/github"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v3"
 )
 
 // Devenv is a struct that contains the devenv configuration
