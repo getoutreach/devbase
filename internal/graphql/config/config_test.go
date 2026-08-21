@@ -147,6 +147,13 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
 `,
 			wantErrIs: ErrInvalidRuleConfig,
 		},
+		{
+			name: "tier 1 rule override rejected",
+			rulesYAML: `
+      unique-type-names: warn
+`,
+			wantErrIs: ErrTier1RuleNotConfigurable,
+		},
 	}
 
 	for _, tc := range cases {

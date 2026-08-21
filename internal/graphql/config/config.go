@@ -40,6 +40,43 @@ const (
 // scalar) nor the long form (a [severity, options] sequence).
 var ErrInvalidRuleConfig = errors.New("invalid rule config")
 
+// ErrTier1RuleNotConfigurable is wrapped by the error returned when
+// scripts/devbase.yaml overrides a Tier 1 rule's severity. Tier 1 rules
+// are enforced by gqlparser while parsing SDL, always at "error"
+// severity, and cannot be turned off or downgraded.
+var ErrTier1RuleNotConfigurable = errors.New("tier 1 rule severity cannot be overridden")
+
+// Names of the 9 Tier 1 rules from RFC 0006
+// (dt-rfcs/rfcs/0006-migrate-graphql-linting-to-go.md): spec validations
+// gqlparser performs for free while parsing SDL. Named as constants so
+// internal/graphql/lint can tag violations with the same identifiers
+// this package validates against.
+const (
+	RuleUniqueDirectiveNames       = "unique-directive-names"
+	RuleUniqueFieldDefinitionNames = "unique-field-definition-names"
+	RuleUniqueOperationTypes       = "unique-operation-types"
+	RuleUniqueTypeNames            = "unique-type-names"
+	RuleKnownArgumentNames         = "known-argument-names"
+	RuleKnownDirectives            = "known-directives"
+	RuleKnownTypeNames             = "known-type-names"
+	RuleProvidedRequiredArguments  = "provided-required-arguments"
+	RuleLoneSchemaDefinition       = "lone-schema-definition"
+)
+
+// Tier1RuleNames lists the 9 Tier 1 rule names above, in the order RFC
+// 0006 presents them.
+var Tier1RuleNames = []string{
+	RuleUniqueDirectiveNames,
+	RuleUniqueFieldDefinitionNames,
+	RuleUniqueOperationTypes,
+	RuleUniqueTypeNames,
+	RuleKnownArgumentNames,
+	RuleKnownDirectives,
+	RuleKnownTypeNames,
+	RuleProvidedRequiredArguments,
+	RuleLoneSchemaDefinition,
+}
+
 // RuleConfig is the per-rule override for a single lint rule. It
 // accepts two YAML shapes:
 //
@@ -158,7 +195,23 @@ func Load(startDir string) (*LintConfig, error) {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 
+	if err := validateNoTier1Overrides(fc.GraphQL.Lint.Rules); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+
 	return &fc.GraphQL.Lint, nil
+}
+
+// validateNoTier1Overrides rejects a rule override targeting one of the
+// 9 Tier 1 rules: gqlparser enforces them while parsing SDL, so their
+// severity is always "error" and scripts/devbase.yaml cannot change it.
+func validateNoTier1Overrides(rules map[string]RuleConfig) error {
+	for _, name := range Tier1RuleNames {
+		if _, overridden := rules[name]; overridden {
+			return fmt.Errorf("%w: %s", ErrTier1RuleNotConfigurable, name)
+		}
+	}
+	return nil
 }
 
 // discover walks up from startDir looking for scripts/devbase.yaml,
