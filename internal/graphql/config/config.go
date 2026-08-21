@@ -52,15 +52,40 @@ var ErrTier1RuleNotConfigurable = errors.New("tier 1 rule severity cannot be ove
 // internal/graphql/lint can tag violations with the same identifiers
 // this package validates against.
 const (
-	RuleUniqueDirectiveNames       = "unique-directive-names"
+	// RuleUniqueDirectiveNames requires directive definitions to have
+	// unique names.
+	RuleUniqueDirectiveNames = "unique-directive-names"
+
+	// RuleUniqueFieldDefinitionNames requires fields within a type to
+	// have unique names.
 	RuleUniqueFieldDefinitionNames = "unique-field-definition-names"
-	RuleUniqueOperationTypes       = "unique-operation-types"
-	RuleUniqueTypeNames            = "unique-type-names"
-	RuleKnownArgumentNames         = "known-argument-names"
-	RuleKnownDirectives            = "known-directives"
-	RuleKnownTypeNames             = "known-type-names"
-	RuleProvidedRequiredArguments  = "provided-required-arguments"
-	RuleLoneSchemaDefinition       = "lone-schema-definition"
+
+	// RuleUniqueOperationTypes requires at most one query, mutation,
+	// and subscription root type.
+	RuleUniqueOperationTypes = "unique-operation-types"
+
+	// RuleUniqueTypeNames requires type definitions to have unique
+	// names.
+	RuleUniqueTypeNames = "unique-type-names"
+
+	// RuleKnownArgumentNames requires arguments to be defined in the
+	// schema.
+	RuleKnownArgumentNames = "known-argument-names"
+
+	// RuleKnownDirectives requires directives to be defined and used
+	// in a valid location.
+	RuleKnownDirectives = "known-directives"
+
+	// RuleKnownTypeNames requires referenced types to exist in the
+	// schema.
+	RuleKnownTypeNames = "known-type-names"
+
+	// RuleProvidedRequiredArguments requires required arguments to be
+	// provided.
+	RuleProvidedRequiredArguments = "provided-required-arguments"
+
+	// RuleLoneSchemaDefinition allows at most one schema definition.
+	RuleLoneSchemaDefinition = "lone-schema-definition"
 )
 
 // Tier1RuleNames returns the 9 Tier 1 rule names above, in the order RFC
