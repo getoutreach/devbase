@@ -41,11 +41,11 @@ func (v Violation) String() string {
 	return fmt.Sprintf("%s [%s]", v.err.Error(), v.Rule)
 }
 
-// LintFiles parses paths as one combined GraphQL schema and returns the
+// Files parses paths as one combined GraphQL schema and returns the
 // Tier 1 violation gqlparser raised, if any. Files are read and parsed
 // together, not independently, so that a type defined in one file is
 // visible when validating a reference to it in another.
-func LintFiles(paths []string) ([]Violation, error) {
+func Files(paths []string) ([]Violation, error) {
 	sources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -106,7 +106,7 @@ func ruleForMessage(msg string) string {
 // recursively. Patterns are matched with doublestar semantics ("**"
 // matches zero or more path segments), consistent with the exclude
 // examples in scripts/devbase.yaml.
-func FindGraphQLFiles(paths []string, excludes []string) ([]string, error) {
+func FindGraphQLFiles(paths, excludes []string) ([]string, error) {
 	var files []string
 	for _, root := range paths {
 		info, err := os.Stat(root)

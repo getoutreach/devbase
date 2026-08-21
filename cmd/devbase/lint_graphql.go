@@ -67,13 +67,15 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("find graphql files: %w", err)
 	}
 
-	violations, err := lint.LintFiles(files)
+	violations, err := lint.Files(files)
 	if err != nil {
 		return fmt.Errorf("lint graphql files: %w", err)
 	}
 
 	for _, v := range violations {
-		fmt.Fprintln(c.Writer, v.String())
+		if _, err := fmt.Fprintln(c.Writer, v.String()); err != nil {
+			return fmt.Errorf("write violation: %w", err)
+		}
 	}
 	if len(violations) > 0 {
 		return cli.Exit("", 1)

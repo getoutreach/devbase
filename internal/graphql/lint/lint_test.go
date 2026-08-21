@@ -35,7 +35,7 @@ type tier1Case struct {
 }
 
 // TestLintFilesClassifiesTier1Rules empirically confirms, for each of
-// the 9 Tier 1 rules from RFC 0006, that LintFiles both surfaces a
+// the 9 Tier 1 rules from RFC 0006, that Files both surfaces a
 // gqlparser parse error for a minimal SDL fixture violating it and tags
 // the resulting Violation with that rule's name, using the gqlparser/v2
 // version pinned in go.mod.
@@ -129,7 +129,7 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			dir := t.TempDir()
 			path := writeFile(t, dir, "schema.graphql", c.sdl)
 
-			violations, err := LintFiles([]string{path})
+			violations, err := Files([]string{path})
 			assert.NilError(t, err)
 			assert.Equal(t, len(violations), 1)
 			assert.Equal(t, violations[0].Rule, c.rule)
@@ -142,7 +142,7 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 // the unique-operation-types gap from RFC 0006: gqlparser only rejects
 // multiple schema { } blocks. Two "query:" entries inside a single block
 // parse without error, and gqlparser silently keeps the last one, so
-// LintFiles reports no violation here. A Tier 2 gap-fill pass is
+// Files reports no violation here. A Tier 2 gap-fill pass is
 // required to flag this case (matching @graphql-eslint's behavior).
 func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
 	dir := t.TempDir()
@@ -155,20 +155,20 @@ func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
 		type OtherQuery { a: String }
 	`)
 
-	violations, err := LintFiles([]string{path})
+	violations, err := Files([]string{path})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
 
 // TestLintFilesCombinesMultipleFilesIntoOneSchema confirms that
-// LintFiles parses its inputs as a single schema, so a type defined in
+// Files parses its inputs as a single schema, so a type defined in
 // one file is visible when validating a reference to it in another.
 func TestLintFilesCombinesMultipleFilesIntoOneSchema(t *testing.T) {
 	dir := t.TempDir()
 	typesPath := writeFile(t, dir, "types.graphql", `type Foo { a: String }`)
 	queryPath := writeFile(t, dir, "query.graphql", `type Query { foo: Foo }`)
 
-	violations, err := LintFiles([]string{typesPath, queryPath})
+	violations, err := Files([]string{typesPath, queryPath})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -181,7 +181,7 @@ func TestLintFilesUnclassifiedRule(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Foo { __bar: String }`)
 
-	violations, err := LintFiles([]string{path})
+	violations, err := Files([]string{path})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, UnclassifiedRule)

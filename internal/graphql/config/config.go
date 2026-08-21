@@ -63,18 +63,20 @@ const (
 	RuleLoneSchemaDefinition       = "lone-schema-definition"
 )
 
-// Tier1RuleNames lists the 9 Tier 1 rule names above, in the order RFC
+// Tier1RuleNames returns the 9 Tier 1 rule names above, in the order RFC
 // 0006 presents them.
-var Tier1RuleNames = []string{
-	RuleUniqueDirectiveNames,
-	RuleUniqueFieldDefinitionNames,
-	RuleUniqueOperationTypes,
-	RuleUniqueTypeNames,
-	RuleKnownArgumentNames,
-	RuleKnownDirectives,
-	RuleKnownTypeNames,
-	RuleProvidedRequiredArguments,
-	RuleLoneSchemaDefinition,
+func Tier1RuleNames() []string {
+	return []string{
+		RuleUniqueDirectiveNames,
+		RuleUniqueFieldDefinitionNames,
+		RuleUniqueOperationTypes,
+		RuleUniqueTypeNames,
+		RuleKnownArgumentNames,
+		RuleKnownDirectives,
+		RuleKnownTypeNames,
+		RuleProvidedRequiredArguments,
+		RuleLoneSchemaDefinition,
+	}
 }
 
 // RuleConfig is the per-rule override for a single lint rule. It
@@ -206,7 +208,7 @@ func Load(startDir string) (*LintConfig, error) {
 // 9 Tier 1 rules: gqlparser enforces them while parsing SDL, so their
 // severity is always "error" and scripts/devbase.yaml cannot change it.
 func validateNoTier1Overrides(rules map[string]RuleConfig) error {
-	for _, name := range Tier1RuleNames {
+	for _, name := range Tier1RuleNames() {
 		if _, overridden := rules[name]; overridden {
 			return fmt.Errorf("%w: %s", ErrTier1RuleNotConfigurable, name)
 		}
