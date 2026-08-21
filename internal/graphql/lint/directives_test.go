@@ -17,7 +17,35 @@ import (
 // gapFillDirectivesPerLocation exists to catch.
 const nonRepeatableDirective = `directive @foo on OBJECT | SCHEMA`
 
+// enableRule returns a Lint config with rule set to SeverityError, the
+// minimum scripts/devbase.yaml entry needed to turn a Tier 2 or Tier 3
+// rule on: neither runs by default (config.Lint.Enabled), matching
+// @graphql-eslint's own behavior of a rule staying inert until a config
+// opts into it.
+func enableRule(rule string) *config.Lint {
+	return &config.Lint{Rules: map[string]config.Rule{rule: {Severity: config.SeverityError}}}
+}
+
 func TestGapFillDirectivesPerLocationOnSameTypeDefinition(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", nonRepeatableDirective+`
+		type Foo @foo @foo {
+			a: String
+		}
+	`)
+
+	violations, err := Files([]string{path}, enableRule(config.RuleUniqueDirectiveNamesPerLocation))
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 1)
+	assert.Equal(t, violations[0].Rule, config.RuleUniqueDirectiveNamesPerLocation)
+	assert.ErrorContains(t, violations[0].err, `The directive "@foo" can only be used once at this location.`)
+}
+
+// TestGapFillDirectivesPerLocationDisabledByDefault confirms the same
+// violation as TestGapFillDirectivesPerLocationOnSameTypeDefinition is not
+// reported when scripts/devbase.yaml never enables the rule -- including
+// when cfg is nil, i.e. no config file was found at all.
+func TestGapFillDirectivesPerLocationDisabledByDefault(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", nonRepeatableDirective+`
 		type Foo @foo @foo {
@@ -27,9 +55,13 @@ func TestGapFillDirectivesPerLocationOnSameTypeDefinition(t *testing.T) {
 
 	violations, err := Files([]string{path}, nil)
 	assert.NilError(t, err)
-	assert.Equal(t, len(violations), 1)
-	assert.Equal(t, violations[0].Rule, config.RuleUniqueDirectiveNamesPerLocation)
-	assert.ErrorContains(t, violations[0].err, `The directive "@foo" can only be used once at this location.`)
+	assert.Equal(t, len(violations), 0)
+
+	violations, err = Files([]string{path}, &config.Lint{
+		Rules: map[string]config.Rule{config.RuleUniqueDirectiveNamesPerLocation: {Severity: config.SeverityOff}},
+	})
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
 }
 
 // TestGapFillDirectivesPerLocationSplitAcrossExtension confirms the gap
@@ -50,7 +82,7 @@ func TestGapFillDirectivesPerLocationSplitAcrossExtension(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RuleUniqueDirectiveNamesPerLocation))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, config.RuleUniqueDirectiveNamesPerLocation)
@@ -66,7 +98,7 @@ func TestGapFillDirectivesPerLocationOnSchemaSplitAcrossExtension(t *testing.T) 
 		type Query { a: String }
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RuleUniqueDirectiveNamesPerLocation))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, config.RuleUniqueDirectiveNamesPerLocation)
@@ -81,7 +113,7 @@ func TestGapFillDirectivesPerLocationRepeatableDirectiveNeverFlagged(t *testing.
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RuleUniqueDirectiveNamesPerLocation))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -100,7 +132,7 @@ func TestGapFillDirectivesPerLocationDifferentTypesEachOnce(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RuleUniqueDirectiveNamesPerLocation))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -120,7 +152,9 @@ func TestGapFillDirectivesPerLocationFederationDirectivesNeverFalsePositive(t *t
 		}
 	`)
 
-	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+	cfg := enableRule(config.RuleUniqueDirectiveNamesPerLocation)
+	cfg.Federation = "v2.3"
+	violations, err := Files([]string{path}, cfg)
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -134,11 +168,28 @@ func TestGapFillPossibleTypeExtensionOfUndefinedTypeFails(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RulePossibleTypeExtension))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, config.RulePossibleTypeExtension)
 	assert.ErrorContains(t, violations[0].err, `Cannot extend type "Missing" because it is not defined.`)
+}
+
+// TestGapFillPossibleTypeExtensionDisabledByDefault confirms the same
+// violation as TestGapFillPossibleTypeExtensionOfUndefinedTypeFails is not
+// reported when scripts/devbase.yaml never enables the rule.
+func TestGapFillPossibleTypeExtensionDisabledByDefault(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", `
+		type Query { a: String }
+		extend type Missing {
+			b: String
+		}
+	`)
+
+	violations, err := Files([]string{path}, nil)
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
 }
 
 func TestGapFillPossibleTypeExtensionOfDefinedTypePasses(t *testing.T) {
@@ -151,7 +202,7 @@ func TestGapFillPossibleTypeExtensionOfDefinedTypePasses(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RulePossibleTypeExtension))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -172,7 +223,7 @@ func TestGapFillPossibleTypeExtensionReportsEveryExtensionOfAnUndefinedType(t *t
 		}
 	`)
 
-	violations, err := Files([]string{path}, nil)
+	violations, err := Files([]string{path}, enableRule(config.RulePossibleTypeExtension))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 2)
 	for _, v := range violations {
@@ -192,7 +243,9 @@ func TestGapFillPossibleTypeExtensionOfScalarsPreludeTypePasses(t *testing.T) {
 		extend scalar JSON @foo
 	`)
 
-	violations, err := Files([]string{path}, &config.Lint{Scalars: []string{"JSON"}})
+	cfg := enableRule(config.RulePossibleTypeExtension)
+	cfg.Scalars = []string{"JSON"}
+	violations, err := Files([]string{path}, cfg)
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }

@@ -39,6 +39,16 @@
 // answer this, since it holds the synthesized placeholder indistinguishably
 // from a real definition, so this pass reads parsed.doc.Definitions and
 // parsed.doc.Extensions instead.
+//
+// Unlike Tier 1, neither rule runs unless scripts/devbase.yaml enables it
+// (config.Lint.Enabled): @graphql-eslint's own upstream config
+// generation excludes both from every preset it ships, including the
+// permissive "all" preset (isDisabledForAllConfig in
+// packages/plugin/src/rules/graphql-js-validation.js, @graphql-eslint/
+// eslint-plugin@3.20.1), so a repo adopting devbase graphql lint should
+// see the same clean slate it would adopting @graphql-eslint fresh,
+// rather than two rules no @graphql-eslint config anyone was using ever
+// enabled.
 
 package lint
 
@@ -50,8 +60,13 @@ import (
 
 // gapFillDirectivesPerLocation reports a RuleUniqueDirectiveNamesPerLocation
 // violation for every non-repeatable directive used more than once at a
-// single location: the schema or a named type.
-func gapFillDirectivesPerLocation(parsed *parsedSchema) []Violation {
+// single location: the schema or a named type. It reports nothing unless
+// cfg enables the rule -- see config.Lint.Enabled.
+func gapFillDirectivesPerLocation(parsed *parsedSchema, cfg *config.Lint) []Violation {
+	if !cfg.Enabled(config.RuleUniqueDirectiveNamesPerLocation) {
+		return nil
+	}
+
 	violations := nonRepeatableDuplicates(parsed.schema, parsed.schema.SchemaDirectives)
 
 	checked := make(map[string]bool, len(parsed.doc.Definitions))
@@ -106,8 +121,13 @@ func nonRepeatableDuplicates(schema *ast.Schema, dirs ast.DirectiveList) []Viola
 // never actually defined in parsed.doc.Definitions -- which, as
 // parseAndValidate builds it, includes the repository's own SDL,
 // gqlparser's built-in prelude, and any federation- or
-// scalars-synthesized prelude.
-func gapFillPossibleTypeExtension(parsed *parsedSchema) []Violation {
+// scalars-synthesized prelude. It reports nothing unless cfg enables the
+// rule -- see config.Lint.Enabled.
+func gapFillPossibleTypeExtension(parsed *parsedSchema, cfg *config.Lint) []Violation {
+	if !cfg.Enabled(config.RulePossibleTypeExtension) {
+		return nil
+	}
+
 	defined := make(map[string]bool, len(parsed.doc.Definitions))
 	for _, def := range parsed.doc.Definitions {
 		defined[def.Name] = true

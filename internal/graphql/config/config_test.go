@@ -232,3 +232,30 @@ func TestMergeExcludesWithNoExtraReturnsConfigExcludes(t *testing.T) {
 	c := &Lint{Exclude: []string{"**/shared.graphql"}}
 	assert.DeepEqual(t, c.MergeExcludes(), []string{"**/shared.graphql"})
 }
+
+func TestEnabledIsFalseByDefault(t *testing.T) {
+	var nilConfig *Lint
+	assert.Equal(t, nilConfig.Enabled("possible-type-extension"), false)
+
+	c := &Lint{}
+	assert.Equal(t, c.Enabled("possible-type-extension"), false)
+}
+
+func TestEnabledRequiresAnExplicitNonOffSeverity(t *testing.T) {
+	cases := []struct {
+		name     string
+		severity Severity
+		want     bool
+	}{
+		{name: "off", severity: SeverityOff, want: false},
+		{name: "warn", severity: SeverityWarn, want: true},
+		{name: "error", severity: SeverityError, want: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Lint{Rules: map[string]Rule{"possible-type-extension": {Severity: tc.severity}}}
+			assert.Equal(t, c.Enabled("possible-type-extension"), tc.want)
+		})
+	}
+}

@@ -116,8 +116,8 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 		return []Violation{*tier1Violation}, nil
 	}
 
-	violations := gapFillDirectivesPerLocation(parsed)
-	violations = append(violations, gapFillPossibleTypeExtension(parsed)...)
+	violations := gapFillDirectivesPerLocation(parsed, cfg)
+	violations = append(violations, gapFillPossibleTypeExtension(parsed, cfg)...)
 	return violations, nil
 }
 
