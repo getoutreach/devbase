@@ -441,14 +441,10 @@ func TestDescriptionStyleIgnoresNestedDefaultValueObjectAndList(t *testing.T) {
 }
 
 // TestDescriptionStyleMultiLineBlockDescriptionReportsCorrectPosition
-// confirms the violation location for a multi-line block description
-// names the line the description itself starts on, not some other
-// line -- and never a negative column. gqlparser/v2's own lexer sets a
-// multi-line BlockString token's Pos.Line/Pos.Column only after
-// scanning to its closing """, so trusting them as-is would misreport
-// the position of the overwhelming majority of real-world descriptions
-// (almost never single-line); descriptionTokens must recompute them
-// from the token's Pos.Start instead.
+// confirms the reported line is where the description starts, not
+// where it ends, and the column is never negative -- see
+// descriptionTokens' comment on gqlparser/v2's BlockString position
+// bug.
 func TestDescriptionStyleMultiLineBlockDescriptionReportsCorrectPosition(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", "type Query { a: String }\n"+
@@ -494,15 +490,11 @@ func TestDescriptionStyleFieldArgumentDescriptionChecked(t *testing.T) {
 // TestDescriptionStyleExtensionFieldInDifferentFileFromBaseType confirms
 // a description on a field (and that field's own argument) added via
 // "extend type" in one file is matched to the right token even when the
-// base type is defined in a different file. validator.ValidateSchemaDocument
-// merges an extension's fields into the base type's Definition.Fields in
-// place, but each field keeps its own original Position -- pointing at
-// the extension's file, not the base type's -- so grouping sites by the
-// base Definition's own file (rather than each field's own file) would
-// wrongly search the base type's file for tokens that are actually in the
-// extension's file. This is exactly the shape of giraffe's real schema
-// (e.g. "extend type Query { accounts(limit: Int ...) }" in one module
-// file, with "type Query" itself defined in another).
+// base type is defined in a different file -- see groupDescriptionSites'
+// doc.Extensions loop for why a merged field keeps its own Position.Src.
+// This is the shape of giraffe's real schema, e.g. "extend type Query {
+// accounts(...) }" in one module file, with "type Query" itself defined
+// elsewhere.
 func TestDescriptionStyleExtensionFieldInDifferentFileFromBaseType(t *testing.T) {
 	dir := t.TempDir()
 	basePath := writeFile(t, dir, "base.graphql", `type Query { a: String }`)

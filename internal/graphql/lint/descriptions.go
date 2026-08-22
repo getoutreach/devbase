@@ -8,33 +8,23 @@
 // description in a schema must use the same quoting style: inline
 // "..." or block """...""").
 //
-// Both rules need to know, for every type/field/argument/enum
-// value/directive definition, whether it carries a description and --
-// for description-style -- whether that description was written
-// inline or as a block string. ast.Definition and friends only expose
-// the decoded Description text, not which quoting style produced it,
-// so this file re-derives that from each file's own raw source text
-// rather than from the shared multi-file parsedSchema Files already
-// built for Tier 1/Tier 2: groupDescriptionSites walks parsed.doc's
-// Definitions, Extensions, Directives, and Schema entries once and
-// buckets each by its own Position.Src (pointer equality, since every
-// AST node's Position.Src is the exact *ast.Source Files read that
-// file into) -- tier3Descriptions then pairs each file's non-empty
-// descriptions, in the order their owning nodes appear in that file's
-// bucket, with the String/BlockString tokens descriptionTokens finds
-// scanning that file's raw source, in the same order.
+// description-style needs to know whether each description was
+// written inline or as a block string, but ast.Definition and friends
+// only expose the decoded text, not which quoting style produced it.
+// This file recovers that by re-lexing each file's own raw source
+// (descriptionTokens) and pairing the resulting tokens back up with
+// the parsed schema's description-bearing nodes (groupDescriptionSites),
+// in the order both appear in that file.
 //
 // descriptionTokens' scan has to tell a description string apart from
 // every other string literal SDL allows: a field/argument default
 // value (`= "x"`) and a directive usage argument (`@dir(arg: "x")`),
 // including either nested inside a list or input object literal. Both
-// of those are only ever reachable from a "=" token or from a ":"
-// token inside a directive usage's own argument list (tracked via
-// paren depth) -- a description is never preceded by either token, so
-// excluding whatever those introduce (skipValue, which walks past
-// exactly one Value production, recursing through matching brackets or
-// braces) leaves exactly the description candidates behind, in file
-// order.
+// are only reachable from a "=" token or a ":" inside a directive
+// usage's own argument list, and a description is never preceded by
+// either -- so skipValue, which walks past one Value production
+// (recursing through matching brackets or braces), can exclude them
+// and leave exactly the description candidates.
 
 package lint
 
@@ -81,13 +71,10 @@ type descriptionSite struct {
 	// has none.
 	description string
 
-	// pos anchors both the require-description violation location and
-	// the order groupDescriptionSites sorts one file's sites into, for
-	// matching against descriptionTokens. It is always the node's own
-	// Name position (or, for a schema definition, the "schema"
-	// keyword's following position) -- gqlparser sets it there
-	// regardless of whether a description preceded it, so it is stable
-	// to sort by even for nodes with no description.
+	// pos anchors the require-description violation location, and the
+	// order groupDescriptionSites sorts a file's sites into for pairing
+	// with descriptionTokens. It is always the node's own Name
+	// position, set regardless of whether a description preceded it.
 	pos *ast.Position
 
 	// optionKind is which require-description option this site's kind
@@ -182,9 +169,9 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 
 // groupDescriptionSites collects every descriptionSite in doc, grouped
 // by the *ast.Source it was written in (each site's own Position.Src),
-// with each group sorted by pos.Start -- the file order descriptionTokens'
-// scan of that same source produces, which tier3Descriptions relies on
-// to pair the two up.
+// with each group sorted by pos.Start -- the same file order
+// descriptionTokens produces, which tier3Descriptions relies on to
+// pair the two up.
 func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]bool) map[*ast.Source][]descriptionSite {
 	sites := make(map[*ast.Source][]descriptionSite)
 	add := func(src *ast.Source, s descriptionSite) {
@@ -192,22 +179,17 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 	}
 
 	addFields := func(def *ast.Definition) {
-		// Bucket each field/argument/enum value by its own Position.Src,
-		// not def.Position.Src: validator.ValidateSchemaDocument merges
-		// an extension's Fields and EnumValues into its base type's own
-		// Definition in place, so def.Fields can hold entries actually
-		// written in a different file than def itself (wherever the
-		// extension adding them lives) -- each keeps its own accurate
-		// Position from wherever it was actually written, which is what
-		// must decide which file's bucket it belongs in.
+		// Each field/argument/enum value is bucketed by its own
+		// Position.Src, not def.Position.Src -- see the doc.Extensions
+		// loop below for why they can differ.
 		parentLabel := fmt.Sprintf("%s %q", typeKindLabel(def.Kind), def.Name)
 		for _, f := range def.Fields {
 			if f.Position == nil {
 				// validator.ValidateSchemaDocument injects the __schema and
 				// __type introspection meta-fields into the Query root
-				// type's own Fields, with no Position of their own since
-				// they were never written in any file's SDL -- skip them,
-				// there's nothing here for either rule to check.
+				// type's Fields, with no Position of their own since they
+				// were never written in any file's SDL -- skip them,
+				// there's nothing to check.
 				continue
 			}
 
@@ -248,20 +230,17 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 	}
 	for _, def := range doc.Extensions {
 		// validator.ValidateSchemaDocument merges an extension's Fields
-		// and EnumValues into its base type's own Definition in place
-		// (each field/enum value keeps its own original Position, from
-		// wherever it was actually written), so the doc.Definitions loop
-		// above already walked every field an extension of an existing
-		// type adds -- addFields here would double-count them. Only an
-		// extension of a type with no base definition at all (itself an
-		// undefined-type violation Tier 2's possible-type-extension gap-fill
-		// flags, if enabled) has fields that exist nowhere else.
+		// and EnumValues into its base type's own Definition.Fields in
+		// place, each keeping its own original Position -- so the
+		// doc.Definitions loop above already walked every field an
+		// extension of an existing type adds; addFields here would
+		// double-count them. Only an extension of a type with no base
+		// definition at all has fields that exist nowhere else.
 		//
-		// A type extension can never carry its own description --
-		// gqlparser's parser rejects one the same way it rejects any
-		// other description before "extend" -- but the fields and enum
-		// values it adds can, so still walk those (for the undefined-base
-		// case).
+		// An extension can never carry its own description -- gqlparser
+		// rejects one the same way it rejects any description before
+		// "extend" -- but its fields and enum values can, so those still
+		// need walking for the undefined-base case.
 		if !hasBaseDefinition[def.Name] {
 			addFields(def)
 		}
@@ -440,12 +419,9 @@ func descriptionStyleViolations(sites []descriptionSite, tokens []lexer.Token, o
 }
 
 // descriptionTokens scans src's raw source for every String or
-// BlockString token that is a description -- excluding every other
-// string literal SDL allows: a default value (`= "x"`, or nested in a
-// default list/object) and a directive usage's argument value
-// (`@dir(arg: "x")`, similarly possibly nested) -- in file order. See
-// this file's package-level doc comment for why that's sufficient to
-// tell the two apart.
+// BlockString token that is a description, in file order, excluding
+// default values and directive usage arguments -- see this file's
+// package doc comment for how it tells them apart.
 func descriptionTokens(src *ast.Source) ([]lexer.Token, error) {
 	lx := lexer.New(src)
 
@@ -465,12 +441,11 @@ func descriptionTokens(src *ast.Source) ([]lexer.Token, error) {
 	}
 
 	// directiveArgsActive tracks whether i is inside a directive usage's
-	// own "(...)" argument list -- entered via a "@Name(" token
-	// sequence, exited on the very next ParenR. A single flag, with no
-	// depth counter, is enough: a directive usage's arguments are
-	// Values, and no Value production can itself contain a "(" (lists
-	// use "[...]", input objects use "{...}"), so no further ParenL can
-	// occur before the one ParenR that closes this argument list.
+	// "(...)" argument list -- entered on a "@Name(" sequence, exited on
+	// the next ParenR. No depth counter is needed: a directive usage's
+	// arguments are Values, and no Value production contains "("
+	// (lists use "[...]", input objects use "{...}"), so no further
+	// ParenL can occur before the one ParenR that closes this list.
 	var descriptions []lexer.Token
 	directiveArgsActive := false
 
@@ -498,18 +473,14 @@ func descriptionTokens(src *ast.Source) ([]lexer.Token, error) {
 		}
 	}
 
-	// gqlparser/v2's own lexer computes a BlockString token's Pos.Line
-	// and Pos.Column only after scanning all the way to its closing
-	// """ -- by which point its internal line-tracking has moved past
-	// every line the block string itself spans, so for one spanning more
-	// than one line (the overwhelming majority of real descriptions),
-	// Pos.Line names the closing """'s line, not the opening one, and
-	// Pos.Column is frequently negative. Pos.Start (a rune offset) is
-	// unaffected, so recompute Line/Column from that instead of trusting
-	// the lexer's own values. This is a workaround for a gqlparser/v2 bug
-	// (verified against v2.5.36, the version go.mod pins), not a
-	// permanent design choice -- drop it if a future gqlparser/v2 upgrade
-	// fixes BlockString's own Pos.Line/Pos.Column.
+	// gqlparser/v2's lexer sets a BlockString token's Pos.Line/Pos.Column
+	// only after scanning to its closing """, so for one spanning more
+	// than one line -- the common case for a real description -- they
+	// name the closing line, not the opening one, and the column is
+	// often negative. Pos.Start (a rune offset) is unaffected, so
+	// recompute Line/Column from that instead. This works around a
+	// gqlparser/v2 bug verified against v2.5.36 (go.mod's pinned
+	// version); drop it once gqlparser fixes BlockString's own position.
 	starts := lineStarts(src.Input)
 	for i := range descriptions {
 		descriptions[i].Pos.Line, descriptions[i].Pos.Column = linePosition(starts, descriptions[i].Pos.Start)
@@ -519,14 +490,11 @@ func descriptionTokens(src *ast.Source) ([]lexer.Token, error) {
 
 // lineStarts returns the rune offset of the first rune of each line in
 // input; line i (1-indexed) starts at starts[i-1]. A line break is a
-// "\r", optionally followed by "\n", or a lone "\n" -- gqlparser/v2's
-// own lexer (lexer.go's ws() and readBlockString()) recognizes exactly
-// the same 3 forms, one line break each, so this line numbering agrees
-// with the Pos.Line values gqlparser sets everywhere except the
-// BlockString case linePosition works around. Offsets are counted in
-// runes, not bytes, to match ast.Position.Start; walking input as UTF-8
-// runes directly (rather than converting it to a []rune first) avoids
-// allocating a full copy of the file for this.
+// "\r", optionally followed by "\n", or a lone "\n" -- the same 3 forms
+// gqlparser/v2's own lexer recognizes, so this numbering matches its
+// Pos.Line elsewhere. Offsets are in runes, matching ast.Position.Start;
+// walking input as UTF-8 directly, rather than converting it to a
+// []rune first, avoids copying the whole file.
 func lineStarts(input string) []int {
 	starts := make([]int, 1, len(input)/40+1)
 	runeIdx := 0
