@@ -3,21 +3,22 @@
 // Description: Discovers *.graphql files and runs Tier 1 spec
 // validation against them via gqlparser.
 
-// Package lint runs the Tier 1 and Tier 2 rule tiers against a
-// repository's *.graphql files. Tier 1 is 10 rules that gqlparser/v2
-// enforces for free while parsing SDL, needing no custom rule code.
-// FindGraphQLFiles discovers the files to lint, respecting
-// scripts/devbase.yaml's exclude patterns; Files parses them as one
-// combined schema and turns any resulting parse error into a Violation
-// tagged with the Tier 1 rule name it corresponds to, using the
-// classification verified in lint_test.go.
+// Package lint runs the Tier 1, Tier 2, and (so far, partially) Tier 3
+// rule tiers against a repository's *.graphql files. Tier 1 is 10
+// rules that gqlparser/v2 enforces for free while parsing SDL, needing
+// no custom rule code. FindGraphQLFiles discovers the files to lint,
+// respecting scripts/devbase.yaml's exclude patterns; Files parses
+// them as one combined schema and turns any resulting parse error into
+// a Violation tagged with the Tier 1 rule name it corresponds to,
+// using the classification verified in lint_test.go.
 //
 // Schema validation stops at the first Tier 1 error it finds, so Files
 // can only ever report one Tier 1 violation per run; fixing it and
 // re-running surfaces the next one, the same behavior a contributor
 // would see running gqlparser-based tooling directly. Once a schema
 // validates cleanly, Files runs the Tier 2 gap-fill passes
-// (directives.go) against it and can report any number of their
+// (directives.go) and the Tier 3 custom rules implemented so far
+// (descriptions.go) against it and can report any number of their
 // violations in one run, since those are ordinary Go code walking the
 // parsed schema rather than a stop-at-first-error parser.
 //
@@ -83,16 +84,16 @@ func (v Violation) String() string {
 // merged into the parsed sources before validation; a nil cfg parses
 // paths exactly as written, with no merged prelude.
 func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
-	sources := make([]*ast.Source, 0, len(paths))
+	fileSources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", path, err)
 		}
-		sources = append(sources, &ast.Source{Name: path, Input: string(data)})
+		fileSources = append(fileSources, &ast.Source{Name: path, Input: string(data)})
 	}
 
-	extraSources, err := preludeSources(sources, cfg)
+	extraSources, err := preludeSources(fileSources, cfg)
 	if err != nil {
 		// preludeSources parses paths' own files looking for @link, so a
 		// plain syntax error can surface here instead of from
@@ -106,6 +107,9 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 		}
 		return nil, err
 	}
+
+	sources := make([]*ast.Source, 0, len(fileSources)+len(extraSources))
+	sources = append(sources, fileSources...)
 	sources = append(sources, extraSources...)
 
 	parsed, tier1Violation, err := parseAndValidate(sources)
@@ -118,6 +122,13 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 
 	violations := gapFillDirectivesPerLocation(parsed, cfg)
 	violations = append(violations, gapFillPossibleTypeExtension(parsed, cfg)...)
+
+	tier3Violations, err := tier3Descriptions(fileSources, parsed, cfg)
+	if err != nil {
+		return nil, err
+	}
+	violations = append(violations, tier3Violations...)
+
 	return violations, nil
 }
 

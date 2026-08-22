@@ -137,6 +137,27 @@ const (
 	RulePossibleTypeExtension = "possible-type-extension"
 )
 
+// Names of 2 (of 10) Tier 3 custom style/convention rules implemented
+// so far. Unlike Tier 1 and Tier 2, no part of a Tier 3 rule is
+// enforced by gqlparser -- each is entirely custom Go code. Like the
+// Tier 2 gap-fill rules above, a Tier 3 rule never runs unless
+// scripts/devbase.yaml gives it a severity other than SeverityOff --
+// see Lint.Enabled. Each rule's options (for example
+// require-description's "types" and "FieldDefinition" keys) are read
+// from Rule.Options by internal/graphql/lint/descriptions.go, not
+// validated here -- this package treats every rule's options as
+// opaque, leaving their shape to the rule implementation.
+const (
+	// RuleRequireDescription requires a description on the kinds of
+	// definition its options enable it for.
+	RuleRequireDescription = "require-description"
+
+	// RuleDescriptionStyle requires every description in a schema to
+	// use the same quoting style: inline "..." or block """...""",
+	// per its "style" option.
+	RuleDescriptionStyle = "description-style"
+)
+
 // Rule is the per-rule override for a single lint rule. It accepts
 // two YAML shapes:
 //
@@ -294,6 +315,16 @@ func (c *Lint) SeverityOf(rule string) Severity {
 		return rc.Severity
 	}
 	return SeverityError
+}
+
+// Options returns rule's Rule.Options, or nil if c is nil or has no
+// override for rule -- the rule's options are opaque to this package,
+// which leaves their shape to the rule implementation.
+func (c *Lint) Options(rule string) map[string]any {
+	if c == nil {
+		return nil
+	}
+	return c.Rules[rule].Options
 }
 
 // fileConfig mirrors the top-level shape of scripts/devbase.yaml.
