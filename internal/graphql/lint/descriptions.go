@@ -43,6 +43,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -191,7 +192,14 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 	}
 
 	addFields := func(def *ast.Definition) {
-		src := def.Position.Src
+		// Bucket each field/argument/enum value by its own Position.Src,
+		// not def.Position.Src: validator.ValidateSchemaDocument merges
+		// an extension's Fields and EnumValues into its base type's own
+		// Definition in place, so def.Fields can hold entries actually
+		// written in a different file than def itself (wherever the
+		// extension adding them lives) -- each keeps its own accurate
+		// Position from wherever it was actually written, which is what
+		// must decide which file's bucket it belongs in.
 		parentLabel := fmt.Sprintf("%s %q", typeKindLabel(def.Kind), def.Name)
 		for _, f := range def.Fields {
 			if f.Position == nil {
@@ -204,9 +212,9 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 			}
 
 			if def.Kind == ast.InputObject {
-				add(src, inputValueSite(f.Description, f.Position, f.Name, parentLabel))
+				add(f.Position.Src, inputValueSite(f.Description, f.Position, f.Name, parentLabel))
 			} else {
-				add(src, descriptionSite{
+				add(f.Position.Src, descriptionSite{
 					description: f.Description, pos: f.Position,
 					optionKind: optionFieldDefinition, name: f.Name,
 					kindLabel: "field", parentLabel: parentLabel,
@@ -216,11 +224,11 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 
 			fieldLabel := fmt.Sprintf("field %q", f.Name)
 			for _, arg := range f.Arguments {
-				add(src, inputValueSite(arg.Description, arg.Position, arg.Name, fieldLabel))
+				add(arg.Position.Src, inputValueSite(arg.Description, arg.Position, arg.Name, fieldLabel))
 			}
 		}
 		for _, ev := range def.EnumValues {
-			add(src, descriptionSite{
+			add(ev.Position.Src, descriptionSite{
 				description: ev.Description, pos: ev.Position,
 				optionKind: optionEnumValueDefinition, name: ev.Name,
 				kindLabel: "enum value", parentLabel: parentLabel,
@@ -489,7 +497,69 @@ func descriptionTokens(src *ast.Source) ([]lexer.Token, error) {
 			i++
 		}
 	}
+
+	// gqlparser/v2's own lexer computes a BlockString token's Pos.Line
+	// and Pos.Column only after scanning all the way to its closing
+	// """ -- by which point its internal line-tracking has moved past
+	// every line the block string itself spans, so for one spanning more
+	// than one line (the overwhelming majority of real descriptions),
+	// Pos.Line names the closing """'s line, not the opening one, and
+	// Pos.Column is frequently negative. Pos.Start (a rune offset) is
+	// unaffected, so recompute Line/Column from that instead of trusting
+	// the lexer's own values. This is a workaround for a gqlparser/v2 bug
+	// (verified against v2.5.36, the version go.mod pins), not a
+	// permanent design choice -- drop it if a future gqlparser/v2 upgrade
+	// fixes BlockString's own Pos.Line/Pos.Column.
+	starts := lineStarts(src.Input)
+	for i := range descriptions {
+		descriptions[i].Pos.Line, descriptions[i].Pos.Column = linePosition(starts, descriptions[i].Pos.Start)
+	}
 	return descriptions, nil
+}
+
+// lineStarts returns the rune offset of the first rune of each line in
+// input; line i (1-indexed) starts at starts[i-1]. A line break is a
+// "\r", optionally followed by "\n", or a lone "\n" -- gqlparser/v2's
+// own lexer (lexer.go's ws() and readBlockString()) recognizes exactly
+// the same 3 forms, one line break each, so this line numbering agrees
+// with the Pos.Line values gqlparser sets everywhere except the
+// BlockString case linePosition works around. Offsets are counted in
+// runes, not bytes, to match ast.Position.Start; walking input as UTF-8
+// runes directly (rather than converting it to a []rune first) avoids
+// allocating a full copy of the file for this.
+func lineStarts(input string) []int {
+	starts := make([]int, 1, len(input)/40+1)
+	runeIdx := 0
+	for i := 0; i < len(input); {
+		r, size := utf8.DecodeRuneInString(input[i:])
+		i += size
+		runeIdx++
+		switch r {
+		case '\r':
+			// '\n' is single-byte ASCII and never a continuation byte of a
+			// multi-byte UTF-8 sequence, so it's safe to check input[i]
+			// directly without decoding another rune.
+			if i < len(input) && input[i] == '\n' {
+				i++
+				runeIdx++
+			}
+			starts = append(starts, runeIdx)
+		case '\n':
+			starts = append(starts, runeIdx)
+		}
+	}
+	return starts
+}
+
+// linePosition returns the 1-based (line, column) for the rune offset
+// start, given starts (from lineStarts) -- the same Line/Column
+// convention gqlparser/v2's own lexer uses everywhere else.
+func linePosition(starts []int, start int) (line, col int) {
+	i := sort.SearchInts(starts, start+1) - 1
+	if i < 0 {
+		i = 0
+	}
+	return i + 1, start - starts[i] + 1
 }
 
 // skipValue returns the index just past the one Value production

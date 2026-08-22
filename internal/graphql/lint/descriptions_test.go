@@ -440,6 +440,35 @@ func TestDescriptionStyleIgnoresNestedDefaultValueObjectAndList(t *testing.T) {
 	assert.Equal(t, len(violations), 0)
 }
 
+// TestDescriptionStyleMultiLineBlockDescriptionReportsCorrectPosition
+// confirms the violation location for a multi-line block description
+// names the line the description itself starts on, not some other
+// line -- and never a negative column. gqlparser/v2's own lexer sets a
+// multi-line BlockString token's Pos.Line/Pos.Column only after
+// scanning to its closing """, so trusting them as-is would misreport
+// the position of the overwhelming majority of real-world descriptions
+// (almost never single-line); descriptionTokens must recompute them
+// from the token's Pos.Start instead.
+func TestDescriptionStyleMultiLineBlockDescriptionReportsCorrectPosition(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", "type Query { a: String }\n"+
+		"type Foo {\n"+
+		"  \"\"\"\n"+
+		"  multi\n"+
+		"  line\n"+
+		"  \"\"\"\n"+
+		"  bar: String\n"+
+		"}\n")
+
+	cfg := enableRuleWithOptions(config.RuleDescriptionStyle, map[string]any{"style": "inline"})
+	violations, err := Files([]string{path}, cfg)
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 1)
+	// Line 3 is where the opening """ starts; column 3 is where it
+	// starts on that line (2 leading spaces of indentation).
+	assert.ErrorContains(t, violations[0].err, ":3:3: Unexpected block description")
+}
+
 // TestDescriptionStyleFieldArgumentDescriptionChecked confirms a field
 // argument's own description -- distinct from any default value on
 // that same argument -- is still matched to the right token.
@@ -460,6 +489,45 @@ func TestDescriptionStyleFieldArgumentDescriptionChecked(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.ErrorContains(t, violations[0].err, `Unexpected block description for input value "limit" in field "widgets"`)
+}
+
+// TestDescriptionStyleExtensionFieldInDifferentFileFromBaseType confirms
+// a description on a field (and that field's own argument) added via
+// "extend type" in one file is matched to the right token even when the
+// base type is defined in a different file. validator.ValidateSchemaDocument
+// merges an extension's fields into the base type's Definition.Fields in
+// place, but each field keeps its own original Position -- pointing at
+// the extension's file, not the base type's -- so grouping sites by the
+// base Definition's own file (rather than each field's own file) would
+// wrongly search the base type's file for tokens that are actually in the
+// extension's file. This is exactly the shape of giraffe's real schema
+// (e.g. "extend type Query { accounts(limit: Int ...) }" in one module
+// file, with "type Query" itself defined in another).
+func TestDescriptionStyleExtensionFieldInDifferentFileFromBaseType(t *testing.T) {
+	dir := t.TempDir()
+	basePath := writeFile(t, dir, "base.graphql", `type Query { a: String }`)
+	extPath := writeFile(t, dir, "ext.graphql", `
+		extend type Query {
+			"""
+			Widgets query
+			"""
+			widgets(
+				"""
+				Maximum number of widgets to return
+				"""
+				limit: Int
+			): String
+		}
+	`)
+
+	cfg := enableRuleWithOptions(config.RuleDescriptionStyle, map[string]any{"style": "inline"})
+	violations, err := Files([]string{basePath, extPath}, cfg)
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 2)
+	for _, v := range violations {
+		assert.Equal(t, v.Rule, config.RuleDescriptionStyle)
+		assert.ErrorContains(t, v.err, "Unexpected block description")
+	}
 }
 
 // TestDescriptionStyleAndRequireDescriptionBothRun confirms the two
