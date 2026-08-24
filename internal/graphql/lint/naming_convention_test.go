@@ -10,7 +10,7 @@
 // VariableDefinition, or a field selection (all operation-only AST
 // kinds that never appear in a standalone schema file) is dropped, and
 // the "large graphql file" case is dropped since it depends on a large
-// upstream mock fixture this package does not vendor -- the smaller
+// upstream mock fixture this package does not vendor; the smaller
 // cases already exercise the same option shapes. See this file's own
 // package doc comment (naming_convention.go) for the selector keys
 // this port recognizes.
@@ -36,10 +36,10 @@ func TestNamingConventionValidCases(t *testing.T) {
 		{
 			// A single leading/trailing underscore, not a double one:
 			// GraphQL reserves any "__"-prefixed name for introspection,
-			// so gqlparser's Tier 1 validation would reject "__B" outright
-			// -- before naming-convention (Tier 3) ever runs -- unlike
-			// @graphql-eslint's own rule-tester, which parses this fixture
-			// without validating it as a full schema.
+			// so gqlparser's Tier 1 validation would reject "__B" outright,
+			// before naming-convention (Tier 3) ever runs. @graphql-eslint's
+			// own rule-tester parses this fixture without validating it
+			// as a full schema.
 			"leading/trailing underscores allowed",
 			`type _B { _test_: String }`,
 			map[string]any{
@@ -86,7 +86,7 @@ func TestNamingConventionValidCases(t *testing.T) {
 		},
 		// Each type below needs a field to be a valid schema definition
 		// on its own (gqlparser's Tier 1 validation rejects a fieldless
-		// object type) -- @graphql-eslint's own rule-tester has no such
+		// object type); @graphql-eslint's own rule-tester has no such
 		// requirement, so its fixture is just `type t`.
 		{"should allow single letter for camelCase", `type t { f: String }`, map[string]any{"ObjectTypeDefinition": "camelCase"}},
 		{"should allow single letter for PascalCase", `type T { f: String }`, map[string]any{"ObjectTypeDefinition": "PascalCase"}},
@@ -246,8 +246,8 @@ func TestNamingConventionMergesExtensionFieldsUnderBaseType(t *testing.T) {
 // edge case: gqlparser injects its own built-in directive definitions
 // (skip, include, deprecated) into every parsed schema. None of them
 // were written in a repository file, so a PascalCase DirectiveDefinition
-// rule -- which their lowercase names would otherwise fail -- must
-// still report zero violations, confirming the prelude was excluded.
+// rule, which their lowercase names would otherwise fail, must still
+// report zero violations, confirming the prelude was excluded.
 func TestNamingConventionIgnoresPreludeAndBuiltinNames(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Query { a: String }`)

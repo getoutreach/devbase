@@ -12,14 +12,14 @@
 // any AST node kind, including operation-only kinds (OperationDefinition,
 // FragmentDefinition, VariableDefinition) that never appear in a
 // standalone schema file, and lets a key carry an arbitrary selector
-// (for example "FieldDefinition[parent.name.value!=Query]" -- see
+// (for example "FieldDefinition[parent.name.value!=Query]"; see
 // https://eslint.org/docs/developer-guide/selectors). devbase graphql
 // lint only ever parses schema files (see lint.go's Files), so this
 // port narrows the recognized keys to the schema-only kinds: the 6
 // type-definition kinds (via the shared "types" option and its
 // per-kind overrides), FieldDefinition, InputValueDefinition (covers a
 // field's or directive definition's own argument, and an input object
-// field -- graphql-js represents all three as the one AST kind),
+// field, since graphql-js represents all three as the one AST kind),
 // EnumValueDefinition, and DirectiveDefinition. It also recognizes the
 // 3 root-operation-type field selectors from @graphql-eslint's own
 // documented "recommended schema" config
@@ -117,8 +117,8 @@ type namingRule struct {
 	ignoreRegex *regexp.Regexp
 }
 
-// parseNamingRule decodes v -- a selector's value in
-// scripts/devbase.yaml -- into a namingRule. v is either a bare style
+// parseNamingRule decodes v, a selector's value in
+// scripts/devbase.yaml, into a namingRule. v is either a bare style
 // string ("PascalCase") or an options object; any other shape is
 // reported as not ok, so the caller can leave the selector
 // unconfigured rather than panic on a malformed config.
@@ -191,7 +191,7 @@ type namingConventionOptions struct {
 	// "FieldDefinition[parent.name.value=Query]"), decoded to a
 	// namingRule. A key this package does not recognize (an
 	// operation-only kind, or an arbitrary selector no repository's
-	// config uses today -- see this file's package doc comment) is
+	// config uses today; see this file's package doc comment) is
 	// carried here too but never matched against any namingSite, so
 	// it is simply inert rather than rejected.
 	selectors map[string]namingRule
@@ -257,7 +257,7 @@ type namingSite struct {
 }
 
 // rootTypeRoles maps each of schema's root operation type names (Query,
-// Mutation, and/or Subscription -- whatever schema actually declares)
+// Mutation, and/or Subscription, whatever schema actually declares)
 // to its role, for rootFieldSelector.
 func rootTypeRoles(schema *ast.Schema) map[string]string {
 	roles := make(map[string]string, 3)
@@ -274,9 +274,9 @@ func rootTypeRoles(schema *ast.Schema) map[string]string {
 }
 
 // namingSites collects every namingSite in doc that was written in one
-// of inScope's sources -- excluding gqlparser's built-in prelude and
-// any federation- or scalars-synthesized prelude (see federation.go) --
-// in document order. Like typenamePrefixViolations, an extension's
+// of inScope's sources, excluding gqlparser's built-in prelude and any
+// federation- or scalars-synthesized prelude (see federation.go), in
+// document order. Like typenamePrefixViolations, an extension's
 // fields are only walked on their own when its base type has no
 // definition anywhere; otherwise validator.ValidateSchemaDocument has
 // already merged them into the base Definition.Fields that the
@@ -345,7 +345,7 @@ func namingSites(doc *ast.SchemaDocument, roles map[string]string, inScope set.S
 // should raise for name under rule, or "" if name satisfies rule. It
 // checks, in order, exactly like @graphql-eslint's own getError: a
 // required prefix, a required suffix, every forbidden prefix, every
-// forbidden suffix, then the casing style -- stopping at the first
+// forbidden suffix, then the casing style, stopping at the first one
 // that applies, against name with any leading/trailing underscores
 // stripped (regardless of whether the underscore checks themselves are
 // enabled). ignorePattern, if it matches, skips all of the above.
@@ -383,9 +383,9 @@ func namingRuleMessage(name string, rule *namingRule) string {
 // namingConventionViolations reports a RuleNamingConvention violation
 // for every site in sites that either has a configured namingRule it
 // fails (per namingRuleMessage) or an underscore opts forbids, in
-// document order. Both checks run for the same site independently --
-// neither one skips the other -- matching @graphql-eslint's own
-// behavior of registering them as separate listeners.
+// document order. Both checks run for the same site independently, and
+// neither one skips the other, matching @graphql-eslint's own behavior
+// of registering them as separate listeners.
 func namingConventionViolations(sites []namingSite, opts namingConventionOptions) []Violation {
 	var violations []Violation
 	for _, s := range sites {

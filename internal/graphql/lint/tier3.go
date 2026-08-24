@@ -52,7 +52,7 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 	if cfg.Enabled(config.RuleNoTypenamePrefix) || cfg.Enabled(config.RuleNamingConvention) {
 		// inScope excludes gqlparser's built-in prelude and any
 		// federation- or scalars-synthesized prelude (see federation.go)
-		// by their *ast.Source identity -- neither is ever one of
+		// by their *ast.Source identity: neither is ever one of
 		// fileSources.
 		inScope := set.Of(fileSources...)
 		violations = append(violations, tier3NoTypenamePrefix(parsed, inScope, cfg)...)

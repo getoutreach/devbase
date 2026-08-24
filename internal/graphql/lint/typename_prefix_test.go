@@ -118,7 +118,7 @@ func TestNoTypenamePrefixChecksExtensionFieldsUnderBaseType(t *testing.T) {
 // TestNoTypenamePrefixChecksDanglingExtensionFields is a Go-specific
 // edge case: gqlparser never errors on an `extend type` whose base type
 // is never defined anywhere (see directives.go's
-// gapFillPossibleTypeExtension) -- it silently synthesizes an empty
+// gapFillPossibleTypeExtension). It silently synthesizes an empty
 // placeholder type instead, so Tier 3 still reaches the extension's
 // own fields and must check them under the extension's own type name.
 func TestNoTypenamePrefixChecksDanglingExtensionFields(t *testing.T) {
