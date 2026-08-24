@@ -203,22 +203,14 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
-// forEachDefinition calls onDefinition once for every base definition in
-// doc.Definitions, and onExtension once for every extension in
-// doc.Extensions whose name has no base definition anywhere.
-// validator.ValidateSchemaDocument merges an extension's Fields and
-// EnumValues into its base type's own Definition.Fields in place, each
-// keeping its own original Position -- so onDefinition, called for the
-// base, already covers every field or enum value an extension of an
-// existing type adds; calling onExtension for it too would double-count
-// them. Only an extension of a type with no base definition at all has
-// content that exists nowhere else.
-// typenamePrefixViolations and namingSites pass the same function for
-// both, since no-typename-prefix and naming-convention treat a
-// definition and an unmerged extension identically; groupDescriptionSites
-// does not, since an extension can never carry its own description --
-// gqlparser rejects one the same way it rejects any description before
-// "extend" -- but its fields and enum values still can.
+// forEachDefinition calls onDefinition for every base definition in
+// doc.Definitions, and onExtension for every extension in
+// doc.Extensions with no base definition. A based extension is skipped:
+// validator.ValidateSchemaDocument already merged its Fields and
+// EnumValues into the base Definition in place, so onDefinition already
+// covers it. groupDescriptionSites passes two different functions here
+// (an extension can never carry its own description); typenamePrefixViolations
+// and namingSites pass the same one for both.
 func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
 	hasBaseDefinition := make(set.Set[string], len(doc.Definitions))
 	for _, def := range doc.Definitions {
