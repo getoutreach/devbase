@@ -47,10 +47,18 @@ import (
 // @graphql-eslint's own option keys for the AST kinds that appear in a
 // schema file.
 const (
-	fieldDefinitionSelector      = "FieldDefinition"
+	// fieldDefinitionSelector is an object or interface field.
+	fieldDefinitionSelector = "FieldDefinition"
+
+	// inputValueDefinitionSelector is a field's or directive
+	// definition's own argument, or an input object field.
 	inputValueDefinitionSelector = "InputValueDefinition"
-	directiveDefinitionSelector  = "DirectiveDefinition"
-	enumValueDefinitionSelector  = "EnumValueDefinition"
+
+	// directiveDefinitionSelector is a directive definition.
+	directiveDefinitionSelector = "DirectiveDefinition"
+
+	// enumValueDefinitionSelector is an enum value.
+	enumValueDefinitionSelector = "EnumValueDefinition"
 )
 
 // rootFieldSelector returns the "FieldDefinition[parent.name.value=...]"
