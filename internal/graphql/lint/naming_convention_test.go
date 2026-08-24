@@ -4,8 +4,8 @@
 
 // Cases below are ported from @graphql-eslint/eslint-plugin's own test
 // suite (packages/plugin/tests/naming-convention.spec.ts,
-// @graphql-eslint/eslint-plugin@3.13.1, the version giraffe's
-// .eslintrc.js pins today), adapted to devbase's SDL-only scope: every
+// @graphql-eslint/eslint-plugin@3.13.1, a version still in real use
+// downstream), adapted to devbase's SDL-only scope: every
 // case exercising an OperationDefinition, FragmentDefinition,
 // VariableDefinition, or a field selection (all operation-only AST
 // kinds that never appear in a standalone schema file) is dropped, and
