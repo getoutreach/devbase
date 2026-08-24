@@ -220,9 +220,9 @@ func TestDescriptionStyleFieldArgumentDescriptionChecked(t *testing.T) {
 // "extend type" in one file is matched to the right token even when the
 // base type is defined in a different file -- see groupDescriptionSites'
 // doc.Extensions loop for why a merged field keeps its own Position.Src.
-// This is the shape of giraffe's real schema, e.g. "extend type Query {
-// accounts(...) }" in one module file, with "type Query" itself defined
-// elsewhere.
+// This is a common real-world shape: a module extends the root Query
+// type with its own fields in a separate file from where Query itself
+// is defined.
 func TestDescriptionStyleExtensionFieldInDifferentFileFromBaseType(t *testing.T) {
 	dir := t.TempDir()
 	basePath := writeFile(t, dir, "base.graphql", `type Query { a: String }`)
