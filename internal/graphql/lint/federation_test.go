@@ -13,9 +13,9 @@ import (
 )
 
 // TestFilesFederationImportedDirectivesPass confirms that a schema
-// using exactly the directives its own @link imports, matching
-// getoutreach/giraffe's real schema, passes with graphql.lint.federation
-// set, including a directive (@key) whose SDL references the FieldSet
+// using exactly the directives its own @link imports, matching a real
+// federated subgraph's shape, passes with graphql.lint.federation set,
+// including a directive (@key) whose SDL references the FieldSet
 // scalar.
 func TestFilesFederationImportedDirectivesPass(t *testing.T) {
 	dir := t.TempDir()
@@ -189,7 +189,8 @@ func TestFilesFederationSyntaxErrorClassifiedSameAsWithoutFederation(t *testing.
 // TestFilesScalarsConfigDeclaresRuntimeRegisteredScalars confirms
 // that graphql.lint.scalars lets a schema use a scalar type that is
 // registered at runtime in application code rather than declared via
-// SDL, matching giraffe's Datetime/JSON/Number/Relationship scalars.
+// SDL, matching a real repository's Datetime/JSON/Number/Relationship
+// scalars.
 func TestFilesScalarsConfigDeclaresRuntimeRegisteredScalars(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `
