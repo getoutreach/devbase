@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 #MISE description="Discover and run tasks meant to be run after Stencil completes."
-#MISE tools={"gojq" = "latest"}
 #MISE depends=["devbase:sync"]
 
 set -euo pipefail
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="$DIR/../../../../shell/lib"
+
+# shellcheck source=../../../../shell/lib/mise/stub.sh
+source "$LIB_DIR/mise/stub.sh"
+
 # Why: word splitting is not an issue with task names.
 # shellcheck disable=SC2046
-exec mise run $(mise tasks ls --json | gojq --raw-output '. | map(select(.name | startswith("stencil:post:")).name) | join(" ::: ")')
+exec mise run $(mise tasks ls --json | mise_exec_tool gojq --raw-output '. | map(select(.name | startswith("stencil:post:")).name) | join(" ::: ")')
