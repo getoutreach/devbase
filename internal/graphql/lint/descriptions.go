@@ -202,6 +202,35 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
+// forEachDefinition calls onDefinition once for every base definition in
+// doc.Definitions, and onExtension once for every extension in
+// doc.Extensions whose name has no base definition anywhere.
+// validator.ValidateSchemaDocument merges an extension's Fields and
+// EnumValues into its base type's own Definition.Fields in place, each
+// keeping its own original Position -- so onDefinition, called for the
+// base, already covers every field or enum value an extension of an
+// existing type adds; calling onExtension for it too would double-count
+// them. Only an extension of a type with no base definition at all has
+// content that exists nowhere else, which is what onExtension is for.
+// typenamePrefixViolations and namingSites pass the same function for
+// both, since no-typename-prefix and naming-convention treat a
+// definition and an unmerged extension identically; groupDescriptionSites
+// does not, since an extension can never carry its own description --
+// gqlparser rejects one the same way it rejects any description before
+// "extend" -- but its fields and enum values still can.
+func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
+	hasBaseDefinition := make(map[string]bool, len(doc.Definitions))
+	for _, def := range doc.Definitions {
+		hasBaseDefinition[def.Name] = true
+		onDefinition(def)
+	}
+	for _, def := range doc.Extensions {
+		if !hasBaseDefinition[def.Name] {
+			onExtension(def)
+		}
+	}
+}
+
 // groupDescriptionSites collects every descriptionSite in doc, grouped
 // by the *ast.Source it was written in (each site's own Position.Src),
 // with each group sorted by pos.Start -- the same file order
@@ -257,9 +286,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		}
 	}
 
-	hasBaseDefinition := make(map[string]bool, len(doc.Definitions))
-	for _, def := range doc.Definitions {
-		hasBaseDefinition[def.Name] = true
+	forEachDefinition(doc, func(def *ast.Definition) {
 		add(def.Position.Src, descriptionSite{
 			description: def.Description, pos: def.Position,
 			optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
@@ -267,24 +294,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 			afterDescriptionComment: def.AfterDescriptionComment,
 		})
 		addFields(def)
-	}
-	for _, def := range doc.Extensions {
-		// validator.ValidateSchemaDocument merges an extension's Fields
-		// and EnumValues into its base type's own Definition.Fields in
-		// place, each keeping its own original Position -- so the
-		// doc.Definitions loop above already walked every field an
-		// extension of an existing type adds; addFields here would
-		// double-count them. Only an extension of a type with no base
-		// definition at all has fields that exist nowhere else.
-		//
-		// An extension can never carry its own description -- gqlparser
-		// rejects one the same way it rejects any description before
-		// "extend" -- but its fields and enum values can, so those still
-		// need walking for the undefined-base case.
-		if !hasBaseDefinition[def.Name] {
-			addFields(def)
-		}
-	}
+	}, addFields)
 
 	for _, dd := range doc.Directives {
 		add(dd.Position.Src, descriptionSite{
