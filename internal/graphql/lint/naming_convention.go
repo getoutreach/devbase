@@ -38,6 +38,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
@@ -86,7 +87,7 @@ var namingStyleRegexes = map[string]*regexp.Regexp{
 // label in a naming-convention message (for example `Type "b" should
 // ...`), matching @graphql-eslint's own KindToDisplayName. This is
 // deliberately not typeKindLabel (descriptions.go): that one is
-// lowercase for a different message shape ( `field "foo" in type
+// lowercase for a different message shape (`field "foo" in type
 // "Bar"`), not naming-convention's own capitalized, parent-less one.
 //
 //nolint:gochecknoglobals // Why: a fixed lookup table, never mutated; Go has no map consts.
@@ -278,13 +279,14 @@ func rootTypeRoles(schema *ast.Schema) map[string]string {
 // in document order. Like typenamePrefixViolations, an extension's
 // fields are only walked on their own when its base type has no
 // definition anywhere; otherwise validator.ValidateSchemaDocument has
-// already merged them into the base Definition.Fields walking
-// doc.Definitions covers (see descriptions.go's forEachDefinition).
-func namingSites(doc *ast.SchemaDocument, roles map[string]string, inScope map[*ast.Source]bool) []namingSite {
+// already merged them into the base Definition.Fields that the
+// doc.Definitions walk already covers (see descriptions.go's
+// forEachDefinition).
+func namingSites(doc *ast.SchemaDocument, roles map[string]string, inScope set.Set[*ast.Source]) []namingSite {
 	var sites []namingSite
 
 	addIfInScope := func(site namingSite) {
-		if site.pos == nil || !inScope[site.pos.Src] {
+		if site.pos == nil || !inScope.Contains(site.pos.Src) {
 			return
 		}
 		sites = append(sites, site)
@@ -413,7 +415,7 @@ func namingConventionViolations(sites []namingSite, opts namingConventionOptions
 
 // tier3NamingConvention runs naming-convention against parsed. It does
 // not run unless cfg enables it (config.Lint.Enabled).
-func tier3NamingConvention(parsed *parsedSchema, inScope map[*ast.Source]bool, cfg *config.Lint) []Violation {
+func tier3NamingConvention(parsed *parsedSchema, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
 	if !cfg.Enabled(config.RuleNamingConvention) {
 		return nil
 	}

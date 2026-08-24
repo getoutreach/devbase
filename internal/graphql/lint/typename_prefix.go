@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
@@ -26,7 +27,7 @@ import (
 // walk to definitions actually written in one of the repository's own
 // files, excluding gqlparser's built-in prelude and any federation- or
 // scalars-synthesized prelude (see federation.go).
-func typenamePrefixViolations(doc *ast.SchemaDocument, inScope map[*ast.Source]bool) []Violation {
+func typenamePrefixViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source]) []Violation {
 	var violations []Violation
 
 	checkFields := func(def *ast.Definition) {
@@ -35,7 +36,7 @@ func typenamePrefixViolations(doc *ast.SchemaDocument, inScope map[*ast.Source]b
 		}
 		lowerTypeName := strings.ToLower(def.Name)
 		for _, f := range def.Fields {
-			if f.Position == nil || !inScope[f.Position.Src] {
+			if f.Position == nil || !inScope.Contains(f.Position.Src) {
 				// A nil Position is one of the __schema/__type
 				// introspection meta-fields (see descriptions.go); an
 				// out-of-scope Position is a prelude- or
@@ -60,7 +61,7 @@ func typenamePrefixViolations(doc *ast.SchemaDocument, inScope map[*ast.Source]b
 
 // tier3NoTypenamePrefix runs no-typename-prefix against parsed. It does
 // not run unless cfg enables it (config.Lint.Enabled).
-func tier3NoTypenamePrefix(parsed *parsedSchema, inScope map[*ast.Source]bool, cfg *config.Lint) []Violation {
+func tier3NoTypenamePrefix(parsed *parsedSchema, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
 	if !cfg.Enabled(config.RuleNoTypenamePrefix) {
 		return nil
 	}

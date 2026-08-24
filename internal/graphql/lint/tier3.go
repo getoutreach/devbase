@@ -7,6 +7,7 @@ package lint
 
 import (
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -49,22 +50,14 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 	}
 
 	if cfg.Enabled(config.RuleNoTypenamePrefix) || cfg.Enabled(config.RuleNamingConvention) {
-		inScope := sourceSet(fileSources)
+		// inScope excludes gqlparser's built-in prelude and any
+		// federation- or scalars-synthesized prelude (see federation.go)
+		// by their *ast.Source identity -- neither is ever one of
+		// fileSources.
+		inScope := set.Of(fileSources...)
 		violations = append(violations, tier3NoTypenamePrefix(parsed, inScope, cfg)...)
 		violations = append(violations, tier3NamingConvention(parsed, inScope, cfg)...)
 	}
 
 	return violations, nil
-}
-
-// sourceSet returns fileSources as a set, for an inScope check that
-// excludes gqlparser's built-in prelude and any federation- or
-// scalars-synthesized prelude (see federation.go) by their *ast.Source
-// identity -- neither is ever one of fileSources.
-func sourceSet(fileSources []*ast.Source) map[*ast.Source]bool {
-	set := make(map[*ast.Source]bool, len(fileSources))
-	for _, src := range fileSources {
-		set[src] = true
-	}
-	return set
 }

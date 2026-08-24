@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -211,7 +212,7 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 // base, already covers every field or enum value an extension of an
 // existing type adds; calling onExtension for it too would double-count
 // them. Only an extension of a type with no base definition at all has
-// content that exists nowhere else, which is what onExtension is for.
+// content that exists nowhere else.
 // typenamePrefixViolations and namingSites pass the same function for
 // both, since no-typename-prefix and naming-convention treat a
 // definition and an unmerged extension identically; groupDescriptionSites
@@ -219,13 +220,13 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 // gqlparser rejects one the same way it rejects any description before
 // "extend" -- but its fields and enum values still can.
 func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
-	hasBaseDefinition := make(map[string]bool, len(doc.Definitions))
+	hasBaseDefinition := make(set.Set[string], len(doc.Definitions))
 	for _, def := range doc.Definitions {
-		hasBaseDefinition[def.Name] = true
+		hasBaseDefinition.Insert(def.Name)
 		onDefinition(def)
 	}
 	for _, def := range doc.Extensions {
-		if !hasBaseDefinition[def.Name] {
+		if !hasBaseDefinition.Contains(def.Name) {
 			onExtension(def)
 		}
 	}
