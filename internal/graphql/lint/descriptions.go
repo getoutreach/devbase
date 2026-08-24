@@ -212,13 +212,13 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 // (an extension can never carry its own description); typenamePrefixViolations
 // and namingSites pass the same one for both.
 func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
-	hasBaseDefinition := make(set.Set[string], len(doc.Definitions))
+	seen := make(set.Set[string], len(doc.Definitions))
 	for _, def := range doc.Definitions {
-		hasBaseDefinition.Insert(def.Name)
+		seen.Insert(def.Name)
 		onDefinition(def)
 	}
 	for _, def := range doc.Extensions {
-		if !hasBaseDefinition.Contains(def.Name) {
+		if !seen.Contains(def.Name) {
 			onExtension(def)
 		}
 	}
