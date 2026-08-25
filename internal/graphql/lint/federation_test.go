@@ -135,6 +135,61 @@ func TestFilesFederationUnsupportedImportedDirectiveErrors(t *testing.T) {
 	assert.ErrorIs(t, err, ErrUnsupportedFederationDirective)
 }
 
+// TestFilesFederationLinkArgumentShapeErrorsAreViolations confirms
+// that a `@link` whose url or import argument has a shape this
+// package can't interpret -- a schema-author error, not a devbase gap
+// -- is reported as an ordinary Violation, the same way any other
+// malformed SDL is, instead of silently misclassifying the link (a
+// non-string url looks like "not a Federation link at all") or
+// silently dropping its imports (a non-list import looks like "no
+// imports").
+func TestFilesFederationLinkArgumentShapeErrorsAreViolations(t *testing.T) {
+	cases := []struct {
+		name             string
+		sdl              string
+		wantErrSubstring string
+	}{
+		{
+			name:             "url is not a string",
+			sdl:              `extend schema @link(url: 123, import: ["@key"])`,
+			wantErrSubstring: "@link url argument is not a string",
+		},
+		{
+			name:             "import is not a list",
+			sdl:              `extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: "@key")`,
+			wantErrSubstring: "@link import argument is not a list",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := writeFile(t, dir, "schema.graphql", c.sdl+"\ntype Widget { id: ID! }")
+
+			violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+			assert.NilError(t, err)
+			assert.Equal(t, len(violations), 1)
+			assert.ErrorContains(t, violations[0].err, c.wantErrSubstring)
+		})
+	}
+}
+
+// TestFilesFederationImportEntryMissingNameErrors confirms that a
+// `@link` import list entry written as an object with no "name" field
+// returns ErrUnsupportedFederationDirective -- the same sentinel used
+// when an entry can't be classified as a directive import at all,
+// since a nameless entry is exactly that.
+func TestFilesFederationImportEntryMissingNameErrors(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", `
+		extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: [{as: "@myKey"}])
+		type Widget { id: ID! }
+	`)
+
+	_, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+	assert.ErrorIs(t, err, ErrUnsupportedFederationDirective)
+}
+
 // TestFilesFederationUnrelatedLinkIgnored confirms that a `@link` to
 // some spec other than Apollo Federation is left untouched -- Files
 // neither synthesizes directives for it nor treats its version as a

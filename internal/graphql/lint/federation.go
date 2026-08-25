@@ -227,7 +227,10 @@ func federationLinkVersion(dir *ast.Directive) (string, error) {
 	if err != nil {
 		return "", gqlerror.ErrorPosf(dir.Position, "evaluate @link url argument: %v", err)
 	}
-	url, _ := rawURL.(string)
+	url, ok := rawURL.(string)
+	if !ok {
+		return "", gqlerror.ErrorPosf(dir.Position, "@link url argument is not a string: %#v", rawURL)
+	}
 	if !strings.HasPrefix(url, federationLinkURLPrefix) {
 		return "", nil
 	}
@@ -247,7 +250,10 @@ func federationLinkImports(dir *ast.Directive) ([]federationImport, error) {
 		return nil, gqlerror.ErrorPosf(dir.Position, "evaluate @link import argument: %v", err)
 	}
 
-	list, _ := rawImports.([]any)
+	list, ok := rawImports.([]any)
+	if !ok {
+		return nil, gqlerror.ErrorPosf(dir.Position, "@link import argument is not a list: %#v", rawImports)
+	}
 	imports := make([]federationImport, 0, len(list))
 	for _, entry := range list {
 		imp, err := parseFederationImportEntry(entry, dir.Position)
@@ -273,7 +279,11 @@ func parseFederationImportEntry(entry any, pos *ast.Position) (federationImport,
 		}
 		return federationImport{name: name, alias: name}, nil
 	case map[string]any:
-		nameRaw, _ := v["name"].(string)
+		nameRaw, ok := v["name"].(string)
+		if !ok {
+			return federationImport{}, federationErrorf(ErrUnsupportedFederationDirective, pos,
+				"has an import entry with a missing or non-string \"name\" field: %#v", v)
+		}
 		name := strings.TrimPrefix(nameRaw, "@")
 		alias := name
 		if asRaw, ok := v["as"].(string); ok {
