@@ -5,8 +5,8 @@
 
 // Invalid cases below are ported from @graphql-eslint/eslint-plugin's own
 // test suite (packages/plugin/tests/no-case-insensitive-enum-values-duplicates.spec.ts,
-// @graphql-eslint/eslint-plugin@3.13.1, the version giraffe's .eslintrc.js
-// pins today); that suite has no valid cases of its own.
+// @graphql-eslint/eslint-plugin@3.13.1, the version this port targets);
+// that suite has no valid cases of its own.
 
 package lint
 

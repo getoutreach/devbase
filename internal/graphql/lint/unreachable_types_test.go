@@ -4,8 +4,8 @@
 
 // Cases below are ported from @graphql-eslint/eslint-plugin's own test
 // suite (packages/plugin/tests/no-unreachable-types.spec.ts,
-// @graphql-eslint/eslint-plugin@3.13.1, the version giraffe's
-// .eslintrc.js pins today). @graphql-eslint's own rule tester never
+// @graphql-eslint/eslint-plugin@3.13.1, the version this port targets).
+// @graphql-eslint's own rule tester never
 // runs full graphql-js schema validation, so a few of its fixtures are
 // not spec-valid SDL on their own terms: a scalar union member, a
 // fieldless object type, or an object type omitting an interface its

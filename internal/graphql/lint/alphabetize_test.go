@@ -4,8 +4,8 @@
 
 // Cases below are ported from @graphql-eslint/eslint-plugin's own test
 // suite (packages/plugin/tests/alphabetize.spec.ts,
-// @graphql-eslint/eslint-plugin@3.13.1, the version giraffe's
-// .eslintrc.js pins today), dropping every case exercising "selections",
+// @graphql-eslint/eslint-plugin@3.13.1, the version this port targets),
+// dropping every case exercising "selections",
 // "variables", or "definitions": those options only apply to operation
 // documents or top-level document ordering, neither of which devbase
 // graphql lint parses (see alphabetize.go's package doc comment). The
