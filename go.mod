@@ -8,6 +8,7 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.116.0
 	github.com/getoutreach/localizer v1.15.19
+	github.com/go-git/go-git/v5 v5.19.1
 	github.com/google/go-github/v84 v84.0.0
 	github.com/magefile/mage v1.17.2
 	github.com/pkg/errors v0.9.1
@@ -18,8 +19,6 @@ require (
 	gotest.tools/v3 v3.5.2
 )
 
-require github.com/agnivade/levenshtein v1.2.1 // indirect
-
 require (
 	charm.land/bubbles/v2 v2.1.1 // indirect
 	charm.land/bubbletea/v2 v2.0.8 // indirect
@@ -28,6 +27,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
+	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/alecthomas/chroma/v2 v2.20.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -62,7 +62,6 @@ require (
 	github.com/fynelabs/selfupdate v0.2.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.1 // indirect
-	github.com/go-git/go-git/v5 v5.19.1
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
