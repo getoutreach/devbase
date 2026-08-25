@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func NewLintGraphqlCommand() *cli.Command {
+func newLintGraphQLCommand() *cli.Command {
 	return &cli.Command{
 		Name:   "graphql",
 		Usage:  "Run GraphQL lint checks on the codebase",
