@@ -75,7 +75,7 @@ func (v Violation) String() string {
 // cfg supplies scripts/devbase.yaml's federation and scalars settings,
 // merged into the parsed sources before validation; a nil cfg parses
 // paths exactly as written, with no merged prelude.
-func Files(paths []string, cfg *config.LintConfig) ([]Violation, error) {
+func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	sources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)

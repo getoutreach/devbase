@@ -29,7 +29,7 @@ func TestFilesFederationImportedDirectivesPass(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -51,7 +51,7 @@ func TestFilesFederationDirectiveNotImportedFails(t *testing.T) {
 		}
 	`)
 
-	violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, config.RuleKnownDirectives)
@@ -73,7 +73,7 @@ func TestFilesFederationImportAsRenameHonored(t *testing.T) {
 				id: ID!
 			}
 		`)
-		violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+		violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 		assert.NilError(t, err)
 		assert.Equal(t, len(violations), 0)
 	})
@@ -86,7 +86,7 @@ func TestFilesFederationImportAsRenameHonored(t *testing.T) {
 				id: ID!
 			}
 		`)
-		violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+		violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 		assert.NilError(t, err)
 		assert.Equal(t, len(violations), 1)
 		assert.ErrorContains(t, violations[0].err, "Undefined directive key.")
@@ -104,7 +104,7 @@ func TestFilesFederationVersionMismatchErrors(t *testing.T) {
 		type Widget @key(fields: "id") { id: ID! }
 	`)
 
-	_, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	_, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.ErrorIs(t, err, ErrFederationVersionMismatch)
 }
 
@@ -115,7 +115,7 @@ func TestFilesFederationUnsupportedConfiguredVersionErrors(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Widget { id: ID! }`)
 
-	_, err := Files([]string{path}, &config.LintConfig{Federation: "v9.9"})
+	_, err := Files([]string{path}, &config.Lint{Federation: "v9.9"})
 	assert.ErrorIs(t, err, ErrUnsupportedFederationVersion)
 }
 
@@ -131,7 +131,7 @@ func TestFilesFederationUnsupportedImportedDirectiveErrors(t *testing.T) {
 		type Widget { id: ID! }
 	`)
 
-	_, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	_, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.ErrorIs(t, err, ErrUnsupportedFederationDirective)
 }
 
@@ -146,7 +146,7 @@ func TestFilesFederationUnrelatedLinkIgnored(t *testing.T) {
 		type Widget { id: ID! }
 	`)
 
-	violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.ErrorContains(t, violations[0].err, "Undefined directive link.")
@@ -159,7 +159,7 @@ func TestFilesFederationConfiguredButUnusedIsANoop(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `type Widget { id: ID! }`)
 
-	violations, err := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }
@@ -177,7 +177,7 @@ func TestFilesFederationSyntaxErrorClassifiedSameAsWithoutFederation(t *testing.
 	without, errWithout := Files([]string{path}, nil)
 	assert.NilError(t, errWithout)
 
-	with, errWith := Files([]string{path}, &config.LintConfig{Federation: "v2.3"})
+	with, errWith := Files([]string{path}, &config.Lint{Federation: "v2.3"})
 	assert.NilError(t, errWith)
 
 	assert.Equal(t, len(without), 1)
@@ -208,7 +208,7 @@ func TestFilesScalarsConfigDeclaresRuntimeRegisteredScalars(t *testing.T) {
 	})
 
 	t.Run("with config, declared scalars pass", func(t *testing.T) {
-		violations, err := Files([]string{path}, &config.LintConfig{Scalars: []string{"Datetime", "JSON"}})
+		violations, err := Files([]string{path}, &config.Lint{Scalars: []string{"Datetime", "JSON"}})
 		assert.NilError(t, err)
 		assert.Equal(t, len(violations), 0)
 	})

@@ -36,9 +36,10 @@ func TestLoadReturnsDefaultsWhenNoConfigFileExists(t *testing.T) {
 	nested := filepath.Join(repoRoot, "internal", "graphql", "schema")
 	assert.NilError(t, os.MkdirAll(nested, 0o755))
 
-	got, err := Load(nested)
+	got, configDir, err := Load(nested)
 	assert.NilError(t, err)
-	assert.DeepEqual(t, got, &LintConfig{})
+	assert.DeepEqual(t, got, &Lint{})
+	assert.Equal(t, configDir, "")
 }
 
 func TestLoadWalksUpUntilConfigFileFound(t *testing.T) {
@@ -54,9 +55,13 @@ graphql:
 	nested := filepath.Join(repoRoot, "internal", "graphql", "schema")
 	assert.NilError(t, os.MkdirAll(nested, 0o755))
 
-	got, err := Load(nested)
+	got, configDir, err := Load(nested)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, got.Exclude, []string{"**/shared.graphql"})
+	// The returned directory is where scripts/devbase.yaml was found,
+	// not startDir, so callers can anchor Exclude patterns to it
+	// instead of the process's working directory.
+	assert.Equal(t, configDir, repoRoot)
 }
 
 func TestLoadStopsAtGitRootWithoutCrossingIntoParentRepo(t *testing.T) {
@@ -78,16 +83,17 @@ graphql:
 	nested := filepath.Join(innerRoot, "internal", "graphql")
 	assert.NilError(t, os.MkdirAll(nested, 0o755))
 
-	got, err := Load(nested)
+	got, configDir, err := Load(nested)
 	assert.NilError(t, err)
-	assert.DeepEqual(t, got, &LintConfig{})
+	assert.DeepEqual(t, got, &Lint{})
+	assert.Equal(t, configDir, "")
 }
 
 func TestLoadParsesRuleOverrides(t *testing.T) {
 	cases := []struct {
 		name      string
 		rulesYAML string
-		wantRules map[string]RuleConfig
+		wantRules map[string]Rule
 		wantErrIs error
 	}{
 		{
@@ -96,7 +102,7 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
       require-deprecation-date: warn
       alphabetize: off
 `,
-			wantRules: map[string]RuleConfig{
+			wantRules: map[string]Rule{
 				"require-deprecation-date": {Severity: SeverityWarn},
 				"alphabetize":              {Severity: SeverityOff},
 			},
@@ -109,7 +115,7 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
         - types: PascalCase
           FieldDefinition: camelCase
 `,
-			wantRules: map[string]RuleConfig{
+			wantRules: map[string]Rule{
 				"naming-convention": {
 					Severity: SeverityError,
 					Options: map[string]any{
@@ -125,7 +131,7 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
       alphabetize:
         - warn
 `,
-			wantRules: map[string]RuleConfig{
+			wantRules: map[string]Rule{
 				"alphabetize": {Severity: SeverityWarn},
 			},
 		},
@@ -135,7 +141,7 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
       alphabetize:
         nested: mapping
 `,
-			wantErrIs: ErrInvalidRuleConfig,
+			wantErrIs: ErrInvalidRule,
 		},
 		{
 			name: "invalid sequence length",
@@ -145,7 +151,29 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
         - {}
         - extra
 `,
-			wantErrIs: ErrInvalidRuleConfig,
+			wantErrIs: ErrInvalidRule,
+		},
+		{
+			name: "unknown short-form severity",
+			rulesYAML: `
+      alphabetize: eror
+`,
+			wantErrIs: ErrInvalidRule,
+		},
+		{
+			name: "unknown long-form severity",
+			rulesYAML: `
+      alphabetize:
+        - false
+`,
+			wantErrIs: ErrInvalidRule,
+		},
+		{
+			name: "severity is case-sensitive",
+			rulesYAML: `
+      alphabetize: Error
+`,
+			wantErrIs: ErrInvalidRule,
 		},
 		{
 			name: "tier 1 rule override rejected",
@@ -162,7 +190,7 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
 			initGitDir(t, repoRoot)
 			writeConfig(t, repoRoot, "graphql:\n  lint:\n    rules:\n"+tc.rulesYAML)
 
-			got, err := Load(repoRoot)
+			got, _, err := Load(repoRoot)
 			if tc.wantErrIs != nil {
 				assert.ErrorIs(t, err, tc.wantErrIs)
 				return
@@ -185,14 +213,14 @@ graphql:
       - JSON
 `)
 
-	got, err := Load(repoRoot)
+	got, _, err := Load(repoRoot)
 	assert.NilError(t, err)
 	assert.Equal(t, got.Federation, "v2.3")
 	assert.DeepEqual(t, got.Scalars, []string{"Datetime", "JSON"})
 }
 
 func TestMergeExcludesIsAdditiveAndDoesNotMutateConfig(t *testing.T) {
-	c := &LintConfig{Exclude: []string{"**/shared.graphql"}}
+	c := &Lint{Exclude: []string{"**/shared.graphql"}}
 
 	got := c.MergeExcludes("**/generated/*.graphql", "**/vendor/**")
 
@@ -201,6 +229,6 @@ func TestMergeExcludesIsAdditiveAndDoesNotMutateConfig(t *testing.T) {
 }
 
 func TestMergeExcludesWithNoExtraReturnsConfigExcludes(t *testing.T) {
-	c := &LintConfig{Exclude: []string{"**/shared.graphql"}}
+	c := &Lint{Exclude: []string{"**/shared.graphql"}}
 	assert.DeepEqual(t, c.MergeExcludes(), []string{"**/shared.graphql"})
 }

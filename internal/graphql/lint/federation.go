@@ -113,7 +113,7 @@ type federationImport struct {
 // preludeSources returns the extra sources Files should merge into
 // sources for cfg's federation and scalars settings, or nil if cfg is
 // nil or sets neither.
-func preludeSources(sources []*ast.Source, cfg *config.LintConfig) ([]*ast.Source, error) {
+func preludeSources(sources []*ast.Source, cfg *config.Lint) ([]*ast.Source, error) {
 	if cfg == nil {
 		return nil, nil
 	}

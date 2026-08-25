@@ -15,9 +15,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// NewLintGraphqlCommand returns the "graphql" subcommand of "lint",
+// newLintGraphQLCommand returns the "graphql" subcommand of "lint",
 // which runs GraphQL schema lint checks.
-func NewLintGraphqlCommand() *cli.Command {
+func newLintGraphQLCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "graphql",
 		Usage:     "Run GraphQL lint checks on the codebase",
@@ -46,13 +46,14 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("get working directory: %w", err)
 	}
 
-	lintConfig, err := config.Load(cwd)
+	lintConfig, configDir, err := config.Load(cwd)
 	if err != nil {
 		return fmt.Errorf("load scripts/devbase.yaml: %w", err)
 	}
 
 	excludes := lintConfig.MergeExcludes(c.StringSlice("exclude")...)
 	logrus.WithFields(logrus.Fields{
+		"configDir": configDir,
 		"excludes":  excludes,
 		"ruleCount": len(lintConfig.Rules),
 	}).Debug("resolved graphql lint config")
