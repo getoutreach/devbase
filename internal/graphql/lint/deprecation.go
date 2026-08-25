@@ -62,7 +62,7 @@ func requireDeprecationReasonViolations(sites []descriptionSite) []Violation {
 		}
 
 		violations = append(violations, Violation{
-			err:  gqlerror.ErrorPosf(dir.Position, "Deprecation reason is required for %s.", s.nodeName()),
+			err:  gqlerror.ErrorPosf(dir.Position, "Deprecation reason is required for %s", s.nodeName()),
 			Rule: config.RuleRequireDeprecationReason,
 		})
 	}

@@ -101,7 +101,7 @@ func noHashtagDescriptionViolations(sites []descriptionSite, trailing map[int]bo
 		violations = append(violations, Violation{
 			err: gqlerror.ErrorPosf(last.Position,
 				"Unexpected GraphQL description as hashtag `#` for %s. "+
-					`Prefer using """ for multiline, or " for a single line description.`, s.nodeName()),
+					`Prefer using """ for multiline, or " for a single line description`, s.nodeName()),
 			Rule: config.RuleNoHashtagDescription,
 		})
 	}
