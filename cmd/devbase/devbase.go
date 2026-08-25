@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	oapp "github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
@@ -45,7 +46,10 @@ func main() {
 	log := logrus.New()
 
 	// <<Stencil::Block(init)>>
-
+	if os.Getenv("DEVBASE_DEBUG") != "" {
+		log.SetLevel(logrus.DebugLevel)
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	// <</Stencil::Block>>
 
 	app := cli.Command{

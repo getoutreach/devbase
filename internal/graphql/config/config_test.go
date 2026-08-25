@@ -147,6 +147,28 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
 `,
 			wantErrIs: ErrInvalidRuleConfig,
 		},
+		{
+			name: "unknown short-form severity",
+			rulesYAML: `
+      alphabetize: eror
+`,
+			wantErrIs: ErrInvalidRuleConfig,
+		},
+		{
+			name: "unknown long-form severity",
+			rulesYAML: `
+      alphabetize:
+        - false
+`,
+			wantErrIs: ErrInvalidRuleConfig,
+		},
+		{
+			name: "severity is case-sensitive",
+			rulesYAML: `
+      alphabetize: Error
+`,
+			wantErrIs: ErrInvalidRuleConfig,
+		},
 	}
 
 	for _, tc := range cases {

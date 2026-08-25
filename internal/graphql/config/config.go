@@ -1,10 +1,10 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Loads scripts/devbase.yaml, the per-repo configuration
-// file consulted by devbase graphql lint.
+// file consulted by devbase lint graphql.
 
 // Package config loads scripts/devbase.yaml, the per-repo
-// configuration file consulted by devbase graphql lint for exclude
+// configuration file consulted by devbase lint graphql for exclude
 // patterns and per-rule severity/option overrides.
 package config
 
@@ -35,6 +35,14 @@ const (
 	SeverityError Severity = "error"
 )
 
+// validSeverities is the set of severity values accepted in
+// scripts/devbase.yaml rule overrides.
+var validSeverities = map[Severity]bool{ //nolint:gochecknoglobals // Why: read-only lookup table.
+	SeverityOff:   true,
+	SeverityWarn:  true,
+	SeverityError: true,
+}
+
 // ErrInvalidRuleConfig is wrapped by errors returned when a rule entry
 // in scripts/devbase.yaml is neither the short form (a severity
 // scalar) nor the long form (a [severity, options] sequence).
@@ -59,13 +67,20 @@ type RuleConfig struct {
 	Options map[string]any
 }
 
+// var _ yaml.Unmarshaler = (*RuleConfig)(nil) documents, at compile
+// time, that UnmarshalYAML's signature actually satisfies
+// yaml.Unmarshaler -- go.yaml.in/yaml/v3 also accepts an older
+// unmarshal-func signature that this type does not implement, and a
+// mismatched signature would otherwise fail silently by reflection.
+var _ yaml.Unmarshaler = (*RuleConfig)(nil)
+
 // UnmarshalYAML implements yaml.Unmarshaler for RuleConfig, decoding
 // both shapes described above.
 func (r *RuleConfig) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
-		var severity Severity
-		if err := value.Decode(&severity); err != nil {
-			return fmt.Errorf("decode rule severity: %w", err)
+		severity, err := decodeSeverity(value)
+		if err != nil {
+			return err
 		}
 		r.Severity, r.Options = severity, nil
 		return nil
@@ -85,9 +100,9 @@ func (r *RuleConfig) unmarshalLongForm(value *yaml.Node) error {
 			ErrInvalidRuleConfig, len(value.Content))
 	}
 
-	var severity Severity
-	if err := value.Content[0].Decode(&severity); err != nil {
-		return fmt.Errorf("decode rule severity: %w", err)
+	severity, err := decodeSeverity(value.Content[0])
+	if err != nil {
+		return err
 	}
 
 	var options map[string]any
@@ -99,6 +114,19 @@ func (r *RuleConfig) unmarshalLongForm(value *yaml.Node) error {
 
 	r.Severity, r.Options = severity, options
 	return nil
+}
+
+// decodeSeverity decodes node as a Severity and rejects any value
+// outside {off, warn, error}.
+func decodeSeverity(node *yaml.Node) (Severity, error) {
+	var severity Severity
+	if err := node.Decode(&severity); err != nil {
+		return "", fmt.Errorf("decode rule severity: %w", err)
+	}
+	if !validSeverities[severity] {
+		return "", fmt.Errorf("%w: unknown severity %q", ErrInvalidRuleConfig, severity)
+	}
+	return severity, nil
 }
 
 // LintConfig is the graphql.lint section of scripts/devbase.yaml.
