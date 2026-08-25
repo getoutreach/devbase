@@ -40,13 +40,14 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("get working directory: %w", err)
 	}
 
-	lintConfig, err := config.Load(cwd)
+	lintConfig, configDir, err := config.Load(cwd)
 	if err != nil {
 		return fmt.Errorf("load scripts/devbase.yaml: %w", err)
 	}
 
 	excludes := lintConfig.MergeExcludes(c.StringSlice("exclude")...)
 	logrus.WithFields(logrus.Fields{
+		"configDir": configDir,
 		"excludes":  excludes,
 		"ruleCount": len(lintConfig.Rules),
 	}).Debug("resolved graphql lint config")
