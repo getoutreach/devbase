@@ -67,7 +67,7 @@ func main() {
 	}
 	app.Commands = []*cli.Command{
 		// <<Stencil::Block(commands)>>
-		NewLintCommand(),
+		newLintCommand(),
 		// <</Stencil::Block>>
 	}
 

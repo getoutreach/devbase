@@ -14,9 +14,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// NewLintGraphqlCommand returns the "graphql" subcommand of "lint",
+// newLintGraphQLCommand returns the "graphql" subcommand of "lint",
 // which runs GraphQL schema lint checks.
-func NewLintGraphqlCommand() *cli.Command {
+func newLintGraphQLCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "graphql",
 		Usage: "Run GraphQL lint checks on the codebase",
