@@ -123,7 +123,7 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	violations := gapFillDirectivesPerLocation(parsed, cfg)
 	violations = append(violations, gapFillPossibleTypeExtension(parsed, cfg)...)
 
-	tier3Violations, err := tier3Descriptions(fileSources, parsed, cfg)
+	tier3Violations, err := tier3(fileSources, parsed, cfg)
 	if err != nil {
 		return nil, err
 	}
