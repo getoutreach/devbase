@@ -192,10 +192,7 @@ func lineStarts(input string) []int {
 // start, given starts (from lineStarts) -- the same Line/Column
 // convention gqlparser/v2's own lexer uses everywhere else.
 func linePosition(starts []int, start int) (line, col int) {
-	i := sort.SearchInts(starts, start+1) - 1
-	if i < 0 {
-		i = 0
-	}
+	i := max(sort.SearchInts(starts, start+1)-1, 0)
 	return i + 1, start - starts[i] + 1
 }
 
