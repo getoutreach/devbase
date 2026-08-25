@@ -52,6 +52,38 @@ func runSingleViolationCases(t *testing.T, rule, wantErrSubstring string, cases 
 	}
 }
 
+// orderedViolationCase is a Tier 3 rule's SDL fixture, the Lint config
+// to run it under, and the sequence of violation messages Files is
+// expected to report, in order.
+type orderedViolationCase struct {
+	name         string
+	sdl          string
+	cfg          *config.Lint
+	wantMessages []string
+}
+
+// runOrderedViolationCases runs cases against Files, asserting the
+// resulting violations match wantMessages in order and are all tagged
+// rule. Unlike runSingleViolationCases, it is shared by any Tier 3 rule
+// whose invalid cases report more than one violation in a fixed order.
+func runOrderedViolationCases(t *testing.T, rule string, cases []orderedViolationCase) {
+	t.Helper()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := writeFile(t, dir, "schema.graphql", c.sdl)
+
+			violations, err := Files([]string{path}, c.cfg)
+			assert.NilError(t, err)
+			assert.Equal(t, len(violations), len(c.wantMessages))
+			for i, want := range c.wantMessages {
+				assert.Equal(t, violations[i].Rule, rule)
+				assert.ErrorContains(t, violations[i].err, want)
+			}
+		})
+	}
+}
+
 // tier1Case is a single Tier 1 rule's minimal SDL fixture: sdl violates
 // exactly the rule under test, and wantErrSubstring is a substring of
 // the resulting Violation's error confirming it failed for that rule,

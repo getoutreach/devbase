@@ -136,11 +136,9 @@ func TestNoUnreachableTypesValidCases(t *testing.T) {
 }
 
 func TestNoUnreachableTypesInvalidCases(t *testing.T) {
-	cases := []struct {
-		name         string
-		sdl          string
-		wantMessages []string
-	}{
+	cfg := enableRule(config.RuleNoUnreachableTypes)
+
+	runOrderedViolationCases(t, config.RuleNoUnreachableTypes, []orderedViolationCase{
 		{
 			"unreachable interfaces and their unreachable implementor",
 			`
@@ -150,6 +148,7 @@ func TestNoUnreachableTypesInvalidCases(t *testing.T) {
 				interface User implements Node { id: ID! name: String }
 				type SuperUser implements User & Node { id: ID! name: String address: String }
 			`,
+			cfg,
 			[]string{
 				"Interface type `Node` is unreachable.",
 				"Interface type `User` is unreachable.",
@@ -167,6 +166,7 @@ func TestNoUnreachableTypesInvalidCases(t *testing.T) {
 				interface Address { city: String }
 				type User implements Address { city: String }
 			`,
+			cfg,
 			[]string{
 				"Scalar type `DateTime` is unreachable.",
 				"Enum type `Role` is unreachable.",
@@ -186,6 +186,7 @@ func TestNoUnreachableTypesInvalidCases(t *testing.T) {
 				type Query { user: User! }
 				scalar DateTime
 			`,
+			cfg,
 			[]string{"Scalar type `DateTime` is unreachable."},
 		},
 		{
@@ -197,6 +198,7 @@ func TestNoUnreachableTypesInvalidCases(t *testing.T) {
 				extend type SuperUser { detail: String }
 				type Query { user: AnotherUser! }
 			`,
+			cfg,
 			[]string{
 				"Interface type `User` is unreachable.",
 				"Object type `SuperUser` is unreachable.",
@@ -212,23 +214,10 @@ func TestNoUnreachableTypesInvalidCases(t *testing.T) {
 				type SuperUser implements User & Node { id: ID! name: String address: String }
 				scalar DateTime
 			`,
+			cfg,
 			[]string{"Scalar type `DateTime` is unreachable."},
 		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			dir := t.TempDir()
-			path := writeFile(t, dir, "schema.graphql", c.sdl)
-
-			violations, err := Files([]string{path}, enableRule(config.RuleNoUnreachableTypes))
-			assert.NilError(t, err)
-			assert.Equal(t, len(violations), len(c.wantMessages))
-			for i, want := range c.wantMessages {
-				assert.Equal(t, violations[i].Rule, config.RuleNoUnreachableTypes)
-				assert.ErrorContains(t, violations[i].err, want)
-			}
-		})
-	}
+	})
 }
 
 // TestNoUnreachableTypesAcrossFiles is a Go-specific edge case: a root

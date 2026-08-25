@@ -30,6 +30,8 @@
 package lint
 
 import (
+	"slices"
+
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -52,12 +54,7 @@ var requestDirectiveLocations = set.Of(
 // hasRequestLocation reports whether dd is usable at one of
 // requestDirectiveLocations.
 func hasRequestLocation(dd *ast.DirectiveDefinition) bool {
-	for _, loc := range dd.Locations {
-		if requestDirectiveLocations.Contains(loc) {
-			return true
-		}
-	}
-	return false
+	return requestDirectiveLocations.ContainsAny(slices.Values(dd.Locations))
 }
 
 // reachableTypeNames returns the name of every type and directive
@@ -200,7 +197,7 @@ func unreachableSitesByFile(doc *ast.SchemaDocument, inScope set.Set[*ast.Source
 // noUnreachableTypesViolations reports a RuleNoUnreachableTypes
 // violation for every site in sites whose name is not in reachable.
 func noUnreachableTypesViolations(sites []unreachableSite, reachable set.Set[string]) []Violation {
-	var violations []Violation
+	violations := make([]Violation, 0, len(sites))
 	for _, s := range sites {
 		if reachable.Contains(s.name) {
 			continue

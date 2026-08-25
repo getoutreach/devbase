@@ -62,87 +62,73 @@ func TestAlphabetizeValidCases(t *testing.T) {
 }
 
 func TestAlphabetizeInvalidCases(t *testing.T) {
-	cases := []struct {
-		name         string
-		sdl          string
-		opts         map[string]any
-		wantMessages []string
-	}{
+	withOpt := func(key, kind string) *config.Lint {
+		return enableRuleWithOptions(config.RuleAlphabetize, map[string]any{key: []any{kind}})
+	}
+	values := enableRuleWithOptions(config.RuleAlphabetize, map[string]any{"values": []any{"EnumTypeDefinition"}})
+
+	runOrderedViolationCases(t, config.RuleAlphabetize, []orderedViolationCase{
 		{
 			"unsorted object fields",
 			`type User { password: String firstName: String! age: Int lastName: String! }`,
-			map[string]any{"fields": []any{"ObjectTypeDefinition"}},
+			withOpt("fields", "ObjectTypeDefinition"),
 			[]string{"`firstName` should be before `password`.", "`age` should be before `firstName`."},
 		},
 		{
 			"unsorted object extension fields",
 			`extend type User { age: Int firstName: String! password: String lastName: String! }`,
-			map[string]any{"fields": []any{"ObjectTypeDefinition"}},
+			withOpt("fields", "ObjectTypeDefinition"),
 			[]string{"`lastName` should be before `password`."},
 		},
 		{
 			"unsorted interface fields",
 			`interface Test { cc: Int bb: Int aa: Int }`,
-			map[string]any{"fields": []any{"InterfaceTypeDefinition"}},
+			withOpt("fields", "InterfaceTypeDefinition"),
 			[]string{"`bb` should be before `cc`.", "`aa` should be before `bb`."},
 		},
 		{
 			"unsorted input fields",
 			`input UserInput { password: String firstName: String! age: Int lastName: String! }`,
-			map[string]any{"fields": []any{"InputObjectTypeDefinition"}},
+			withOpt("fields", "InputObjectTypeDefinition"),
 			[]string{"`firstName` should be before `password`.", "`age` should be before `firstName`."},
 		},
 		{
 			"unsorted input extension fields",
 			`extend input UserInput { age: Int firstName: String! password: String lastName: String! }`,
-			map[string]any{"fields": []any{"InputObjectTypeDefinition"}},
+			withOpt("fields", "InputObjectTypeDefinition"),
 			[]string{"`lastName` should be before `password`."},
 		},
 		{
 			"unsorted enum values",
 			`enum Role { SUPER_ADMIN ADMIN USER GOD }`,
-			map[string]any{"values": []any{"EnumTypeDefinition"}},
+			values,
 			[]string{"`ADMIN` should be before `SUPER_ADMIN`.", "`GOD` should be before `USER`."},
 		},
 		{
 			"unsorted enum extension values",
 			`extend enum Role { ADMIN SUPER_ADMIN GOD USER }`,
-			map[string]any{"values": []any{"EnumTypeDefinition"}},
+			values,
 			[]string{"`GOD` should be before `SUPER_ADMIN`."},
 		},
 		{
 			"should compare with lexicographic order",
 			`enum Test { qux foo Bar bar }`,
-			map[string]any{"values": []any{"EnumTypeDefinition"}},
+			values,
 			[]string{"`foo` should be before `qux`.", "`Bar` should be before `foo`.", "`bar` should be before `Bar`."},
 		},
 		{
 			"unsorted directive definition arguments",
 			`directive @test(cc: Int, bb: Int, aa: Int) on FIELD_DEFINITION`,
-			map[string]any{"arguments": []any{"DirectiveDefinition"}},
+			withOpt("arguments", "DirectiveDefinition"),
 			[]string{"`bb` should be before `cc`.", "`aa` should be before `bb`."},
 		},
 		{
 			"unsorted field arguments",
 			`type Query { test(cc: Int, bb: Int, aa: Int): Int }`,
-			map[string]any{"arguments": []any{"FieldDefinition"}},
+			withOpt("arguments", "FieldDefinition"),
 			[]string{"`bb` should be before `cc`.", "`aa` should be before `bb`."},
 		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			dir := t.TempDir()
-			path := writeFile(t, dir, "schema.graphql", c.sdl)
-
-			violations, err := Files([]string{path}, enableRuleWithOptions(config.RuleAlphabetize, c.opts))
-			assert.NilError(t, err)
-			assert.Equal(t, len(violations), len(c.wantMessages))
-			for i, want := range c.wantMessages {
-				assert.Equal(t, violations[i].Rule, config.RuleAlphabetize)
-				assert.ErrorContains(t, violations[i].err, want)
-			}
-		})
-	}
+	})
 }
 
 // TestAlphabetizeOrdersExtensionFieldsWithBaseType is a Go-specific edge
