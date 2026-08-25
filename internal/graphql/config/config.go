@@ -259,8 +259,8 @@ func (c *Lint) MergeExcludes(extra ...string) []string {
 	return merged
 }
 
-// Enabled reports whether the rule should run at all. A Tier 2 or Tier
-// 3 rule is enabled only once scripts/devbase.yaml gives it a severity
+// Enabled reports whether the rule should run at all. A Tier 2 or Tier 3
+// rule is enabled only once scripts/devbase.yaml gives it a severity
 // other than SeverityOff -- it does not run by default, matching
 // @graphql-eslint's own behavior of a rule staying inert until a config
 // opts into it. c may be nil (no config file found), in which case
