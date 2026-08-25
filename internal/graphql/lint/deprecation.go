@@ -81,14 +81,14 @@ const deletionDateLayout = "02/01/2006"
 var deletionDateShape = regexp.MustCompile(`^\d{2}/\d{2}/\d{4}$`)
 
 // requireDeprecationDateOptions is require-deprecation-date's
-// scripts/devbase.yaml options, decoded from RuleConfig.Options.
+// scripts/devbase.yaml options, decoded from Rule.Options.
 type requireDeprecationDateOptions struct {
 	// argumentName is the @deprecated argument require-deprecation-date
 	// checks, matching @graphql-eslint's own "argumentName" option.
 	argumentName string
 }
 
-// parseRequireDeprecationDateOptions decodes opts (RuleConfig.Options)
+// parseRequireDeprecationDateOptions decodes opts (Rule.Options)
 // into requireDeprecationDateOptions, defaulting argumentName to
 // "deletionDate" if opts is nil or its "argumentName" key isn't a
 // non-empty string.
