@@ -37,13 +37,40 @@ var ErrDescriptionTokenMismatch = errors.New("description-style: mismatched desc
 // options, matching @graphql-eslint's own option names, and doubling
 // as descriptionSite.optionKind tags -- see requireDescriptionOptions.applies.
 const (
-	optionTypes                = "types"
-	optionRootField            = "rootField"
-	optionDirectiveDefinition  = "DirectiveDefinition"
-	optionFieldDefinition      = "FieldDefinition"
+	// optionTypes is require-description's "types" option key, and the
+	// descriptionSite.optionKind for a type/interface/union/enum/scalar/
+	// input object definition.
+	optionTypes = "types"
+
+	// optionRootField is require-description's "rootField" option key.
+	// It never appears as a descriptionSite.optionKind; instead it
+	// gates optionFieldDefinition sites whose isRootField is true.
+	optionRootField = "rootField"
+
+	// optionDirectiveDefinition is require-description's
+	// "DirectiveDefinition" option key, and the descriptionSite.optionKind
+	// for a directive definition.
+	optionDirectiveDefinition = "DirectiveDefinition"
+
+	// optionFieldDefinition is require-description's "FieldDefinition"
+	// option key, and the descriptionSite.optionKind for an object or
+	// interface type's own field.
+	optionFieldDefinition = "FieldDefinition"
+
+	// optionInputValueDefinition is require-description's
+	// "InputValueDefinition" option key, and the descriptionSite.optionKind
+	// for an argument or an input object type's own field.
 	optionInputValueDefinition = "InputValueDefinition"
-	optionEnumValueDefinition  = "EnumValueDefinition"
-	optionSchemaDefinition     = "SchemaDefinition"
+
+	// optionEnumValueDefinition is require-description's
+	// "EnumValueDefinition" option key, and the descriptionSite.optionKind
+	// for an enum value.
+	optionEnumValueDefinition = "EnumValueDefinition"
+
+	// optionSchemaDefinition is the descriptionSite.optionKind for a
+	// schema definition. It is not one of require-description's option
+	// keys -- see requireDescriptionOptions.applies.
+	optionSchemaDefinition = "SchemaDefinition"
 )
 
 // descriptionSite is one node in a file that can carry a description:
