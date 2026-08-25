@@ -122,13 +122,28 @@ func repoRoot(repo *git.Repository) (string, error) {
 // readFiles reads each of files (given relative to dir) from
 // mergeBase's tree, returning a map keyed by the original file string.
 func readFiles(mergeBase *object.Commit, root, dir string, files []string) (map[string]string, error) {
+	// root, from go-git's Worktree, and dir/files, from the caller, can
+	// reach the same directory through different symlinks -- e.g. on
+	// macOS, where a temp directory's real path is under /private but
+	// the caller's os.Getwd() reports the /var symlink. filepath.Rel on
+	// two such paths silently computes the wrong relative path, so
+	// resolve both sides before comparing them.
+	realRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return nil, fmt.Errorf("resolve symlinks for repository root %s: %w", root, err)
+	}
+
 	contents := make(map[string]string, len(files))
 	for _, file := range files {
 		absPath := file
 		if !filepath.IsAbs(absPath) {
 			absPath = filepath.Join(dir, file)
 		}
-		relPath, err := filepath.Rel(root, absPath)
+		realPath, err := filepath.EvalSymlinks(absPath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve symlinks for %s: %w", file, err)
+		}
+		relPath, err := filepath.Rel(realRoot, realPath)
 		if err != nil {
 			return nil, fmt.Errorf("resolve %s relative to repository root %s: %w", file, root, err)
 		}

@@ -96,6 +96,24 @@ func TestMergeBaseFiles(t *testing.T) {
 	})
 }
 
+// TestMergeBaseFilesThroughSymlinkedDir guards against a mismatch
+// between go-git's resolved worktree root and the caller's own path,
+// as happens on macOS: a temp directory's real path is under
+// /private, but os.Getwd() reports the /var symlink to it. Passing
+// dir through a symlink here reproduces that mismatch on any
+// platform.
+func TestMergeBaseFilesThroughSymlinkedDir(t *testing.T) {
+	root, _, baseName := newTestRepo(t)
+
+	symlinked := root + "-symlink"
+	assert.NilError(t, os.Symlink(root, symlinked))
+	t.Cleanup(func() { assert.NilError(t, os.Remove(symlinked)) })
+
+	content, err := MergeBaseFiles(symlinked, baseName, []string{"schema.graphql"})
+	assert.NilError(t, err)
+	assert.Equal(t, content["schema.graphql"], "type Foo { a: String }\n")
+}
+
 func TestMergeBaseFilesShallowClone(t *testing.T) {
 	root, _, _ := newTestRepo(t)
 
