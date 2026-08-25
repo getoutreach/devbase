@@ -170,7 +170,7 @@ func stringSliceOption(opts map[string]any, key string) []string {
 }
 
 // namingConventionOptions is naming-convention's scripts/devbase.yaml
-// options, decoded from RuleConfig.Options.
+// options, decoded from Rule.Options.
 type namingConventionOptions struct {
 	// allowLeadingUnderscore and allowTrailingUnderscore, if false
 	// (the default, matching @graphql-eslint's own default), make
@@ -197,7 +197,7 @@ type namingConventionOptions struct {
 	selectors map[string]namingRule
 }
 
-// parseNamingConventionOptions decodes opts (RuleConfig.Options) into
+// parseNamingConventionOptions decodes opts (Rule.Options) into
 // namingConventionOptions.
 func parseNamingConventionOptions(opts map[string]any) namingConventionOptions {
 	o := namingConventionOptions{
