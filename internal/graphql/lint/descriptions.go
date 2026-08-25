@@ -311,10 +311,19 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		})
 	}
 
-	for _, group := range sites {
-		sort.SliceStable(group, func(i, j int) bool { return group[i].pos.Start < group[j].pos.Start })
-	}
+	sortGroupsByPosition(sites, func(s descriptionSite) *ast.Position { return s.pos })
 	return sites
+}
+
+// sortGroupsByPosition sorts each file's slice in sites by posOf's
+// Start, in place. A file's own sites never share a start position, so
+// this is shared by every Tier 3 rule that groups its sites by file
+// this way: groupDescriptionSites above, and unreachableSitesByFile
+// (unreachable_types.go).
+func sortGroupsByPosition[T any](sites map[*ast.Source][]T, posOf func(T) *ast.Position) {
+	for _, group := range sites {
+		sort.Slice(group, func(i, j int) bool { return posOf(group[i]).Start < posOf(group[j]).Start })
+	}
 }
 
 // rootTypeNameSet returns the names of schema's root operation types

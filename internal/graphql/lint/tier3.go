@@ -11,20 +11,22 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-// tier3 runs every Tier 3 custom rule implemented so far against
-// parsed: require-description and description-style (descriptions.go),
+// tier3 runs all 10 Tier 3 custom rules against parsed:
+// require-description and description-style (descriptions.go),
 // no-hashtag-description (hashtag.go), require-deprecation-reason and
 // require-deprecation-date (deprecation.go), no-typename-prefix
-// (typename_prefix.go), and naming-convention (naming_convention.go).
+// (typename_prefix.go), naming-convention (naming_convention.go),
+// no-case-insensitive-enum-values-duplicates
+// (case_insensitive_enum_values_duplicates.go), alphabetize
+// (alphabetize.go), and no-unreachable-types (unreachable_types.go).
 // None of them run unless cfg enables them (config.Lint.Enabled).
 //
 // The first 5 share one descriptionSite walk (groupDescriptionSites),
 // computed at most once here regardless of how many of them are
-// enabled, rather than once per rule. no-typename-prefix and
-// naming-convention need a different walk, since they care about a
-// definition's own name and a field's parent type, not its
-// description; they still share the same inScope source set, also
-// computed at most once here.
+// enabled, rather than once per rule. The rest need a different walk,
+// since they care about a definition's own name, fields, enum values,
+// or schema-wide reachability, not its description; they share the
+// same inScope source set, also computed at most once here.
 func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([]Violation, error) {
 	var violations []Violation
 
@@ -49,7 +51,9 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		violations = append(violations, hashtagViolations...)
 	}
 
-	if cfg.Enabled(config.RuleNoTypenamePrefix) || cfg.Enabled(config.RuleNamingConvention) {
+	if cfg.Enabled(config.RuleNoTypenamePrefix) || cfg.Enabled(config.RuleNamingConvention) ||
+		cfg.Enabled(config.RuleNoCaseInsensitiveEnumValuesDuplicates) || cfg.Enabled(config.RuleAlphabetize) ||
+		cfg.Enabled(config.RuleNoUnreachableTypes) {
 		// inScope excludes gqlparser's built-in prelude and any
 		// federation- or scalars-synthesized prelude (see federation.go)
 		// by their *ast.Source identity: neither is ever one of
@@ -57,6 +61,9 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		inScope := set.Of(fileSources...)
 		violations = append(violations, tier3NoTypenamePrefix(parsed, inScope, cfg)...)
 		violations = append(violations, tier3NamingConvention(parsed, inScope, cfg)...)
+		violations = append(violations, tier3NoCaseInsensitiveEnumValuesDuplicates(parsed, inScope, cfg)...)
+		violations = append(violations, tier3Alphabetize(parsed, inScope, cfg)...)
+		violations = append(violations, tier3NoUnreachableTypes(fileSources, inScope, parsed, cfg)...)
 	}
 
 	return violations, nil
