@@ -17,9 +17,10 @@
 package lint
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
@@ -322,7 +323,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 // (unreachable_types.go).
 func sortGroupsByPosition[T any](sites map[*ast.Source][]T, posOf func(T) *ast.Position) {
 	for _, group := range sites {
-		sort.Slice(group, func(i, j int) bool { return posOf(group[i]).Start < posOf(group[j]).Start })
+		slices.SortFunc(group, func(a, b T) int { return cmp.Compare(posOf(a).Start, posOf(b).Start) })
 	}
 }
 
