@@ -24,6 +24,34 @@ func writeFile(t *testing.T, dir, path, contents string) string {
 	return full
 }
 
+// singleViolationCase is a Tier 3 rule's minimal, independently-valid SDL
+// fixture: sdl violates exactly the rule under test, in isolation, and is
+// expected to produce exactly one violation of it.
+type singleViolationCase struct {
+	name string
+	sdl  string
+}
+
+// runSingleViolationCases runs cases against Files with rule enabled
+// (enableRule), asserting each produces exactly one violation tagged rule
+// whose error contains wantErrSubstring. It is shared by any Tier 3 rule
+// whose invalid cases all report the same message shape.
+func runSingleViolationCases(t *testing.T, rule, wantErrSubstring string, cases []singleViolationCase) {
+	t.Helper()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := writeFile(t, dir, "schema.graphql", c.sdl)
+
+			violations, err := Files([]string{path}, enableRule(rule))
+			assert.NilError(t, err)
+			assert.Equal(t, len(violations), 1)
+			assert.Equal(t, violations[0].Rule, rule)
+			assert.ErrorContains(t, violations[0].err, wantErrSubstring)
+		})
+	}
+}
+
 // tier1Case is a single Tier 1 rule's minimal SDL fixture: sdl violates
 // exactly the rule under test, and wantErrSubstring is a substring of
 // the resulting Violation's error confirming it failed for that rule,

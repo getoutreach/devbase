@@ -9,7 +9,10 @@
 // description, and groupDescriptionSites, which walks parsed.doc once
 // and buckets every such node by the file it was written in.
 // tier3Descriptions ties the two rules together, running whichever of
-// them scripts/devbase.yaml enables against every file.
+// them scripts/devbase.yaml enables against every file. deprecation.go
+// and hashtag.go reuse the same descriptionSite/groupDescriptionSites
+// walk for require-deprecation-reason, require-deprecation-date, and
+// no-hashtag-description.
 
 package lint
 
@@ -75,11 +78,30 @@ const (
 
 // descriptionSite is one node in a file that can carry a description:
 // a type definition, field, argument, enum value, directive
-// definition, or schema definition.
+// definition, or schema definition. This file uses it for
+// require-description and description-style; deprecation.go and
+// hashtag.go reuse the same walk (groupDescriptionSites) for
+// require-deprecation-reason, require-deprecation-date, and
+// no-hashtag-description, via the directives and
+// afterDescriptionComment fields below.
 type descriptionSite struct {
 	// description is the node's decoded description text, or "" if it
 	// has none.
 	description string
+
+	// directives is the node's own applied directives, or nil for a
+	// kind that cannot carry any (a type, directive, or schema
+	// definition). deprecation.go's only use for this field is finding
+	// an applied "deprecated" usage, and gqlparser rejects @deprecated
+	// on those kinds before Tier 3 ever runs (see Files' doc comment),
+	// so they are never populated.
+	directives ast.DirectiveList
+
+	// afterDescriptionComment is the "#" comment(s) gqlparser recorded
+	// immediately before this site, after its description if it has
+	// one, or nil if there were none. hashtag.go is this field's only
+	// reader.
+	afterDescriptionComment *ast.CommentGroup
 
 	// pos anchors the require-description violation location, and the
 	// order groupDescriptionSites sorts a file's sites into for pairing
@@ -169,11 +191,14 @@ var typeDefinitionKindKeys = map[ast.DefinitionKind]string{
 // inputValueSite builds the descriptionSite for an argument or an
 // input object field -- the 3 constructs graphql-js represents as an
 // InputValueDefinition node, all labeled and bucketed identically.
-func inputValueSite(description string, pos *ast.Position, name, parentLabel string) descriptionSite {
+func inputValueSite(description string, pos *ast.Position, name, parentLabel string,
+	dirs ast.DirectiveList, comment *ast.CommentGroup,
+) descriptionSite {
 	return descriptionSite{
 		description: description, pos: pos,
 		optionKind: optionInputValueDefinition, name: name,
 		kindLabel: "input value", parentLabel: parentLabel,
+		directives: dirs, afterDescriptionComment: comment,
 	}
 }
 
@@ -204,19 +229,22 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 			}
 
 			if def.Kind == ast.InputObject {
-				add(f.Position.Src, inputValueSite(f.Description, f.Position, f.Name, parentLabel))
+				add(f.Position.Src, inputValueSite(f.Description, f.Position, f.Name, parentLabel,
+					f.Directives, f.AfterDescriptionComment))
 			} else {
 				add(f.Position.Src, descriptionSite{
 					description: f.Description, pos: f.Position,
 					optionKind: optionFieldDefinition, name: f.Name,
 					kindLabel: "field", parentLabel: parentLabel,
 					isRootField: def.Kind == ast.Object && rootTypeNames[def.Name],
+					directives:  f.Directives, afterDescriptionComment: f.AfterDescriptionComment,
 				})
 			}
 
 			fieldLabel := fmt.Sprintf("field %q", f.Name)
 			for _, arg := range f.Arguments {
-				add(arg.Position.Src, inputValueSite(arg.Description, arg.Position, arg.Name, fieldLabel))
+				add(arg.Position.Src, inputValueSite(arg.Description, arg.Position, arg.Name, fieldLabel,
+					arg.Directives, arg.AfterDescriptionComment))
 			}
 		}
 		for _, ev := range def.EnumValues {
@@ -224,6 +252,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 				description: ev.Description, pos: ev.Position,
 				optionKind: optionEnumValueDefinition, name: ev.Name,
 				kindLabel: "enum value", parentLabel: parentLabel,
+				directives: ev.Directives, afterDescriptionComment: ev.AfterDescriptionComment,
 			})
 		}
 	}
@@ -234,7 +263,8 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		add(def.Position.Src, descriptionSite{
 			description: def.Description, pos: def.Position,
 			optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
-			typeDefKindKey: typeDefinitionKindKeys[def.Kind],
+			typeDefKindKey:          typeDefinitionKindKeys[def.Kind],
+			afterDescriptionComment: def.AfterDescriptionComment,
 		})
 		addFields(def)
 	}
@@ -260,11 +290,13 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		add(dd.Position.Src, descriptionSite{
 			description: dd.Description, pos: dd.Position,
 			optionKind: optionDirectiveDefinition, name: dd.Name, kindLabel: "directive",
+			afterDescriptionComment: dd.AfterDescriptionComment,
 		})
 
 		directiveLabel := fmt.Sprintf("directive %q", dd.Name)
 		for _, arg := range dd.Arguments {
-			add(dd.Position.Src, inputValueSite(arg.Description, arg.Position, arg.Name, directiveLabel))
+			add(dd.Position.Src, inputValueSite(arg.Description, arg.Position, arg.Name, directiveLabel,
+				arg.Directives, arg.AfterDescriptionComment))
 		}
 	}
 
@@ -272,6 +304,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		add(sd.Position.Src, descriptionSite{
 			description: sd.Description, pos: sd.Position,
 			optionKind: optionSchemaDefinition, kindLabel: "schema",
+			afterDescriptionComment: sd.AfterDescriptionComment,
 		})
 	}
 
@@ -297,10 +330,12 @@ func rootTypeNameSet(schema *ast.Schema) map[string]bool {
 
 // tier3Descriptions runs require-description and description-style --
 // neither runs unless cfg enables it (config.Lint.Enabled) --
-// against every file in fileSources, using parsed (already built by
-// Files for Tier 1/Tier 2) to resolve each file's own definitions and
-// the schema's root operation type names.
-func tier3Descriptions(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([]Violation, error) {
+// against every file in fileSources, using sitesByFile (built once by
+// tier3's shared groupDescriptionSites call) to resolve each file's own
+// description-bearing sites.
+func tier3Descriptions(fileSources []*ast.Source, sitesByFile map[*ast.Source][]descriptionSite,
+	cfg *config.Lint,
+) ([]Violation, error) {
 	requireEnabled := cfg.Enabled(config.RuleRequireDescription)
 	styleEnabled := cfg.Enabled(config.RuleDescriptionStyle)
 	if !requireEnabled && !styleEnabled {
@@ -309,8 +344,6 @@ func tier3Descriptions(fileSources []*ast.Source, parsed *parsedSchema, cfg *con
 
 	requireOpts := parseRequireDescriptionOptions(cfg.Options(config.RuleRequireDescription))
 	styleOpts := parseDescriptionStyleOptions(cfg.Options(config.RuleDescriptionStyle))
-	roots := rootTypeNameSet(parsed.schema)
-	sitesByFile := groupDescriptionSites(parsed.doc, roots)
 
 	var violations []Violation
 	for _, src := range fileSources {

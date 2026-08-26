@@ -137,16 +137,17 @@ const (
 	RulePossibleTypeExtension = "possible-type-extension"
 )
 
-// Names of 2 (of 10) Tier 3 custom style/convention rules implemented
+// Names of 5 (of 10) Tier 3 custom style/convention rules implemented
 // so far. Unlike Tier 1 and Tier 2, no part of a Tier 3 rule is
 // enforced by gqlparser -- each is entirely custom Go code. Like the
 // Tier 2 gap-fill rules above, a Tier 3 rule never runs unless
 // scripts/devbase.yaml gives it a severity other than SeverityOff --
 // see Lint.Enabled. Each rule's options (for example
-// require-description's "types" and "FieldDefinition" keys) are read
-// from Rule.Options by internal/graphql/lint/descriptions.go, not
-// validated here -- this package treats every rule's options as
-// opaque, leaving their shape to the rule implementation.
+// require-description's "types" and "FieldDefinition" keys, or
+// require-deprecation-date's "argumentName") are read from
+// Rule.Options by internal/graphql/lint, not validated here -- this
+// package treats every rule's options as opaque, leaving their shape
+// to the rule implementation.
 const (
 	// RuleRequireDescription requires a description on the kinds of
 	// definition its options enable it for.
@@ -156,6 +157,20 @@ const (
 	// use the same quoting style: inline "..." or block """...""",
 	// per its "style" option.
 	RuleDescriptionStyle = "description-style"
+
+	// RuleNoHashtagDescription forbids a "#" comment immediately
+	// preceding a definition, field, argument, or enum value, in favor
+	// of a "..." or """...""" description.
+	RuleNoHashtagDescription = "no-hashtag-description"
+
+	// RuleRequireDeprecationReason requires every applied @deprecated
+	// directive to have a non-empty "reason" argument.
+	RuleRequireDeprecationReason = "require-deprecation-reason"
+
+	// RuleRequireDeprecationDate requires every applied @deprecated
+	// directive to have a valid, not-yet-passed deletion date, per its
+	// "argumentName" option (default "deletionDate").
+	RuleRequireDeprecationDate = "require-deprecation-date"
 )
 
 // Rule is the per-rule override for a single lint rule. It accepts
