@@ -367,17 +367,26 @@ func tier3Descriptions(fileSources []*ast.Source, sitesByFile map[*ast.Source][]
 		}
 
 		if styleEnabled {
-			tokens, err := descriptionTokens(src)
-			if err != nil {
-				return nil, err
-			}
-
 			nonEmpty := 0
 			for _, s := range sites {
 				if strings.TrimSpace(s.description) != "" {
 					nonEmpty++
 				}
 			}
+
+			// A file with no non-empty description sites can contribute no
+			// descriptionStyleViolations regardless of its raw content, so
+			// skip re-lexing it from scratch just to confirm that -- the
+			// common case for most files in a large schema.
+			if nonEmpty == 0 {
+				continue
+			}
+
+			tokens, err := descriptionTokens(src)
+			if err != nil {
+				return nil, err
+			}
+
 			if nonEmpty != len(tokens) {
 				return nil, fmt.Errorf("%s: %d description(s) in the parsed schema, %d description-like string token(s) "+
 					"in the raw source: %w", src.Name, nonEmpty, len(tokens), ErrDescriptionTokenMismatch)

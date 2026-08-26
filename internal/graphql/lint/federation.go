@@ -134,6 +134,18 @@ func preludeSources(sources []*ast.Source, cfg *config.Lint) ([]*ast.Source, err
 	return extra, nil
 }
 
+// sourcesContaining returns the sources whose Input contains substr,
+// preserving order.
+func sourcesContaining(sources []*ast.Source, substr string) []*ast.Source {
+	var out []*ast.Source
+	for _, src := range sources {
+		if strings.Contains(src.Input, substr) {
+			out = append(out, src)
+		}
+	}
+	return out
+}
+
 // scalarsPrelude renders names as one `scalar X` declaration per line.
 func scalarsPrelude(names []string) string {
 	var b strings.Builder
@@ -150,12 +162,31 @@ func scalarsPrelude(names []string) string {
 // declared. It returns "", nil if sources contain no `@link` to the
 // Federation subgraph spec: scripts/devbase.yaml opted in, but
 // nothing in this schema uses it yet.
+//
+// Only sources whose raw text contains the substring "link" are
+// parsed here: a `@link(...)` directive application can only appear
+// in a file containing that substring (whitespace, if any, only ever
+// separates "@" from "link", never falls inside the word itself), and
+// this whole parse exists only to find such directives. Filtering on
+// "link" rather than the more precise "@link" tolerates that
+// whitespace instead of risking a missed directive over it.
+// FilesFromSources parses every source again in full once this
+// prelude is known (parseAndValidate), so parsing all of sources a
+// second time here -- most of which will never mention "link" in a
+// repository of any size -- would double the cost of linting the
+// entire schema just to answer a question that is almost always "no"
+// for almost every file.
 func federationPrelude(sources []*ast.Source, wantVersion string) (string, error) {
 	if !supportedFederationVersions[wantVersion] {
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFederationVersion, wantVersion)
 	}
 
-	doc, err := parser.ParseSchemas(sources...)
+	candidates := sourcesContaining(sources, "link")
+	if len(candidates) == 0 {
+		return "", nil
+	}
+
+	doc, err := parser.ParseSchemas(candidates...)
 	if err != nil {
 		return "", fmt.Errorf("parse schema for federation @link directives: %w", err)
 	}
