@@ -259,3 +259,28 @@ func TestEnabledRequiresAnExplicitNonOffSeverity(t *testing.T) {
 		})
 	}
 }
+
+func TestSeverityOfDefaultsToErrorWhenRuleIsNotInTheMap(t *testing.T) {
+	var nilConfig *Lint
+	assert.Equal(t, nilConfig.SeverityOf("unique-type-names"), SeverityError)
+
+	c := &Lint{}
+	assert.Equal(t, c.SeverityOf("unique-type-names"), SeverityError)
+}
+
+func TestSeverityOfUsesTheConfiguredSeverityWhenRuleIsInTheMap(t *testing.T) {
+	cases := []struct {
+		name     string
+		severity Severity
+	}{
+		{name: "warn", severity: SeverityWarn},
+		{name: "error", severity: SeverityError},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Lint{Rules: map[string]Rule{"possible-type-extension": {Severity: tc.severity}}}
+			assert.Equal(t, c.SeverityOf("possible-type-extension"), tc.severity)
+		})
+	}
+}
