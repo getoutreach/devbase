@@ -49,6 +49,69 @@ var validSeverities = map[Severity]bool{ //nolint:gochecknoglobals // Why: read-
 // unknown severity.
 var ErrInvalidRule = errors.New("invalid rule config")
 
+// ErrTier1RuleNotConfigurable is wrapped by the error returned when
+// scripts/devbase.yaml overrides a Tier 1 rule's severity. Tier 1 rules
+// are enforced by gqlparser while parsing SDL, always at "error"
+// severity, and cannot be turned off or downgraded.
+var ErrTier1RuleNotConfigurable = errors.New("tier 1 rule severity cannot be overridden")
+
+// Names of the 9 Tier 1 rules: spec validations gqlparser performs for
+// free while parsing SDL. Named as constants so internal/graphql/lint
+// can tag violations with the same identifiers this package validates
+// against.
+const (
+	// RuleUniqueDirectiveNames requires directive definitions to have
+	// unique names.
+	RuleUniqueDirectiveNames = "unique-directive-names"
+
+	// RuleUniqueFieldDefinitionNames requires fields within a type to
+	// have unique names.
+	RuleUniqueFieldDefinitionNames = "unique-field-definition-names"
+
+	// RuleUniqueOperationTypes requires at most one query, mutation,
+	// and subscription root type.
+	RuleUniqueOperationTypes = "unique-operation-types"
+
+	// RuleUniqueTypeNames requires type definitions to have unique
+	// names.
+	RuleUniqueTypeNames = "unique-type-names"
+
+	// RuleKnownArgumentNames requires arguments to be defined in the
+	// schema.
+	RuleKnownArgumentNames = "known-argument-names"
+
+	// RuleKnownDirectives requires directives to be defined and used
+	// in a valid location.
+	RuleKnownDirectives = "known-directives"
+
+	// RuleKnownTypeNames requires referenced types to exist in the
+	// schema.
+	RuleKnownTypeNames = "known-type-names"
+
+	// RuleProvidedRequiredArguments requires required arguments to be
+	// provided.
+	RuleProvidedRequiredArguments = "provided-required-arguments"
+
+	// RuleLoneSchemaDefinition allows at most one schema definition.
+	RuleLoneSchemaDefinition = "lone-schema-definition"
+)
+
+// Tier1RuleNames returns the 9 Tier 1 rule names above, in the order
+// they're listed there.
+func Tier1RuleNames() []string {
+	return []string{
+		RuleUniqueDirectiveNames,
+		RuleUniqueFieldDefinitionNames,
+		RuleUniqueOperationTypes,
+		RuleUniqueTypeNames,
+		RuleKnownArgumentNames,
+		RuleKnownDirectives,
+		RuleKnownTypeNames,
+		RuleProvidedRequiredArguments,
+		RuleLoneSchemaDefinition,
+	}
+}
+
 // Rule is the per-rule override for a single lint rule. It accepts
 // two YAML shapes:
 //
@@ -195,7 +258,23 @@ func Load(startDir string) (*Lint, string, error) {
 		return nil, "", fmt.Errorf("parse %s: %w", path, err)
 	}
 
+	if err := validateNoTier1Overrides(fc.GraphQL.Lint.Rules); err != nil {
+		return nil, "", fmt.Errorf("%s: %w", path, err)
+	}
+
 	return &fc.GraphQL.Lint, dir, nil
+}
+
+// validateNoTier1Overrides rejects a rule override targeting one of the
+// 9 Tier 1 rules: gqlparser enforces them while parsing SDL, so their
+// severity is always "error" and scripts/devbase.yaml cannot change it.
+func validateNoTier1Overrides(rules map[string]Rule) error {
+	for _, name := range Tier1RuleNames() {
+		if _, overridden := rules[name]; overridden {
+			return fmt.Errorf("%w: %s", ErrTier1RuleNotConfigurable, name)
+		}
+	}
+	return nil
 }
 
 // discover walks up from startDir looking for scripts/devbase.yaml,
