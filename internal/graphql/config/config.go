@@ -137,7 +137,7 @@ const (
 	RulePossibleTypeExtension = "possible-type-extension"
 )
 
-// Names of 5 (of 10) Tier 3 custom style/convention rules implemented
+// Names of 7 (of 10) Tier 3 custom style/convention rules implemented
 // so far. Unlike Tier 1 and Tier 2, no part of a Tier 3 rule is
 // enforced by gqlparser -- each is entirely custom Go code. Like the
 // Tier 2 gap-fill rules above, a Tier 3 rule never runs unless
@@ -171,6 +171,15 @@ const (
 	// directive to have a valid, not-yet-passed deletion date, per its
 	// "argumentName" option (default "deletionDate").
 	RuleRequireDeprecationDate = "require-deprecation-date"
+
+	// RuleNoTypenamePrefix forbids a field on an object or interface
+	// type from starting with that type's own name.
+	RuleNoTypenamePrefix = "no-typename-prefix"
+
+	// RuleNamingConvention requires names to follow the casing,
+	// prefix/suffix, and underscore conventions its options configure
+	// per kind of definition.
+	RuleNamingConvention = "naming-convention"
 )
 
 // Rule is the per-rule override for a single lint rule. It accepts

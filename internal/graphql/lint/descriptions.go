@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -202,6 +203,27 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
+// forEachDefinition calls onDefinition for every base definition in
+// doc.Definitions, and onExtension for every extension in
+// doc.Extensions with no base definition. A based extension is skipped:
+// validator.ValidateSchemaDocument already merged its Fields and
+// EnumValues into the base Definition in place, so onDefinition already
+// covers it. groupDescriptionSites passes two different functions here
+// (an extension can never carry its own description); typenamePrefixViolations
+// and namingSites pass the same one for both.
+func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
+	seen := make(set.Set[string], len(doc.Definitions))
+	for _, def := range doc.Definitions {
+		seen.Insert(def.Name)
+		onDefinition(def)
+	}
+	for _, def := range doc.Extensions {
+		if !seen.Contains(def.Name) {
+			onExtension(def)
+		}
+	}
+}
+
 // groupDescriptionSites collects every descriptionSite in doc, grouped
 // by the *ast.Source it was written in (each site's own Position.Src),
 // with each group sorted by pos.Start -- the same file order
@@ -257,9 +279,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		}
 	}
 
-	hasBaseDefinition := make(map[string]bool, len(doc.Definitions))
-	for _, def := range doc.Definitions {
-		hasBaseDefinition[def.Name] = true
+	forEachDefinition(doc, func(def *ast.Definition) {
 		add(def.Position.Src, descriptionSite{
 			description: def.Description, pos: def.Position,
 			optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
@@ -267,24 +287,7 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 			afterDescriptionComment: def.AfterDescriptionComment,
 		})
 		addFields(def)
-	}
-	for _, def := range doc.Extensions {
-		// validator.ValidateSchemaDocument merges an extension's Fields
-		// and EnumValues into its base type's own Definition.Fields in
-		// place, each keeping its own original Position -- so the
-		// doc.Definitions loop above already walked every field an
-		// extension of an existing type adds; addFields here would
-		// double-count them. Only an extension of a type with no base
-		// definition at all has fields that exist nowhere else.
-		//
-		// An extension can never carry its own description -- gqlparser
-		// rejects one the same way it rejects any description before
-		// "extend" -- but its fields and enum values can, so those still
-		// need walking for the undefined-base case.
-		if !hasBaseDefinition[def.Name] {
-			addFields(def)
-		}
-	}
+	}, addFields)
 
 	for _, dd := range doc.Directives {
 		add(dd.Position.Src, descriptionSite{
