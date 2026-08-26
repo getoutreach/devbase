@@ -14,7 +14,6 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.10.1
 	google.golang.org/grpc v1.83.0
-	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.5.2
 )
 
@@ -116,7 +115,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/net v0.57.0 // indirect

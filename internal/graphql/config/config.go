@@ -1,0 +1,244 @@
+// Copyright 2026 Outreach Corporation. All Rights Reserved.
+
+// Description: Loads scripts/devbase.yaml, the per-repo configuration
+// file consulted by devbase lint graphql.
+
+// Package config loads scripts/devbase.yaml, the per-repo
+// configuration file consulted by devbase lint graphql for exclude
+// patterns and per-rule severity/option overrides.
+package config
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"go.yaml.in/yaml/v3"
+)
+
+// scriptsDevbaseYAML is the config file path, relative to a
+// repository's top-level directory.
+const scriptsDevbaseYAML = "scripts/devbase.yaml"
+
+// Severity is the severity level of a lint rule.
+type Severity string
+
+const (
+	// SeverityOff disables a rule.
+	SeverityOff Severity = "off"
+
+	// SeverityWarn reports a rule's violations without failing the lint run.
+	SeverityWarn Severity = "warn"
+
+	// SeverityError reports a rule's violations and fails the lint run.
+	SeverityError Severity = "error"
+)
+
+// validSeverities is the set of severity values accepted in
+// scripts/devbase.yaml rule overrides.
+var validSeverities = map[Severity]bool{ //nolint:gochecknoglobals // Why: read-only lookup table.
+	SeverityOff:   true,
+	SeverityWarn:  true,
+	SeverityError: true,
+}
+
+// ErrInvalidRule is wrapped by errors returned when a rule entry in
+// scripts/devbase.yaml is neither the short form (a severity scalar)
+// nor the long form (a [severity, options] sequence), or names an
+// unknown severity.
+var ErrInvalidRule = errors.New("invalid rule config")
+
+// Rule is the per-rule override for a single lint rule. It accepts
+// two YAML shapes:
+//
+//	# Short form: severity only.
+//	rule-name: warn
+//
+//	# Long form: severity plus rule-specific options.
+//	rule-name:
+//	  - error
+//	  - someOption: true
+type Rule struct {
+	// Severity overrides the rule's default severity.
+	Severity Severity
+
+	// Options carries rule-specific options from the long form. It is
+	// nil when the short form was used.
+	Options map[string]any
+}
+
+// var _ yaml.Unmarshaler = (*Rule)(nil) documents, at compile time,
+// that UnmarshalYAML's signature actually satisfies yaml.Unmarshaler
+// -- go.yaml.in/yaml/v3 also accepts an older unmarshal-func signature
+// that this type does not implement, and a mismatched signature would
+// otherwise fail silently by reflection.
+var _ yaml.Unmarshaler = (*Rule)(nil)
+
+// UnmarshalYAML implements yaml.Unmarshaler for Rule, decoding both
+// shapes described above.
+func (r *Rule) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.ScalarNode {
+		severity, err := decodeSeverity(value)
+		if err != nil {
+			return err
+		}
+		r.Severity, r.Options = severity, nil
+		return nil
+	}
+	if value.Kind == yaml.SequenceNode {
+		return r.unmarshalLongForm(value)
+	}
+	return fmt.Errorf("%w: expected a severity string or a [severity, options] sequence, got %v",
+		ErrInvalidRule, value.Kind)
+}
+
+// unmarshalLongForm decodes the [severity, options] sequence form of a
+// rule override.
+func (r *Rule) unmarshalLongForm(value *yaml.Node) error {
+	if len(value.Content) == 0 || len(value.Content) > 2 {
+		return fmt.Errorf("%w: sequence form must have 1 or 2 elements, got %d",
+			ErrInvalidRule, len(value.Content))
+	}
+
+	severity, err := decodeSeverity(value.Content[0])
+	if err != nil {
+		return err
+	}
+
+	var options map[string]any
+	if len(value.Content) == 2 {
+		if err := value.Content[1].Decode(&options); err != nil {
+			return fmt.Errorf("decode rule options: %w", err)
+		}
+	}
+
+	r.Severity, r.Options = severity, options
+	return nil
+}
+
+// decodeSeverity decodes node as a Severity and rejects any value
+// outside {off, warn, error}.
+func decodeSeverity(node *yaml.Node) (Severity, error) {
+	var severity Severity
+	if err := node.Decode(&severity); err != nil {
+		return "", fmt.Errorf("decode rule severity: %w", err)
+	}
+	if !validSeverities[severity] {
+		return "", fmt.Errorf("%w: unknown severity %q", ErrInvalidRule, severity)
+	}
+	return severity, nil
+}
+
+// Lint is the graphql.lint section of scripts/devbase.yaml.
+type Lint struct {
+	// Exclude is a list of glob patterns for files to skip, relative
+	// to the directory Load found scripts/devbase.yaml in.
+	Exclude []string `yaml:"exclude"`
+
+	// Rules overrides the severity (and, for some rules, options) of
+	// individual lint rules, keyed by rule name. A rule absent from
+	// this map keeps its built-in default severity of "error".
+	Rules map[string]Rule `yaml:"rules"`
+}
+
+// MergeExcludes returns the config's exclude patterns extended with
+// extra patterns, e.g. from repeatable --exclude CLI flags. The
+// config file's list is always kept, never replaced.
+func (c *Lint) MergeExcludes(extra ...string) []string {
+	merged := make([]string, 0, len(c.Exclude)+len(extra))
+	merged = append(merged, c.Exclude...)
+	merged = append(merged, extra...)
+	return merged
+}
+
+// fileConfig mirrors the top-level shape of scripts/devbase.yaml.
+type fileConfig struct {
+	GraphQL struct {
+		Lint Lint `yaml:"lint"`
+	} `yaml:"graphql"`
+}
+
+// Load discovers and parses scripts/devbase.yaml for the repository
+// containing startDir, and returns the directory it was found in.
+// Load walks up from startDir, checking each directory for
+// scripts/devbase.yaml, until either the file is found or the
+// enclosing git repository's top-level directory is reached
+// (whichever comes first); the walk never crosses git repository
+// boundaries.
+//
+// Callers should resolve Lint.Exclude patterns relative to the
+// returned directory, not the process's working directory -- matching
+// how ESLint, Biome, and Oxlint resolve their own ignore patterns
+// relative to the config file rather than cwd.
+//
+// If no config file is found, Load returns the built-in defaults (no
+// excludes, no rule overrides, so every rule stays at its default
+// severity of "error") alongside an empty directory.
+func Load(startDir string) (*Lint, string, error) {
+	dir, err := discover(startDir)
+	if err != nil {
+		return nil, "", err
+	}
+	if dir == "" {
+		return &Lint{}, "", nil
+	}
+
+	path := filepath.Join(dir, scriptsDevbaseYAML)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("read %s: %w", path, err)
+	}
+
+	var fc fileConfig
+	if err := yaml.Unmarshal(b, &fc); err != nil {
+		return nil, "", fmt.Errorf("parse %s: %w", path, err)
+	}
+
+	return &fc.GraphQL.Lint, dir, nil
+}
+
+// discover walks up from startDir looking for scripts/devbase.yaml,
+// stopping at (and including) the enclosing git repository's
+// top-level directory. It returns the directory scripts/devbase.yaml
+// was found in, or an empty string with no error if no config file is
+// found before that boundary.
+func discover(startDir string) (string, error) {
+	dir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve absolute path for %s: %w", startDir, err)
+	}
+
+	for {
+		candidate := filepath.Join(dir, scriptsDevbaseYAML)
+		if isRegularFile(candidate) {
+			return dir, nil
+		}
+
+		if isGitRoot(dir) {
+			return "", nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached the filesystem root without finding a git
+			// repository; stop the same way as at a git root.
+			return "", nil
+		}
+		dir = parent
+	}
+}
+
+// isGitRoot reports whether dir is the top level of a git repository,
+// i.e. dir/.git exists as either a directory (a normal clone) or a
+// file (a worktree or submodule).
+func isGitRoot(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, ".git"))
+	return err == nil
+}
+
+// isRegularFile reports whether path exists and is a regular file.
+func isRegularFile(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
+}
