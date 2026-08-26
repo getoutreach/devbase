@@ -106,16 +106,15 @@ func TestNamingConventionValidCases(t *testing.T) {
 }
 
 func TestNamingConventionInvalidCases(t *testing.T) {
-	cases := []struct {
-		name         string
-		sdl          string
-		opts         map[string]any
-		wantMessages []string
-	}{
+	opts := func(o map[string]any) *config.Lint {
+		return enableRuleWithOptions(config.RuleNamingConvention, o)
+	}
+
+	runOrderedViolationCases(t, config.RuleNamingConvention, []orderedViolationCase{
 		{
 			"type and field must be PascalCase",
 			`type b { test: String }`,
-			map[string]any{"types": "PascalCase", "FieldDefinition": "PascalCase"},
+			opts(map[string]any{"types": "PascalCase", "FieldDefinition": "PascalCase"}),
 			[]string{
 				`Type "b" should be in PascalCase format`,
 				`Field "test" should be in PascalCase format`,
@@ -126,19 +125,19 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 			// underscores allowed" valid case above for why.
 			"leading and trailing underscores disallowed by default",
 			`type _b { test_: String }`,
-			map[string]any{"allowLeadingUnderscore": false, "allowTrailingUnderscore": false},
+			opts(map[string]any{"allowLeadingUnderscore": false, "allowTrailingUnderscore": false}),
 			[]string{"Leading underscores are not allowed", "Trailing underscores are not allowed"},
 		},
 		{
 			"scalar must be snake_case",
 			`scalar BSONDecimal`,
-			map[string]any{"ScalarTypeDefinition": "snake_case"},
+			opts(map[string]any{"ScalarTypeDefinition": "snake_case"}),
 			[]string{`Scalar "BSONDecimal" should be in snake_case format`},
 		},
 		{
 			"enum type and value casing",
 			`enum B { test }`,
-			map[string]any{"EnumTypeDefinition": "camelCase", "EnumValueDefinition": "UPPER_CASE"},
+			opts(map[string]any{"EnumTypeDefinition": "camelCase", "EnumValueDefinition": "UPPER_CASE"}),
 			[]string{
 				`Enumerator "B" should be in camelCase format`,
 				`Enumeration value "test" should be in UPPER_CASE format`,
@@ -147,7 +146,7 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 		{
 			"input type casing plus leading underscore on its field",
 			`input test { _Value: String }`,
-			map[string]any{"types": "PascalCase", "InputValueDefinition": "snake_case"},
+			opts(map[string]any{"types": "PascalCase", "InputValueDefinition": "snake_case"}),
 			[]string{
 				`Input type "test" should be in PascalCase format`,
 				`Input property "_Value" should be in snake_case format`,
@@ -157,11 +156,11 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 		{
 			"required suffix",
 			`type TypeOne { aField: String } enum Z { VALUE_ONE VALUE_TWO }`,
-			map[string]any{
+			opts(map[string]any{
 				"ObjectTypeDefinition": map[string]any{"style": "camelCase"},
 				"FieldDefinition":      map[string]any{"style": "camelCase", "suffix": "AAA"},
 				"EnumValueDefinition":  map[string]any{"style": "camelCase", "suffix": "ENUM"},
-			},
+			}),
 			[]string{
 				`Type "TypeOne" should be in camelCase format`,
 				`Field "aField" should have "AAA" suffix`,
@@ -172,11 +171,11 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 		{
 			"required prefix",
 			`type One { aField: String } enum Z { A_ENUM_VALUE_ONE VALUE_TWO }`,
-			map[string]any{
+			opts(map[string]any{
 				"ObjectTypeDefinition": map[string]any{"style": "PascalCase"},
 				"FieldDefinition":      map[string]any{"style": "camelCase", "prefix": "Field"},
 				"EnumValueDefinition":  map[string]any{"style": "UPPER_CASE", "prefix": "ENUM"},
-			},
+			}),
 			[]string{
 				`Field "aField" should have "Field" prefix`,
 				`Enumeration value "A_ENUM_VALUE_ONE" should have "ENUM" prefix`,
@@ -186,7 +185,7 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 		{
 			"forbidden prefixes and suffixes, including the Query field selector",
 			`type One { getFoo: String, queryBar: String } type Query { getA(id: ID!): String, queryB: String } extend type Query { getC: String }`,
-			map[string]any{
+			opts(map[string]any{
 				"ObjectTypeDefinition": map[string]any{"style": "PascalCase", "forbiddenPrefixes": []any{"On"}},
 				"FieldDefinition": map[string]any{
 					"style": "camelCase", "forbiddenPrefixes": []any{"foo", "bar"}, "forbiddenSuffixes": []any{"Foo"},
@@ -194,7 +193,7 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 				"FieldDefinition[parent.name.value=Query]": map[string]any{
 					"style": "camelCase", "forbiddenPrefixes": []any{"get", "query"},
 				},
-			},
+			}),
 			[]string{
 				`Type "One" should not have "On" prefix`,
 				`Field "getFoo" should not have "Foo" suffix`,
@@ -203,21 +202,7 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 				`Field "getC" should not have "get" prefix`,
 			},
 		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			dir := t.TempDir()
-			path := writeFile(t, dir, "schema.graphql", c.sdl)
-
-			violations, err := Files([]string{path}, enableRuleWithOptions(config.RuleNamingConvention, c.opts))
-			assert.NilError(t, err)
-			assert.Equal(t, len(violations), len(c.wantMessages))
-			for i, want := range c.wantMessages {
-				assert.Equal(t, violations[i].Rule, config.RuleNamingConvention)
-				assert.ErrorContains(t, violations[i].err, want)
-			}
-		})
-	}
+	})
 }
 
 // TestNamingConventionMergesExtensionFieldsUnderBaseType is a

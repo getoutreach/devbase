@@ -137,17 +137,16 @@ const (
 	RulePossibleTypeExtension = "possible-type-extension"
 )
 
-// Names of 7 (of 10) Tier 3 custom style/convention rules implemented
-// so far. Unlike Tier 1 and Tier 2, no part of a Tier 3 rule is
-// enforced by gqlparser -- each is entirely custom Go code. Like the
-// Tier 2 gap-fill rules above, a Tier 3 rule never runs unless
-// scripts/devbase.yaml gives it a severity other than SeverityOff --
-// see Lint.Enabled. Each rule's options (for example
-// require-description's "types" and "FieldDefinition" keys, or
-// require-deprecation-date's "argumentName") are read from
-// Rule.Options by internal/graphql/lint, not validated here -- this
-// package treats every rule's options as opaque, leaving their shape
-// to the rule implementation.
+// Names of all 10 Tier 3 custom style/convention rules. Unlike Tier 1
+// and Tier 2, no part of a Tier 3 rule is enforced by gqlparser -- each
+// is entirely custom Go code. Like the Tier 2 gap-fill rules above, a
+// Tier 3 rule never runs unless scripts/devbase.yaml gives it a
+// severity other than SeverityOff -- see Lint.Enabled. Each rule's
+// options (for example require-description's "types" and
+// "FieldDefinition" keys, or require-deprecation-date's
+// "argumentName") are read from Rule.Options by internal/graphql/lint,
+// not validated here -- this package treats every rule's options as
+// opaque, leaving their shape to the rule implementation.
 const (
 	// RuleRequireDescription requires a description on the kinds of
 	// definition its options enable it for.
@@ -180,6 +179,19 @@ const (
 	// prefix/suffix, and underscore conventions its options configure
 	// per kind of definition.
 	RuleNamingConvention = "naming-convention"
+
+	// RuleNoCaseInsensitiveEnumValuesDuplicates forbids two enum values
+	// on the same enum whose names differ only by casing.
+	RuleNoCaseInsensitiveEnumValuesDuplicates = "no-case-insensitive-enum-values-duplicates"
+
+	// RuleAlphabetize requires alphabetical order among the fields,
+	// enum values, and/or arguments its "fields", "values", and
+	// "arguments" options select.
+	RuleAlphabetize = "alphabetize"
+
+	// RuleNoUnreachableTypes forbids a type or directive definition
+	// that no root operation type's fields can ever reach.
+	RuleNoUnreachableTypes = "no-unreachable-types"
 )
 
 // Rule is the per-rule override for a single lint rule. It accepts

@@ -42,19 +42,19 @@ func TestNoTypenamePrefixValidCases(t *testing.T) {
 }
 
 func TestNoTypenamePrefixInvalidCases(t *testing.T) {
-	cases := []struct {
-		name         string
-		sdl          string
-		wantMessages []string
-	}{
+	cfg := enableRule(config.RuleNoTypenamePrefix)
+
+	runOrderedViolationCases(t, config.RuleNoTypenamePrefix, []orderedViolationCase{
 		{
 			"one field prefixed",
 			`type User { userId: ID! }`,
+			cfg,
 			[]string{`Field "userId" starts with the name of the parent type "User"`},
 		},
 		{
 			"two fields prefixed",
 			`type User { userId: ID! userName: String! }`,
+			cfg,
 			[]string{
 				`Field "userId" starts with the name of the parent type "User"`,
 				`Field "userName" starts with the name of the parent type "User"`,
@@ -63,23 +63,10 @@ func TestNoTypenamePrefixInvalidCases(t *testing.T) {
 		{
 			"interface field prefixed",
 			`interface Node { nodeId: ID! }`,
+			cfg,
 			[]string{`Field "nodeId" starts with the name of the parent type "Node"`},
 		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			dir := t.TempDir()
-			path := writeFile(t, dir, "schema.graphql", c.sdl)
-
-			violations, err := Files([]string{path}, enableRule(config.RuleNoTypenamePrefix))
-			assert.NilError(t, err)
-			assert.Equal(t, len(violations), len(c.wantMessages))
-			for i, want := range c.wantMessages {
-				assert.Equal(t, violations[i].Rule, config.RuleNoTypenamePrefix)
-				assert.ErrorContains(t, violations[i].err, want)
-			}
-		})
-	}
+	})
 }
 
 // TestNoTypenamePrefixCaseInsensitive ports no-typename-prefix's own
