@@ -3,23 +3,27 @@
 // Description: Discovers *.graphql files and runs Tier 1 spec
 // validation against them via gqlparser.
 
-// Package lint runs the Tier 1 rule tier against a repository's
-// *.graphql files: 9 rules that gqlparser/v2 enforces for free while
-// parsing SDL, needing no custom rule code. FindGraphQLFiles discovers
-// the files to lint, respecting scripts/devbase.yaml's exclude
-// patterns; Files parses them as one combined schema via
-// gqlparser.LoadSchema and turns any resulting parse error into a
-// Violation tagged with the Tier 1 rule name it corresponds to, using
-// the classification verified in lint_test.go.
+// Package lint runs the Tier 1 and Tier 2 rule tiers against a
+// repository's *.graphql files. Tier 1 is 10 rules that gqlparser/v2
+// enforces for free while parsing SDL, needing no custom rule code.
+// FindGraphQLFiles discovers the files to lint, respecting
+// scripts/devbase.yaml's exclude patterns; Files parses them as one
+// combined schema and turns any resulting parse error into a Violation
+// tagged with the Tier 1 rule name it corresponds to, using the
+// classification verified in lint_test.go.
 //
-// gqlparser.LoadSchema stops at the first validation error it finds, so
-// Files can only ever report one violation per run; fixing it and
+// Schema validation stops at the first Tier 1 error it finds, so Files
+// can only ever report one Tier 1 violation per run; fixing it and
 // re-running surfaces the next one, the same behavior a contributor
-// would see running gqlparser-based tooling directly.
+// would see running gqlparser-based tooling directly. Once a schema
+// validates cleanly, Files runs the Tier 2 gap-fill passes
+// (directives.go) against it and can report any number of their
+// violations in one run, since those are ordinary Go code walking the
+// parsed schema rather than a stop-at-first-error parser.
 //
-// federation.go is the one exception to "no custom rule code": Apollo
-// Federation directives and repo-specific custom scalars are never
-// declared via SDL that a subgraph owns, so scripts/devbase.yaml's
+// federation.go is the one exception to "no custom rule code" for Tier
+// 1: Apollo Federation directives and repo-specific custom scalars are
+// never declared via SDL that a subgraph owns, so scripts/devbase.yaml's
 // federation and scalars settings tell Files what to synthesize and
 // merge in before validation, instead of gqlparser rejecting them as
 // undefined.
@@ -27,7 +31,7 @@
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest
 // v2.5.x release as of 2026-08-21) so this behavior is stable and
 // reviewable across releases. gqlparser/v2 also performs a set of
-// spec-mandated schema validations beyond the 9 rules classified here
+// spec-mandated schema validations beyond the 10 rules classified here
 // (for example, rejecting a reserved "__" name prefix, or a zero-field
 // object type); those surface as violations tagged UnclassifiedRule.
 package lint
@@ -42,13 +46,14 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
-	"github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"github.com/vektah/gqlparser/v2/parser"
+	"github.com/vektah/gqlparser/v2/validator"
 )
 
 // UnclassifiedRule tags a violation that gqlparser raises while parsing
-// SDL but that does not correspond to one of the 9 named Tier 1 rules --
+// SDL but that does not correspond to one of the 10 named Tier 1 rules --
 // one of gqlparser's other spec-mandated schema validations (for
 // example, a reserved "__" name prefix, or a zero-field object type).
 const UnclassifiedRule = "gqlparser"
@@ -67,10 +72,12 @@ func (v Violation) String() string {
 	return fmt.Sprintf("%s [%s]", v.err.Error(), v.Rule)
 }
 
-// Files parses paths as one combined GraphQL schema and returns the
-// Tier 1 violation gqlparser raised, if any. Files are read and parsed
-// together, not independently, so that a type defined in one file is
-// visible when validating a reference to it in another.
+// Files parses paths as one combined GraphQL schema, returning the
+// Tier 1 violation gqlparser raised, if any, or -- once the schema
+// validates cleanly -- any Tier 2 gap-fill violations found in it
+// (directives.go). Files are read and parsed together, not
+// independently, so that a type defined in one file is visible when
+// validating a reference to it in another.
 //
 // cfg supplies scripts/devbase.yaml's federation and scalars settings,
 // merged into the parsed sources before validation; a nil cfg parses
@@ -89,8 +96,8 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	if err != nil {
 		// preludeSources parses paths' own files looking for @link, so a
 		// plain syntax error can surface here instead of from
-		// gqlparser.LoadSchema below. Classify it into a Violation the
-		// same way, so syntax errors read consistently regardless of the
+		// parseAndValidate below. Classify it into a Violation the same
+		// way, so syntax errors read consistently regardless of the
 		// federation setting. A federation- or scalars-specific error
 		// carries a sentinel in gqlErr.Err and is returned as-is.
 		var gqlErr *gqlerror.Error
@@ -101,15 +108,70 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	}
 	sources = append(sources, extraSources...)
 
-	if _, err := gqlparser.LoadSchema(sources...); err != nil {
-		var gqlErr *gqlerror.Error
-		if !errors.As(err, &gqlErr) {
-			return nil, fmt.Errorf("parse graphql schema: %w", err)
-		}
-		return []Violation{{err: gqlErr, Rule: ruleForMessage(gqlErr.Message)}}, nil
+	parsed, tier1Violation, err := parseAndValidate(sources)
+	if err != nil {
+		return nil, err
+	}
+	if tier1Violation != nil {
+		return []Violation{*tier1Violation}, nil
 	}
 
-	return nil, nil
+	violations := gapFillDirectivesPerLocation(parsed, cfg)
+	violations = append(violations, gapFillPossibleTypeExtension(parsed, cfg)...)
+	return violations, nil
+}
+
+// parsedSchema bundles a validated schema with the raw, pre-merge
+// *ast.SchemaDocument the Tier 2 gap-fill passes need for the definition
+// and extension names doc.Definitions and doc.Extensions carry --
+// gqlparser.LoadSchema only returns the merged, validated *ast.Schema, with
+// no way to get at that intermediate document.
+type parsedSchema struct {
+	schema *ast.Schema
+	doc    *ast.SchemaDocument
+}
+
+// parseAndValidate parses sources -- with the gqlparser prelude
+// prepended -- and validates the result. This is exactly what
+// gqlparser.LoadSchema does internally (as of gqlparser/v2@v2.5.36;
+// re-verify this still holds on any future gqlparser upgrade), reproduced
+// here only to keep the intermediate *ast.SchemaDocument parsedSchema
+// needs.
+//
+// A non-nil Violation return means sources failed Tier 1 validation; the
+// *parsedSchema is nil in that case. A non-nil error return means
+// parsing or validation failed in some way that isn't itself a Tier 1
+// rule violation (a bug, not a lint finding).
+func parseAndValidate(sources []*ast.Source) (*parsedSchema, *Violation, error) {
+	allSources := make([]*ast.Source, 0, len(sources)+1)
+	allSources = append(allSources, validator.Prelude)
+	allSources = append(allSources, sources...)
+
+	doc, err := parser.ParseSchemas(allSources...)
+	if err != nil {
+		v, wrapErr := classifyOrWrap(err, "parse graphql schema")
+		return nil, v, wrapErr
+	}
+
+	schema, err := validator.ValidateSchemaDocument(doc)
+	if err != nil {
+		v, wrapErr := classifyOrWrap(err, "validate graphql schema")
+		return nil, v, wrapErr
+	}
+
+	return &parsedSchema{schema: schema, doc: doc}, nil, nil
+}
+
+// classifyOrWrap turns err into a Tier 1 Violation if it is a
+// *gqlerror.Error, tagging it via ruleForMessage; any other error is
+// wrapped with action for context instead, since it isn't a lint
+// finding.
+func classifyOrWrap(err error, action string) (*Violation, error) {
+	var gqlErr *gqlerror.Error
+	if !errors.As(err, &gqlErr) {
+		return nil, fmt.Errorf("%s: %w", action, err)
+	}
+	return &Violation{err: gqlErr, Rule: ruleForMessage(gqlErr.Message)}, nil
 }
 
 // ruleForMessage classifies a gqlparser schema-validation error message
@@ -123,6 +185,8 @@ func ruleForMessage(msg string) string {
 		return config.RuleUniqueDirectiveNames
 	case strings.HasPrefix(msg, "Field ") && strings.HasSuffix(msg, "can only be defined once."):
 		return config.RuleUniqueFieldDefinitionNames
+	case strings.HasPrefix(msg, "Enum value ") && strings.HasSuffix(msg, "can only be defined once."):
+		return config.RuleUniqueEnumValueNames
 	case strings.HasPrefix(msg, "Cannot have multiple schema entry points"):
 		// gqlparser raises this single message both for a second
 		// schema { } block and for a duplicate root operation type

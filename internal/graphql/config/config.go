@@ -55,10 +55,16 @@ var ErrInvalidRule = errors.New("invalid rule config")
 // severity, and cannot be turned off or downgraded.
 var ErrTier1RuleNotConfigurable = errors.New("tier 1 rule severity cannot be overridden")
 
-// Names of the 9 Tier 1 rules: spec validations gqlparser performs for
+// Names of the 10 Tier 1 rules: spec validations gqlparser performs for
 // free while parsing SDL. Named as constants so internal/graphql/lint
 // can tag violations with the same identifiers this package validates
 // against.
+//
+// RuleUniqueEnumValueNames belongs here, not among the gap-fill rules
+// in internal/graphql/lint, because the gqlparser/v2 version pinned in
+// go.mod already rejects a duplicate enum value on its own, the same
+// way it already rejects a duplicate field name for
+// RuleUniqueFieldDefinitionNames -- no custom code needed.
 const (
 	// RuleUniqueDirectiveNames requires directive definitions to have
 	// unique names.
@@ -94,10 +100,14 @@ const (
 
 	// RuleLoneSchemaDefinition allows at most one schema definition.
 	RuleLoneSchemaDefinition = "lone-schema-definition"
+
+	// RuleUniqueEnumValueNames requires enum values within an enum to
+	// have unique names.
+	RuleUniqueEnumValueNames = "unique-enum-value-names"
 )
 
-// Tier1RuleNames returns the 9 Tier 1 rule names above, in the order
-// they're listed there.
+// Tier1RuleNames returns the 10 Tier 1 rule names above, in the order
+// they are declared.
 func Tier1RuleNames() []string {
 	return []string{
 		RuleUniqueDirectiveNames,
@@ -109,8 +119,23 @@ func Tier1RuleNames() []string {
 		RuleKnownTypeNames,
 		RuleProvidedRequiredArguments,
 		RuleLoneSchemaDefinition,
+		RuleUniqueEnumValueNames,
 	}
 }
+
+// Names of the 2 remaining Tier 2 gap-fill rules: gqlparser partially
+// covers each, but a custom pass is still needed to fill the gap.
+// Unlike the Tier 1 rules, scripts/devbase.yaml may override their
+// severity.
+const (
+	// RuleUniqueDirectiveNamesPerLocation requires a non-repeatable
+	// directive to appear at most once per location in SDL.
+	RuleUniqueDirectiveNamesPerLocation = "unique-directive-names-per-location"
+
+	// RulePossibleTypeExtension requires a type extension to reference
+	// a type that is actually defined somewhere.
+	RulePossibleTypeExtension = "possible-type-extension"
+)
 
 // Rule is the per-rule override for a single lint rule. It accepts
 // two YAML shapes:
@@ -200,8 +225,12 @@ type Lint struct {
 	Exclude []string `yaml:"exclude"`
 
 	// Rules overrides the severity (and, for some rules, options) of
-	// individual lint rules, keyed by rule name. A rule absent from
-	// this map keeps its built-in default severity of "error".
+	// individual lint rules, keyed by rule name. Tier 1 rules always
+	// stay at "error" (gqlparser enforces them unconditionally, and
+	// this map can never target one -- see ErrTier1RuleNotConfigurable).
+	// Every other rule absent from this map, or explicitly set to
+	// SeverityOff, does not run at all -- matching @graphql-eslint's own
+	// behavior, where a rule is inert until a config opts into it.
 	Rules map[string]Rule `yaml:"rules"`
 
 	// Federation, if set, is the Apollo Federation subgraph spec
@@ -230,6 +259,24 @@ func (c *Lint) MergeExcludes(extra ...string) []string {
 	return merged
 }
 
+// Enabled reports whether the rule should run at all. A Tier 2 or Tier 3
+// rule is enabled only once scripts/devbase.yaml gives it a severity
+// other than SeverityOff -- it does not run by default, matching
+// @graphql-eslint's own behavior of a rule staying inert until a config
+// opts into it. c may be nil (no config file found), in which case
+// every rule this method is asked about is disabled.
+//
+// This method is never consulted for Tier 1 rules: gqlparser enforces
+// them unconditionally while parsing SDL, so Files runs them
+// regardless of any config.
+func (c *Lint) Enabled(rule string) bool {
+	if c == nil {
+		return false
+	}
+	rc, ok := c.Rules[rule]
+	return ok && rc.Severity != SeverityOff
+}
+
 // fileConfig mirrors the top-level shape of scripts/devbase.yaml.
 type fileConfig struct {
 	GraphQL struct {
@@ -251,8 +298,8 @@ type fileConfig struct {
 // relative to the config file rather than cwd.
 //
 // If no config file is found, Load returns the built-in defaults (no
-// excludes, no rule overrides, so every rule stays at its default
-// severity of "error") alongside an empty directory.
+// excludes, no rule overrides, so every Tier 1 rule stays at "error"
+// and every other rule stays off) alongside an empty directory.
 func Load(startDir string) (*Lint, string, error) {
 	dir, err := discover(startDir)
 	if err != nil {
