@@ -17,6 +17,13 @@
 // re-running surfaces the next one, the same behavior a contributor
 // would see running gqlparser-based tooling directly.
 //
+// federation.go is the one exception to "no custom rule code": Apollo
+// Federation directives and repo-specific custom scalars are never
+// declared via SDL that a subgraph owns, so scripts/devbase.yaml's
+// federation and scalars settings tell Files what to synthesize and
+// merge in before validation, instead of gqlparser rejecting them as
+// undefined.
+//
 // go.mod pins github.com/vektah/gqlparser/v2 to v2.5.36 (the latest
 // v2.5.x release as of 2026-08-21) so this behavior is stable and
 // reviewable across releases. gqlparser/v2 also performs a set of
@@ -64,7 +71,11 @@ func (v Violation) String() string {
 // Tier 1 violation gqlparser raised, if any. Files are read and parsed
 // together, not independently, so that a type defined in one file is
 // visible when validating a reference to it in another.
-func Files(paths []string) ([]Violation, error) {
+//
+// cfg supplies scripts/devbase.yaml's federation and scalars settings,
+// merged into the parsed sources before validation; a nil cfg parses
+// paths exactly as written, with no merged prelude.
+func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	sources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -73,6 +84,22 @@ func Files(paths []string) ([]Violation, error) {
 		}
 		sources = append(sources, &ast.Source{Name: path, Input: string(data)})
 	}
+
+	extraSources, err := preludeSources(sources, cfg)
+	if err != nil {
+		// preludeSources parses paths' own files looking for @link, so a
+		// plain syntax error can surface here instead of from
+		// gqlparser.LoadSchema below. Classify it into a Violation the
+		// same way, so syntax errors read consistently regardless of the
+		// federation setting. A federation- or scalars-specific error
+		// carries a sentinel in gqlErr.Err and is returned as-is.
+		var gqlErr *gqlerror.Error
+		if errors.As(err, &gqlErr) && gqlErr.Err == nil {
+			return []Violation{{err: gqlErr, Rule: ruleForMessage(gqlErr.Message)}}, nil
+		}
+		return nil, err
+	}
+	sources = append(sources, extraSources...)
 
 	if _, err := gqlparser.LoadSchema(sources...); err != nil {
 		var gqlErr *gqlerror.Error

@@ -201,6 +201,24 @@ func TestLoadParsesRuleOverrides(t *testing.T) {
 	}
 }
 
+func TestLoadParsesFederationAndScalars(t *testing.T) {
+	repoRoot := t.TempDir()
+	initGitDir(t, repoRoot)
+	writeConfig(t, repoRoot, `
+graphql:
+  lint:
+    federation: v2.3
+    scalars:
+      - Datetime
+      - JSON
+`)
+
+	got, _, err := Load(repoRoot)
+	assert.NilError(t, err)
+	assert.Equal(t, got.Federation, "v2.3")
+	assert.DeepEqual(t, got.Scalars, []string{"Datetime", "JSON"})
+}
+
 func TestMergeExcludesIsAdditiveAndDoesNotMutateConfig(t *testing.T) {
 	c := &Lint{Exclude: []string{"**/shared.graphql"}}
 

@@ -68,7 +68,7 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("find graphql files: %w", err)
 	}
 
-	violations, err := lint.Files(files)
+	violations, err := lint.Files(files, lintConfig)
 	if err != nil {
 		return fmt.Errorf("lint graphql files: %w", err)
 	}
