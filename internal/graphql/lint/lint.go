@@ -73,16 +73,24 @@ func (v Violation) String() string {
 	return fmt.Sprintf("%s [%s]", v.err.Error(), v.Rule)
 }
 
-// Files parses paths as one combined GraphQL schema, returning the
-// Tier 1 violation gqlparser raised, if any, or -- once the schema
-// validates cleanly -- any Tier 2 gap-fill violations found in it
-// (directives.go). Files are read and parsed together, not
-// independently, so that a type defined in one file is visible when
-// validating a reference to it in another.
-//
-// cfg supplies scripts/devbase.yaml's federation and scalars settings,
-// merged into the parsed sources before validation; a nil cfg parses
-// paths exactly as written, with no merged prelude.
+// File returns the name of the source the violation was found in, as
+// given to the *ast.Source that produced it.
+func (v Violation) File() string {
+	file, _ := v.err.Extensions["file"].(string)
+	return file
+}
+
+// Message returns the violation's message, without its file, position,
+// or rule name.
+func (v Violation) Message() string {
+	return v.err.Message
+}
+
+// Files reads paths from disk and lints them as one combined GraphQL
+// schema via FilesFromSources. cfg supplies scripts/devbase.yaml's
+// federation and scalars settings, merged into the parsed sources
+// before validation; a nil cfg parses paths exactly as written, with
+// no merged prelude.
 func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 	fileSources := make([]*ast.Source, 0, len(paths))
 	for _, path := range paths {
@@ -92,7 +100,23 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 		}
 		fileSources = append(fileSources, &ast.Source{Name: path, Input: string(data)})
 	}
+	return FilesFromSources(fileSources, cfg)
+}
 
+// FilesFromSources parses fileSources as one combined GraphQL schema,
+// returning the Tier 1 violation gqlparser raised, if any, or -- once
+// the schema validates cleanly -- any Tier 2 gap-fill and Tier 3
+// violations found in it. fileSources are parsed together, not
+// independently, so that a type defined in one source is visible when
+// validating a reference to it in another. Unlike Files, fileSources'
+// content is supplied directly rather than read from disk -- used by
+// --diff mode to lint a merge-base commit's file content without a
+// checkout.
+//
+// cfg supplies scripts/devbase.yaml's federation and scalars settings,
+// merged into the parsed sources before validation; a nil cfg parses
+// fileSources exactly as given, with no merged prelude.
+func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation, error) {
 	extraSources, err := preludeSources(fileSources, cfg)
 	if err != nil {
 		// preludeSources parses paths' own files looking for @link, so a
