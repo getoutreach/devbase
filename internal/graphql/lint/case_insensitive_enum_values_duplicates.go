@@ -8,7 +8,7 @@
 // matching @graphql-eslint's rule of the same name.
 //
 // A type extension's enum values are checked under its base enum, via
-// forEachDefinition (descriptions.go): validator.ValidateSchemaDocument
+// allDefinitions (tier3.go): validator.ValidateSchemaDocument
 // already merges an extension's EnumValues into the base Definition's,
 // so a duplicate split across a base enum and its extension -- or across
 // two extensions in different files -- is caught the same as one written

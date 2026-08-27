@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
-	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -204,59 +203,14 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
-// scopedDefinition pairs a definition definitionsInScope visits with
-// whether it came from doc.Extensions -- a type extension with no base
-// definition anywhere -- rather than doc.Definitions.
-type scopedDefinition struct {
-	def         *ast.Definition
-	isExtension bool
-}
-
-// definitionsInScope flattens doc.Definitions and the doc.Extensions
-// with no base definition into one slice, in that order. A based
-// extension is omitted: validator.ValidateSchemaDocument already
-// merged its Fields and EnumValues into the base Definition, so the
-// base definition already covers it.
-//
-// Every Tier 3 rule needing a definition-level pass over the schema
-// shares this one walk, via forEachDefinition or by iterating the
-// returned slice directly.
-func definitionsInScope(doc *ast.SchemaDocument) []scopedDefinition {
-	seen := make(set.Set[string], len(doc.Definitions))
-	out := make([]scopedDefinition, 0, len(doc.Definitions)+len(doc.Extensions))
-	for _, def := range doc.Definitions {
-		seen.Insert(def.Name)
-		out = append(out, scopedDefinition{def: def})
-	}
-	for _, def := range doc.Extensions {
-		if !seen.Contains(def.Name) {
-			out = append(out, scopedDefinition{def: def, isExtension: true})
-		}
-	}
-	return out
-}
-
-// forEachDefinition calls onDefinition for every base definition
-// definitionsInScope found, and onExtension for every extension-only
-// one. groupDescriptionSites passes two different functions here (an
-// extension can never carry its own description); a caller that treats
-// both the same way can iterate definitionsInScope directly instead.
-func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
-	for _, sd := range definitionsInScope(doc) {
-		if sd.isExtension {
-			onExtension(sd.def)
-		} else {
-			onDefinition(sd.def)
-		}
-	}
-}
-
-// groupDescriptionSites collects every descriptionSite in doc, grouped
-// by the *ast.Source it was written in (each site's own Position.Src),
-// with each group sorted by pos.Start -- the same file order
-// descriptionTokens produces, which tier3Descriptions relies on to
-// pair the two up.
-func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]bool) map[*ast.Source][]descriptionSite {
+// groupDescriptionSites collects every descriptionSite in defs and
+// doc, grouped by the *ast.Source it was written in (each site's own
+// Position.Src), with each group sorted by pos.Start -- the same file
+// order descriptionTokens produces, which tier3Descriptions relies on
+// to pair the two up.
+func groupDescriptionSites(defs []scopedDefinition, doc *ast.SchemaDocument,
+	rootTypeNames map[string]bool,
+) map[*ast.Source][]descriptionSite {
 	sites := make(map[*ast.Source][]descriptionSite)
 	add := func(src *ast.Source, s descriptionSite) {
 		sites[src] = append(sites[src], s)
@@ -306,15 +260,18 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		}
 	}
 
-	forEachDefinition(doc, func(def *ast.Definition) {
-		add(def.Position.Src, descriptionSite{
-			description: def.Description, pos: def.Position,
-			optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
-			typeDefKindKey:          typeDefinitionKindKeys[def.Kind],
-			afterDescriptionComment: def.AfterDescriptionComment,
-		})
+	for _, sd := range defs {
+		def := sd.def
+		if !sd.isExtension {
+			add(def.Position.Src, descriptionSite{
+				description: def.Description, pos: def.Position,
+				optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
+				typeDefKindKey:          typeDefinitionKindKeys[def.Kind],
+				afterDescriptionComment: def.AfterDescriptionComment,
+			})
+		}
 		addFields(def)
-	}, addFields)
+	}
 
 	for _, dd := range doc.Directives {
 		add(dd.Position.Src, descriptionSite{
@@ -403,21 +360,24 @@ func tier3Descriptions(fileSources []*ast.Source, sitesByFile map[*ast.Source][]
 			// A file with no non-empty description sites can contribute no
 			// descriptionStyleViolations regardless of its raw content, so
 			// there is no need to re-lex it from scratch to confirm that.
-			if nonEmpty == 0 {
-				continue
-			}
+			// This does forgo the ErrDescriptionTokenMismatch check below
+			// for such a file: if groupDescriptionSites ever missed a
+			// description-bearing node kind, a file with only that kind
+			// would report nonEmpty == 0 and skip past the check that
+			// would otherwise have caught the mismatch.
+			if nonEmpty > 0 {
+				tokens, err := descriptionTokens(src)
+				if err != nil {
+					return nil, err
+				}
 
-			tokens, err := descriptionTokens(src)
-			if err != nil {
-				return nil, err
-			}
+				if nonEmpty != len(tokens) {
+					return nil, fmt.Errorf("%s: %d description(s) in the parsed schema, %d description-like string token(s) "+
+						"in the raw source: %w", src.Name, nonEmpty, len(tokens), ErrDescriptionTokenMismatch)
+				}
 
-			if nonEmpty != len(tokens) {
-				return nil, fmt.Errorf("%s: %d description(s) in the parsed schema, %d description-like string token(s) "+
-					"in the raw source: %w", src.Name, nonEmpty, len(tokens), ErrDescriptionTokenMismatch)
+				violations = append(violations, descriptionStyleViolations(sites, tokens, styleOpts)...)
 			}
-
-			violations = append(violations, descriptionStyleViolations(sites, tokens, styleOpts)...)
 		}
 	}
 	return violations, nil

@@ -8,7 +8,7 @@
 // matching @graphql-eslint's rule of the same name.
 //
 // A type extension's fields are checked under its base type's name, via
-// forEachDefinition (descriptions.go).
+// allDefinitions (tier3.go).
 
 package lint
 

@@ -268,3 +268,33 @@ func TestFilesScalarsConfigDeclaresRuntimeRegisteredScalars(t *testing.T) {
 		assert.Equal(t, len(violations), 0)
 	})
 }
+
+// TestFilesFederationFindsLinkAmongUnrelatedFiles confirms that
+// federationPrelude's own prefilter -- restricting its parse to
+// sources whose raw text mentions "link" -- neither misses a real
+// `@link` sitting among several files that don't mention it, nor lets
+// a syntax error in one of those other files go unreported.
+func TestFilesFederationFindsLinkAmongUnrelatedFiles(t *testing.T) {
+	dir := t.TempDir()
+	linkPath := writeFile(t, dir, "schema.graphql", `
+		extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
+		type Widget @key(fields: "id") {
+			id: ID!
+		}
+	`)
+	otherPath := writeFile(t, dir, "other.graphql", `type Gizmo { id: ID! }`)
+
+	violations, err := Files([]string{linkPath, otherPath}, &config.Lint{Federation: "v2.3"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
+
+	t.Run("a syntax error in the file without link is still caught", func(t *testing.T) {
+		brokenPath := writeFile(t, dir, "broken.graphql", `type Gizmo { id: ID! `) // missing closing brace
+
+		violations, err := Files([]string{linkPath, brokenPath}, &config.Lint{Federation: "v2.3"})
+		assert.NilError(t, err)
+		assert.Equal(t, len(violations), 1)
+		assert.Equal(t, violations[0].File(), brokenPath)
+	})
+}

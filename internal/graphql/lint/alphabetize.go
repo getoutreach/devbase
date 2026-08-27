@@ -16,7 +16,7 @@
 // table).
 //
 // A type extension's fields or enum values are ordered together with
-// its base type's own, via forEachDefinition (descriptions.go):
+// its base type's own, via allDefinitions (tier3.go):
 // validator.ValidateSchemaDocument already merges an extension's Fields
 // and EnumValues into the base Definition's, so this rule sees one
 // alphabetical run across a type's base definition and every extension
@@ -200,10 +200,10 @@ func argumentNames(args ast.ArgumentDefinitionList) []alphaName {
 }
 
 // alphabetizeViolations reports every RuleAlphabetize violation in defs
-// and doc.Directives that opts selects. inScope restricts every check
-// to names actually written in one of the repository's own files.
-func alphabetizeViolations(defs []scopedDefinition, doc *ast.SchemaDocument, inScope set.Set[*ast.Source],
-	opts alphabetizeOptions,
+// and directives that opts selects. inScope restricts every check to
+// names actually written in one of the repository's own files.
+func alphabetizeViolations(defs []scopedDefinition, directives ast.DirectiveDefinitionList,
+	inScope set.Set[*ast.Source], opts alphabetizeOptions,
 ) []Violation {
 	var violations []Violation
 
@@ -223,7 +223,7 @@ func alphabetizeViolations(defs []scopedDefinition, doc *ast.SchemaDocument, inS
 	}
 
 	if opts.directiveArguments {
-		for _, dd := range doc.Directives {
+		for _, dd := range directives {
 			violations = append(violations, checkAlphaOrder(inScopeNames(argumentNames(dd.Arguments), inScope))...)
 		}
 	}
@@ -240,5 +240,5 @@ func tier3Alphabetize(defs []scopedDefinition, parsed *parsedSchema, inScope set
 		return nil
 	}
 	opts := parseAlphabetizeOptions(cfg.Options(config.RuleAlphabetize))
-	return alphabetizeViolations(defs, parsed.doc, inScope, opts)
+	return alphabetizeViolations(defs, parsed.doc.Directives, inScope, opts)
 }

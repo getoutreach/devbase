@@ -166,7 +166,7 @@ type unreachableSite struct {
 
 // unreachableSitesByFile collects every unreachableSite in doc --
 // walking doc.Definitions and doc.Extensions separately, unlike
-// forEachDefinition (descriptions.go), since a base definition and each
+// allDefinitions (tier3.go), since a base definition and each
 // of its extensions are each their own site here -- grouped by the
 // *ast.Source it was written in, with each group sorted by pos.Start.
 // inScope restricts the walk to sites actually written in one of the

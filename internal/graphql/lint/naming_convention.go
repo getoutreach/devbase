@@ -273,16 +273,16 @@ func rootTypeRoles(schema *ast.Schema) map[string]string {
 	return roles
 }
 
-// namingSites collects every namingSite in defs and doc.Directives that
+// namingSites collects every namingSite in defs and directives that
 // was written in one of inScope's sources, excluding gqlparser's
 // built-in prelude and any federation- or scalars-synthesized prelude
 // (see federation.go). Like typenamePrefixViolations, an extension's
 // fields are only walked on their own when its base type has no
 // definition anywhere; otherwise validator.ValidateSchemaDocument has
 // already merged them into the base Definition.Fields that the
-// doc.Definitions walk already covers (see descriptions.go's
-// definitionsInScope).
-func namingSites(defs []scopedDefinition, doc *ast.SchemaDocument, roles map[string]string,
+// doc.Definitions walk already covers (see tier3.go's
+// allDefinitions).
+func namingSites(defs []scopedDefinition, directives ast.DirectiveDefinitionList, roles map[string]string,
 	inScope set.Set[*ast.Source],
 ) []namingSite {
 	var sites []namingSite
@@ -325,18 +325,16 @@ func namingSites(defs []scopedDefinition, doc *ast.SchemaDocument, roles map[str
 
 	for _, sd := range defs {
 		def := sd.def
-		if !sd.isExtension {
-			if kindKey, ok := typeDefinitionKindKeys[def.Kind]; ok {
-				addIfInScope(namingSite{
-					pos: def.Position, name: def.Name, kindLabel: namingTypeKindDisplay[def.Kind],
-					baseSelector: kindKey, typeDefKindKey: kindKey,
-				})
-			}
+		if kindKey, ok := typeDefinitionKindKeys[def.Kind]; ok && !sd.isExtension {
+			addIfInScope(namingSite{
+				pos: def.Position, name: def.Name, kindLabel: namingTypeKindDisplay[def.Kind],
+				baseSelector: kindKey, typeDefKindKey: kindKey,
+			})
 		}
 		addFields(def)
 	}
 
-	for _, dd := range doc.Directives {
+	for _, dd := range directives {
 		addIfInScope(namingSite{pos: dd.Position, name: dd.Name, kindLabel: "Directive", baseSelector: directiveDefinitionSelector})
 		for _, arg := range dd.Arguments {
 			addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: "Input property", baseSelector: inputValueDefinitionSelector})
@@ -426,7 +424,7 @@ func tier3NamingConvention(defs []scopedDefinition, parsed *parsedSchema, inScop
 	if !cfg.Enabled(config.RuleNamingConvention) {
 		return nil
 	}
-	sites := namingSites(defs, parsed.doc, rootTypeRoles(parsed.schema), inScope)
+	sites := namingSites(defs, parsed.doc.Directives, rootTypeRoles(parsed.schema), inScope)
 	opts := parseNamingConventionOptions(cfg.Options(config.RuleNamingConvention))
 	return namingConventionViolations(sites, opts)
 }
