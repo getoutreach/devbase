@@ -213,16 +213,14 @@ type scopedDefinition struct {
 }
 
 // definitionsInScope flattens doc.Definitions and the doc.Extensions
-// that have no base definition into one slice, in that order. A based
+// with no base definition into one slice, in that order. A based
 // extension is omitted: validator.ValidateSchemaDocument already
-// merged its Fields and EnumValues into the base Definition in place,
-// so the base definition already covers it.
+// merged its Fields and EnumValues into the base Definition, so the
+// base definition already covers it.
 //
-// This is the one O(n) walk (and the one "seen" set) that every Tier 3
-// rule needing a definition-level pass over the schema shares, via
-// forEachDefinition or by iterating the returned slice directly --
-// rather than each rule walking doc.Definitions and doc.Extensions on
-// its own.
+// Every Tier 3 rule needing a definition-level pass over the schema
+// shares this one walk, via forEachDefinition or by iterating the
+// returned slice directly.
 func definitionsInScope(doc *ast.SchemaDocument) []scopedDefinition {
 	seen := make(set.Set[string], len(doc.Definitions))
 	out := make([]scopedDefinition, 0, len(doc.Definitions)+len(doc.Extensions))
@@ -404,8 +402,7 @@ func tier3Descriptions(fileSources []*ast.Source, sitesByFile map[*ast.Source][]
 
 			// A file with no non-empty description sites can contribute no
 			// descriptionStyleViolations regardless of its raw content, so
-			// skip re-lexing it from scratch just to confirm that -- the
-			// common case for most files in a large schema.
+			// there is no need to re-lex it from scratch to confirm that.
 			if nonEmpty == 0 {
 				continue
 			}

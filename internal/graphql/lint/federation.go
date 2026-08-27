@@ -163,19 +163,14 @@ func scalarsPrelude(names []string) string {
 // Federation subgraph spec: scripts/devbase.yaml opted in, but
 // nothing in this schema uses it yet.
 //
-// Only sources whose raw text contains the substring "link" are
-// parsed here: a `@link(...)` directive application can only appear
-// in a file containing that substring (whitespace, if any, only ever
-// separates "@" from "link", never falls inside the word itself), and
-// this whole parse exists only to find such directives. Filtering on
-// "link" rather than the more precise "@link" tolerates that
-// whitespace instead of risking a missed directive over it.
-// FilesFromSources parses every source again in full once this
-// prelude is known (parseAndValidate), so parsing all of sources a
-// second time here -- most of which will never mention "link" in a
-// repository of any size -- would double the cost of linting the
-// entire schema just to answer a question that is almost always "no"
-// for almost every file.
+// Only sources containing the substring "link" are parsed here: a
+// `@link(...)` application cannot appear without it (whitespace, if
+// any, separates "@" from "link" but never splits the word itself).
+// Filtering on "link" rather than "@link" tolerates that whitespace at
+// the cost of occasionally including an unrelated file. Without this
+// filter, every source would need parsing twice -- once here, once by
+// parseAndValidate below -- to lint a schema most of whose files never
+// mention "link" at all.
 func federationPrelude(sources []*ast.Source, wantVersion string) (string, error) {
 	if !supportedFederationVersions[wantVersion] {
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFederationVersion, wantVersion)

@@ -57,14 +57,11 @@ func newLintGraphQLCommand() *cli.Command {
 // does, since scripts/devbase.yaml can never override it, but a Tier
 // 2/3 rule configured as "warn" never does.
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
-	// This command parses a whole repository's schema into memory once,
-	// reports violations, and exits -- there is no second run in this
-	// process to reclaim memory for, and the schema sizes involved (tens
-	// of thousands of lines at most) keep peak memory well within what
-	// any dev or CI machine has to spare. Profiling this rule set against
-	// a large real schema (getoutreach/giraffe) showed garbage collection
-	// alone accounting for roughly a third of its CPU time; turning it
-	// off for this one-shot command measured about 13% faster end to end.
+	// This command parses a schema once and exits; there is no later run
+	// in the process to free memory for, so collecting garbage here is
+	// pure overhead. Schema sizes stay small enough that letting the
+	// heap grow unchecked for one run is a safe trade for the CPU time
+	// saved.
 	debug.SetGCPercent(-1)
 
 	cwd, err := os.Getwd()

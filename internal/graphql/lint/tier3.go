@@ -60,12 +60,9 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		// fileSources.
 		inScope := set.Of(fileSources...)
 
-		// defs is the one definitionsInScope walk that
-		// no-typename-prefix, naming-convention,
-		// no-case-insensitive-enum-values-duplicates, and alphabetize
-		// all read, computed at most once here rather than once per
-		// rule -- the same sharing groupDescriptionSites above already
-		// does for its own 5 rules. no-unreachable-types needs a
+		// defs is the one definitionsInScope walk that no-typename-prefix,
+		// naming-convention, no-case-insensitive-enum-values-duplicates,
+		// and alphabetize all read. no-unreachable-types needs a
 		// different, schema-wide reachability walk instead, so it keeps
 		// its own.
 		defs := definitionsInScope(parsed.doc)
