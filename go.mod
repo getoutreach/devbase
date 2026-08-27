@@ -15,7 +15,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/vektah/gqlparser/v2 v2.5.36
-	google.golang.org/grpc v1.83.0
+	google.golang.org/grpc v1.83.1
 	gotest.tools/v3 v3.5.2
 )
 
