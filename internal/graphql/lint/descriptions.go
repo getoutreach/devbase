@@ -204,23 +204,51 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
-// forEachDefinition calls onDefinition for every base definition in
-// doc.Definitions, and onExtension for every extension in
-// doc.Extensions with no base definition. A based extension is skipped:
-// validator.ValidateSchemaDocument already merged its Fields and
-// EnumValues into the base Definition in place, so onDefinition already
-// covers it. groupDescriptionSites passes two different functions here
-// (an extension can never carry its own description); typenamePrefixViolations
-// and namingSites pass the same one for both.
-func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
+// scopedDefinition pairs a definition definitionsInScope visits with
+// whether it came from doc.Extensions -- a type extension with no base
+// definition anywhere -- rather than doc.Definitions.
+type scopedDefinition struct {
+	def         *ast.Definition
+	isExtension bool
+}
+
+// definitionsInScope flattens doc.Definitions and the doc.Extensions
+// that have no base definition into one slice, in that order. A based
+// extension is omitted: validator.ValidateSchemaDocument already
+// merged its Fields and EnumValues into the base Definition in place,
+// so the base definition already covers it.
+//
+// This is the one O(n) walk (and the one "seen" set) that every Tier 3
+// rule needing a definition-level pass over the schema shares, via
+// forEachDefinition or by iterating the returned slice directly --
+// rather than each rule walking doc.Definitions and doc.Extensions on
+// its own.
+func definitionsInScope(doc *ast.SchemaDocument) []scopedDefinition {
 	seen := make(set.Set[string], len(doc.Definitions))
+	out := make([]scopedDefinition, 0, len(doc.Definitions)+len(doc.Extensions))
 	for _, def := range doc.Definitions {
 		seen.Insert(def.Name)
-		onDefinition(def)
+		out = append(out, scopedDefinition{def: def})
 	}
 	for _, def := range doc.Extensions {
 		if !seen.Contains(def.Name) {
-			onExtension(def)
+			out = append(out, scopedDefinition{def: def, isExtension: true})
+		}
+	}
+	return out
+}
+
+// forEachDefinition calls onDefinition for every base definition
+// definitionsInScope found, and onExtension for every extension-only
+// one. groupDescriptionSites passes two different functions here (an
+// extension can never carry its own description); a caller that treats
+// both the same way can iterate definitionsInScope directly instead.
+func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
+	for _, sd := range definitionsInScope(doc) {
+		if sd.isExtension {
+			onExtension(sd.def)
+		} else {
+			onDefinition(sd.def)
 		}
 	}
 }

@@ -59,10 +59,20 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		// by their *ast.Source identity: neither is ever one of
 		// fileSources.
 		inScope := set.Of(fileSources...)
-		violations = append(violations, tier3NoTypenamePrefix(parsed, inScope, cfg)...)
-		violations = append(violations, tier3NamingConvention(parsed, inScope, cfg)...)
-		violations = append(violations, tier3NoCaseInsensitiveEnumValuesDuplicates(parsed, inScope, cfg)...)
-		violations = append(violations, tier3Alphabetize(parsed, inScope, cfg)...)
+
+		// defs is the one definitionsInScope walk that
+		// no-typename-prefix, naming-convention,
+		// no-case-insensitive-enum-values-duplicates, and alphabetize
+		// all read, computed at most once here rather than once per
+		// rule -- the same sharing groupDescriptionSites above already
+		// does for its own 5 rules. no-unreachable-types needs a
+		// different, schema-wide reachability walk instead, so it keeps
+		// its own.
+		defs := definitionsInScope(parsed.doc)
+		violations = append(violations, tier3NoTypenamePrefix(defs, inScope, cfg)...)
+		violations = append(violations, tier3NamingConvention(defs, parsed, inScope, cfg)...)
+		violations = append(violations, tier3NoCaseInsensitiveEnumValuesDuplicates(defs, inScope, cfg)...)
+		violations = append(violations, tier3Alphabetize(defs, parsed, inScope, cfg)...)
 		violations = append(violations, tier3NoUnreachableTypes(fileSources, inScope, parsed, cfg)...)
 	}
 

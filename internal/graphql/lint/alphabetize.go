@@ -199,13 +199,16 @@ func argumentNames(args ast.ArgumentDefinitionList) []alphaName {
 	return names
 }
 
-// alphabetizeViolations reports every RuleAlphabetize violation in doc
-// that opts selects. inScope restricts every check to names actually
-// written in one of the repository's own files.
-func alphabetizeViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source], opts alphabetizeOptions) []Violation {
+// alphabetizeViolations reports every RuleAlphabetize violation in defs
+// and doc.Directives that opts selects. inScope restricts every check
+// to names actually written in one of the repository's own files.
+func alphabetizeViolations(defs []scopedDefinition, doc *ast.SchemaDocument, inScope set.Set[*ast.Source],
+	opts alphabetizeOptions,
+) []Violation {
 	var violations []Violation
 
-	checkDef := func(def *ast.Definition) {
+	for _, sd := range defs {
+		def := sd.def
 		if opts.fieldKinds.Contains(def.Kind) {
 			violations = append(violations, checkAlphaOrder(inScopeNames(fieldNames(def.Fields), inScope))...)
 		}
@@ -218,7 +221,6 @@ func alphabetizeViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source]
 			}
 		}
 	}
-	forEachDefinition(doc, checkDef, checkDef)
 
 	if opts.directiveArguments {
 		for _, dd := range doc.Directives {
@@ -229,12 +231,14 @@ func alphabetizeViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source]
 	return violations
 }
 
-// tier3Alphabetize runs alphabetize against parsed. It does not run
+// tier3Alphabetize runs alphabetize against defs. It does not run
 // unless cfg enables it (config.Lint.Enabled).
-func tier3Alphabetize(parsed *parsedSchema, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
+func tier3Alphabetize(defs []scopedDefinition, parsed *parsedSchema, inScope set.Set[*ast.Source],
+	cfg *config.Lint,
+) []Violation {
 	if !cfg.Enabled(config.RuleAlphabetize) {
 		return nil
 	}
 	opts := parseAlphabetizeOptions(cfg.Options(config.RuleAlphabetize))
-	return alphabetizeViolations(parsed.doc, inScope, opts)
+	return alphabetizeViolations(defs, parsed.doc, inScope, opts)
 }
