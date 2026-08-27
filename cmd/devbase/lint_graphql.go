@@ -59,10 +59,13 @@ func newLintGraphQLCommand() *cli.Command {
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	// This command parses a schema once and exits; there is no later run
 	// in the process to free memory for, so collecting garbage here is
-	// pure overhead. Schema sizes stay small enough that letting the
-	// heap grow unchecked for one run is a safe trade for the CPU time
-	// saved.
+	// pure overhead. "Small enough to let the heap grow unchecked" is
+	// an assumption about schema sizes, not a bound, so back it with a
+	// real one: SetMemoryLimit keeps GC off in the common case but
+	// still triggers it before the process approaches that ceiling, per
+	// https://go.dev/doc/gc-guide#Memory_limit.
 	debug.SetGCPercent(-1)
+	debug.SetMemoryLimit(1 << 30) // 1GiB
 
 	cwd, err := os.Getwd()
 	if err != nil {
