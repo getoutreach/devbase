@@ -8,7 +8,7 @@
 // matching @graphql-eslint's rule of the same name.
 //
 // A type extension's enum values are checked under its base enum, via
-// forEachDefinition (descriptions.go): validator.ValidateSchemaDocument
+// allDefinitions (tier3.go): validator.ValidateSchemaDocument
 // already merges an extension's EnumValues into the base Definition's,
 // so a duplicate split across a base enum and its extension -- or across
 // two extensions in different files -- is caught the same as one written
@@ -29,15 +29,16 @@ import (
 
 // caseInsensitiveEnumDuplicateViolations reports a
 // RuleNoCaseInsensitiveEnumValuesDuplicates violation for every enum
-// value in doc whose name matches an earlier value on the same enum,
+// value in defs whose name matches an earlier value on the same enum,
 // case-insensitively. inScope restricts the walk to enum values actually
 // written in one of the repository's own files.
-func caseInsensitiveEnumDuplicateViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source]) []Violation {
+func caseInsensitiveEnumDuplicateViolations(defs []scopedDefinition, inScope set.Set[*ast.Source]) []Violation {
 	var violations []Violation
 
-	checkValues := func(def *ast.Definition) {
+	for _, sd := range defs {
+		def := sd.def
 		if def.Kind != ast.Enum {
-			return
+			continue
 		}
 		seenLower := set.Of[string]()
 		for _, v := range def.EnumValues {
@@ -55,19 +56,17 @@ func caseInsensitiveEnumDuplicateViolations(doc *ast.SchemaDocument, inScope set
 		}
 	}
 
-	forEachDefinition(doc, checkValues, checkValues)
-
 	return violations
 }
 
 // tier3NoCaseInsensitiveEnumValuesDuplicates runs
-// no-case-insensitive-enum-values-duplicates against parsed. It does not
+// no-case-insensitive-enum-values-duplicates against defs. It does not
 // run unless cfg enables it (config.Lint.Enabled).
-func tier3NoCaseInsensitiveEnumValuesDuplicates(parsed *parsedSchema, inScope set.Set[*ast.Source],
+func tier3NoCaseInsensitiveEnumValuesDuplicates(defs []scopedDefinition, inScope set.Set[*ast.Source],
 	cfg *config.Lint,
 ) []Violation {
 	if !cfg.Enabled(config.RuleNoCaseInsensitiveEnumValuesDuplicates) {
 		return nil
 	}
-	return caseInsensitiveEnumDuplicateViolations(parsed.doc, inScope)
+	return caseInsensitiveEnumDuplicateViolations(defs, inScope)
 }

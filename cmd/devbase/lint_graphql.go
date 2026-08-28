@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/getoutreach/devbase/v2/internal/graphql/gitdiff"
@@ -56,6 +57,16 @@ func newLintGraphQLCommand() *cli.Command {
 // does, since scripts/devbase.yaml can never override it, but a Tier
 // 2/3 rule configured as "warn" never does.
 func lintGraphQL(ctx context.Context, c *cli.Command) error {
+	// This command parses a schema once and exits; there is no later run
+	// in the process to free memory for, so collecting garbage here is
+	// pure overhead. "Small enough to let the heap grow unchecked" is
+	// an assumption about schema sizes, not a bound, so back it with a
+	// real one: SetMemoryLimit keeps GC off in the common case but
+	// still triggers it before the process approaches that ceiling, per
+	// https://go.dev/doc/gc-guide#Memory_limit.
+	debug.SetGCPercent(-1)
+	debug.SetMemoryLimit(1 << 30) // 1GiB
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("get working directory: %w", err)

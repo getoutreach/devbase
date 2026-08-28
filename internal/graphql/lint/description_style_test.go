@@ -97,6 +97,23 @@ func TestDescriptionStyleDisabledByDefault(t *testing.T) {
 	assert.Equal(t, len(violations), 0)
 }
 
+// TestDescriptionStyleSkipsFilesWithNoDescriptions confirms that a
+// file contributing zero non-empty description sites is skipped
+// without error or violations, and does not affect the violations a
+// sibling file's real descriptions still produce.
+func TestDescriptionStyleSkipsFilesWithNoDescriptions(t *testing.T) {
+	dir := t.TempDir()
+	emptyPath := writeFile(t, dir, "empty.graphql", `type Query { a: String }`)
+	blockPath := writeFile(t, dir, "block.graphql", descriptionStyleBlockSDL)
+
+	cfg := enableRuleWithOptions(config.RuleDescriptionStyle, map[string]any{"style": "inline"})
+	violations, err := Files([]string{emptyPath, blockPath}, cfg)
+	assert.NilError(t, err)
+	for _, v := range violations {
+		assert.Equal(t, v.File(), blockPath)
+	}
+}
+
 // --- Go-specific edge cases ---
 
 // TestDescriptionStyleIgnoresDefaultValueStrings confirms a field's

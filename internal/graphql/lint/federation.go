@@ -134,6 +134,18 @@ func preludeSources(sources []*ast.Source, cfg *config.Lint) ([]*ast.Source, err
 	return extra, nil
 }
 
+// sourcesContaining returns the sources whose Input contains substr,
+// preserving order.
+func sourcesContaining(sources []*ast.Source, substr string) []*ast.Source {
+	var out []*ast.Source
+	for _, src := range sources {
+		if strings.Contains(src.Input, substr) {
+			out = append(out, src)
+		}
+	}
+	return out
+}
+
 // scalarsPrelude renders names as one `scalar X` declaration per line.
 func scalarsPrelude(names []string) string {
 	var b strings.Builder
@@ -150,12 +162,26 @@ func scalarsPrelude(names []string) string {
 // declared. It returns "", nil if sources contain no `@link` to the
 // Federation subgraph spec: scripts/devbase.yaml opted in, but
 // nothing in this schema uses it yet.
+//
+// Only sources containing the substring "link" are parsed here: a
+// `@link(...)` application cannot appear without it (whitespace, if
+// any, separates "@" from "link" but never splits the word itself).
+// Filtering on "link" rather than "@link" tolerates that whitespace at
+// the cost of occasionally including an unrelated file. Without this
+// filter, every source would need parsing twice -- once here, once by
+// parseAndValidate below -- to lint a schema most of whose files never
+// mention "link" at all.
 func federationPrelude(sources []*ast.Source, wantVersion string) (string, error) {
 	if !supportedFederationVersions[wantVersion] {
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFederationVersion, wantVersion)
 	}
 
-	doc, err := parser.ParseSchemas(sources...)
+	candidates := sourcesContaining(sources, "link")
+	if len(candidates) == 0 {
+		return "", nil
+	}
+
+	doc, err := parser.ParseSchemas(candidates...)
 	if err != nil {
 		return "", fmt.Errorf("parse schema for federation @link directives: %w", err)
 	}

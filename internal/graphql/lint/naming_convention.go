@@ -273,16 +273,18 @@ func rootTypeRoles(schema *ast.Schema) map[string]string {
 	return roles
 }
 
-// namingSites collects every namingSite in doc that was written in one
-// of inScope's sources, excluding gqlparser's built-in prelude and any
-// federation- or scalars-synthesized prelude (see federation.go), in
-// document order. Like typenamePrefixViolations, an extension's
+// namingSites collects every namingSite in defs and directives that
+// was written in one of inScope's sources, excluding gqlparser's
+// built-in prelude and any federation- or scalars-synthesized prelude
+// (see federation.go). Like typenamePrefixViolations, an extension's
 // fields are only walked on their own when its base type has no
 // definition anywhere; otherwise validator.ValidateSchemaDocument has
 // already merged them into the base Definition.Fields that the
-// doc.Definitions walk already covers (see descriptions.go's
-// forEachDefinition).
-func namingSites(doc *ast.SchemaDocument, roles map[string]string, inScope set.Set[*ast.Source]) []namingSite {
+// doc.Definitions walk already covers (see tier3.go's
+// allDefinitions).
+func namingSites(defs []scopedDefinition, directives ast.DirectiveDefinitionList, roles map[string]string,
+	inScope set.Set[*ast.Source],
+) []namingSite {
 	var sites []namingSite
 
 	addIfInScope := func(site namingSite) {
@@ -321,17 +323,18 @@ func namingSites(doc *ast.SchemaDocument, roles map[string]string, inScope set.S
 		}
 	}
 
-	forEachDefinition(doc, func(def *ast.Definition) {
-		if kindKey, ok := typeDefinitionKindKeys[def.Kind]; ok {
+	for _, sd := range defs {
+		def := sd.def
+		if kindKey, ok := typeDefinitionKindKeys[def.Kind]; ok && !sd.isExtension {
 			addIfInScope(namingSite{
 				pos: def.Position, name: def.Name, kindLabel: namingTypeKindDisplay[def.Kind],
 				baseSelector: kindKey, typeDefKindKey: kindKey,
 			})
 		}
 		addFields(def)
-	}, addFields)
+	}
 
-	for _, dd := range doc.Directives {
+	for _, dd := range directives {
 		addIfInScope(namingSite{pos: dd.Position, name: dd.Name, kindLabel: "Directive", baseSelector: directiveDefinitionSelector})
 		for _, arg := range dd.Arguments {
 			addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: "Input property", baseSelector: inputValueDefinitionSelector})
@@ -413,13 +416,15 @@ func namingConventionViolations(sites []namingSite, opts namingConventionOptions
 	return violations
 }
 
-// tier3NamingConvention runs naming-convention against parsed. It does
+// tier3NamingConvention runs naming-convention against defs. It does
 // not run unless cfg enables it (config.Lint.Enabled).
-func tier3NamingConvention(parsed *parsedSchema, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
+func tier3NamingConvention(defs []scopedDefinition, parsed *parsedSchema, inScope set.Set[*ast.Source],
+	cfg *config.Lint,
+) []Violation {
 	if !cfg.Enabled(config.RuleNamingConvention) {
 		return nil
 	}
-	sites := namingSites(parsed.doc, rootTypeRoles(parsed.schema), inScope)
+	sites := namingSites(defs, parsed.doc.Directives, rootTypeRoles(parsed.schema), inScope)
 	opts := parseNamingConventionOptions(cfg.Options(config.RuleNamingConvention))
 	return namingConventionViolations(sites, opts)
 }

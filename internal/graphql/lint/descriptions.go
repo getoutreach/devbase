@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
-	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -204,33 +203,14 @@ func inputValueSite(description string, pos *ast.Position, name, parentLabel str
 	}
 }
 
-// forEachDefinition calls onDefinition for every base definition in
-// doc.Definitions, and onExtension for every extension in
-// doc.Extensions with no base definition. A based extension is skipped:
-// validator.ValidateSchemaDocument already merged its Fields and
-// EnumValues into the base Definition in place, so onDefinition already
-// covers it. groupDescriptionSites passes two different functions here
-// (an extension can never carry its own description); typenamePrefixViolations
-// and namingSites pass the same one for both.
-func forEachDefinition(doc *ast.SchemaDocument, onDefinition, onExtension func(*ast.Definition)) {
-	seen := make(set.Set[string], len(doc.Definitions))
-	for _, def := range doc.Definitions {
-		seen.Insert(def.Name)
-		onDefinition(def)
-	}
-	for _, def := range doc.Extensions {
-		if !seen.Contains(def.Name) {
-			onExtension(def)
-		}
-	}
-}
-
-// groupDescriptionSites collects every descriptionSite in doc, grouped
-// by the *ast.Source it was written in (each site's own Position.Src),
-// with each group sorted by pos.Start -- the same file order
-// descriptionTokens produces, which tier3Descriptions relies on to
-// pair the two up.
-func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]bool) map[*ast.Source][]descriptionSite {
+// groupDescriptionSites collects every descriptionSite in defs and
+// doc, grouped by the *ast.Source it was written in (each site's own
+// Position.Src), with each group sorted by pos.Start -- the same file
+// order descriptionTokens produces, which tier3Descriptions relies on
+// to pair the two up.
+func groupDescriptionSites(defs []scopedDefinition, doc *ast.SchemaDocument,
+	rootTypeNames map[string]bool,
+) map[*ast.Source][]descriptionSite {
 	sites := make(map[*ast.Source][]descriptionSite)
 	add := func(src *ast.Source, s descriptionSite) {
 		sites[src] = append(sites[src], s)
@@ -280,15 +260,18 @@ func groupDescriptionSites(doc *ast.SchemaDocument, rootTypeNames map[string]boo
 		}
 	}
 
-	forEachDefinition(doc, func(def *ast.Definition) {
-		add(def.Position.Src, descriptionSite{
-			description: def.Description, pos: def.Position,
-			optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
-			typeDefKindKey:          typeDefinitionKindKeys[def.Kind],
-			afterDescriptionComment: def.AfterDescriptionComment,
-		})
+	for _, sd := range defs {
+		def := sd.def
+		if !sd.isExtension {
+			add(def.Position.Src, descriptionSite{
+				description: def.Description, pos: def.Position,
+				optionKind: optionTypes, name: def.Name, kindLabel: typeKindLabel(def.Kind),
+				typeDefKindKey:          typeDefinitionKindKeys[def.Kind],
+				afterDescriptionComment: def.AfterDescriptionComment,
+			})
+		}
 		addFields(def)
-	}, addFields)
+	}
 
 	for _, dd := range doc.Directives {
 		add(dd.Position.Src, descriptionSite{
@@ -367,23 +350,34 @@ func tier3Descriptions(fileSources []*ast.Source, sitesByFile map[*ast.Source][]
 		}
 
 		if styleEnabled {
-			tokens, err := descriptionTokens(src)
-			if err != nil {
-				return nil, err
-			}
-
 			nonEmpty := 0
 			for _, s := range sites {
 				if strings.TrimSpace(s.description) != "" {
 					nonEmpty++
 				}
 			}
-			if nonEmpty != len(tokens) {
-				return nil, fmt.Errorf("%s: %d description(s) in the parsed schema, %d description-like string token(s) "+
-					"in the raw source: %w", src.Name, nonEmpty, len(tokens), ErrDescriptionTokenMismatch)
-			}
 
-			violations = append(violations, descriptionStyleViolations(sites, tokens, styleOpts)...)
+			// A file with no non-empty description sites can contribute no
+			// descriptionStyleViolations regardless of its raw content, so
+			// there is no need to re-lex it from scratch to confirm that.
+			// This does forgo the ErrDescriptionTokenMismatch check below
+			// for such a file: if groupDescriptionSites ever missed a
+			// description-bearing node kind, a file with only that kind
+			// would report nonEmpty == 0 and skip past the check that
+			// would otherwise have caught the mismatch.
+			if nonEmpty > 0 {
+				tokens, err := descriptionTokens(src)
+				if err != nil {
+					return nil, err
+				}
+
+				if nonEmpty != len(tokens) {
+					return nil, fmt.Errorf("%s: %d description(s) in the parsed schema, %d description-like string token(s) "+
+						"in the raw source: %w", src.Name, nonEmpty, len(tokens), ErrDescriptionTokenMismatch)
+				}
+
+				violations = append(violations, descriptionStyleViolations(sites, tokens, styleOpts)...)
+			}
 		}
 	}
 	return violations, nil

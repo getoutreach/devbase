@@ -8,7 +8,7 @@
 // matching @graphql-eslint's rule of the same name.
 //
 // A type extension's fields are checked under its base type's name, via
-// forEachDefinition (descriptions.go).
+// allDefinitions (tier3.go).
 
 package lint
 
@@ -22,17 +22,18 @@ import (
 )
 
 // typenamePrefixViolations reports a RuleNoTypenamePrefix violation for
-// every field of an object or interface type in doc whose name starts
+// every field of an object or interface type in defs whose name starts
 // with that type's own name, case-insensitively. inScope restricts the
 // walk to definitions actually written in one of the repository's own
 // files, excluding gqlparser's built-in prelude and any federation- or
 // scalars-synthesized prelude (see federation.go).
-func typenamePrefixViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Source]) []Violation {
+func typenamePrefixViolations(defs []scopedDefinition, inScope set.Set[*ast.Source]) []Violation {
 	var violations []Violation
 
-	checkFields := func(def *ast.Definition) {
+	for _, sd := range defs {
+		def := sd.def
 		if def.Kind != ast.Object && def.Kind != ast.Interface {
-			return
+			continue
 		}
 		lowerTypeName := strings.ToLower(def.Name)
 		for _, f := range def.Fields {
@@ -54,16 +55,14 @@ func typenamePrefixViolations(doc *ast.SchemaDocument, inScope set.Set[*ast.Sour
 		}
 	}
 
-	forEachDefinition(doc, checkFields, checkFields)
-
 	return violations
 }
 
-// tier3NoTypenamePrefix runs no-typename-prefix against parsed. It does
+// tier3NoTypenamePrefix runs no-typename-prefix against defs. It does
 // not run unless cfg enables it (config.Lint.Enabled).
-func tier3NoTypenamePrefix(parsed *parsedSchema, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
+func tier3NoTypenamePrefix(defs []scopedDefinition, inScope set.Set[*ast.Source], cfg *config.Lint) []Violation {
 	if !cfg.Enabled(config.RuleNoTypenamePrefix) {
 		return nil
 	}
-	return typenamePrefixViolations(parsed.doc, inScope)
+	return typenamePrefixViolations(defs, inScope)
 }
