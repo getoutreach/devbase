@@ -6,6 +6,8 @@
 package lint
 
 import (
+	"sync"
+
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/getoutreach/gobox/pkg/set"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -67,9 +69,17 @@ func allDefinitions(doc *ast.SchemaDocument) []scopedDefinition {
 // rather than once per rule. no-unreachable-types needs a different,
 // schema-wide reachability walk instead, so it keeps its own and never
 // triggers either shared walk on its own.
+//
+// Every rule below only reads parsed and defs, and each writes only its
+// own named result variable, so none of them need to wait on another:
+// they run as concurrent goroutines (wg.Go), each writing a variable no
+// other goroutine touches. wg.Wait's happens-before guarantee makes
+// reading those variables afterward, in the fixed order below, safe --
+// and that fixed order, not goroutine finishing order, is what decides
+// the result's order. defsGroup and no-unreachable-types are launched
+// before groupDescriptionSites runs, so that ~17ms walk (needed only by
+// the last 3 goroutines below) doesn't delay starting them.
 func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([]Violation, error) {
-	var violations []Violation
-
 	descGroupEnabled := cfg.Enabled(config.RuleRequireDescription) || cfg.Enabled(config.RuleDescriptionStyle) ||
 		cfg.Enabled(config.RuleNoHashtagDescription) || cfg.Enabled(config.RuleRequireDeprecationReason) ||
 		cfg.Enabled(config.RuleRequireDeprecationDate)
@@ -81,24 +91,13 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		defs = allDefinitions(parsed.doc)
 	}
 
-	if descGroupEnabled {
-		roots := rootTypeNameSet(parsed.schema)
-		sitesByFile := groupDescriptionSites(defs, parsed.doc, roots)
-
-		descViolations, err := tier3Descriptions(fileSources, sitesByFile, cfg)
-		if err != nil {
-			return nil, err
-		}
-		violations = append(violations, descViolations...)
-
-		violations = append(violations, tier3Deprecation(sitesByFile, cfg)...)
-
-		hashtagViolations, err := tier3NoHashtagDescription(fileSources, sitesByFile, cfg)
-		if err != nil {
-			return nil, err
-		}
-		violations = append(violations, hashtagViolations...)
-	}
+	var (
+		wg                                                                             sync.WaitGroup
+		typenameViolations, namingViolations, enumDupViolations, alphabetizeViolations []Violation
+		unreachableViolations                                                          []Violation
+		descViolations, deprecationViolations, hashtagViolations                       []Violation
+		descErr, hashtagErr                                                            error
+	)
 
 	if defsGroupEnabled || cfg.Enabled(config.RuleNoUnreachableTypes) {
 		// inScope excludes gqlparser's built-in prelude and any
@@ -108,13 +107,40 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		inScope := set.Of(fileSources...)
 
 		if defsGroupEnabled {
-			violations = append(violations, tier3NoTypenamePrefix(defs, inScope, cfg)...)
-			violations = append(violations, tier3NamingConvention(defs, parsed, inScope, cfg)...)
-			violations = append(violations, tier3NoCaseInsensitiveEnumValuesDuplicates(defs, inScope, cfg)...)
-			violations = append(violations, tier3Alphabetize(defs, parsed, inScope, cfg)...)
+			wg.Go(func() { typenameViolations = tier3NoTypenamePrefix(defs, inScope, cfg) })
+			wg.Go(func() { namingViolations = tier3NamingConvention(defs, parsed, inScope, cfg) })
+			wg.Go(func() { enumDupViolations = tier3NoCaseInsensitiveEnumValuesDuplicates(defs, inScope, cfg) })
+			wg.Go(func() { alphabetizeViolations = tier3Alphabetize(defs, parsed, inScope, cfg) })
 		}
-		violations = append(violations, tier3NoUnreachableTypes(fileSources, inScope, parsed, cfg)...)
+		wg.Go(func() { unreachableViolations = tier3NoUnreachableTypes(fileSources, inScope, parsed, cfg) })
 	}
 
+	if descGroupEnabled {
+		roots := rootTypeNameSet(parsed.schema)
+		sitesByFile := groupDescriptionSites(defs, parsed.doc, roots)
+
+		wg.Go(func() { descViolations, descErr = tier3Descriptions(fileSources, sitesByFile, cfg) })
+		wg.Go(func() { deprecationViolations = tier3Deprecation(sitesByFile, cfg) })
+		wg.Go(func() { hashtagViolations, hashtagErr = tier3NoHashtagDescription(fileSources, sitesByFile, cfg) })
+	}
+
+	wg.Wait()
+
+	if descErr != nil {
+		return nil, descErr
+	}
+	if hashtagErr != nil {
+		return nil, hashtagErr
+	}
+
+	var violations []Violation
+	violations = append(violations, descViolations...)
+	violations = append(violations, deprecationViolations...)
+	violations = append(violations, hashtagViolations...)
+	violations = append(violations, typenameViolations...)
+	violations = append(violations, namingViolations...)
+	violations = append(violations, enumDupViolations...)
+	violations = append(violations, alphabetizeViolations...)
+	violations = append(violations, unreachableViolations...)
 	return violations, nil
 }
