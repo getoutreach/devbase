@@ -133,7 +133,9 @@ func tier3(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([
 		return nil, hashtagErr
 	}
 
-	var violations []Violation
+	total := len(descViolations) + len(deprecationViolations) + len(hashtagViolations) + len(typenameViolations) +
+		len(namingViolations) + len(enumDupViolations) + len(alphabetizeViolations) + len(unreachableViolations)
+	violations := make([]Violation, 0, total)
 	violations = append(violations, descViolations...)
 	violations = append(violations, deprecationViolations...)
 	violations = append(violations, hashtagViolations...)
