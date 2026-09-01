@@ -21,3 +21,4 @@ serde_yaml = { workspace = true }
 globset = { workspace = true }
 walkdir = { workspace = true }
 anyhow = { workspace = true }
+chrono = { workspace = true }

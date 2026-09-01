@@ -123,6 +123,24 @@ fn main() -> anyhow::Result<ExitCode> {
                 violations.extend(gql_lint_rules::no_unreachable_types::no_unreachable_types(&schema));
             }
 
+            if lint_config.enabled(gql_lint_core::rules::REQUIRE_DEPRECATION_REASON) {
+                violations.extend(gql_lint_rules::deprecation::require_deprecation_reason(&schema));
+            }
+
+            if lint_config.enabled(gql_lint_core::rules::REQUIRE_DEPRECATION_DATE) {
+                let opts = gql_lint_rules::deprecation::RequireDeprecationDateOptions::from_yaml(
+                    lint_config
+                        .rules
+                        .get(gql_lint_core::rules::REQUIRE_DEPRECATION_DATE)
+                        .and_then(|r| r.options.as_ref()),
+                );
+                violations.extend(gql_lint_rules::deprecation::require_deprecation_date(
+                    &schema,
+                    &opts,
+                    chrono::Local::now().date_naive(),
+                ));
+            }
+
             violations
         }
     };

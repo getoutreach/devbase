@@ -23,6 +23,7 @@ globset = "0.4"
 walkdir = "2"
 anyhow = "1"
 regex = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 gql_lint_core = { path = "crates/gql_lint_core" }
 gql_lint_rules = { path = "crates/gql_lint_rules" }
 

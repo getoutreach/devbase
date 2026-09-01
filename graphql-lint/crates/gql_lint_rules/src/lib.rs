@@ -19,6 +19,7 @@
 //! shared parsed schema and writes its own result.
 
 pub mod alphabetize;
+pub mod deprecation;
 pub mod naming_convention;
 pub mod no_case_insensitive_enum_values_duplicates;
 pub mod no_typename_prefix;
