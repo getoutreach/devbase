@@ -369,6 +369,7 @@ version = "0.0.0"
 dependencies = [
  "apollo-compiler",
  "gql_lint_core",
+ "regex",
  "serde_yaml",
 ]
 

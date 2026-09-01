@@ -22,6 +22,7 @@ gix = "0.70"
 globset = "0.4"
 walkdir = "2"
 anyhow = "1"
+regex = "1"
 gql_lint_core = { path = "crates/gql_lint_core" }
 gql_lint_rules = { path = "crates/gql_lint_rules" }
 

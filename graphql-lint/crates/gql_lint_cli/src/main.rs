@@ -109,6 +109,16 @@ fn main() -> anyhow::Result<ExitCode> {
                 );
             }
 
+            if lint_config.enabled(gql_lint_core::rules::NAMING_CONVENTION) {
+                let opts = gql_lint_rules::naming_convention::NamingConventionOptions::from_yaml(
+                    lint_config
+                        .rules
+                        .get(gql_lint_core::rules::NAMING_CONVENTION)
+                        .and_then(|r| r.options.as_ref()),
+                );
+                violations.extend(gql_lint_rules::naming_convention::naming_convention(&schema, &opts));
+            }
+
             violations
         }
     };
