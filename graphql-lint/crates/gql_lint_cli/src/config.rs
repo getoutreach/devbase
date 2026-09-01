@@ -74,8 +74,10 @@ pub struct Lint {
     #[serde(default)]
     pub rules: HashMap<String, Rule>,
     /// Apollo Federation subgraph spec version this repo's schema links
-    /// against, if any. See `gql_lint_core`'s federation TODO — not wired
-    /// up to schema validation yet.
+    /// against, if any (only `"v2.3"` is supported — see
+    /// `gql_lint_core::federation`). Wired into schema validation via
+    /// `federation::prelude_sources`, called from `main.rs`'s
+    /// `lint_sources` before Tier 1 runs.
     pub federation: Option<String>,
     /// Custom scalar names declared outside this repo's `.graphql` files.
     #[serde(default)]

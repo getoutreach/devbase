@@ -9,6 +9,7 @@
 //! duplicate enum value on its own).
 
 pub mod diff;
+pub mod federation;
 pub mod rules;
 
 use apollo_compiler::Schema;
@@ -136,11 +137,12 @@ pub enum Tier1Result {
 /// Rust equivalent of the Go tool's `lint.FilesFromSources` Tier 1 step
 /// (`internal/graphql/lint/lint.go`'s `parseAndValidate`).
 ///
-/// Unlike the Go version, this does not yet merge a federation- or
-/// scalars-synthesized prelude (`internal/graphql/lint/federation.go`'s
-/// job) — federation support is scoped separately; see the plan.
+/// Takes an iterator rather than a slice so a caller can chain a
+/// repository's own file sources together with
+/// [`federation::prelude_sources`]'s synthesized ones without needing to
+/// unify them into one owned `Vec` first.
 #[must_use]
-pub fn parse_and_validate(sources: &[Source]) -> Tier1Result {
+pub fn parse_and_validate<'a>(sources: impl IntoIterator<Item = &'a Source>) -> Tier1Result {
     // apollo-compiler's `Schema::parse_and_validate` takes one source string
     // plus a path; to validate multiple files together (so a type defined
     // in one file resolves when referenced from another, matching the Go

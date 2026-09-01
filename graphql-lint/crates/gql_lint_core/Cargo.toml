@@ -10,3 +10,4 @@ workspace = true
 [dependencies]
 apollo-parser = { workspace = true }
 apollo-compiler = { workspace = true }
+thiserror = { workspace = true }

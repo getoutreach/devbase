@@ -1301,6 +1301,7 @@ version = "0.0.0"
 dependencies = [
  "apollo-compiler",
  "apollo-parser",
+ "thiserror 2.0.20",
 ]
 
 [[package]]

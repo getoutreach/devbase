@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<ExitCode> {
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
 
-    let mut violations = lint_sources(&sources, &lint_config);
+    let mut violations = lint_sources(&sources, &lint_config)?;
 
     if cli.diff {
         let merge_base_content = gitdiff::merge_base_files(&cwd, &cli.base, &files)?;
@@ -72,7 +72,7 @@ fn main() -> anyhow::Result<ExitCode> {
                 })
             })
             .collect();
-        let merge_base_violations = lint_sources(&merge_base_sources, &lint_config);
+        let merge_base_violations = lint_sources(&merge_base_sources, &lint_config)?;
         violations = gql_lint_core::diff::new(&merge_base_violations, &violations);
     }
 
@@ -86,9 +86,19 @@ fn main() -> anyhow::Result<ExitCode> {
 
 /// Runs Tier 1 validation over `sources`, then every Tier 2/3 rule
 /// `lint_config` enables if Tier 1 passed — the same pipeline for both the
-/// working-tree pass and, under `--diff`, the merge-base pass.
-fn lint_sources(sources: &[Source], lint_config: &config::Lint) -> Vec<Violation> {
-    match gql_lint_core::parse_and_validate(sources) {
+/// working-tree pass and, under `--diff`, the merge-base pass. Merges in
+/// `lint_config`'s federation/scalars prelude (see
+/// `gql_lint_core::federation`) before Tier 1 runs, the same layering
+/// `federation.go`'s `preludeSources` uses ahead of `parseAndValidate`.
+fn lint_sources(sources: &[Source], lint_config: &config::Lint) -> anyhow::Result<Vec<Violation>> {
+    let federation_sources = gql_lint_core::federation::prelude_sources(
+        sources,
+        lint_config.federation.as_deref(),
+        &lint_config.scalars,
+    )?;
+    let all_sources = sources.iter().chain(federation_sources.iter());
+
+    Ok(match gql_lint_core::parse_and_validate(all_sources) {
         // `possible-type-extension` rides in on this branch (it's a build-
         // phase error in this port, not a Tier 2 pass — see
         // `gql_lint_core::classify`), but stays config-gated like a real
@@ -100,7 +110,7 @@ fn lint_sources(sources: &[Source], lint_config: &config::Lint) -> Vec<Violation
             .filter(|v| gql_lint_core::is_always_on(v.rule) || lint_config.enabled(v.rule))
             .collect(),
         Tier1Result::Valid(schema) => run_tier2_and_tier3_rules(&schema, lint_config),
-    }
+    })
 }
 
 /// Runs every Tier 2/3 rule `lint_config` enables against `schema`,
@@ -254,12 +264,31 @@ fn find_graphql_files(paths: &[PathBuf], excludes: &[String]) -> anyhow::Result<
             if entry.path().extension().is_none_or(|ext| ext != "graphql") {
                 continue;
             }
-            if !exclude_set.is_match(entry.path()) {
-                files.push(entry.into_path());
+            // `walkdir` preserves a literal `./` prefix when `root` is
+            // `.`, unlike Go's `filepath.WalkDir`/`filepath.Join`, which
+            // clean it away — an anchored exclude pattern like
+            // `codegen-templates/**` (no leading `**/`) would otherwise
+            // never match `./codegen-templates/...`, silently including
+            // files `scripts/devbase.yaml` says to skip. Cleaning here
+            // keeps both the exclude match and the reported file path
+            // (via `Source::name`, downstream) parity with Go's own
+            // cleaned paths.
+            let path = clean_current_dir_prefix(&entry.into_path());
+            if !exclude_set.is_match(&path) {
+                files.push(path);
             }
         }
     }
 
     files.sort();
     Ok(files)
+}
+
+/// Removes every `.` (current-directory) component from `path`, the same
+/// cleanup `filepath.Join`/`filepath.Clean` apply implicitly in Go —
+/// `walkdir` does not do this on its own.
+fn clean_current_dir_prefix(path: &std::path::Path) -> PathBuf {
+    path.components()
+        .filter(|c| !matches!(c, std::path::Component::CurDir))
+        .collect()
 }
