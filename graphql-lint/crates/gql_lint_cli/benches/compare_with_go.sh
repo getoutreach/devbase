@@ -25,11 +25,11 @@ GO_BIN_ARG="${2:?usage: compare_with_go.sh <rust-binary> <go-binary> [giraffe-di
 GIRAFFE_DIR="${3:-/home/user/giraffe}"
 ITERATIONS="${4:-5}"
 
-if [[ ! -x "$RUST_BIN_ARG" ]]; then
+if [[ ! -x $RUST_BIN_ARG ]]; then
   echo "error: $RUST_BIN_ARG is not an executable file" >&2
   exit 1
 fi
-if [[ ! -x "$GO_BIN_ARG" ]]; then
+if [[ ! -x $GO_BIN_ARG ]]; then
   echo "error: $GO_BIN_ARG is not an executable file" >&2
   exit 1
 fi
