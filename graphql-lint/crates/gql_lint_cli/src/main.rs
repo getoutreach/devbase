@@ -97,6 +97,18 @@ fn main() -> anyhow::Result<ExitCode> {
                 violations.extend(gql_lint_rules::alphabetize::alphabetize(&schema, &opts));
             }
 
+            if lint_config.enabled(gql_lint_core::rules::NO_TYPENAME_PREFIX) {
+                violations.extend(gql_lint_rules::no_typename_prefix::no_typename_prefix(&schema));
+            }
+
+            if lint_config.enabled(gql_lint_core::rules::NO_CASE_INSENSITIVE_ENUM_VALUES_DUPLICATES) {
+                violations.extend(
+                    gql_lint_rules::no_case_insensitive_enum_values_duplicates::no_case_insensitive_enum_values_duplicates(
+                        &schema,
+                    ),
+                );
+            }
+
             violations
         }
     };

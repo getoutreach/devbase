@@ -19,6 +19,8 @@
 //! shared parsed schema and writes its own result.
 
 pub mod alphabetize;
+pub mod no_case_insensitive_enum_values_duplicates;
+pub mod no_typename_prefix;
 
 use apollo_compiler::Schema;
 use apollo_compiler::schema::{Component, Directive, ExtendedType};
