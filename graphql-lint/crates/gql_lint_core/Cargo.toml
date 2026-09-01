@@ -1,0 +1,12 @@
+[package]
+name = "gql_lint_core"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+apollo-parser = { workspace = true }
+apollo-compiler = { workspace = true }

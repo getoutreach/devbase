@@ -23,6 +23,7 @@ enter = ["$MISE_PROJECT_ROOT/scripts/devbase.sh"]
 circleci = "0.1.34950"
 ## <<Stencil::Block(customMiseTools)>>
 bats = "latest"
+rust = "1.98.0"
 ## <</Stencil::Block>>
 
 ## <<Stencil::Block(extraMise)>>

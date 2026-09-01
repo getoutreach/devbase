@@ -1,0 +1,93 @@
+//! Tier 2 gap-fill and Tier 3 custom rules, run against a validated
+//! [`Schema`] (Tier 1 has already passed by the time these run — see
+//! `gql_lint_core::parse_and_validate`).
+//!
+//! Only one rule is implemented so far, as a proof of concept end to end:
+//! [`unique_directive_names_per_location`]. The remaining 11 (2 Tier 2 minus
+//! this one, plus all 10 Tier 3) are the next slice of work — see the plan's
+//! build order. Each new rule should follow the same shape: a free function
+//! taking `&Schema` (plus whatever raw source text a Tier 3 rule needs for
+//! trivia like `#` comments, not carried on the validated `Schema` itself)
+//! and returning `Vec<Violation>`, so `gql_lint_cli` can call whichever
+//! subset `scripts/devbase.yaml` enables without any of them needing to know
+//! about each other — matching the independence (not the goroutine
+//! mechanism) of the Go tool's `tier3` rules, each of which only reads the
+//! shared parsed schema and writes its own result.
+
+use apollo_compiler::Schema;
+use apollo_compiler::schema::{Component, Directive, ExtendedType};
+use apollo_compiler::validation::Valid;
+use gql_lint_core::{Violation, rules};
+use std::collections::HashSet;
+
+/// Ports `internal/graphql/lint/directives.go`'s
+/// `gapFillDirectivesPerLocation`: reports a violation for every
+/// non-repeatable directive used more than once at one location (the
+/// schema definition, or a single named type — `apollo-compiler`, like
+/// `gqlparser`, already merges a type's base definition with all of its
+/// extensions before validation, so iterating `schema.types` gives exactly
+/// the grouping the Go rule reads from `parsed.schema.Types`).
+#[must_use]
+pub fn unique_directive_names_per_location(schema: &Valid<Schema>) -> Vec<Violation> {
+    let mut violations = nonrepeatable_duplicates(schema, &schema.schema_definition.directives);
+
+    for ty in schema.types.values() {
+        let directives = type_directives(ty);
+        violations.extend(nonrepeatable_duplicates(schema, directives));
+    }
+
+    violations
+}
+
+/// Returns `ty`'s own directive list, whichever [`ExtendedType`] variant it
+/// is. `apollo-compiler` does not expose one generic accessor for this
+/// across variants (only per-concrete-type struct fields), so this matches
+/// once on the caller's behalf.
+fn type_directives(ty: &ExtendedType) -> &[Component<Directive>] {
+    match ty {
+        ExtendedType::Scalar(t) => &t.directives.0,
+        ExtendedType::Object(t) => &t.directives.0,
+        ExtendedType::Interface(t) => &t.directives.0,
+        ExtendedType::Union(t) => &t.directives.0,
+        ExtendedType::Enum(t) => &t.directives.0,
+        ExtendedType::InputObject(t) => &t.directives.0,
+    }
+}
+
+/// Reports a violation for every directive in `directives` past the first
+/// use of its name, whose definition (looked up in `schema`) is not
+/// repeatable. `directives` is assumed to all come from one location, per
+/// [`unique_directive_names_per_location`].
+fn nonrepeatable_duplicates(schema: &Schema, directives: &[Component<Directive>]) -> Vec<Violation> {
+    if directives.len() < 2 {
+        return Vec::new();
+    }
+
+    let mut seen: HashSet<&str> = HashSet::with_capacity(directives.len());
+    directives
+        .iter()
+        .filter_map(|directive| {
+            let def = schema.directive_definitions.get(directive.name.as_str())?;
+            if def.repeatable {
+                return None;
+            }
+            if !seen.insert(directive.name.as_str()) {
+                return Some(Violation {
+                    // TODO: resolve via the directive's own location once
+                    // the exact `SourceSpan` accessor for a `Component<Directive>`
+                    // is confirmed against a fixture (see gql_lint_core's
+                    // matching TODO).
+                    file: String::new(),
+                    line: 0,
+                    column: 0,
+                    message: format!(
+                        "The directive \"@{}\" can only be used once at this location.",
+                        directive.name
+                    ),
+                    rule: rules::UNIQUE_DIRECTIVE_NAMES_PER_LOCATION,
+                });
+            }
+            None
+        })
+        .collect()
+}

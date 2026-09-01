@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/gql_lint_core",
+  "crates/gql_lint_rules",
+  "crates/gql_lint_cli",
+]
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.98.0"
+
+[workspace.dependencies]
+apollo-parser = "0.8"
+apollo-compiler = "1"
+rayon = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+gix = "0.70"
+globset = "0.4"
+walkdir = "2"
+anyhow = "1"
+gql_lint_core = { path = "crates/gql_lint_core" }
+gql_lint_rules = { path = "crates/gql_lint_rules" }
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+
+[profile.release]
+lto = true
+codegen-units = 1

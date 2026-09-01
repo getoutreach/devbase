@@ -1,0 +1,23 @@
+[package]
+name = "gql_lint_cli"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "gql-lint"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+gql_lint_core = { workspace = true }
+gql_lint_rules = { workspace = true }
+apollo-compiler = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+globset = { workspace = true }
+walkdir = { workspace = true }
+anyhow = { workspace = true }
