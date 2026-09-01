@@ -42,19 +42,19 @@ pub fn no_hashtag_description(schema: &Schema) -> anyhow::Result<Vec<Violation>>
         let source = sites[0].file;
         let text = std::fs::read_to_string(source)
             .map_err(|e| anyhow::anyhow!("read {}: {e}", source.display()))?;
-        let tokens = lex_with_trivia(&text).map_err(|e| anyhow::anyhow!("lex {}: {e:?}", source.display()))?;
+        let tokens = lex_with_trivia(&text)
+            .map_err(|e| anyhow::anyhow!("lex {}: {e:?}", source.display()))?;
 
         for site in &sites {
-            // TODO: _comment_offset is the last attached comment's byte
-            // offset — see description_style's matching TODO for why
-            // line/column resolution from it isn't wired up yet.
-            let Some(_comment_offset) = attached_comment_offset(&text, &tokens, site.offset) else {
+            let Some(comment_offset) = attached_comment_offset(&text, &tokens, site.offset) else {
                 continue;
             };
+            let (line, column) =
+                gql_lint_core::line_column_at(&schema.sources, site.file_id, comment_offset);
             violations.push(Violation {
                 file: source.display().to_string(),
-                line: 0,
-                column: 0,
+                line,
+                column,
                 message: format!(
                     "Unexpected GraphQL description as hashtag `#` for {}. \
                      Prefer using \"\"\" for multiline, or \" for a single line description",

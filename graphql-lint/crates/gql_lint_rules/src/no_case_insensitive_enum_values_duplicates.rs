@@ -30,11 +30,12 @@ pub fn no_case_insensitive_enum_values_duplicates(schema: &Schema) -> Vec<Violat
         let mut seen_lower: HashSet<String> = HashSet::with_capacity(enum_type.values.len());
         for value in enum_type.values.keys() {
             if !seen_lower.insert(value.as_str().to_lowercase()) {
+                let (file, line, column) =
+                    gql_lint_core::resolve_location(&schema.sources, value.location());
                 violations.push(Violation {
-                    // TODO: see gql_lint_core's location TODO.
-                    file: String::new(),
-                    line: 0,
-                    column: 0,
+                    file,
+                    line,
+                    column,
                     message: format!(
                         "Case-insensitive enum values duplicates are not allowed! Found: `{value}`."
                     ),

@@ -62,7 +62,10 @@ impl DescriptionStyleOptions {
 /// that case. This should never happen for valid SDL; see this module's
 /// doc comment for why `description_tokens` is expected to find exactly
 /// one token per description.
-pub fn description_style(schema: &Schema, opts: &DescriptionStyleOptions) -> anyhow::Result<Vec<Violation>> {
+pub fn description_style(
+    schema: &Schema,
+    opts: &DescriptionStyleOptions,
+) -> anyhow::Result<Vec<Violation>> {
     let mut violations = Vec::new();
 
     for (_file, sites) in collect_description_sites(schema) {
@@ -80,33 +83,30 @@ pub fn description_style(schema: &Schema, opts: &DescriptionStyleOptions) -> any
         let source = sites[0].file;
         let text = std::fs::read_to_string(source)
             .map_err(|e| anyhow::anyhow!("read {}: {e}", source.display()))?;
-        let tokens = description_tokens(&text)?;
+        let token_offsets = description_tokens(&text)?;
 
-        if non_empty.len() != tokens.len() {
+        if non_empty.len() != token_offsets.len() {
             anyhow::bail!(
                 "description-style: {}: {} description(s) in the parsed schema, {} description-like \
                  string token(s) in the raw source",
                 source.display(),
                 non_empty.len(),
-                tokens.len()
+                token_offsets.len()
             );
         }
 
-        for (site, token) in non_empty.iter().zip(tokens.iter()) {
-            let is_block = token.starts_with("\"\"\"");
+        for (site, token) in non_empty.iter().zip(token_offsets.iter()) {
+            let is_block = token.text.starts_with("\"\"\"");
             if is_block == opts.block {
                 continue;
             }
             let found_style = if is_block { "block" } else { "inline" };
+            let (line, column) =
+                gql_lint_core::line_column_at(&schema.sources, site.file_id, token.offset);
             violations.push(Violation {
-                // TODO: this rule resolves real per-file position (see
-                // crate::descriptions), but not yet a real line/column —
-                // only description_style/no_hashtag_description do the
-                // per-file work at all; line/column within that file is
-                // still owed, same as every other rule's TODO.
                 file: source.display().to_string(),
-                line: 0,
-                column: 0,
+                line,
+                column,
                 message: format!("Unexpected {found_style} description for {}", site.label),
                 rule: rules::DESCRIPTION_STYLE,
             });
@@ -116,11 +116,18 @@ pub fn description_style(schema: &Schema, opts: &DescriptionStyleOptions) -> any
     Ok(violations)
 }
 
+/// One description-like string token found by [`description_tokens`]: its
+/// raw source text (quotes included, so the caller can tell block from
+/// inline by checking for a `"""` prefix) and its own byte offset (so the
+/// caller can resolve a real line/column via `gql_lint_core::line_column_at`).
+struct DescriptionToken<'a> {
+    text: &'a str,
+    offset: usize,
+}
+
 /// Scans `text` for every string token that is a description, in file
-/// order, excluding default values and directive usage arguments. Returns
-/// each one's raw source text (quotes included), so the caller can tell
-/// block from inline by checking for a `"""` prefix.
-fn description_tokens(text: &str) -> anyhow::Result<Vec<&str>> {
+/// order, excluding default values and directive usage arguments.
+fn description_tokens(text: &str) -> anyhow::Result<Vec<DescriptionToken<'_>>> {
     let all = lex_all(text)?;
 
     let mut descriptions = Vec::new();
@@ -146,13 +153,20 @@ fn description_tokens(text: &str) -> anyhow::Result<Vec<&str>> {
                 i += 1;
             }
             TokenKind::Colon => {
-                i = if directive_args_active { skip_value(&all, i + 1) } else { i + 1 };
+                i = if directive_args_active {
+                    skip_value(&all, i + 1)
+                } else {
+                    i + 1
+                };
             }
             TokenKind::Eq => {
                 i = skip_value(&all, i + 1);
             }
             TokenKind::StringValue => {
-                descriptions.push(all[i].data());
+                descriptions.push(DescriptionToken {
+                    text: all[i].data(),
+                    offset: all[i].index(),
+                });
                 i += 1;
             }
             _ => i += 1,

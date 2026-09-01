@@ -17,6 +17,7 @@
 //! TODO.
 
 use apollo_compiler::Schema;
+use apollo_compiler::parser::FileId;
 use apollo_compiler::schema::ExtendedType;
 use std::path::Path;
 
@@ -26,6 +27,12 @@ pub struct DescriptionSite<'a> {
     pub description: Option<&'a str>,
     pub label: String,
     pub file: &'a Path,
+    /// This site's own file, as a [`FileId`] rather than just a path —
+    /// lets a caller resolve any other raw byte offset from the same file
+    /// (for example a re-lexed comment token's own offset) back to a real
+    /// line/column via `gql_lint_core::line_column_at`, without needing a
+    /// [`apollo_compiler::parser::SourceSpan`] for that offset.
+    pub file_id: FileId,
     /// Byte offset of this site's own name (or, for a directive
     /// definition, effectively the same anchor point) — used both to
     /// order sites within a file and as the point `no_hashtag_description`
@@ -58,6 +65,7 @@ fn push_site<'a>(
         description,
         label,
         file: file.path(),
+        file_id: location.file_id(),
         offset: location.offset(),
     });
 }
@@ -173,7 +181,10 @@ fn collect_directive_sites<'a>(schema: &'a Schema, sites: &mut Vec<DescriptionSi
                 schema,
                 sites,
                 arg.description.as_deref(),
-                format!("input value \"{}\" in directive \"{}\"", arg.name, directive.name),
+                format!(
+                    "input value \"{}\" in directive \"{}\"",
+                    arg.name, directive.name
+                ),
                 arg.name.location(),
             );
         }

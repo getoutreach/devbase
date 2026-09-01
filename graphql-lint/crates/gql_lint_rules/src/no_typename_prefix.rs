@@ -17,8 +17,12 @@ pub fn no_typename_prefix(schema: &Schema) -> Vec<Violation> {
 
     for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
         match ty {
-            ExtendedType::Object(t) => check_fields(&mut violations, &t.name, t.fields.values()),
-            ExtendedType::Interface(t) => check_fields(&mut violations, &t.name, t.fields.values()),
+            ExtendedType::Object(t) => {
+                check_fields(schema, &mut violations, &t.name, t.fields.values());
+            }
+            ExtendedType::Interface(t) => {
+                check_fields(schema, &mut violations, &t.name, t.fields.values());
+            }
             _ => {}
         }
     }
@@ -27,18 +31,25 @@ pub fn no_typename_prefix(schema: &Schema) -> Vec<Violation> {
 }
 
 fn check_fields<'a>(
+    schema: &Schema,
     violations: &mut Vec<Violation>,
     type_name: &Name,
     fields: impl Iterator<Item = &'a apollo_compiler::schema::Component<FieldDefinition>>,
 ) {
     let lower_type_name = type_name.as_str().to_lowercase();
     for field in fields {
-        if field.name.as_str().to_lowercase().starts_with(&lower_type_name) {
+        if field
+            .name
+            .as_str()
+            .to_lowercase()
+            .starts_with(&lower_type_name)
+        {
+            let (file, line, column) =
+                gql_lint_core::resolve_location(&schema.sources, field.name.location());
             violations.push(Violation {
-                // TODO: see gql_lint_core's location TODO.
-                file: String::new(),
-                line: 0,
-                column: 0,
+                file,
+                line,
+                column,
                 message: format!(
                     "Field \"{}\" starts with the name of the parent type \"{type_name}\"",
                     field.name

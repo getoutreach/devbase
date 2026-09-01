@@ -52,7 +52,7 @@ pub fn no_unreachable_types(schema: &Schema) -> Vec<Violation> {
             ExtendedType::InputObject(t) => (&t.name, "Input object type"),
         };
         if !reachable.contains(name.as_str()) {
-            violations.push(unreachable_violation(label, name));
+            violations.push(unreachable_violation(schema, label, name));
         }
     }
     for directive in schema
@@ -61,19 +61,19 @@ pub fn no_unreachable_types(schema: &Schema) -> Vec<Violation> {
         .filter(|d| !d.is_built_in())
     {
         if !reachable.contains(directive.name.as_str()) {
-            violations.push(unreachable_violation("Directive", &directive.name));
+            violations.push(unreachable_violation(schema, "Directive", &directive.name));
         }
     }
 
     violations
 }
 
-fn unreachable_violation(label: &str, name: &Name) -> Violation {
+fn unreachable_violation(schema: &Schema, label: &str, name: &Name) -> Violation {
+    let (file, line, column) = gql_lint_core::resolve_location(&schema.sources, name.location());
     Violation {
-        // TODO: see gql_lint_core's location TODO.
-        file: String::new(),
-        line: 0,
-        column: 0,
+        file,
+        line,
+        column,
         message: format!("{label} `{name}` is unreachable."),
         rule: rules::NO_UNREACHABLE_TYPES,
     }
@@ -94,32 +94,7 @@ fn unreachable_violation(label: &str, name: &Name) -> Violation {
 fn reachable_type_names(schema: &Schema) -> HashSet<String> {
     let mut reached: HashSet<String> = HashSet::new();
     let mut queue: Vec<String> = Vec::new();
-
-    if let Some(name) = &schema.schema_definition.query {
-        enqueue(name.as_str(), &mut queue, &mut reached);
-    }
-    if let Some(name) = &schema.schema_definition.mutation {
-        enqueue(name.as_str(), &mut queue, &mut reached);
-    }
-    if let Some(name) = &schema.schema_definition.subscription {
-        enqueue(name.as_str(), &mut queue, &mut reached);
-    }
-    for directive in &schema.schema_definition.directives.0 {
-        enqueue(directive.name.as_str(), &mut queue, &mut reached);
-    }
-    for (name, dd) in &schema.directive_definitions {
-        if dd
-            .locations
-            .iter()
-            .any(|loc| REQUEST_DIRECTIVE_LOCATIONS.contains(loc))
-        {
-            // Marked reachable directly, not enqueued for a body walk: a
-            // directive usable at a request-execution location needs
-            // nothing in the schema to reference it, and `@graphql-eslint`
-            // itself never walks its arguments for this case either.
-            reached.insert(name.as_str().to_string());
-        }
-    }
+    seed_reachable_roots(schema, &mut queue, &mut reached);
 
     let implementers = schema.implementers_map();
 
@@ -131,7 +106,11 @@ fn reachable_type_names(schema: &Schema) -> HashSet<String> {
             if let Some(dd) = schema.directive_definitions.get(name.as_str()) {
                 for arg in &dd.arguments {
                     enqueue(arg.ty.inner_named_type().as_str(), &mut queue, &mut reached);
-                    collect_directives(arg.directives.iter().map(|d| &d.name), &mut queue, &mut reached);
+                    collect_directives(
+                        arg.directives.iter().map(|d| &d.name),
+                        &mut queue,
+                        &mut reached,
+                    );
                 }
             }
             continue;
@@ -152,14 +131,30 @@ fn reachable_type_names(schema: &Schema) -> HashSet<String> {
                 for iface in &t.implements_interfaces {
                     enqueue(iface.as_str(), &mut queue, &mut reached);
                 }
-                collect_directives(t.directives.0.iter().map(|d| &d.name), &mut queue, &mut reached);
+                collect_directives(
+                    t.directives.0.iter().map(|d| &d.name),
+                    &mut queue,
+                    &mut reached,
+                );
                 for field in t.fields.values() {
-                    enqueue(field.ty.inner_named_type().as_str(), &mut queue, &mut reached);
+                    enqueue(
+                        field.ty.inner_named_type().as_str(),
+                        &mut queue,
+                        &mut reached,
+                    );
                     for arg in &field.arguments {
                         enqueue(arg.ty.inner_named_type().as_str(), &mut queue, &mut reached);
-                        collect_directives(arg.directives.iter().map(|d| &d.name), &mut queue, &mut reached);
+                        collect_directives(
+                            arg.directives.iter().map(|d| &d.name),
+                            &mut queue,
+                            &mut reached,
+                        );
                     }
-                    collect_directives(field.directives.0.iter().map(|d| &d.name), &mut queue, &mut reached);
+                    collect_directives(
+                        field.directives.0.iter().map(|d| &d.name),
+                        &mut queue,
+                        &mut reached,
+                    );
                 }
             }
             ExtendedType::Union(t) => {
@@ -169,13 +164,25 @@ fn reachable_type_names(schema: &Schema) -> HashSet<String> {
             }
             ExtendedType::Enum(t) => {
                 for value in t.values.values() {
-                    collect_directives(value.directives.0.iter().map(|d| &d.name), &mut queue, &mut reached);
+                    collect_directives(
+                        value.directives.0.iter().map(|d| &d.name),
+                        &mut queue,
+                        &mut reached,
+                    );
                 }
             }
             ExtendedType::InputObject(t) => {
                 for field in t.fields.values() {
-                    enqueue(field.ty.inner_named_type().as_str(), &mut queue, &mut reached);
-                    collect_directives(field.directives.0.iter().map(|d| &d.name), &mut queue, &mut reached);
+                    enqueue(
+                        field.ty.inner_named_type().as_str(),
+                        &mut queue,
+                        &mut reached,
+                    );
+                    collect_directives(
+                        field.directives.0.iter().map(|d| &d.name),
+                        &mut queue,
+                        &mut reached,
+                    );
                 }
             }
             ExtendedType::Scalar(_) => {}
@@ -183,6 +190,39 @@ fn reachable_type_names(schema: &Schema) -> HashSet<String> {
     }
 
     reached
+}
+
+/// Seeds `queue`/`reached` with `schema`'s root operation types, the schema
+/// definition's own applied directives, and any directive definition
+/// usable at a request-execution location — the starting points
+/// [`reachable_type_names`]'s walk expands from. Split out on its own so
+/// that function stays under `clippy::pedantic`'s line-count cap.
+fn seed_reachable_roots(schema: &Schema, queue: &mut Vec<String>, reached: &mut HashSet<String>) {
+    if let Some(name) = &schema.schema_definition.query {
+        enqueue(name.as_str(), queue, reached);
+    }
+    if let Some(name) = &schema.schema_definition.mutation {
+        enqueue(name.as_str(), queue, reached);
+    }
+    if let Some(name) = &schema.schema_definition.subscription {
+        enqueue(name.as_str(), queue, reached);
+    }
+    for directive in &schema.schema_definition.directives.0 {
+        enqueue(directive.name.as_str(), queue, reached);
+    }
+    for (name, dd) in &schema.directive_definitions {
+        if dd
+            .locations
+            .iter()
+            .any(|loc| REQUEST_DIRECTIVE_LOCATIONS.contains(loc))
+        {
+            // Marked reachable directly, not enqueued for a body walk: a
+            // directive usable at a request-execution location needs
+            // nothing in the schema to reference it, and `@graphql-eslint`
+            // itself never walks its arguments for this case either.
+            reached.insert(name.as_str().to_string());
+        }
+    }
 }
 
 /// Enqueues `name` for a body walk, unless it's already been reached.

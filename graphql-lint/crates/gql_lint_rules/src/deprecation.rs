@@ -44,6 +44,7 @@ const DEPRECATED: &str = "deprecated";
 struct DeprecatableSite<'a> {
     directive: Option<&'a Directive>,
     label: String,
+    location: Option<apollo_compiler::parser::SourceSpan>,
 }
 
 /// Runs `require-deprecation-reason` over `schema`.
@@ -58,7 +59,9 @@ pub fn require_deprecation_reason(schema: &Schema) -> Vec<Violation> {
             continue;
         }
         violations.push(violation(
+            schema,
             rules::REQUIRE_DEPRECATION_REASON,
+            site.location,
             &format!("Deprecation reason is required for {}", site.label),
         ));
     }
@@ -113,7 +116,9 @@ pub fn require_deprecation_date(
             .find(|a| a.name.as_str() == opts.argument_name)
         else {
             violations.push(violation(
+                schema,
                 rules::REQUIRE_DEPRECATION_DATE,
+                site.location,
                 &format!(
                     "Directive \"@deprecated\" must have a deletion date for {}",
                     site.label
@@ -124,8 +129,13 @@ pub fn require_deprecation_date(
 
         let Value::String(raw) = &*arg.value else {
             violations.push(violation(
+                schema,
                 rules::REQUIRE_DEPRECATION_DATE,
-                &format!("Deletion date must be in format \"DD/MM/YYYY\" for {}", site.label),
+                site.location,
+                &format!(
+                    "Deletion date must be in format \"DD/MM/YYYY\" for {}",
+                    site.label
+                ),
             ));
             continue;
         };
@@ -133,21 +143,30 @@ pub fn require_deprecation_date(
         match parse_deletion_date(raw) {
             Some(date) if today > date => {
                 violations.push(violation(
+                    schema,
                     rules::REQUIRE_DEPRECATION_DATE,
+                    site.location,
                     &format!("{} can be removed", site.label),
                 ));
             }
             Some(_) => {}
             None if DATE_SHAPE_RE.is_match(raw) => {
                 violations.push(violation(
+                    schema,
                     rules::REQUIRE_DEPRECATION_DATE,
+                    site.location,
                     &format!("Invalid \"{raw}\" deletion date for {}", site.label),
                 ));
             }
             None => {
                 violations.push(violation(
+                    schema,
                     rules::REQUIRE_DEPRECATION_DATE,
-                    &format!("Deletion date must be in format \"DD/MM/YYYY\" for {}", site.label),
+                    site.location,
+                    &format!(
+                        "Deletion date must be in format \"DD/MM/YYYY\" for {}",
+                        site.label
+                    ),
                 ));
             }
         }
@@ -172,12 +191,17 @@ fn parse_deletion_date(raw: &str) -> Option<NaiveDate> {
     NaiveDate::from_ymd_opt(year, month, day)
 }
 
-fn violation(rule: &'static str, message: &str) -> Violation {
+fn violation(
+    schema: &Schema,
+    rule: &'static str,
+    location: Option<apollo_compiler::parser::SourceSpan>,
+    message: &str,
+) -> Violation {
+    let (file, line, column) = gql_lint_core::resolve_location(&schema.sources, location);
     Violation {
-        // TODO: see gql_lint_core's location TODO.
-        file: String::new(),
-        line: 0,
-        column: 0,
+        file,
+        line,
+        column,
         message: message.to_string(),
         rule,
     }
@@ -217,6 +241,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                 sites.push(DeprecatableSite {
                     directive: ast_deprecated(&field.directives),
                     label: format!("field \"{}\" in type \"{type_name}\"", field.name),
+                    location: field.name.location(),
                 });
                 for arg in &field.arguments {
                     sites.push(DeprecatableSite {
@@ -225,6 +250,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                             "argument \"{}\" of field \"{}\" in type \"{type_name}\"",
                             arg.name, field.name
                         ),
+                        location: arg.name.location(),
                     });
                 }
             }
@@ -236,6 +262,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                     sites.push(DeprecatableSite {
                         directive: ast_deprecated(&field.directives),
                         label: format!("input value \"{}\" in type \"{}\"", field.name, t.name),
+                        location: field.name.location(),
                     });
                 }
             }
@@ -244,6 +271,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                     sites.push(DeprecatableSite {
                         directive: ast_deprecated(&value.directives),
                         label: format!("enum value \"{}\" in enum \"{}\"", value.value, t.name),
+                        location: value.value.location(),
                     });
                 }
             }
@@ -269,6 +297,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                     "argument \"{}\" of directive \"@{}\"",
                     arg.name, directive.name
                 ),
+                location: arg.name.location(),
             });
         }
     }

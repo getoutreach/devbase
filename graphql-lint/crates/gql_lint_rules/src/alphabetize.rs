@@ -122,29 +122,37 @@ pub fn alphabetize(schema: &Schema, opts: &AlphabetizeOptions) -> Vec<Violation>
         match ty {
             ExtendedType::Object(t) => {
                 if opts.fields.object {
-                    check_order(&mut violations, t.fields.keys());
+                    check_order(schema, &mut violations, t.fields.keys());
                 }
                 if opts.arguments.field {
                     for field in t.fields.values() {
-                        check_order(&mut violations, field.arguments.iter().map(|a| &a.name));
+                        check_order(
+                            schema,
+                            &mut violations,
+                            field.arguments.iter().map(|a| &a.name),
+                        );
                     }
                 }
             }
             ExtendedType::Interface(t) => {
                 if opts.fields.interface {
-                    check_order(&mut violations, t.fields.keys());
+                    check_order(schema, &mut violations, t.fields.keys());
                 }
                 if opts.arguments.field {
                     for field in t.fields.values() {
-                        check_order(&mut violations, field.arguments.iter().map(|a| &a.name));
+                        check_order(
+                            schema,
+                            &mut violations,
+                            field.arguments.iter().map(|a| &a.name),
+                        );
                     }
                 }
             }
             ExtendedType::InputObject(t) if opts.fields.input_object => {
-                check_order(&mut violations, t.fields.keys());
+                check_order(schema, &mut violations, t.fields.keys());
             }
             ExtendedType::Enum(t) if opts.enum_values => {
-                check_order(&mut violations, t.values.keys());
+                check_order(schema, &mut violations, t.values.keys());
             }
             _ => {}
         }
@@ -156,7 +164,11 @@ pub fn alphabetize(schema: &Schema, opts: &AlphabetizeOptions) -> Vec<Violation>
             .values()
             .filter(|d| !d.is_built_in())
         {
-            check_order(&mut violations, directive.arguments.iter().map(|a| &a.name));
+            check_order(
+                schema,
+                &mut violations,
+                directive.arguments.iter().map(|a| &a.name),
+            );
         }
     }
 
@@ -166,17 +178,22 @@ pub fn alphabetize(schema: &Schema, opts: &AlphabetizeOptions) -> Vec<Violation>
 /// Reports a violation for every name in `names` that sorts after its
 /// successor per [`locale_compare`] — the Rust port of the Go rule's
 /// `checkAlphaOrder`.
-fn check_order<'a>(violations: &mut Vec<Violation>, names: impl Iterator<Item = &'a Name>) {
+fn check_order<'a>(
+    schema: &Schema,
+    violations: &mut Vec<Violation>,
+    names: impl Iterator<Item = &'a Name>,
+) {
     let mut prev: Option<&Name> = None;
     for curr in names {
         if let Some(prev) = prev
             && locale_compare(prev.as_str(), curr.as_str()) == std::cmp::Ordering::Greater
         {
+            let (file, line, column) =
+                gql_lint_core::resolve_location(&schema.sources, curr.location());
             violations.push(Violation {
-                // TODO: see gql_lint_core's location TODO.
-                file: String::new(),
-                line: 0,
-                column: 0,
+                file,
+                line,
+                column,
                 message: format!("`{curr}` should be before `{prev}`."),
                 rule: rules::ALPHABETIZE,
             });

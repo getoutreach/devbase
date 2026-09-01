@@ -80,7 +80,10 @@ fn type_directives(ty: &ExtendedType) -> &[Component<Directive>] {
 /// use of its name, whose definition (looked up in `schema`) is not
 /// repeatable. `directives` is assumed to all come from one location, per
 /// [`unique_directive_names_per_location`].
-fn nonrepeatable_duplicates(schema: &Schema, directives: &[Component<Directive>]) -> Vec<Violation> {
+fn nonrepeatable_duplicates(
+    schema: &Schema,
+    directives: &[Component<Directive>],
+) -> Vec<Violation> {
     if directives.len() < 2 {
         return Vec::new();
     }
@@ -94,14 +97,12 @@ fn nonrepeatable_duplicates(schema: &Schema, directives: &[Component<Directive>]
                 return None;
             }
             if !seen.insert(directive.name.as_str()) {
+                let (file, line, column) =
+                    gql_lint_core::resolve_location(&schema.sources, directive.name.location());
                 return Some(Violation {
-                    // TODO: resolve via the directive's own location once
-                    // the exact `SourceSpan` accessor for a `Component<Directive>`
-                    // is confirmed against a fixture (see gql_lint_core's
-                    // matching TODO).
-                    file: String::new(),
-                    line: 0,
-                    column: 0,
+                    file,
+                    line,
+                    column,
                     message: format!(
                         "The directive \"@{}\" can only be used once at this location.",
                         directive.name

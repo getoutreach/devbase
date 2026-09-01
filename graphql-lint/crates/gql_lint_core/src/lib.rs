@@ -11,6 +11,8 @@
 pub mod rules;
 
 use apollo_compiler::Schema;
+use apollo_compiler::diagnostic::ToCliReport;
+use apollo_compiler::parser::{FileId, SourceMap, SourceSpan};
 use apollo_compiler::validation::Valid;
 use std::fmt;
 
@@ -34,6 +36,50 @@ impl fmt::Display for Violation {
             self.file, self.line, self.column, self.message, self.rule
         )
     }
+}
+
+/// Resolves `location` against `sources` into `(file, line, column)`,
+/// ready to drop straight into a [`Violation`]. Every rule that has a
+/// `&Schema` (or `&Valid<Schema>`, which derefs to it) in scope can call
+/// this with `&schema.sources` and any `Name`/`Node<T>`'s own
+/// `.location()`. Returns all-empty/zero if `location` is `None` (a
+/// synthetic node with no source position) or if `sources` doesn't
+/// recognize the location's file — this should not happen in practice,
+/// but a missing position is a worse failure mode than a panic here.
+#[must_use]
+pub fn resolve_location(
+    sources: &SourceMap,
+    location: Option<SourceSpan>,
+) -> (String, usize, usize) {
+    let Some(location) = location else {
+        return (String::new(), 0, 0);
+    };
+    let Some(file) = sources.get(&location.file_id()) else {
+        return (String::new(), 0, 0);
+    };
+    let path = file.path().display().to_string();
+    match location.line_column(sources) {
+        Some(lc) => (path, lc.line, lc.column),
+        None => (path, 0, 0),
+    }
+}
+
+/// Resolves a raw byte offset within `file_id`'s own source text into
+/// `(line, column)`, for a site that has no [`SourceSpan`] to give
+/// [`resolve_location`] — a raw `apollo_parser::Token::index()` offset from
+/// a fresh re-lex, as `description_style` and `no_hashtag_description` both
+/// need. `SourceFile::get_line_column` already does exactly this
+/// conversion (and already counts `column` by Unicode Scalar Value, not
+/// byte, matching [`apollo_compiler::parser::LineColumn`]'s convention), so
+/// this is a thin, panic-free wrapper rather than a hand-rolled line
+/// scanner. Returns `(0, 0)` if `sources` doesn't recognize `file_id` or
+/// `offset` is out of bounds.
+#[must_use]
+pub fn line_column_at(sources: &SourceMap, file_id: FileId, offset: usize) -> (usize, usize) {
+    sources
+        .get(&file_id)
+        .and_then(|file| file.get_line_column(offset))
+        .map_or((0, 0), |lc| (lc.line, lc.column))
 }
 
 /// Tag used for a schema-build error `apollo-compiler` raises that doesn't
@@ -122,7 +168,13 @@ fn violations_from<T>(with_errors: &apollo_compiler::validation::WithErrors<T>) 
     with_errors
         .errors
         .iter()
-        .map(|diagnostic| classify(&diagnostic.error.to_string()))
+        .map(|diagnostic| {
+            classify(
+                &diagnostic.error.to_string(),
+                diagnostic.sources,
+                diagnostic.error.location(),
+            )
+        })
         .collect()
 }
 
@@ -172,16 +224,21 @@ fn violations_from<T>(with_errors: &apollo_compiler::validation::WithErrors<T>) 
 /// port, not Tier 2: it always runs and can't be turned off, the same as
 /// every other name in [`rules::TIER1_RULES`]. See [`is_always_on`] for
 /// where this distinction actually matters to a caller.
-fn classify(message: &str) -> Violation {
+fn classify(message: &str, sources: &SourceMap, location: Option<SourceSpan>) -> Violation {
     let rule = if message.starts_with("must not have multiple `schema` definitions") {
         rules::LONE_SCHEMA_DEFINITION
-    } else if message.starts_with("the directive ") && message.contains("is defined multiple times") {
+    } else if message.starts_with("the directive ") && message.contains("is defined multiple times")
+    {
         rules::UNIQUE_DIRECTIVE_NAMES
     } else if message.starts_with("the type ") && message.contains("is defined multiple times") {
         rules::UNIQUE_TYPE_NAMES
-    } else if message.starts_with("duplicate definitions for the ") && message.contains(" field of ") {
+    } else if message.starts_with("duplicate definitions for the ")
+        && message.contains(" field of ")
+    {
         rules::UNIQUE_FIELD_DEFINITION_NAMES
-    } else if message.starts_with("duplicate definitions for the ") && message.contains(" value of enum type ") {
+    } else if message.starts_with("duplicate definitions for the ")
+        && message.contains(" value of enum type ")
+    {
         rules::UNIQUE_ENUM_VALUE_NAMES
     } else if message.starts_with("the argument ") && message.contains(" is not supported by ") {
         rules::KNOWN_ARGUMENT_NAMES
@@ -189,7 +246,8 @@ fn classify(message: &str) -> Violation {
         rules::KNOWN_DIRECTIVES
     } else if message.starts_with("cannot find type ") {
         rules::KNOWN_TYPE_NAMES
-    } else if message.starts_with("the required argument ") && message.contains(" is not provided") {
+    } else if message.starts_with("the required argument ") && message.contains(" is not provided")
+    {
         rules::PROVIDED_REQUIRED_ARGUMENTS
     } else if message.starts_with("type extension for undefined type ") {
         rules::POSSIBLE_TYPE_EXTENSION
@@ -197,14 +255,11 @@ fn classify(message: &str) -> Violation {
         UNCLASSIFIED_RULE
     };
 
+    let (file, line, column) = resolve_location(sources, location);
     Violation {
-        // TODO: extract the real file/line/column via
-        // `DiagnosticData`'s `ToCliReport::location()` (public trait
-        // method) resolved against the `SourceMap` apollo-compiler built,
-        // once the exact accessor path is confirmed against a fixture.
-        file: String::new(),
-        line: 0,
-        column: 0,
+        file,
+        line,
+        column,
         message: message.to_string(),
         rule,
     }

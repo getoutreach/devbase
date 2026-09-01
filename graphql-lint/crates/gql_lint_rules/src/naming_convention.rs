@@ -196,24 +196,33 @@ pub fn naming_convention(schema: &Schema, opts: &NamingConventionOptions) -> Vec
         if let Some(rule) = opts.rule_for(site)
             && let Some(msg) = naming_rule_message(site.name.as_str(), rule)
         {
-            violations.push(violation(site, &msg));
+            violations.push(violation(schema, site, &msg));
         }
         if !opts.allow_leading_underscore && site.name.as_str().starts_with('_') {
-            violations.push(violation(site, "Leading underscores are not allowed"));
+            violations.push(violation(
+                schema,
+                site,
+                "Leading underscores are not allowed",
+            ));
         }
         if !opts.allow_trailing_underscore && site.name.as_str().ends_with('_') {
-            violations.push(violation(site, "Trailing underscores are not allowed"));
+            violations.push(violation(
+                schema,
+                site,
+                "Trailing underscores are not allowed",
+            ));
         }
     }
     violations
 }
 
-fn violation(site: &NamingSite, message: &str) -> Violation {
+fn violation(schema: &Schema, site: &NamingSite, message: &str) -> Violation {
+    let (file, line, column) =
+        gql_lint_core::resolve_location(&schema.sources, site.name.location());
     Violation {
-        // TODO: see gql_lint_core's location TODO.
-        file: String::new(),
-        line: 0,
-        column: 0,
+        file,
+        line,
+        column,
         message: format!("{} \"{}\" {}", site.kind_label, site.name, message),
         rule: rules::NAMING_CONVENTION,
     }
@@ -238,7 +247,10 @@ fn root_type_roles(schema: &Schema) -> HashMap<&str, &'static str> {
 
 /// Collects every [`NamingSite`] in `schema`, excluding built-in types —
 /// see [`crate::alphabetize::alphabetize`]'s doc comment for why.
-fn collect_sites<'a>(schema: &'a Schema, roles: &HashMap<&str, &'static str>) -> Vec<NamingSite<'a>> {
+fn collect_sites<'a>(
+    schema: &'a Schema,
+    roles: &HashMap<&str, &'static str>,
+) -> Vec<NamingSite<'a>> {
     let mut sites = Vec::new();
 
     for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
@@ -259,7 +271,9 @@ fn collect_sites<'a>(schema: &'a Schema, roles: &HashMap<&str, &'static str>) ->
         });
 
         match ty {
-            ExtendedType::Object(t) => add_fields(&mut sites, t.name.as_str(), t.fields.values(), roles),
+            ExtendedType::Object(t) => {
+                add_fields(&mut sites, t.name.as_str(), t.fields.values(), roles);
+            }
             ExtendedType::Interface(t) => {
                 add_fields(&mut sites, t.name.as_str(), t.fields.values(), roles);
             }
@@ -318,7 +332,9 @@ fn collect_sites<'a>(schema: &'a Schema, roles: &HashMap<&str, &'static str>) ->
 fn add_fields<'a>(
     sites: &mut Vec<NamingSite<'a>>,
     type_name: &str,
-    fields: impl Iterator<Item = &'a apollo_compiler::schema::Component<apollo_compiler::schema::FieldDefinition>>,
+    fields: impl Iterator<
+        Item = &'a apollo_compiler::schema::Component<apollo_compiler::schema::FieldDefinition>,
+    >,
     roles: &HashMap<&str, &'static str>,
 ) {
     let root_selector = roles.get(type_name).map(|role| root_field_selector(role));

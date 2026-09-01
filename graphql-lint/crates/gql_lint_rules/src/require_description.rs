@@ -75,10 +75,16 @@ impl RequireDescriptionOptions {
             }
         }
 
-        let enabled_kinds = ["types", "DirectiveDefinition", "FieldDefinition", "InputValueDefinition", "EnumValueDefinition"]
-            .into_iter()
-            .filter(|key| is_true(key))
-            .collect();
+        let enabled_kinds = [
+            "types",
+            "DirectiveDefinition",
+            "FieldDefinition",
+            "InputValueDefinition",
+            "EnumValueDefinition",
+        ]
+        .into_iter()
+        .filter(|key| is_true(key))
+        .collect();
 
         Self {
             enabled_kinds,
@@ -102,6 +108,7 @@ struct Site<'a> {
     description: Option<&'a str>,
     kind: SiteKind,
     label: String,
+    location: Option<apollo_compiler::parser::SourceSpan>,
 }
 
 impl RequireDescriptionOptions {
@@ -113,7 +120,8 @@ impl RequireDescriptionOptions {
                 .copied()
                 .unwrap_or(self.enabled_kinds.contains("types")),
             SiteKind::Field { is_root_field } => {
-                self.enabled_kinds.contains("FieldDefinition") || (self.root_field && *is_root_field)
+                self.enabled_kinds.contains("FieldDefinition")
+                    || (self.root_field && *is_root_field)
             }
             SiteKind::InputValue => self.enabled_kinds.contains("InputValueDefinition"),
             SiteKind::EnumValue => self.enabled_kinds.contains("EnumValueDefinition"),
@@ -146,11 +154,11 @@ pub fn require_description(schema: &Schema, opts: &RequireDescriptionOptions) ->
         if site.description.is_some_and(|d| !d.trim().is_empty()) {
             continue;
         }
+        let (file, line, column) = gql_lint_core::resolve_location(&schema.sources, site.location);
         violations.push(Violation {
-            // TODO: see gql_lint_core's location TODO.
-            file: String::new(),
-            line: 0,
-            column: 0,
+            file,
+            line,
+            column,
             message: format!("Description is required for {}", site.label),
             rule: rules::REQUIRE_DESCRIPTION,
         });
@@ -158,7 +166,10 @@ pub fn require_description(schema: &Schema, opts: &RequireDescriptionOptions) ->
     violations
 }
 
-fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<&str>) -> Vec<Site<'a>> {
+fn collect_sites<'a>(
+    schema: &'a Schema,
+    root_types: &std::collections::HashSet<&str>,
+) -> Vec<Site<'a>> {
     let mut sites = Vec::new();
 
     for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
@@ -174,6 +185,7 @@ fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<
             description: ty.description().map(|d| &**d),
             kind: SiteKind::Type { kind_key },
             label: format!("{kind_label} \"{ty_name}\""),
+            location: ty_name.location(),
         });
 
         let object_or_interface_fields = match ty {
@@ -186,14 +198,18 @@ fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<
             for field in fields.values() {
                 sites.push(Site {
                     description: field.description.as_deref(),
-                    kind: SiteKind::Field { is_root_field: is_root },
+                    kind: SiteKind::Field {
+                        is_root_field: is_root,
+                    },
                     label: format!("field \"{}\" in {kind_label} \"{ty_name}\"", field.name),
+                    location: field.name.location(),
                 });
                 for arg in &field.arguments {
                     sites.push(Site {
                         description: arg.description.as_deref(),
                         kind: SiteKind::InputValue,
                         label: format!("input value \"{}\" in field \"{}\"", arg.name, field.name),
+                        location: arg.name.location(),
                     });
                 }
             }
@@ -206,6 +222,7 @@ fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<
                         description: field.description.as_deref(),
                         kind: SiteKind::InputValue,
                         label: format!("input value \"{}\" in input \"{ty_name}\"", field.name),
+                        location: field.name.location(),
                     });
                 }
             }
@@ -215,6 +232,7 @@ fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<
                         description: value.description.as_deref(),
                         kind: SiteKind::EnumValue,
                         label: format!("enum value \"{}\" in enum \"{ty_name}\"", value.value),
+                        location: value.value.location(),
                     });
                 }
             }
@@ -237,12 +255,17 @@ fn collect_sites<'a>(schema: &'a Schema, root_types: &std::collections::HashSet<
             description: directive.description.as_deref(),
             kind: SiteKind::Directive,
             label: format!("directive \"{}\"", directive.name),
+            location: directive.name.location(),
         });
         for arg in &directive.arguments {
             sites.push(Site {
                 description: arg.description.as_deref(),
                 kind: SiteKind::InputValue,
-                label: format!("input value \"{}\" in directive \"{}\"", arg.name, directive.name),
+                label: format!(
+                    "input value \"{}\" in directive \"{}\"",
+                    arg.name, directive.name
+                ),
+                location: arg.name.location(),
             });
         }
     }
