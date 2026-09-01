@@ -1,33 +1,33 @@
 [package]
 name = "gql_lint_cli"
 edition.workspace = true
-license.workspace = true
 rust-version.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "gql-lint"
 path = "src/main.rs"
 
-[lints]
-workspace = true
+[[bench]]
+harness = false
+name = "lint"
 
 [dependencies]
+anyhow = { workspace = true }
+apollo-compiler = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+gix = { version = "0.87", default-features = false, features = ["revision", "sha1"] }
+globset = { workspace = true }
 gql_lint_core = { workspace = true }
 gql_lint_rules = { workspace = true }
-apollo-compiler = { workspace = true }
-clap = { workspace = true }
+rayon = { workspace = true }
 serde = { workspace = true }
 serde_yaml = { workspace = true }
-globset = { workspace = true }
 walkdir = { workspace = true }
-anyhow = { workspace = true }
-chrono = { workspace = true }
-gix = { version = "0.87", default-features = false, features = ["revision", "sha1"] }
-rayon = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
 
-[[bench]]
-name = "lint"
-harness = false
+[lints]
+workspace = true
