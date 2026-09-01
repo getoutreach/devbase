@@ -20,8 +20,11 @@
 
 pub mod alphabetize;
 pub mod deprecation;
+pub mod description_style;
+pub mod descriptions;
 pub mod naming_convention;
 pub mod no_case_insensitive_enum_values_duplicates;
+pub mod no_hashtag_description;
 pub mod no_typename_prefix;
 pub mod no_unreachable_types;
 pub mod require_description;

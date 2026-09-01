@@ -422,7 +422,9 @@ dependencies = [
 name = "gql_lint_rules"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "apollo-compiler",
+ "apollo-parser",
  "chrono",
  "gql_lint_core",
  "regex",

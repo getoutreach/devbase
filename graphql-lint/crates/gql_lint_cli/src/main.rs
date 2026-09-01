@@ -168,6 +168,26 @@ fn run_tier2_and_tier3_rules(
         violations.extend(gql_lint_rules::require_description::require_description(schema, &opts));
     }
 
+    if lint_config.enabled(gql_lint_core::rules::DESCRIPTION_STYLE) {
+        let opts = gql_lint_rules::description_style::DescriptionStyleOptions::from_yaml(
+            lint_config
+                .rules
+                .get(gql_lint_core::rules::DESCRIPTION_STYLE)
+                .and_then(|r| r.options.as_ref()),
+        );
+        match gql_lint_rules::description_style::description_style(schema, &opts) {
+            Ok(v) => violations.extend(v),
+            Err(e) => eprintln!("description-style: {e}"),
+        }
+    }
+
+    if lint_config.enabled(gql_lint_core::rules::NO_HASHTAG_DESCRIPTION) {
+        match gql_lint_rules::no_hashtag_description::no_hashtag_description(schema) {
+            Ok(v) => violations.extend(v),
+            Err(e) => eprintln!("no-hashtag-description: {e}"),
+        }
+    }
+
     violations
 }
 
