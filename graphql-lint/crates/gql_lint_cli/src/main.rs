@@ -119,6 +119,10 @@ fn main() -> anyhow::Result<ExitCode> {
                 violations.extend(gql_lint_rules::naming_convention::naming_convention(&schema, &opts));
             }
 
+            if lint_config.enabled(gql_lint_core::rules::NO_UNREACHABLE_TYPES) {
+                violations.extend(gql_lint_rules::no_unreachable_types::no_unreachable_types(&schema));
+            }
+
             violations
         }
     };

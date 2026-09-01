@@ -22,6 +22,7 @@ pub mod alphabetize;
 pub mod naming_convention;
 pub mod no_case_insensitive_enum_values_duplicates;
 pub mod no_typename_prefix;
+pub mod no_unreachable_types;
 
 use apollo_compiler::Schema;
 use apollo_compiler::schema::{Component, Directive, ExtendedType};
