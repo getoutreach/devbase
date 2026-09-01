@@ -12,9 +12,11 @@ pub mod diff;
 pub mod federation;
 pub mod rules;
 
+use apollo_compiler::Node;
 use apollo_compiler::Schema;
 use apollo_compiler::diagnostic::ToCliReport;
 use apollo_compiler::parser::{FileId, SourceMap, SourceSpan};
+use apollo_compiler::schema::{DirectiveDefinition, ExtendedType};
 use apollo_compiler::validation::Valid;
 use std::fmt;
 
@@ -82,6 +84,53 @@ pub fn line_column_at(sources: &SourceMap, file_id: FileId, offset: usize) -> (u
         .get(&file_id)
         .and_then(|file| file.get_line_column(offset))
         .map_or((0, 0), |lc| (lc.line, lc.column))
+}
+
+/// Reports whether `location` belongs to one of this port's own
+/// synthesized prelude sources (`federation::prelude_sources`'
+/// `<federation prelude>`/`<scalars prelude>`, identified by the same
+/// `<...>` bracketed-name convention `federation.go` itself uses) rather
+/// than a real on-disk file.
+fn is_synthetic_source(sources: &SourceMap, location: Option<SourceSpan>) -> bool {
+    location
+        .and_then(|loc| sources.get(&loc.file_id()))
+        .is_some_and(|file| file.path().to_str().is_some_and(|p| p.starts_with('<')))
+}
+
+/// Iterates `schema`'s own named types, excluding both apollo-compiler's
+/// built-in/introspection types (`ExtendedType::is_built_in`) and any of
+/// this port's own synthesized federation/scalars prelude declarations —
+/// the Rust equivalent of the Go tool's `inScope`
+/// (`internal/graphql/lint/tier3.go`), which excludes exactly the same
+/// two categories, by source identity, from every Tier 3 walk.
+///
+/// Every Tier 2/3 rule walking `schema.types` should go through this
+/// rather than filtering only `is_built_in()` directly — **a real bug,
+/// not a hypothetical one**: without also excluding the synthesized
+/// prelude, a repo with both `graphql.lint.federation`/`scalars` and a
+/// rule like `require-description`/`naming-convention`/
+/// `no-unreachable-types` enabled got spurious violations against its own
+/// synthesized `@link`/scalar declarations (for example, "Description is
+/// required for scalar `FieldSet`") — found only by running against a
+/// real corpus that actually combines federation, scalars, and these
+/// rules together, not by anything a hand-written fixture happened to
+/// exercise.
+pub fn in_scope_types(schema: &Schema) -> impl Iterator<Item = &ExtendedType> {
+    schema.types.values().filter(|ty| {
+        !ty.is_built_in() && !is_synthetic_source(&schema.sources, ty.name().location())
+    })
+}
+
+/// The `schema.directive_definitions` equivalent of [`in_scope_types`] —
+/// see its doc comment for why both the built-in and the
+/// synthesized-prelude exclusion are needed together.
+pub fn in_scope_directive_definitions(
+    schema: &Schema,
+) -> impl Iterator<Item = &Node<DirectiveDefinition>> {
+    schema
+        .directive_definitions
+        .values()
+        .filter(|d| !d.is_built_in() && !is_synthetic_source(&schema.sources, d.name.location()))
 }
 
 /// Tag used for a schema-build error `apollo-compiler` raises that doesn't

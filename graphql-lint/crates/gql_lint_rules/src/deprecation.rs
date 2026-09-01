@@ -230,7 +230,7 @@ fn reason_is_present(directive: &Directive) -> bool {
 fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
     let mut sites = Vec::new();
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let object_or_interface_fields = match ty {
             ExtendedType::Object(t) => Some((&t.name, &t.fields)),
             ExtendedType::Interface(t) => Some((&t.name, &t.fields)),
@@ -261,7 +261,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
                 for field in t.fields.values() {
                     sites.push(DeprecatableSite {
                         directive: ast_deprecated(&field.directives),
-                        label: format!("input value \"{}\" in type \"{}\"", field.name, t.name),
+                        label: format!("input value \"{}\" in input \"{}\"", field.name, t.name),
                         location: field.name.location(),
                     });
                 }
@@ -285,11 +285,7 @@ fn deprecatable_sites(schema: &Schema) -> Vec<DeprecatableSite<'_>> {
         }
     }
 
-    for directive in schema
-        .directive_definitions
-        .values()
-        .filter(|d| !d.is_built_in())
-    {
+    for directive in gql_lint_core::in_scope_directive_definitions(schema) {
         for arg in &directive.arguments {
             sites.push(DeprecatableSite {
                 directive: ast_deprecated(&arg.directives),

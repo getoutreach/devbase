@@ -118,7 +118,7 @@ fn string_list<'a>(options: &'a serde_yaml::Mapping, key: &str) -> Vec<&'a str> 
 pub fn alphabetize(schema: &Schema, opts: &AlphabetizeOptions) -> Vec<Violation> {
     let mut violations = Vec::new();
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         match ty {
             ExtendedType::Object(t) => {
                 if opts.fields.object {
@@ -159,11 +159,7 @@ pub fn alphabetize(schema: &Schema, opts: &AlphabetizeOptions) -> Vec<Violation>
     }
 
     if opts.arguments.directive {
-        for directive in schema
-            .directive_definitions
-            .values()
-            .filter(|d| !d.is_built_in())
-        {
+        for directive in gql_lint_core::in_scope_directive_definitions(schema) {
             check_order(
                 schema,
                 &mut violations,

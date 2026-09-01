@@ -15,7 +15,7 @@ use gql_lint_core::{Violation, rules};
 pub fn no_typename_prefix(schema: &Schema) -> Vec<Violation> {
     let mut violations = Vec::new();
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         match ty {
             ExtendedType::Object(t) => {
                 check_fields(schema, &mut violations, &t.name, t.fields.values());

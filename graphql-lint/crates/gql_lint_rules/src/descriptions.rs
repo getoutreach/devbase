@@ -44,7 +44,25 @@ pub struct DescriptionSite<'a> {
 /// file and byte offset via `schema.sources` — or doing nothing if
 /// `location` is absent (a synthetic/introspection node, for example an
 /// injected `__schema` meta-field, never written in any file's SDL, so
-/// there is nothing to check).
+/// there is nothing to check) or if it belongs to a synthesized prelude
+/// source (`gql_lint_core::federation::prelude_sources`'
+/// `<federation prelude>`/`<scalars prelude>`, by the same `<...>`
+/// bracketed-name convention `federation.go` itself uses for the same
+/// purpose) rather than a real on-disk file — this module's two callers,
+/// `description_style` and `no_hashtag_description`, both re-read a
+/// site's own file from disk to recover raw source text/trivia the
+/// validated `Schema` doesn't carry, and a synthesized prelude has no
+/// file to read. Silently skipping these sites here, at the one place
+/// both rules' sites are collected, is far safer than letting each rule
+/// hit a file-not-found error on its own: a prelude's own directive/scalar
+/// declarations never carry hand-written descriptions or `#` comments
+/// worth checking anyway, so nothing real is lost, and skipping here
+/// keeps the position-ordered, per-real-file grouping both rules depend
+/// on from ever containing a group with no file to read — a group that
+/// used to fail their whole run (bailing out through a `HashMap`'s
+/// unordered iteration, silently dropping violations for whichever real
+/// files happened to be visited after it) rather than just that one
+/// synthetic group.
 ///
 /// A free function, not a closure capturing `sites`: a closure here hits
 /// a real borrow-checker limitation (mutable references are invariant, so
@@ -61,6 +79,9 @@ fn push_site<'a>(
     let Some(file) = schema.sources.get(&location.file_id()) else {
         return;
     };
+    if file.path().to_str().is_some_and(|p| p.starts_with('<')) {
+        return;
+    }
     sites.push(DescriptionSite {
         description,
         label,
@@ -87,7 +108,7 @@ pub fn collect_description_sites(schema: &Schema) -> Vec<(&Path, Vec<Description
 /// Collects every type definition's own site, plus its fields, field
 /// arguments, and enum values, into `sites`.
 fn collect_type_sites<'a>(schema: &'a Schema, sites: &mut Vec<DescriptionSite<'a>>) {
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let (kind_label, ty_name) = match ty {
             ExtendedType::Scalar(t) => ("scalar", &t.name),
             ExtendedType::Object(t) => ("type", &t.name),
@@ -164,11 +185,7 @@ fn collect_type_sites<'a>(schema: &'a Schema, sites: &mut Vec<DescriptionSite<'a
 /// Collects every non-built-in directive definition's own site, plus its
 /// arguments, into `sites`.
 fn collect_directive_sites<'a>(schema: &'a Schema, sites: &mut Vec<DescriptionSite<'a>>) {
-    for directive in schema
-        .directive_definitions
-        .values()
-        .filter(|d| !d.is_built_in())
-    {
+    for directive in gql_lint_core::in_scope_directive_definitions(schema) {
         push_site(
             schema,
             sites,

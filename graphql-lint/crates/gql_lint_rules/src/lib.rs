@@ -53,7 +53,7 @@ use std::collections::HashSet;
 pub fn unique_directive_names_per_location(schema: &Valid<Schema>) -> Vec<Violation> {
     let mut violations = nonrepeatable_duplicates(schema, &schema.schema_definition.directives);
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let directives = type_directives(ty);
         violations.extend(nonrepeatable_duplicates(schema, directives));
     }

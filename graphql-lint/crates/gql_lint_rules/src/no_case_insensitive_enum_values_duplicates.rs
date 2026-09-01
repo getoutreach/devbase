@@ -22,7 +22,7 @@ use std::collections::HashSet;
 pub fn no_case_insensitive_enum_values_duplicates(schema: &Schema) -> Vec<Violation> {
     let mut violations = Vec::new();
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let ExtendedType::Enum(enum_type) = ty else {
             continue;
         };

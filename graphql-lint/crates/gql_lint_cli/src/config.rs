@@ -129,6 +129,10 @@ struct FileConfig {
 ///
 /// Returns `(Lint::default(), None)` if no config file is found, the same
 /// "built-in defaults" fallback the Go tool uses.
+///
+/// # Errors
+/// If a `scripts/devbase.yaml` found along the way can't be read or
+/// fails to parse as this section's expected shape.
 pub fn load(start_dir: &Path) -> anyhow::Result<(Lint, Option<PathBuf>)> {
     let mut dir = start_dir.canonicalize()?;
     loop {

@@ -42,7 +42,7 @@ pub fn no_unreachable_types(schema: &Schema) -> Vec<Violation> {
     let reachable = reachable_type_names(schema);
 
     let mut violations = Vec::new();
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let (name, label) = match ty {
             ExtendedType::Scalar(t) => (&t.name, "Scalar type"),
             ExtendedType::Object(t) => (&t.name, "Object type"),
@@ -55,11 +55,7 @@ pub fn no_unreachable_types(schema: &Schema) -> Vec<Violation> {
             violations.push(unreachable_violation(schema, label, name));
         }
     }
-    for directive in schema
-        .directive_definitions
-        .values()
-        .filter(|d| !d.is_built_in())
-    {
+    for directive in gql_lint_core::in_scope_directive_definitions(schema) {
         if !reachable.contains(directive.name.as_str()) {
             violations.push(unreachable_violation(schema, "Directive", &directive.name));
         }

@@ -23,3 +23,11 @@ walkdir = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 gix = { version = "0.87", default-features = false, features = ["revision", "sha1"] }
+rayon = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "lint"
+harness = false

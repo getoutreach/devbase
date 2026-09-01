@@ -172,7 +172,7 @@ fn collect_sites<'a>(
 ) -> Vec<Site<'a>> {
     let mut sites = Vec::new();
 
-    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
+    for ty in gql_lint_core::in_scope_types(schema) {
         let (kind_key, kind_label, ty_name) = match ty {
             ExtendedType::Scalar(t) => (SCALAR_TYPE_DEFINITION, "scalar", &t.name),
             ExtendedType::Object(t) => (OBJECT_TYPE_DEFINITION, "type", &t.name),
@@ -246,11 +246,7 @@ fn collect_sites<'a>(
         }
     }
 
-    for directive in schema
-        .directive_definitions
-        .values()
-        .filter(|d| !d.is_built_in())
-    {
+    for directive in gql_lint_core::in_scope_directive_definitions(schema) {
         sites.push(Site {
             description: directive.description.as_deref(),
             kind: SiteKind::Directive,
