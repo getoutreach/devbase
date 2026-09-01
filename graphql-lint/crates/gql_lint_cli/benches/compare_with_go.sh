@@ -67,8 +67,8 @@ EXCLUDES=(-e "src/modules/extensibility/**" -e "src/modules/support-admin/**")
 # per-rule violation *counts* should be close; a large unexplained gap
 # means don't trust the numbers below until it's understood.
 echo "== Correctness sanity check (rule -> violation count, excluding the known-bug files above) =="
-rust_counts="$(cd "$GIRAFFE_DIR" && "$RUST_BIN" "${EXCLUDES[@]}" . 2>/dev/null | grep -o '\[[a-z-]*\]' | sort | uniq -c || true)"
-go_counts="$(cd "$GIRAFFE_DIR" && "$GO_BIN" lint graphql "${EXCLUDES[@]}" . 2>/dev/null | grep -o '\[[a-z-]*\]' | sort | uniq -c || true)"
+rust_counts="$(cd "$GIRAFFE_DIR" && "$RUST_BIN" "${EXCLUDES[@]}" . 2>/dev/null | grep -o '\[[a-z-]*\]' | sort | uniq -c)" || true
+go_counts="$(cd "$GIRAFFE_DIR" && "$GO_BIN" lint graphql "${EXCLUDES[@]}" . 2>/dev/null | grep -o '\[[a-z-]*\]' | sort | uniq -c)" || true
 echo "-- rust --"
 echo "$rust_counts"
 echo "-- go --"
