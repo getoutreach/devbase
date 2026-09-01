@@ -2,9 +2,13 @@
 //! [`Schema`] (Tier 1 has already passed by the time these run — see
 //! `gql_lint_core::parse_and_validate`).
 //!
-//! Only one rule is implemented so far, as a proof of concept end to end:
-//! [`unique_directive_names_per_location`]. The remaining 11 (2 Tier 2 minus
-//! this one, plus all 10 Tier 3) are the next slice of work — see the plan's
+//! Two rules are implemented so far: [`unique_directive_names_per_location`]
+//! (Tier 2) and [`alphabetize::alphabetize`] (Tier 3). `possible-type-extension`,
+//! the Go port's other Tier 2 rule, is not here — verified against a real
+//! fixture to be a Tier 1 concern in this Rust port instead, since
+//! `apollo-compiler`'s schema builder already rejects an orphan type
+//! extension outright (`gql_lint_core`'s `classify` handles it). The
+//! remaining 9 Tier 3 rules are the next slice of work — see the plan's
 //! build order. Each new rule should follow the same shape: a free function
 //! taking `&Schema` (plus whatever raw source text a Tier 3 rule needs for
 //! trivia like `#` comments, not carried on the validated `Schema` itself)
@@ -13,6 +17,8 @@
 //! about each other — matching the independence (not the goroutine
 //! mechanism) of the Go tool's `tier3` rules, each of which only reads the
 //! shared parsed schema and writes its own result.
+
+pub mod alphabetize;
 
 use apollo_compiler::Schema;
 use apollo_compiler::schema::{Component, Directive, ExtendedType};
@@ -27,11 +33,18 @@ use std::collections::HashSet;
 /// `gqlparser`, already merges a type's base definition with all of its
 /// extensions before validation, so iterating `schema.types` gives exactly
 /// the grouping the Go rule reads from `parsed.schema.Types`).
+///
+/// Excludes built-in types via [`ExtendedType::is_built_in`], the same way
+/// [`alphabetize::alphabetize`] does and for the same reason: a repo's own
+/// directive usages are the only ones that should ever be reported, not
+/// `apollo-compiler`'s pre-populated introspection schema (which carries
+/// no directive usages in practice, but should not be trusted to stay
+/// that way across a dependency upgrade without this filter).
 #[must_use]
 pub fn unique_directive_names_per_location(schema: &Valid<Schema>) -> Vec<Violation> {
     let mut violations = nonrepeatable_duplicates(schema, &schema.schema_definition.directives);
 
-    for ty in schema.types.values() {
+    for ty in schema.types.values().filter(|ty| !ty.is_built_in()) {
         let directives = type_directives(ty);
         violations.extend(nonrepeatable_duplicates(schema, directives));
     }

@@ -41,6 +41,20 @@ impl fmt::Display for Violation {
 /// the Go tool's `UnclassifiedRule = "gqlparser"` constant.
 pub const UNCLASSIFIED_RULE: &str = "apollo-compiler";
 
+/// Reports whether a rule tagging a [`Tier1Result::Violations`] entry
+/// always runs, regardless of `scripts/devbase.yaml` — true for every
+/// genuine Tier 1 rule, false for `possible-type-extension`. That one
+/// comes out of the same build phase (see `classify`'s doc comment) but
+/// stays a user-configurable, off-by-default rule in the Go tool it is
+/// meant to match: a caller should suppress it here when
+/// `scripts/devbase.yaml` has it disabled, the same way it filters a
+/// genuine Tier 2/3 rule, rather than always failing every repo with an
+/// orphan extension `gqlparser` used to accept silently.
+#[must_use]
+pub fn is_always_on(rule: &str) -> bool {
+    rule != rules::POSSIBLE_TYPE_EXTENSION
+}
+
 /// One `.graphql` file's path and content, ready to hand to
 /// [`parse_and_validate`]. Mirrors `gqlparser.ast.Source` / the Go tool's
 /// `[]*ast.Source` — a (name, text) pair, nothing more.
@@ -147,6 +161,17 @@ fn violations_from<T>(with_errors: &apollo_compiler::validation::WithErrors<T>) 
 /// family (only the object-field and enum-value forms were captured).
 /// Extend the match arms below once those are exercised, rather than
 /// guessing their shape.
+///
+/// One entry here is not from the RFC/Go tool's own Tier 1 set at all:
+/// `possible-type-extension`. In the Go tool it's a Tier 2 gap-fill rule,
+/// off by default, because `gqlparser` silently synthesizes an empty
+/// placeholder type for an orphan `extend type Foo { ... }` instead of
+/// erroring. Verified on a real fixture that `apollo-compiler` does *not*
+/// do this — it rejects an orphan extension outright, unconditionally,
+/// during schema build. That makes this rule a Tier 1 concern in this
+/// port, not Tier 2: it always runs and can't be turned off, the same as
+/// every other name in [`rules::TIER1_RULES`]. See [`is_always_on`] for
+/// where this distinction actually matters to a caller.
 fn classify(message: &str) -> Violation {
     let rule = if message.starts_with("must not have multiple `schema` definitions") {
         rules::LONE_SCHEMA_DEFINITION
@@ -166,6 +191,8 @@ fn classify(message: &str) -> Violation {
         rules::KNOWN_TYPE_NAMES
     } else if message.starts_with("the required argument ") && message.contains(" is not provided") {
         rules::PROVIDED_REQUIRED_ARGUMENTS
+    } else if message.starts_with("type extension for undefined type ") {
+        rules::POSSIBLE_TYPE_EXTENSION
     } else {
         UNCLASSIFIED_RULE
     };

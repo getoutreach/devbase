@@ -10,3 +10,4 @@ workspace = true
 [dependencies]
 apollo-compiler = { workspace = true }
 gql_lint_core = { workspace = true }
+serde_yaml = { workspace = true }

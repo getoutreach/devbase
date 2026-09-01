@@ -70,12 +70,34 @@ fn main() -> anyhow::Result<ExitCode> {
         .collect::<anyhow::Result<Vec<_>>>()?;
 
     let violations = match gql_lint_core::parse_and_validate(&sources) {
-        Tier1Result::Violations(v) => v,
+        // `possible-type-extension` rides in on this branch (it's a build-
+        // phase error in this port, not a Tier 2 pass — see
+        // `gql_lint_core::classify`), but stays config-gated like a real
+        // Tier 2/3 rule via `is_always_on`, so it doesn't start failing a
+        // repo that never opted into it just because the underlying
+        // library changed.
+        Tier1Result::Violations(v) => v
+            .into_iter()
+            .filter(|v| gql_lint_core::is_always_on(v.rule) || lint_config.enabled(v.rule))
+            .collect(),
         Tier1Result::Valid(schema) => {
-            gql_lint_rules::unique_directive_names_per_location(&schema)
-                .into_iter()
-                .filter(|v| lint_config.enabled(v.rule))
-                .collect()
+            let mut violations: Vec<Violation> =
+                gql_lint_rules::unique_directive_names_per_location(&schema)
+                    .into_iter()
+                    .filter(|v| lint_config.enabled(v.rule))
+                    .collect();
+
+            if lint_config.enabled(gql_lint_core::rules::ALPHABETIZE) {
+                let opts = gql_lint_rules::alphabetize::AlphabetizeOptions::from_yaml(
+                    lint_config
+                        .rules
+                        .get(gql_lint_core::rules::ALPHABETIZE)
+                        .and_then(|r| r.options.as_ref()),
+                );
+                violations.extend(gql_lint_rules::alphabetize::alphabetize(&schema, &opts));
+            }
+
+            violations
         }
     };
 
