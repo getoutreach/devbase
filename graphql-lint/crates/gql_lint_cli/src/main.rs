@@ -1,12 +1,10 @@
 //! `gql-lint` — a Rust re-implementation of `devbase graphql lint`
 //! (`getoutreach/devbase`'s `cmd/devbase/lint_graphql.go`), built to
 //! benchmark against the Go binary over the same rule set, config format,
-//! and output shape. See the plan for the full build order; this binary
-//! currently wires up Tier 1 (via `gql_lint_core`) and one Tier 2 rule
-//! (`unique-directive-names-per-location`, via `gql_lint_rules`) end to
-//! end, with `--diff` still stubbed out.
+//! and output shape. See the plan for the full build order.
 
 mod config;
+mod gitdiff;
 
 use clap::Parser;
 use gql_lint_core::{Source, Tier1Result, Violation};
@@ -35,14 +33,6 @@ struct Cli {
 fn main() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse();
 
-    if cli.diff {
-        anyhow::bail!(
-            "--diff is not implemented yet in gql-lint (base {:?} requested) — \
-             see gitdiff.go's Rust port in the plan's build order",
-            cli.base
-        );
-    }
-
     let cwd = std::env::current_dir()?;
     let (lint_config, config_dir) = config::load(&cwd)?;
     eprintln!(
@@ -69,7 +59,36 @@ fn main() -> anyhow::Result<ExitCode> {
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
 
-    let violations = match gql_lint_core::parse_and_validate(&sources) {
+    let mut violations = lint_sources(&sources, &lint_config);
+
+    if cli.diff {
+        let merge_base_content = gitdiff::merge_base_files(&cwd, &cli.base, &files)?;
+        let merge_base_sources: Vec<Source> = files
+            .iter()
+            .filter_map(|file| {
+                merge_base_content.get(file).map(|text| Source {
+                    name: file.display().to_string(),
+                    text: text.clone(),
+                })
+            })
+            .collect();
+        let merge_base_violations = lint_sources(&merge_base_sources, &lint_config);
+        violations = gql_lint_core::diff::new(&merge_base_violations, &violations);
+    }
+
+    let has_error = report(&violations, &lint_config);
+    Ok(if has_error {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    })
+}
+
+/// Runs Tier 1 validation over `sources`, then every Tier 2/3 rule
+/// `lint_config` enables if Tier 1 passed — the same pipeline for both the
+/// working-tree pass and, under `--diff`, the merge-base pass.
+fn lint_sources(sources: &[Source], lint_config: &config::Lint) -> Vec<Violation> {
+    match gql_lint_core::parse_and_validate(sources) {
         // `possible-type-extension` rides in on this branch (it's a build-
         // phase error in this port, not a Tier 2 pass — see
         // `gql_lint_core::classify`), but stays config-gated like a real
@@ -80,15 +99,8 @@ fn main() -> anyhow::Result<ExitCode> {
             .into_iter()
             .filter(|v| gql_lint_core::is_always_on(v.rule) || lint_config.enabled(v.rule))
             .collect(),
-        Tier1Result::Valid(schema) => run_tier2_and_tier3_rules(&schema, &lint_config),
-    };
-
-    let has_error = report(&violations, &lint_config);
-    Ok(if has_error {
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    })
+        Tier1Result::Valid(schema) => run_tier2_and_tier3_rules(&schema, lint_config),
+    }
 }
 
 /// Runs every Tier 2/3 rule `lint_config` enables against `schema`,
@@ -99,10 +111,11 @@ fn run_tier2_and_tier3_rules(
     schema: &apollo_compiler::validation::Valid<apollo_compiler::Schema>,
     lint_config: &config::Lint,
 ) -> Vec<Violation> {
-    let mut violations: Vec<Violation> = gql_lint_rules::unique_directive_names_per_location(schema)
-        .into_iter()
-        .filter(|v| lint_config.enabled(v.rule))
-        .collect();
+    let mut violations: Vec<Violation> =
+        gql_lint_rules::unique_directive_names_per_location(schema)
+            .into_iter()
+            .filter(|v| lint_config.enabled(v.rule))
+            .collect();
 
     if lint_config.enabled(gql_lint_core::rules::ALPHABETIZE) {
         let opts = gql_lint_rules::alphabetize::AlphabetizeOptions::from_yaml(
@@ -115,7 +128,9 @@ fn run_tier2_and_tier3_rules(
     }
 
     if lint_config.enabled(gql_lint_core::rules::NO_TYPENAME_PREFIX) {
-        violations.extend(gql_lint_rules::no_typename_prefix::no_typename_prefix(schema));
+        violations.extend(gql_lint_rules::no_typename_prefix::no_typename_prefix(
+            schema,
+        ));
     }
 
     if lint_config.enabled(gql_lint_core::rules::NO_CASE_INSENSITIVE_ENUM_VALUES_DUPLICATES) {
@@ -133,15 +148,21 @@ fn run_tier2_and_tier3_rules(
                 .get(gql_lint_core::rules::NAMING_CONVENTION)
                 .and_then(|r| r.options.as_ref()),
         );
-        violations.extend(gql_lint_rules::naming_convention::naming_convention(schema, &opts));
+        violations.extend(gql_lint_rules::naming_convention::naming_convention(
+            schema, &opts,
+        ));
     }
 
     if lint_config.enabled(gql_lint_core::rules::NO_UNREACHABLE_TYPES) {
-        violations.extend(gql_lint_rules::no_unreachable_types::no_unreachable_types(schema));
+        violations.extend(gql_lint_rules::no_unreachable_types::no_unreachable_types(
+            schema,
+        ));
     }
 
     if lint_config.enabled(gql_lint_core::rules::REQUIRE_DEPRECATION_REASON) {
-        violations.extend(gql_lint_rules::deprecation::require_deprecation_reason(schema));
+        violations.extend(gql_lint_rules::deprecation::require_deprecation_reason(
+            schema,
+        ));
     }
 
     if lint_config.enabled(gql_lint_core::rules::REQUIRE_DEPRECATION_DATE) {
@@ -165,7 +186,9 @@ fn run_tier2_and_tier3_rules(
                 .get(gql_lint_core::rules::REQUIRE_DESCRIPTION)
                 .and_then(|r| r.options.as_ref()),
         );
-        violations.extend(gql_lint_rules::require_description::require_description(schema, &opts));
+        violations.extend(gql_lint_rules::require_description::require_description(
+            schema, &opts,
+        ));
     }
 
     if lint_config.enabled(gql_lint_core::rules::DESCRIPTION_STYLE) {

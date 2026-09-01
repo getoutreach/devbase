@@ -22,3 +22,4 @@ globset = { workspace = true }
 walkdir = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
+gix = { version = "0.87", default-features = false, features = ["revision", "sha1"] }

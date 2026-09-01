@@ -8,6 +8,7 @@
 //! Tier 1 once the shipped Go tool found `gqlparser` already rejects a
 //! duplicate enum value on its own).
 
+pub mod diff;
 pub mod rules;
 
 use apollo_compiler::Schema;
