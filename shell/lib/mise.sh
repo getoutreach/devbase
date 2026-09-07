@@ -293,12 +293,8 @@ find_tool() {
   # Deliberately not using command_exists here because we want to
   # print the path.
   toolPath="$(command -v "$toolName" 2>/dev/null)"
-  # Skip mise shims. A shim resolves its version from the mise config in the
-  # current directory, which does not declare devbase-managed tools (those
-  # live in mise.devbase.toml, i.e. the `devbase` env), so running one
-  # directly fails with "No version is set for shim: $toolName". Returning
-  # nothing here lets callers fall through to
-  # `mise exec $toolName@$(devbase_tool_version_from_mise $toolName)`.
+  # Skip mise shims: they resolve versions from the current directory's config,
+  # which doesn't declare devbase tools. Callers fall through to `mise exec`.
   if [[ -n $toolPath ]] && [[ $toolPath != "$(mise_shim_dir)"/* ]]; then
     echo "$toolPath"
     return 0
@@ -383,9 +379,7 @@ asdf_shim_dir() {
   echo "${ASDF_DIR:-$HOME/.asdf}/shims"
 }
 
-# Where mise keeps its shims. MISE_SHIMS_DIR was added in mise 2026.9.0,
-# which is also the release that started putting this directory on PATH
-# under `mise activate`.
+# Where mise keeps its shims.
 mise_shim_dir() {
   echo "${MISE_SHIMS_DIR:-${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}"
 }
