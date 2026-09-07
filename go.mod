@@ -14,7 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.11.0
-	github.com/vektah/gqlparser/v2 v2.5.36
+	github.com/vektah/gqlparser/v2 v2.5.37
 	google.golang.org/grpc v1.83.1
 	gotest.tools/v3 v3.5.2
 )
