@@ -4,15 +4,18 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 load docker.sh
+load test_helper.sh
 
 setup() {
   YAML_FILE=$(mktemp)
   BOXPATH=$(mktemp)
+  setup_command_stubs
 }
 
 teardown() {
   rm -f "$YAML_FILE"
   rm -f "$BOXPATH"
+  teardown_command_stubs
 }
 
 @test "get_image_field should be able to get a string value" {
@@ -271,4 +274,22 @@ EOF
 @test "will_push_image with VERSIONING_SCHEME=sha and DRY_RUN=false returns true" {
   VERSIONING_SCHEME="sha" DRY_RUN="false" run will_push_images
   assert_output "true"
+}
+
+@test "docker_create_and_push_manifest pushes the manifest exactly once" {
+  stub_command docker ""
+
+  docker_create_and_push_manifest "example.com/repo" "v1.0.0" "v1.0.0-amd64" "v1.0.0-arm64"
+
+  run grep -c "^docker manifest push example.com/repo:v1.0.0$" "$STUB_CALLS_FILE"
+  assert_output "1"
+}
+
+@test "docker_create_and_push_manifest amends every suffixed tag when creating the manifest" {
+  stub_command docker ""
+
+  docker_create_and_push_manifest "example.com/repo" "v1.0.0" "v1.0.0-amd64" "v1.0.0-arm64"
+
+  run grep "^docker manifest create" "$STUB_CALLS_FILE"
+  assert_output "docker manifest create example.com/repo:v1.0.0 --amend example.com/repo:v1.0.0-amd64 --amend example.com/repo:v1.0.0-arm64"
 }
