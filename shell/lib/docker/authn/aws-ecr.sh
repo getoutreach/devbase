@@ -27,8 +27,8 @@ ensure_ecr_repository() {
   ecrRepoName=$(cut --delimiter=/ --fields=2- <<<"$imageRepository")
   # Format: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
   ecrRegion="$(echo "$imageRepository" | cut --delimiter=. --fields=4)"
-  if ! aws ecr --region "$ecrRegion" describe-repositories --repository-names "$ecrRepoName"; then
+  if ! aws ecr --region "$ecrRegion" --no-cli-pager describe-repositories --repository-names "$ecrRepoName"; then
     info_sub "Creating ECR repository: $imageRepository"
-    aws ecr --region "$ecrRegion" create-repository --repository-name "$ecrRepoName"
+    aws ecr --region "$ecrRegion" --no-cli-pager create-repository --repository-name "$ecrRepoName"
   fi
 }
