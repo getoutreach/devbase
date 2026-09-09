@@ -222,6 +222,31 @@ run_docker() {
   set +x
 }
 
+# docker_create_and_push_manifest creates a multi-arch manifest for a tag,
+# amending in each suffixed tag, and pushes the manifest once.
+#
+# Arguments:
+#   $1   - remote image name
+#   $2   - tag
+#   $3.. - suffixed tags (e.g. "$tag-amd64") to amend into the manifest
+docker_create_and_push_manifest() {
+  local remoteImageName="$1"
+  local tag="$2"
+  shift 2
+  local suffixedTags=("$@")
+
+  local amendedArgs=()
+  for suffixedTag in "${suffixedTags[@]}"; do
+    amendedArgs+=("--amend" "$remoteImageName:$suffixedTag")
+  done
+
+  echo "Creating Manifest for '$tag' from suffixed tags"
+  run_docker manifest create "$remoteImageName:$tag" "${amendedArgs[@]}"
+
+  echo "Pushing Manifest: $tag"
+  run_docker manifest push "$remoteImageName:$tag"
+}
+
 # docker_manifest_images retrieves the list of images from a manifest file.
 docker_manifest_images() {
   local manifest="$1"
