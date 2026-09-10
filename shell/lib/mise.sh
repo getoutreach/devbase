@@ -289,18 +289,24 @@ wait_for_gh_rate_limit() {
 # Prints the path to a tool from either PATH or in the
 # mise environment.
 find_tool() {
-  local toolName="$1"
+  local toolName="$1" toolPath
   # Deliberately not using command_exists here because we want to
   # print the path.
-  if ! command -v "$toolName" 2>/dev/null; then
-    local misePath
-    misePath="$(find_mise)"
-    if [[ -z $misePath ]]; then
-      error "mise not found (find_tool)"
-      return 1
-    fi
-    "$misePath" which "$toolName" 2>/dev/null
+  toolPath="$(command -v "$toolName" 2>/dev/null)"
+  # Skip mise shims: they resolve versions from the current directory's config,
+  # which doesn't declare devbase tools. Callers fall through to `mise exec`.
+  if [[ -n $toolPath ]] && [[ $toolPath != "$(mise_shim_dir)"/* ]]; then
+    echo "$toolPath"
+    return 0
   fi
+
+  local misePath
+  misePath="$(find_mise)"
+  if [[ -z $misePath ]]; then
+    error "mise not found (find_tool)"
+    return 1
+  fi
+  "$misePath" which "$toolName" 2>/dev/null
 }
 
 # mise_exec_tool(toolName[, args...])
@@ -371,6 +377,11 @@ xargs_mise_exec_tool_with_bin() {
 
 asdf_shim_dir() {
   echo "${ASDF_DIR:-$HOME/.asdf}/shims"
+}
+
+# Where mise keeps its shims.
+mise_shim_dir() {
+  echo "${MISE_SHIMS_DIR:-${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}"
 }
 
 asdf_shim_path() {
