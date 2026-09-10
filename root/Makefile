@@ -130,8 +130,8 @@ test-e2e:: pre-test
 ## coverage:        generate code coverage
 .PHONY: coverage
 coverage:: pre-coverage
-	 WITH_COVERAGE=true GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) ./scripts/shell-wrapper.sh test.sh
-	 go tool cover --html=/tmp/coverage.out
+	$(BASE_TEST_ENV) WITH_COVERAGE=true ./scripts/shell-wrapper.sh test.sh
+	go tool cover --html=/tmp/coverage.out
 
 .PHONY: e2e
 e2e:: pre-e2e
