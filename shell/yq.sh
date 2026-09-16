@@ -3,6 +3,9 @@
 # Wrapper around `yq` that allows use of `python-yq` or `gojq`.
 # A locally-installed `gojq` is preferred over `python-yq` if available.
 #
+# See lib/yq.sh for why gojq's input is checked against a set of
+# known-unsupported python-yq flags before gojq is invoked.
+#
 
 set -euo pipefail
 
@@ -15,9 +18,12 @@ source "${LIB_DIR}/logging.sh"
 source "${LIB_DIR}/mise.sh"
 # shellcheck source=./lib/shell.sh
 source "${LIB_DIR}/shell.sh"
+# shellcheck source=./lib/yq.sh
+source "${LIB_DIR}/yq.sh"
 
 gojq_path="$(find_tool gojq)"
 if [[ -n $gojq_path ]]; then
+  check_unsupported_yq_flags "$@"
   "$gojq_path" --yaml-input "$@"
 else
   "$(find_tool yq)" "$@"
