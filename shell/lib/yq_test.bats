@@ -45,6 +45,26 @@ load yq.sh
   assert_output --partial "--in-place"
 }
 
+@test "check_unsupported_yq_flags suggests a gojq equivalent for -i with a filter and file" {
+  run check_unsupported_yq_flags -i '.name = "x"' file.yaml
+  assert_failure
+  assert_output --partial "gojq --yaml-input --yaml-output"
+  assert_output --partial "file.yaml.tmp"
+  assert_output --partial "mv file.yaml.tmp file.yaml"
+}
+
+@test "check_unsupported_yq_flags suggests a gojq equivalent for --in-place with a filter and file" {
+  run check_unsupported_yq_flags --in-place '.name = "x"' file.yaml
+  assert_failure
+  assert_output --partial "gojq --yaml-input --yaml-output"
+}
+
+@test "check_unsupported_yq_flags suggests a gojq equivalent for -ni bundled with a filter and file" {
+  run check_unsupported_yq_flags -ni '.name = "x"' file.yaml
+  assert_failure
+  assert_output --partial "gojq --yaml-input --yaml-output -n"
+}
+
 @test "check_unsupported_yq_flags rejects --width with an attached value" {
   run check_unsupported_yq_flags --width=80 .name
   assert_failure

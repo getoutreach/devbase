@@ -39,9 +39,46 @@ declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
   [i]="-i/--in-place"
 )
 
+# suggest_in_place_command prints a gojq-based equivalent for a rejected
+# -i/--in-place invocation and returns 0, or returns 1 if it can't
+# confidently build one (the caller then falls back to the generic error).
+# gojq has no in-place mode; the suggestion writes to a temp file and moves
+# it over the original, the standard safe way to edit a file "in place"
+# without a dedicated flag. This assumes the common single-file usage
+# (`yq -i '<filter>' <file>`): the last remaining argument, after removing
+# -i/--in-place, is treated as the target file. python-yq's -i also
+# supports multiple files edited independently; this suggestion does not
+# reconstruct that for each file.
+suggest_in_place_command() {
+  local args=() arg stripped file rest
+  for arg in "$@"; do
+    case "$arg" in
+    --in-place | --in-place=*) continue ;;
+    -i) continue ;;
+    -[!-]*i*)
+      stripped="${arg//i/}"
+      [[ $stripped == "-" ]] && continue
+      args+=("$stripped")
+      ;;
+    *) args+=("$arg") ;;
+    esac
+  done
+
+  # Need at least a filter and one file left to make a useful suggestion.
+  [[ ${#args[@]} -ge 2 ]] || return 1
+
+  file="${args[-1]}"
+  rest="$(printf '%q ' --yaml-input --yaml-output "${args[@]}")"
+
+  error "yq flag '-i'/'--in-place' is not directly supported by gojq. Install python-yq if you need real in-place editing."
+  echo "Or, for the common single-file case, use gojq directly:" >&2
+  printf '  gojq %s> %q.tmp && mv %q.tmp %q\n' "$rest" "$file" "$file" "$file" >&2
+}
+
 # check_unsupported_yq_flags fails with a specific error if any argument is a
 # python-yq-only flag, instead of letting gojq reject it with a generic
-# "unknown flag" error.
+# "unknown flag" error. For -i/--in-place specifically, it tries to suggest
+# a working gojq-based equivalent instead of just pointing at python-yq.
 check_unsupported_yq_flags() {
   local arg stripped char i
   for arg in "$@"; do
@@ -51,6 +88,9 @@ check_unsupported_yq_flags() {
     stripped="${arg%%=*}"
     case " ${UNSUPPORTED_YQ_LONG_FLAGS[*]} " in
     *" $stripped "*)
+      if [[ $stripped == "--in-place" ]] && suggest_in_place_command "$@"; then
+        exit 1
+      fi
       fatal "yq flag '$stripped' is not supported by gojq. Install python-yq if you need this feature."
       ;;
     esac
@@ -58,6 +98,9 @@ check_unsupported_yq_flags() {
       for ((i = 1; i < ${#arg}; i++)); do
         char="${arg:i:1}"
         if [[ -v UNSUPPORTED_YQ_SHORT_FLAGS[$char] ]]; then
+          if [[ $char == "i" ]] && suggest_in_place_command "$@"; then
+            exit 1
+          fi
           fatal "yq flag '-$char' (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]}) is not supported by gojq." \
             "Install python-yq if you need this feature."
         fi
