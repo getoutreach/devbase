@@ -6,7 +6,10 @@
 # preservation, no -i/--in-place, no --width, no XML/TOML mode, etc). gojq's
 # own flag parser already rejects these with an "unknown flag" error, but
 # check_unsupported_yq_flags gives a clearer, specific error before we even
-# invoke gojq, naming the flag and pointing at python-yq as the fallback.
+# invoke gojq, naming the flag. This wrapper always prefers gojq over
+# python-yq when gojq is installed (see shell/yq.sh), so these errors tell
+# the user to invoke python-yq directly rather than suggesting it as a
+# fallback this wrapper would use on its own.
 #
 # This is a hardcoded denylist, not derived from python-yq itself. If
 # python-yq is upgraded, re-diff this list against its current --help/
@@ -70,15 +73,17 @@ suggest_in_place_command() {
   file="${args[-1]}"
   rest="$(printf '%q ' --yaml-input --yaml-output "${args[@]}")"
 
-  error "yq flag '-i'/'--in-place' is not directly supported by gojq. Install python-yq if you need real in-place editing."
-  echo "Or, for the common single-file case, use gojq directly:" >&2
+  error "yq flag '-i'/'--in-place' is not supported by gojq, and this wrapper always prefers gojq over python-yq" \
+    "when gojq is installed. Invoke python-yq directly for real in-place editing."
+  echo "Or, for the common single-file case, use gojq directly instead:" >&2
   printf '  gojq %s> %q.tmp && mv %q.tmp %q\n' "$rest" "$file" "$file" "$file" >&2
 }
 
 # check_unsupported_yq_flags fails with a specific error if any argument is a
 # python-yq-only flag, instead of letting gojq reject it with a generic
-# "unknown flag" error. For -i/--in-place specifically, it tries to suggest
-# a working gojq-based equivalent instead of just pointing at python-yq.
+# "unknown flag" error. For -i/--in-place specifically, it also tries to
+# suggest a working gojq-based equivalent, since this wrapper never invokes
+# python-yq itself while gojq is installed.
 check_unsupported_yq_flags() {
   local arg stripped char i
   for arg in "$@"; do
@@ -91,7 +96,8 @@ check_unsupported_yq_flags() {
       if [[ $stripped == "--in-place" ]] && suggest_in_place_command "$@"; then
         exit 1
       fi
-      fatal "yq flag '$stripped' is not supported by gojq. Install python-yq if you need this feature."
+      fatal "yq flag '$stripped' is not supported by gojq, and this wrapper always prefers gojq over python-yq" \
+        "when gojq is installed. Invoke python-yq directly if you need this feature."
       ;;
     esac
     if [[ $arg == -[!-]* ]]; then
@@ -101,8 +107,9 @@ check_unsupported_yq_flags() {
           if [[ $char == "i" ]] && suggest_in_place_command "$@"; then
             exit 1
           fi
-          fatal "yq flag '-$char' (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]}) is not supported by gojq." \
-            "Install python-yq if you need this feature."
+          fatal "yq flag '-$char' (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]}) is not supported by gojq, and this" \
+            "wrapper always prefers gojq over python-yq when gojq is installed. Invoke python-yq directly" \
+            "if you need this feature."
         fi
       done
     fi
