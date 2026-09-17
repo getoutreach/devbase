@@ -13,20 +13,22 @@
 #
 # This is a hardcoded denylist, not derived from python-yq itself. If
 # python-yq is upgraded, re-diff this list against its current --help/
-# argparse flags (see yq/yq/parser.py upstream) for anything new.
+# argparse flags (see yq/yq/parser.py upstream) for anything new. Keep this
+# file in sync with its sibling in getoutreach/orc at
+# internal/steps/scripts/embed/yq.sh.
 
 # Long-form python-yq flags with no gojq equivalent.
-UNSUPPORTED_YQ_LONG_FLAGS=(
-  --yaml-roundtrip --yml-roundtrip
-  --yaml-output-grammar-version --yml-out-ver
-  --width
-  --indentless-lists --indentless
-  --explicit-start --explicit-end
-  --no-expand-aliases
-  --max-expansion-factor
-  --xml-output --xml-item-depth --xml-dtd --xml-root --xml-force-list --xml-short-empty-elements
-  --toml-output --toml-roundtrip
-  --in-place
+declare -Ag UNSUPPORTED_YQ_LONG_FLAGS=(
+  ["--yaml-roundtrip"]=1 ["--yml-roundtrip"]=1
+  ["--yaml-output-grammar-version"]=1 ["--yml-out-ver"]=1
+  ["--width"]=1
+  ["--indentless-lists"]=1 ["--indentless"]=1
+  ["--explicit-start"]=1 ["--explicit-end"]=1
+  ["--no-expand-aliases"]=1
+  ["--max-expansion-factor"]=1
+  ["--xml-output"]=1 ["--xml-item-depth"]=1 ["--xml-dtd"]=1 ["--xml-root"]=1 ["--xml-force-list"]=1 ["--xml-short-empty-elements"]=1
+  ["--toml-output"]=1 ["--toml-roundtrip"]=1
+  ["--in-place"]=1
 )
 
 # Single-letter equivalents of some of the flags above, which python-yq also
@@ -53,7 +55,7 @@ declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
 # supports multiple files edited independently; this suggestion does not
 # reconstruct that for each file.
 suggest_in_place_command() {
-  local args=() arg stripped file rest
+  local args=() arg stripped file qfile rest
   for arg in "$@"; do
     case "$arg" in
     --in-place | --in-place=*) continue ;;
@@ -71,10 +73,19 @@ suggest_in_place_command() {
   [[ ${#args[@]} -ge 2 ]] || return 1
 
   file="${args[-1]}"
+  qfile="$(printf '%q' "$file")"
   rest="$(printf '%q ' --yaml-input --yaml-output "${args[@]}")"
 
   error "yq flag '-i'/'--in-place' is not supported by gojq. For the common single-file case, use a temp file instead:"
-  printf '  gojq %s> %q.tmp && mv %q.tmp %q\n' "$rest" "$file" "$file" "$file" >&2
+  printf '  gojq %s> %s.tmp && mv %s.tmp %s\n' "$rest" "$qfile" "$qfile" "$qfile" >&2
+}
+
+# reject_flag reports that a yq flag (given as a human-readable display,
+# e.g. '--width' or '-Y (-Y/--yaml-roundtrip)') is not supported by gojq,
+# and exits.
+reject_flag() {
+  fatal "yq flag '$1' is not supported by gojq, and this wrapper always prefers gojq over python-yq" \
+    "when gojq is installed. Invoke python-yq directly if you need this feature."
 }
 
 # check_unsupported_yq_flags fails with a specific error if any argument is a
@@ -89,15 +100,12 @@ check_unsupported_yq_flags() {
       break
     fi
     stripped="${arg%%=*}"
-    case " ${UNSUPPORTED_YQ_LONG_FLAGS[*]} " in
-    *" $stripped "*)
+    if [[ -v UNSUPPORTED_YQ_LONG_FLAGS[$stripped] ]]; then
       if [[ $stripped == "--in-place" ]] && suggest_in_place_command "$@"; then
         exit 1
       fi
-      fatal "yq flag '$stripped' is not supported by gojq, and this wrapper always prefers gojq over python-yq" \
-        "when gojq is installed. Invoke python-yq directly if you need this feature."
-      ;;
-    esac
+      reject_flag "$stripped"
+    fi
     if [[ $arg == -[!-]* ]]; then
       for ((i = 1; i < ${#arg}; i++)); do
         char="${arg:i:1}"
@@ -105,9 +113,7 @@ check_unsupported_yq_flags() {
           if [[ $char == "i" ]] && suggest_in_place_command "$@"; then
             exit 1
           fi
-          fatal "yq flag '-$char' (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]}) is not supported by gojq, and this" \
-            "wrapper always prefers gojq over python-yq when gojq is installed. Invoke python-yq directly" \
-            "if you need this feature."
+          reject_flag "-$char (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]})"
         fi
       done
     fi
