@@ -3,13 +3,11 @@
 #
 # gojq's --yaml-input/--yaml-output mode does not support every flag that
 # python-yq supports (no -Y/--yaml-roundtrip comment+style+anchor
-# preservation, no -i/--in-place, no --width, no XML/TOML mode, etc). gojq's
-# own flag parser already rejects these with an "unknown flag" error, but
-# check_unsupported_yq_flags gives a clearer, specific error before we even
-# invoke gojq, naming the flag. This wrapper always prefers gojq over
-# python-yq when gojq is installed (see shell/yq.sh), so these errors tell
-# the user to invoke python-yq directly rather than suggesting it as a
-# fallback this wrapper would use on its own.
+# preservation, no -i/--in-place, no --width, no XML/TOML mode, etc). This
+# wrapper always prefers gojq over python-yq when gojq is installed (see
+# shell/yq.sh), so the errors below tell the user to invoke python-yq
+# directly rather than suggesting it as a fallback this wrapper would use
+# on its own.
 #
 # This is a hardcoded denylist, not derived from python-yq itself. If
 # python-yq is upgraded, re-diff this list against its current --help/
@@ -17,7 +15,7 @@
 # file in sync with its sibling in getoutreach/orc at
 # internal/steps/scripts/embed/yq.sh.
 
-# Long-form python-yq flags with no gojq equivalent.
+# These are long-form python-yq flags with no gojq equivalent.
 declare -Ag UNSUPPORTED_YQ_LONG_FLAGS=(
   ["--yaml-roundtrip"]=1 ["--yml-roundtrip"]=1
   ["--yaml-output-grammar-version"]=1 ["--yml-out-ver"]=1
@@ -44,16 +42,15 @@ declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
   [i]="-i/--in-place"
 )
 
-# suggest_in_place_command prints a gojq-based equivalent for a rejected
-# -i/--in-place invocation and returns 0, or returns 1 if it can't
-# confidently build one (the caller then falls back to the generic error).
-# gojq has no in-place mode; the suggestion writes to a temp file and moves
-# it over the original, the standard safe way to edit a file "in place"
-# without a dedicated flag. This assumes the common single-file usage
-# (`yq -i '<filter>' <file>`): the last remaining argument, after removing
-# -i/--in-place, is treated as the target file. python-yq's -i also
-# supports multiple files edited independently; this suggestion does not
-# reconstruct that for each file.
+# suggest_in_place_command prints a gojq-based workaround for a rejected
+# -i/--in-place invocation, since gojq has no in-place mode, using a temp
+# file so a failed edit doesn't corrupt the original. It returns 0 on
+# success, or 1 if it can't confidently build one, in which case the caller
+# falls back to the generic error. This assumes the common single-file
+# usage (`yq -i '<filter>' <file>`): the last remaining argument, after
+# removing -i/--in-place, is treated as the target file. python-yq's -i
+# also supports multiple files edited independently; this does not
+# reconstruct that.
 suggest_in_place_command() {
   local args=() arg stripped file qfile rest
   for arg in "$@"; do
