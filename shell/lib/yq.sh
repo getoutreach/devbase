@@ -73,9 +73,7 @@ suggest_in_place_command() {
   file="${args[-1]}"
   rest="$(printf '%q ' --yaml-input --yaml-output "${args[@]}")"
 
-  error "yq flag '-i'/'--in-place' is not supported by gojq, and this wrapper always prefers gojq over python-yq" \
-    "when gojq is installed. Invoke python-yq directly for real in-place editing."
-  echo "Or, for the common single-file case, use gojq directly instead:" >&2
+  error "yq flag '-i'/'--in-place' is not supported by gojq. For the common single-file case, use a temp file instead:"
   printf '  gojq %s> %q.tmp && mv %q.tmp %q\n' "$rest" "$file" "$file" "$file" >&2
 }
 
