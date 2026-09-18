@@ -39,6 +39,24 @@ load yq.sh
   assert_output --partial "in-place"
 }
 
+@test "check_unsupported_yq_flags does not suggest a command when -i has no real file" {
+  # Regression test: -ni .name has only a filter after stripping -i, no file
+  # to build a temp-file-and-mv suggestion from. It must fall back to the
+  # generic rejection instead of treating the filter as the file.
+  run check_unsupported_yq_flags -ni .name
+  assert_failure
+  refute_output --partial "gojq --yaml-input"
+}
+
+@test "check_unsupported_yq_flags does not suggest a command when another unsupported flag rides along" {
+  # Regression test: the suggested command must not itself contain a flag
+  # gojq would also reject.
+  run check_unsupported_yq_flags -i --width=80 '.name = "x"' file.yaml
+  assert_failure
+  refute_output --partial "gojq --yaml-input"
+  refute_output --partial "--width"
+}
+
 @test "check_unsupported_yq_flags rejects --in-place" {
   run check_unsupported_yq_flags --in-place .name
   assert_failure

@@ -46,13 +46,16 @@ declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
 # -i/--in-place invocation, since gojq has no in-place mode, using a temp
 # file so a failed edit doesn't corrupt the original. It returns 0 on
 # success, or 1 if it can't confidently build one, in which case the caller
-# falls back to the generic error. This assumes the common single-file
-# usage (`yq -i '<filter>' <file>`): the last remaining argument, after
-# removing -i/--in-place, is treated as the target file. python-yq's -i
-# also supports multiple files edited independently; this does not
-# reconstruct that.
+# falls back to the generic error. It refuses to guess if another
+# unsupported flag rode along with -i (the suggested command would fail
+# too) or if fewer than two non-flag arguments are left (there's no filter
+# and file to build a suggestion from, as in `yq -ni <filter>` with no
+# file). This assumes the common single-file usage (`yq -i '<filter>'
+# <file>`): the last remaining argument is treated as the target file.
+# python-yq's -i also supports multiple files edited independently; this
+# does not reconstruct that.
 suggest_in_place_command() {
-  local args=() arg stripped file qfile rest
+  local args=() arg stripped file qfile rest positional=0 char j
   for arg in "$@"; do
     case "$arg" in
     --in-place | --in-place=*) continue ;;
@@ -66,8 +69,23 @@ suggest_in_place_command() {
     esac
   done
 
+  for arg in "${args[@]}"; do
+    if [[ $arg == -* ]]; then
+      stripped="${arg%%=*}"
+      [[ -v UNSUPPORTED_YQ_LONG_FLAGS[$stripped] ]] && return 1
+      if [[ $arg == -[!-]* ]]; then
+        for ((j = 1; j < ${#arg}; j++)); do
+          char="${arg:j:1}"
+          [[ -v UNSUPPORTED_YQ_SHORT_FLAGS[$char] ]] && return 1
+        done
+      fi
+    else
+      ((++positional))
+    fi
+  done
+
   # Need at least a filter and one file left to make a useful suggestion.
-  [[ ${#args[@]} -ge 2 ]] || return 1
+  [[ $positional -ge 2 ]] || return 1
 
   file="${args[-1]}"
   qfile="$(printf '%q' "$file")"
