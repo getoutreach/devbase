@@ -21,6 +21,69 @@ load yq.sh
   assert_success
 }
 
+@test "check_unsupported_yq_flags allows bundled -ry (r + yaml-output)" {
+  run check_unsupported_yq_flags -ry .name
+  assert_success
+}
+
+@test "check_unsupported_yq_flags rejects -S (--sort-keys)" {
+  run check_unsupported_yq_flags -S .name
+  assert_failure
+  assert_output --partial "sort-keys"
+}
+
+@test "check_unsupported_yq_flags rejects --sort-keys" {
+  run check_unsupported_yq_flags --sort-keys .name
+  assert_failure
+  assert_output --partial "--sort-keys"
+}
+
+@test "check_unsupported_yq_flags rejects -a (--ascii-output)" {
+  run check_unsupported_yq_flags -a .name
+  assert_failure
+  assert_output --partial "ascii-output"
+}
+
+@test "check_unsupported_yq_flags rejects --ascii-output" {
+  run check_unsupported_yq_flags --ascii-output .name
+  assert_failure
+  assert_output --partial "--ascii-output"
+}
+
+@test "normalize_yq_args translates bare -y to --yaml-output" {
+  normalize_yq_args -y .name
+  assert_equal "${NORMALIZED_YQ_ARGS[*]}" "--yaml-output .name"
+}
+
+@test "normalize_yq_args translates bundled -ry to -r --yaml-output" {
+  normalize_yq_args -ry .name
+  assert_equal "${NORMALIZED_YQ_ARGS[*]}" "-r --yaml-output .name"
+}
+
+@test "normalize_yq_args leaves flags after -- untouched" {
+  normalize_yq_args -n -- -y-looking-filename.yaml
+  assert_equal "${NORMALIZED_YQ_ARGS[*]}" "-n -- -y-looking-filename.yaml"
+}
+
+@test "check_unsupported_yq_flags suggests --yaml-output, not a raw -y, for bundled -yi" {
+  # Regression test: -yi bundles -y (now translated to --yaml-output) with
+  # -i (unsupported). The suggested command must contain the translated
+  # long flag, not the untranslated short one.
+  run check_unsupported_yq_flags -yi '.name = "x"' file.yaml
+  assert_failure
+  assert_output --partial "gojq --yaml-input --yaml-output"
+  refute_output --partial "-yi"
+}
+
+@test "check_unsupported_yq_flags does not duplicate --yaml-output in the -yi suggestion" {
+  # Regression test: normalize_yq_args already expands -yi's `y` into a
+  # standalone --yaml-output; suggest_in_place_command must not add a
+  # second one on top of the one it always prepends.
+  run check_unsupported_yq_flags -yi '.name = "x"' file.yaml
+  assert_failure
+  refute_output --partial "--yaml-output --yaml-output"
+}
+
 @test "check_unsupported_yq_flags rejects -Y (--yaml-roundtrip)" {
   run check_unsupported_yq_flags -Y .name
   assert_failure

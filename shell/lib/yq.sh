@@ -15,7 +15,10 @@
 # file in sync with its sibling in getoutreach/orc at
 # internal/steps/scripts/embed/yq.sh.
 
-# These are long-form python-yq flags with no gojq equivalent.
+# These are long-form python-yq flags with no gojq equivalent. python-yq
+# forwards any flag it doesn't recognize itself straight to jq (it uses
+# argparse's parse_known_args), so --sort-keys and --ascii-output reach jq
+# today even though yq's own parser never mentions them; gojq has neither.
 declare -Ag UNSUPPORTED_YQ_LONG_FLAGS=(
   ["--yaml-roundtrip"]=1 ["--yml-roundtrip"]=1
   ["--yaml-output-grammar-version"]=1 ["--yml-out-ver"]=1
@@ -27,12 +30,15 @@ declare -Ag UNSUPPORTED_YQ_LONG_FLAGS=(
   ["--xml-output"]=1 ["--xml-item-depth"]=1 ["--xml-dtd"]=1 ["--xml-root"]=1 ["--xml-force-list"]=1 ["--xml-short-empty-elements"]=1
   ["--toml-output"]=1 ["--toml-roundtrip"]=1
   ["--in-place"]=1
+  ["--sort-keys"]=1
+  ["--ascii-output"]=1
 )
 
 # Single-letter equivalents of some of the flags above, which python-yq also
 # allows bundled with other short flags (e.g. `-ni`), mapped to a
-# human-readable name for the error message. Note: lowercase -y
-# (--yaml-output) is deliberately excluded, since gojq supports it too.
+# human-readable name for the error message. Lowercase -y (--yaml-output) is
+# excluded: gojq supports that flag too, just not under its short spelling,
+# so normalize_yq_args rewrites it instead of rejecting it.
 declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
   [Y]="-Y/--yaml-roundtrip"
   [w]="-w/--width"
@@ -40,7 +46,54 @@ declare -Ag UNSUPPORTED_YQ_SHORT_FLAGS=(
   [t]="-t/--toml-output"
   [T]="-T/--toml-roundtrip"
   [i]="-i/--in-place"
+  [S]="-S/--sort-keys"
+  [a]="-a/--ascii-output"
 )
+
+# Short flags gojq only recognizes by their long name. Bare or bundled
+# (e.g. `-ry`), normalize_yq_args rewrites these out of a short-flag cluster
+# into their long form.
+declare -Ag YQ_SHORT_TO_LONG_FLAGS=(
+  [y]="--yaml-output"
+)
+
+# normalize_yq_args rewrites any flag in YQ_SHORT_TO_LONG_FLAGS found in a
+# short-flag cluster into its long form. Sets the global array
+# NORMALIZED_YQ_ARGS. Arguments after a `--` separator pass through
+# untouched.
+normalize_yq_args() {
+  NORMALIZED_YQ_ARGS=()
+  local arg stripped char i replacement stop=0
+  for arg in "$@"; do
+    if ((stop)); then
+      NORMALIZED_YQ_ARGS+=("$arg")
+      continue
+    fi
+    if [[ $arg == "--" ]]; then
+      stop=1
+      NORMALIZED_YQ_ARGS+=("$arg")
+      continue
+    fi
+    if [[ $arg == -[!-]* ]]; then
+      replacement=""
+      stripped=""
+      for ((i = 1; i < ${#arg}; i++)); do
+        char="${arg:i:1}"
+        if [[ -v YQ_SHORT_TO_LONG_FLAGS[$char] ]]; then
+          replacement="${YQ_SHORT_TO_LONG_FLAGS[$char]}"
+        else
+          stripped+="$char"
+        fi
+      done
+      if [[ -n $replacement ]]; then
+        [[ -n $stripped ]] && NORMALIZED_YQ_ARGS+=("-$stripped")
+        NORMALIZED_YQ_ARGS+=("$replacement")
+        continue
+      fi
+    fi
+    NORMALIZED_YQ_ARGS+=("$arg")
+  done
+}
 
 # suggest_in_place_command prints a gojq-based workaround for a rejected
 # -i/--in-place invocation, since gojq has no in-place mode, using a temp
@@ -60,6 +113,10 @@ suggest_in_place_command() {
     case "$arg" in
     --in-place | --in-place=*) continue ;;
     -i) continue ;;
+    # Already implied by the --yaml-output this function always prepends
+    # below; arguments reach here post-normalize_yq_args, so a bundled -y
+    # (e.g. -yi) has already become this exact standalone flag.
+    --yaml-output) continue ;;
     -[!-]*i*)
       stripped="${arg//i/}"
       [[ $stripped == "-" ]] && continue
@@ -108,15 +165,19 @@ reject_flag() {
 # "unknown flag" error. For -i/--in-place specifically, it also tries to
 # suggest a working gojq-based equivalent, since this wrapper never invokes
 # python-yq itself while gojq is installed.
+#
+# It normalizes its arguments first (see normalize_yq_args) and leaves the
+# result in NORMALIZED_YQ_ARGS for the caller to actually invoke gojq with.
 check_unsupported_yq_flags() {
+  normalize_yq_args "$@"
   local arg stripped char i
-  for arg in "$@"; do
+  for arg in "${NORMALIZED_YQ_ARGS[@]}"; do
     if [[ $arg == "--" ]]; then
       break
     fi
     stripped="${arg%%=*}"
     if [[ -v UNSUPPORTED_YQ_LONG_FLAGS[$stripped] ]]; then
-      if [[ $stripped == "--in-place" ]] && suggest_in_place_command "$@"; then
+      if [[ $stripped == "--in-place" ]] && suggest_in_place_command "${NORMALIZED_YQ_ARGS[@]}"; then
         exit 1
       fi
       reject_flag "$stripped"
@@ -125,7 +186,7 @@ check_unsupported_yq_flags() {
       for ((i = 1; i < ${#arg}; i++)); do
         char="${arg:i:1}"
         if [[ -v UNSUPPORTED_YQ_SHORT_FLAGS[$char] ]]; then
-          if [[ $char == "i" ]] && suggest_in_place_command "$@"; then
+          if [[ $char == "i" ]] && suggest_in_place_command "${NORMALIZED_YQ_ARGS[@]}"; then
             exit 1
           fi
           reject_flag "-$char (${UNSUPPORTED_YQ_SHORT_FLAGS[$char]})"

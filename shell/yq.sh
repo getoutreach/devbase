@@ -24,7 +24,7 @@ source "${LIB_DIR}/yq.sh"
 gojq_path="$(find_tool gojq)"
 if [[ -n $gojq_path ]]; then
   check_unsupported_yq_flags "$@"
-  "$gojq_path" --yaml-input "$@"
+  "$gojq_path" --yaml-input "${NORMALIZED_YQ_ARGS[@]}"
 else
   "$(find_tool yq)" "$@"
 fi
