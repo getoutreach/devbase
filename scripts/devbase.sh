@@ -10,8 +10,7 @@ gojqVersion="v0.12.18"
 
 # get_absolute_path returns the absolute path of a file
 get_absolute_path() {
-  python="$(command -v python3 || command -v python)"
-  "$python" -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"
+  realpath "$1" 
 }
 
 # gojq returns the path to a JIT-downloaded gojq binary.
