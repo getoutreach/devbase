@@ -17,4 +17,11 @@ arguments:
     schema:
       type: array
       items:
-        type: string
+        type: object
+        properties:
+          module:
+            type: string
+          path:
+            type: string
+        required:
+          - module
