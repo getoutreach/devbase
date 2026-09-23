@@ -6,11 +6,10 @@
 # report_gh_rate_limit_to_datadog TOKEN_TYPE [EXTRA_TAG...]
 #
 # Best-effort submission of the current GitHub API rate-limit state
-# (for whatever token `gh` picks up from $GH_TOKEN/$GITHUB_TOKEN) as
-# Datadog gauge metrics under
-# `devbase.github.<token_type>.rate_limit_{used,remaining}`. Always
+# (for whatever token is in $GITHUB_TOKEN) as Datadog gauge metrics
+# under `devbase.github.<token_type>.rate_limit_{used,remaining}`. Always
 # tagged with `repo`, `ci_job`, and `token_suffix` (the last 4 characters
-# of that token, so individual tokens can be told apart, though this
+# of $GITHUB_TOKEN, so individual tokens can be told apart, though this
 # still reveals a short slice of the credential); any additional
 # `key:value` tags passed as arguments are appended.
 #
@@ -34,10 +33,8 @@ report_gh_rate_limit_to_datadog() {
     return 0
   fi
 
-  # See the `token_suffix` note in the header comment above. Match `gh`'s
-  # own precedence (GH_TOKEN before GITHUB_TOKEN) so the tag names the
-  # token that /rate_limit actually measured.
-  tokenSuffix="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  # See the `token_suffix` note in the header comment above.
+  tokenSuffix="${GITHUB_TOKEN:-}"
   tokenSuffix="${tokenSuffix: -4}"
 
   rateLimit="$(gh api /rate_limit --jq .rate 2>/dev/null || true)"
