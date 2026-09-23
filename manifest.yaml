@@ -12,3 +12,16 @@ arguments:
     description: "Enables compiling Go binaries with cgo."
     schema:
       type: boolean
+  go-protoc-imports:
+    description: "Extra imports for protoc-generated Go code"
+    schema:
+      type: array
+      items:
+        type: object
+        properties:
+          module:
+            type: string
+          path:
+            type: string
+        required:
+          - module
