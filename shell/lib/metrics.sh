@@ -29,15 +29,13 @@ report_gh_rate_limit_to_datadog() {
   fi
   shift
 
-  # Last 4 characters of the token, used as a `token_suffix` tag so a
-  # specific token can be identified (e.g. as rate-limited) without
-  # exposing it.
-  tokenSuffix="${GITHUB_TOKEN:-}"
-  tokenSuffix="${tokenSuffix: -4}"
-
   if ! in_ci_environment || [[ -z ${DATADOG_API_KEY:-} ]] || ! command_exists gh || ! command_exists gojq; then
     return 0
   fi
+
+  # See the `token_suffix` note in the header comment above.
+  tokenSuffix="${GITHUB_TOKEN:-}"
+  tokenSuffix="${tokenSuffix: -4}"
 
   rateLimit="$(gh api /rate_limit --jq .rate 2>/dev/null || true)"
   if [[ -z $rateLimit ]]; then
