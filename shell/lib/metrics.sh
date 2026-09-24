@@ -8,8 +8,10 @@
 # Best-effort submission of the current GitHub API rate-limit state
 # (for whatever token is in $GITHUB_TOKEN) as Datadog gauge metrics
 # under `devbase.github.<token_type>.rate_limit_{used,remaining}`. Always
-# tagged with `repo` and `ci_job`; any additional `key:value` tags
-# passed as arguments are appended.
+# tagged with `repo`, `ci_job`, and `token_suffix` (the last 4 characters
+# of $GITHUB_TOKEN, so individual tokens can be told apart, though this
+# still reveals a short slice of the credential); any additional
+# `key:value` tags passed as arguments are appended.
 #
 # Silently no-ops (returns 0) when not in CI, when DATADOG_API_KEY is
 # unset, when `gh` or `gojq` are unavailable, or when the rate-limit
@@ -20,7 +22,7 @@
 # a programmer error (a caller passed an unset variable) and should
 # fail loudly rather than emit metrics under a meaningless key.
 report_gh_rate_limit_to_datadog() {
-  local ddPayload tokenType now rateLimit
+  local ddPayload tokenType now rateLimit tokenSuffix
   tokenType="${1:-}"
   if [[ -z $tokenType ]]; then
     fatal "report_gh_rate_limit_to_datadog: tokenType is required"
@@ -30,6 +32,10 @@ report_gh_rate_limit_to_datadog() {
   if ! in_ci_environment || [[ -z ${DATADOG_API_KEY:-} ]] || ! command_exists gh || ! command_exists gojq; then
     return 0
   fi
+
+  # See the `token_suffix` note in the header comment above.
+  tokenSuffix="${GITHUB_TOKEN:-}"
+  tokenSuffix="${tokenSuffix: -4}"
 
   rateLimit="$(gh api /rate_limit --jq .rate 2>/dev/null || true)"
   if [[ -z $rateLimit ]]; then
@@ -55,11 +61,12 @@ report_gh_rate_limit_to_datadog() {
     --arg tokenType "$tokenType" \
     --arg repo "${CIRCLE_PROJECT_REPONAME:-unknown}" \
     --arg job "${CIRCLE_JOB:-unknown}" \
+    --arg tokenSuffix "${tokenSuffix:-unknown}" \
     --args \
     '
       ($rateLimit.used) as $used |
       ($rateLimit.remaining) as $remaining |
-      (["repo:" + $repo, "ci_job:" + $job] + $ARGS.positional) as $tags |
+      (["repo:" + $repo, "ci_job:" + $job, "token_suffix:" + $tokenSuffix] + $ARGS.positional) as $tags |
       if ($used == null or $remaining == null) then
         empty
       else

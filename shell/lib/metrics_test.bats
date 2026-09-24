@@ -10,6 +10,9 @@ load test_helper.sh
 
 setup() {
   setup_command_stubs
+  # Don't let a token exported by the test runner leak into a test that
+  # doesn't explicitly set one.
+  unset GITHUB_TOKEN
 }
 
 teardown() {
@@ -81,6 +84,7 @@ curl_payload() {
     DATADOG_API_KEY="fake-key" \
     CIRCLE_PROJECT_REPONAME="my-repo" \
     CIRCLE_JOB="my-job" \
+    GITHUB_TOKEN="ghp_abcd1234WXYZ" \
     run report_gh_rate_limit_to_datadog pat consumer:test_consumer
   assert_success
 
@@ -115,7 +119,29 @@ curl_payload() {
   assert_output "4958"
 
   run gojq -r '.series[0].tags | sort | join(",")' <<<"$payload"
-  assert_output "ci_job:my-job,consumer:test_consumer,repo:my-repo"
+  assert_output "ci_job:my-job,consumer:test_consumer,repo:my-repo,token_suffix:WXYZ"
+}
+
+@test "report_gh_rate_limit_to_datadog tags the metric with an unknown token_suffix when GITHUB_TOKEN is empty" {
+  if ! command_exists gojq; then
+    skip "gojq not installed"
+  fi
+  stub_command gh '{"used":1,"remaining":2}'
+  stub_command curl ''
+
+  CI=true \
+    DATADOG_API_KEY="fake-key" \
+    CIRCLE_PROJECT_REPONAME="my-repo" \
+    CIRCLE_JOB="my-job" \
+    GITHUB_TOKEN="" \
+    run report_gh_rate_limit_to_datadog app
+  assert_success
+
+  local payload
+  payload="$(curl_payload)"
+
+  run gojq -r '.series[0].tags | sort | join(",")' <<<"$payload"
+  assert_output "ci_job:my-job,repo:my-repo,token_suffix:unknown"
 }
 
 @test "report_gh_rate_limit_to_datadog JSON-encodes tokenType with quotes safely" {
