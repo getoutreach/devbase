@@ -20,3 +20,38 @@ To add a linter place the linter shell script in `scripts/linters/<lintername>.s
 The linter will be discovered when globbing `.sh` files run with the built-in
 linters. Follow the conventions of the existing linter shell scripts when creating
 the new linter.
+
+## Running formatters via mise
+
+`mise run fmt` is the mise-native equivalent of `make fmt`. `mise run fmt:<name>`
+(e.g. `mise run fmt:go`, `mise run fmt:bash`) runs a single formatter. Run
+`mise tasks ls` to see the full list of `fmt:*` tasks.
+
+Unlike `make fmt`, which auto-discovers `scripts/linters/*.sh` by globbing,
+`mise run fmt` only runs formatters registered as `fmt:<name>` mise tasks. A
+project-specific linter (added as above) needs its own `fmt:<name>` task to be
+picked up by `mise run fmt`, via either:
+
+1. A file-based task at `.mise/tasks/fmt/<name>` that delegates to devbase's
+   shared runner (vendored at `.bootstrap/shell` in your repo):
+
+   ```bash
+   #!/usr/bin/env bash
+   #MISE description="Formats <your language> files."
+
+   set -euo pipefail
+
+   exec "$MISE_PROJECT_ROOT/.bootstrap/shell/run-formatter.sh" "$MISE_PROJECT_ROOT/scripts/linters/<name>.sh"
+   ```
+
+2. A plain TOML task in your own `mise.toml`, with no dependency on the
+   `extensions`/`formatter()` convention at all:
+
+   ```toml
+   [tasks."fmt:<name>"]
+   description = "Formats <your language> files."
+   run = "your-formatter-command --write ."
+   ```
+
+Both forms are discovered identically by `mise run fmt`, since mise treats
+file-based and TOML-defined tasks the same way for task lookup.
