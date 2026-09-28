@@ -33,7 +33,8 @@ project-specific linter (added as above) needs its own `fmt:<name>` task to be
 picked up by `mise run fmt`, via either:
 
 1. A file-based task at `.mise/tasks/fmt/<name>` that delegates to devbase's
-   shared runner (vendored at `.bootstrap/shell` in your repo):
+   shared runner via `scripts/shell-wrapper.sh` (the same wrapper `make fmt`
+   itself uses to reach devbase's vendored shell scripts):
 
    ```bash
    #!/usr/bin/env bash
@@ -41,7 +42,7 @@ picked up by `mise run fmt`, via either:
 
    set -euo pipefail
 
-   exec "$MISE_PROJECT_ROOT/.bootstrap/shell/run-formatter.sh" "$MISE_PROJECT_ROOT/scripts/linters/<name>.sh"
+   exec "$MISE_PROJECT_ROOT/scripts/shell-wrapper.sh" run-formatter.sh "$MISE_PROJECT_ROOT/scripts/linters/<name>.sh"
    ```
 
 2. A plain TOML task in your own `mise.toml`, with no dependency on the
