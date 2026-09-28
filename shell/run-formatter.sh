@@ -38,9 +38,10 @@ if [[ "$(find_files_with_extensions "${extensions[@]}" | wc -l | tr -d ' ')" -eq
 fi
 
 # Note: extensions is set by the linter.
-# Why: We're OK with declaring and assigning.
-# shellcheck disable=SC2155,SC2001
-extensionsString=$(sed 's/ /,./g' <<<"${extensions[*]}" | sed 's/^/./')
+extensionsPrefixed=("${extensions[@]/#/.}")
+IFS=,
+extensionsString="${extensionsPrefixed[*]}"
+unset IFS
 
 # show is used by run_command as metadata to be shown along with the command name
 show=$extensionsString
