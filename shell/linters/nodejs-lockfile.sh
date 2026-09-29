@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Prevents lockfiles from Node.js package managers other than yarn (npm,
-# pnpm, bun) from being committed, and ensures yarn.lock is committed for
-# well-known generated Node.js packages.
+# Ensures yarn is the only package manager used for Node.js dependencies
+# in nodejs_dirs, the only locations where stencil manages a Node.js
+# package.json. Fails if a lockfile from another package manager is
+# present, or if yarn.lock is missing.
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
