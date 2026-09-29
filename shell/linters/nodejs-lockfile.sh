@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
-# Ensures yarn is the only package manager used for Node.js dependencies
-# in nodejs_dirs, the only locations where stencil manages a Node.js
-# package.json. Fails if a lockfile from another package manager is
-# present, or if yarn.lock is missing.
+# Ensures required_lockfile is the only package manager lockfile used
+# for Node.js dependencies in nodejs_dirs, the only locations where
+# stencil manages a Node.js package.json. Fails if a lockfile from
+# another package manager is present, or if required_lockfile is
+# missing.
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034
 extensions=(json yaml lock lockb)
 
-# forbidden_lockfiles lists lockfiles produced by Node.js package managers
-# other than yarn.
-forbidden_lockfiles=(package-lock.json npm-shrinkwrap.json pnpm-lock.yaml bun.lock bun.lockb)
+# all_lockfiles lists the lockfile produced by every Node.js package
+# manager this linter knows about. required_lockfile is the one
+# nodejs_dirs must commit; every other entry is forbidden. Changing the
+# required package manager only means updating required_lockfile.
+all_lockfiles=(yarn.lock package-lock.json npm-shrinkwrap.json pnpm-lock.yaml bun.lock bun.lockb)
+required_lockfile=yarn.lock
 
 # nodejs_dirs lists Node.js package directories that must ship a
-# committed yarn.lock alongside their package.json, and must not contain
-# a lockfile from another package manager: the repo root, and stencil's
-# generated gRPC Node.js client.
+# committed copy of required_lockfile alongside their package.json, and
+# must not contain a lockfile from another package manager: the repo
+# root, and stencil's generated gRPC Node.js client.
 nodejs_dirs=(. api/clients/node)
 
 lockfile_linter() {
@@ -23,7 +27,8 @@ lockfile_linter() {
   local found=()
 
   for dir in "${nodejs_dirs[@]}"; do
-    for file in "${forbidden_lockfiles[@]}"; do
+    for file in "${all_lockfiles[@]}"; do
+      [[ $file == "$required_lockfile" ]] && continue
       if [[ -f "$dir/$file" ]]; then
         found+=("$dir/$file")
       fi
@@ -31,7 +36,7 @@ lockfile_linter() {
   done
 
   if [[ ${#found[@]} -gt 0 ]]; then
-    error "Only yarn.lock is supported for Node.js dependencies. Remove the following lockfile(s) and use 'yarn install' instead:"
+    error "Only $required_lockfile is supported for Node.js dependencies. Remove the following lockfile(s):"
     printf '%s\n' "${found[@]}" >&2
     return 1
   fi
@@ -39,18 +44,18 @@ lockfile_linter() {
   return 0
 }
 
-yarn_lock_presence_linter() {
+required_lockfile_presence_linter() {
   local dir
   local missing=()
 
   for dir in "${nodejs_dirs[@]}"; do
-    if [[ -f "$dir/package.json" && ! -f "$dir/yarn.lock" ]]; then
-      missing+=("$dir/yarn.lock")
+    if [[ -f "$dir/package.json" && ! -f "$dir/$required_lockfile" ]]; then
+      missing+=("$dir/$required_lockfile")
     fi
   done
 
   if [[ ${#missing[@]} -gt 0 ]]; then
-    error "Missing yarn.lock for the following Node.js package(s):"
+    error "Missing $required_lockfile for the following Node.js package(s):"
     printf '%s\n' "${missing[@]}" >&2
     return 1
   fi
@@ -60,7 +65,7 @@ yarn_lock_presence_linter() {
 
 linter() {
   run_command "node-lockfile" lockfile_linter || return 1
-  run_command "node-yarn-lock-presence" yarn_lock_presence_linter || return 1
+  run_command "node-lockfile-presence" required_lockfile_presence_linter || return 1
 }
 
 formatter() {
