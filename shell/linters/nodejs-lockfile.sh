@@ -11,9 +11,10 @@ extensions=(json yaml lock lockb)
 # managers other than yarn.
 forbidden_lockfile_pattern='(^|/)(package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lock|bun\.lockb)$'
 
-# node_client_dirs lists generated Node.js package directories that must
-# ship a committed yarn.lock alongside their package.json.
-node_client_dirs=(api/clients/node)
+# node_client_dirs lists Node.js package directories that must ship a
+# committed yarn.lock alongside their package.json: the repo root, and
+# stencil's generated gRPC Node.js client.
+node_client_dirs=(. api/clients/node)
 
 lockfile_linter() {
   local found
