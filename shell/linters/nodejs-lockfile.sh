@@ -65,7 +65,7 @@ required_lockfile_presence_linter() {
 
 linter() {
   run_command "nodejs-lockfile" lockfile_linter || return 1
-  run_command "node-lockfile-presence" required_lockfile_presence_linter || return 1
+  run_command "nodejs-lockfile-presence" required_lockfile_presence_linter || return 1
 }
 
 formatter() {
