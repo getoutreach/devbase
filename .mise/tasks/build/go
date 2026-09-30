@@ -10,10 +10,14 @@ LIB_DIR="$DIR/../../../shell/lib"
 source "$LIB_DIR/bootstrap.sh"
 # shellcheck source=../../../shell/lib/logging.sh
 source "$LIB_DIR/logging.sh"
+# shellcheck source=../../../shell/lib/shell.sh
+source "$LIB_DIR/shell.sh"
 # shellcheck source=../../../shell/lib/box.sh
 source "$LIB_DIR/box.sh"
 # shellcheck source=../../../shell/lib/secrets.sh
 source "$LIB_DIR/secrets.sh"
+
+ensure_bash_5_or_greater
 
 if [[ -d cmd ]]; then
   buildPath="./cmd"
