@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run all formatters."
+#MISE depends=[{ task = "fmt:*", optional = true }]
