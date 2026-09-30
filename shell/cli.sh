@@ -16,23 +16,29 @@
 # service.yaml's `.replacements["github.com/getoutreach/devbase"]`. It
 # records the resolved value in .bootstrap/.version, which is what
 # devbase_cli_version reads below.
+#
+# This file does not set `set -euo pipefail` at the top level: `set`
+# inside a sourced file changes the *sourcing* shell's own options for
+# the rest of its life, not just this file's. shell/lib/yq.sh sources
+# this file into long-lived library shells (bootstrap.sh, yaml.sh,
+# etc.) that do not expect strict mode imposed on them from a
+# dependency they didn't ask for. It is only set below, scoped to
+# running this file directly as a script.
 
-set -euo pipefail
-
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-LIB_DIR="${DIR}/lib"
+_DEVBASE_CLI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+_DEVBASE_CLI_LIB_DIR="${_DEVBASE_CLI_DIR}/lib"
 
 # shellcheck source=./lib/logging.sh
-source "${LIB_DIR}/logging.sh"
+source "${_DEVBASE_CLI_LIB_DIR}/logging.sh"
 # shellcheck source=./lib/shell.sh
-source "${LIB_DIR}/shell.sh"
+source "${_DEVBASE_CLI_LIB_DIR}/shell.sh"
 
 ensure_bash_5_or_greater
 
 # shellcheck source=./lib/bootstrap.sh
-source "${LIB_DIR}/bootstrap.sh"
+source "${_DEVBASE_CLI_LIB_DIR}/bootstrap.sh"
 # shellcheck source=./lib/mise.sh
-source "${LIB_DIR}/mise.sh"
+source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 
 # devbase_tree_root echoes the root of the devbase source tree this
 # script itself lives in: the real devbase repo root when this
@@ -46,7 +52,7 @@ source "${LIB_DIR}/mise.sh"
 # would recurse into the very yq invocation devbase_cli exists to
 # resolve.
 devbase_tree_root() {
-  cd "$DIR/.." >/dev/null 2>&1 && pwd
+  cd "$_DEVBASE_CLI_DIR/.." >/dev/null 2>&1 && pwd
 }
 
 # devbase_cli_version echoes the devbase version the current
@@ -95,6 +101,11 @@ devbase_cli_platform() {
 # "v2.41.0-rc.1"), mirroring shell/gobin.sh's own download-and-cache
 # pattern (retry, a temp dir, shell/lib/shell.sh's cached_binary_path/
 # get_cached_binary), and echoes the cached binary's path.
+#
+# Every step below checks its own exit status explicitly rather than
+# relying on `set -e`: this file does not set it globally (see the
+# comment above _DEVBASE_CLI_DIR), since sourcing it must not impose strict mode on
+# a caller's own shell.
 devbase_cli_download_release() {
   local version="$1"
 
@@ -111,14 +122,23 @@ devbase_cli_download_release() {
   archive="devbase_${version#v}_${platform}.tar.gz"
   tmp_dir="$(mktemp -d)"
 
-  retry 5 5 curl --fail --location --silent --output "$tmp_dir/$archive" \
-    "https://github.com/getoutreach/devbase/releases/download/$version/$archive"
+  if ! retry 5 5 curl --fail --location --silent --output "$tmp_dir/$archive" \
+    "https://github.com/getoutreach/devbase/releases/download/$version/$archive"; then
+    rm -rf "$tmp_dir"
+    fatal "failed to download devbase $version release archive"
+  fi
 
-  tar --directory="$tmp_dir" --extract --file="$tmp_dir/$archive" devbase
-  cp "$tmp_dir/devbase" "$cached"
-  chmod +x "$cached"
+  if ! tar --directory="$tmp_dir" --extract --file="$tmp_dir/$archive" devbase; then
+    rm -rf "$tmp_dir"
+    fatal "failed to extract devbase $version release archive"
+  fi
+
+  if ! cp "$tmp_dir/devbase" "$cached" || ! chmod +x "$cached"; then
+    rm -rf "$tmp_dir"
+    fatal "failed to install devbase $version release binary to $cached"
+  fi
+
   rm -rf "$tmp_dir"
-
   echo "$cached"
 }
 
@@ -177,7 +197,9 @@ devbase_cli() {
 }
 
 # Allow running this script directly (e.g. `shell/cli.sh yq .`), not
-# just sourcing it.
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# just sourcing it. Strict mode is scoped to this branch, not the top
+# of the file -- see the comment above _DEVBASE_CLI_DIR for why.
+if [[ ${BASH_SOURCE[0]} == "${0}" ]]; then
+  set -euo pipefail
   devbase_cli "$@"
 fi
