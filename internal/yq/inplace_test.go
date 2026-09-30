@@ -6,6 +6,7 @@ package yq
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -119,6 +120,86 @@ func TestRunFile_MultipleEmittedValues(t *testing.T) {
 	got, err := os.ReadFile(path)
 	assert.NilError(t, err)
 	assert.Equal(t, string(got), "a\n---\nb\n")
+}
+
+// TestRunFiles_ConcurrentEditsDoNotCrossContaminate runs RunFiles
+// against many files sharing one Engine (and therefore one compiled
+// gojq.Code) concurrently, and confirms each file gets its own
+// correct, distinct result -- the case that would catch a race if
+// engine reuse across goroutines were not actually safe (gojq's own
+// Code.Run/RunWithContext doc comment states it is).
+func TestRunFiles_ConcurrentEditsDoNotCrossContaminate(t *testing.T) {
+	const n = 50
+	paths := make([]string, n)
+	for i := range n {
+		paths[i] = writeYAML(t, fmt.Sprintf("file-%d.yaml", i), fmt.Sprintf("n: %d\n", i))
+	}
+
+	e, err := Compile(".n *= 10", nil)
+	assert.NilError(t, err)
+
+	errs := RunFiles(context.Background(), paths, e, FormatOptions{}, false, false)
+	assert.Equal(t, len(errs), 0)
+
+	for i, path := range paths {
+		got, err := os.ReadFile(path)
+		assert.NilError(t, err)
+		assert.Equal(t, string(got), fmt.Sprintf("n: %d\n", i*10))
+	}
+}
+
+// TestRunFiles_ErrorsPreserveInputOrder confirms RunFiles' returned
+// errors correspond to paths by position, not by whichever goroutine
+// happens to finish first.
+func TestRunFiles_ErrorsPreserveInputOrder(t *testing.T) {
+	// Every other file's filter matches nothing (zero output -> error);
+	// the rest succeed. With concurrency, completion order is not
+	// input order, so this only passes if RunFiles indexes errors by
+	// position rather than appending in completion order.
+	const n = 20
+	paths := make([]string, n)
+	for i := range n {
+		kind := "Secret"
+		if i%2 == 0 {
+			kind = "ConfigMap"
+		}
+		paths[i] = writeYAML(t, fmt.Sprintf("file-%d.yaml", i), fmt.Sprintf("kind: %s\n", kind))
+	}
+
+	e, err := Compile(`select(.kind == "ConfigMap")`, nil)
+	assert.NilError(t, err)
+
+	errs := RunFiles(context.Background(), paths, e, FormatOptions{}, false, false)
+	assert.Equal(t, len(errs), n/2)
+	for _, err := range errs {
+		assert.ErrorContains(t, err, "filter produced no output")
+	}
+}
+
+// TestRunFiles_DuplicatePathsAreSequential confirms repeating the same
+// path many times in one RunFiles call still composes deterministically
+// (as it did before RunFiles ran concurrently), rather than racing on
+// that file's contents -- the real regression found and fixed during
+// review: parallelizing distinct files is safe, but two goroutines
+// racing to read-modify-write the *same* file is not.
+func TestRunFiles_DuplicatePathsAreSequential(t *testing.T) {
+	path := writeYAML(t, "counter.yaml", "n: 1\n")
+
+	e, err := Compile(".n += 1", nil)
+	assert.NilError(t, err)
+
+	const repeats = 20
+	paths := make([]string, repeats)
+	for i := range paths {
+		paths[i] = path
+	}
+
+	errs := RunFiles(context.Background(), paths, e, FormatOptions{}, false, false)
+	assert.Equal(t, len(errs), 0)
+
+	got, err := os.ReadFile(path)
+	assert.NilError(t, err)
+	assert.Equal(t, string(got), fmt.Sprintf("n: %d\n", 1+repeats))
 }
 
 // TestRunFile_PreservesPermissions confirms the atomic write preserves

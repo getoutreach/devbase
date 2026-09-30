@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	yaml "github.com/itchyny/go-yaml"
+	"golang.org/x/sync/errgroup"
 )
 
 // RunFile evaluates the compiled filter against the YAML document(s)
@@ -69,19 +71,52 @@ func RunFile(ctx context.Context, path string, engine *Engine, opts FormatOption
 	return writeFileAtomically(path, []byte(strings.Join(rendered, "\n---\n")+"\n"))
 }
 
-// RunFiles runs RunFile against every path independently, continuing
-// past a failure on one file rather than aborting the rest -- matching
+// RunFiles runs RunFile against every distinct path in paths
+// concurrently (bounded by runtime.NumCPU()), continuing past a
+// failure on one file rather than aborting the rest -- matching
 // python-yq's own -i behavior of editing every file it was given, each
-// with its own result. It returns one error per failed path, in the
-// same order as paths; a nil slice means every file succeeded.
+// with its own result. gojq's compiled *gojq.Code (shared via engine,
+// reused across every call) is documented safe to call from
+// goroutines, but a *file* is not: if the same path appears more than
+// once in paths (e.g. overlapping glob expansion), those occurrences
+// are run sequentially, in their original relative order, rather than
+// concurrently -- running them concurrently would race on that file's
+// own contents (each read-modify-write composes on the previous
+// occurrence's output) and silently corrupt it instead of erroring.
+// It returns one error per failed path, in the same order as paths
+// (not completion order, so the result is deterministic); a nil slice
+// means every file succeeded.
 func RunFiles(ctx context.Context, paths []string, engine *Engine, opts FormatOptions, slurp, roundtrip bool) []error {
-	var errs []error
-	for _, path := range paths {
-		if err := RunFile(ctx, path, engine, opts, slurp, roundtrip); err != nil {
-			errs = append(errs, err)
+	errs := make([]error, len(paths))
+
+	indicesByPath := make(map[string][]int, len(paths))
+	for i, path := range paths {
+		indicesByPath[path] = append(indicesByPath[path], i)
+	}
+
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU())
+
+	for path, indices := range indicesByPath {
+		g.Go(func() error {
+			// Each occurrence's error is collected into errs[i], not
+			// returned to the group, so one file's failure never
+			// cancels ctx and aborts sibling paths still in flight.
+			for _, i := range indices {
+				errs[i] = RunFile(ctx, path, engine, opts, slurp, roundtrip)
+			}
+			return nil
+		})
+	}
+	_ = g.Wait() // The Go func above always returns nil; nothing to check.
+
+	var result []error
+	for _, err := range errs {
+		if err != nil {
+			result = append(result, err)
 		}
 	}
-	return errs
+	return result
 }
 
 // writeFileAtomically writes data to path by writing a temporary file
