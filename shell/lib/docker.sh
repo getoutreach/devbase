@@ -2,7 +2,9 @@
 # Helper functions for Docker image generation.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-YQ="${DIR}/../yq.sh"
+
+# shellcheck source=./yq.sh
+source "${DIR}/yq.sh"
 
 # shellcheck source=./logging.sh
 source "${DIR}/logging.sh"
@@ -251,7 +253,7 @@ docker_create_and_push_manifest() {
 docker_manifest_images() {
   local manifest="$1"
 
-  "$YQ" -r 'keys[]' "$manifest"
+  yq -r 'keys[]' "$manifest"
 }
 
 # will_push_images determines if current pipeline is configured to actually push image to a registry.

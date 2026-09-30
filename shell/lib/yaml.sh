@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # yaml is a general purpose bash yaml parsing library
 
-YQ="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"/../yq.sh
+_DEVBASE_YAML_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# shellcheck source=./yq.sh
+source "${_DEVBASE_YAML_LIB_DIR}/yq.sh"
 
 # yaml_get_array returns a newline separated list of values
 # from a yaml array. If a value is not set, it will return
@@ -16,7 +19,7 @@ YQ="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"/../yq.sh
 yaml_get_array() {
   local filter="$1"
   local file="$2"
-  "$YQ" -r "$filter | .[]?" "$file"
+  yq -r "$filter | .[]?" "$file"
 }
 
 # yaml_construct_object_filter creates a yq filter for all
@@ -47,7 +50,7 @@ yaml_get_field() {
   local filter="$1"
   local file="$2"
 
-  returnValue=$("$YQ" -r "$filter" "$file")
+  returnValue=$(yq -r "$filter" "$file")
 
   # If the return value was null, we want to return an empty string
   # since it's more inline with bash's behavior.

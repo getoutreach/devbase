@@ -3,6 +3,15 @@
 
 REPODIR=""
 DEVBASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
+
+# This file's own $YQ calls below deliberately still use shell/yq.sh
+# (the standalone script), not shell/lib/yq.sh's faster yq() function:
+# yq.sh sources shell/cli.sh, which itself sources this file for
+# get_repo_directory. Sourcing yq.sh from here would recurse back into
+# this same file while it is still being sourced. shell/lib/yaml.sh,
+# box.sh, docker.sh, and others that do not sit in that dependency
+# chain use yq() instead; only this file's own handful of calls are
+# exempt, for this reason.
 YQ="${DEVBASE_DIR}/shell/yq.sh"
 
 find_service_yaml() {

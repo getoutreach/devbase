@@ -74,6 +74,14 @@ devbase_cli_version() {
   cat "$tree_root/.version" 2>/dev/null || echo "local"
 }
 
+# devbase_cli_is_tagged_version returns success if version (as returned
+# by devbase_cli_version) is a real git tag rather than "local"/dev.
+# devbase_cli_version never returns a bare "local" that also matches
+# ^v[0-9], so testing the regex alone already covers both cases.
+devbase_cli_is_tagged_version() {
+  [[ $1 =~ ^v[0-9] ]]
+}
+
 # devbase_cli_platform echoes "<os>_<arch>", matching goreleaser's own
 # default archive naming (confirmed against real devbase release
 # tarballs, e.g. devbase_2.40.0-rc.2_darwin_amd64.tar.gz).
@@ -185,11 +193,7 @@ devbase_cli() {
   local version
   version="$(devbase_cli_version)"
 
-  # "local" (and anything else that isn't a real vN tag) takes this
-  # branch too: devbase_cli_version never returns a bare "local" that
-  # also matches ^v[0-9], so testing the regex alone already covers
-  # both cases.
-  if [[ ! $version =~ ^v[0-9] ]]; then
+  if ! devbase_cli_is_tagged_version "$version"; then
     exec go -C "$(devbase_tree_root)" run ./cmd/devbase "$@"
   fi
 

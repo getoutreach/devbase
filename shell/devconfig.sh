@@ -4,10 +4,18 @@
 
 set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-YQ="$DIR/yq.sh"
 
 # shellcheck source=./lib/bootstrap.sh
 source "$DIR/lib/bootstrap.sh"
+
+# shellcheck source=./lib/yq.sh
+source "$DIR/lib/yq.sh"
+
+# Resolve the yq binary once, up front: each `yq` call below runs as
+# its own pipeline stage (a forked subshell), so without this each of
+# the 3 pipelines further down would independently redo yq_resolve_bin's
+# own resolution work.
+yq_resolve_bin
 
 # shellcheck source=./lib/box.sh
 source "$DIR/lib/box.sh"
@@ -85,7 +93,7 @@ info "Generating local config/secrets in '$configDir'"
 envsubst="$("$DIR/gobin.sh" -p github.com/a8m/envsubst/cmd/envsubst@v1.2.0)"
 
 info "Fetching Configuration File(s)"
-DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | "$YQ" -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
+DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "ConfigMap") | .data | to_entries[] | [.key, .value] | @tsv' | "$envsubst" |
   while IFS=$'\t' read -r configFile configData; do
 
     saveFile="$configDir/$configFile"
@@ -104,7 +112,7 @@ DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | "$YQ"
 info "Fetching non-Vault Secret(s)"
 # Why: `$secretName` is intended as a yq variable not a shell variable.
 # shellcheck disable=SC2016
-DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | "$YQ" -r 'select(.kind == "Secret") | .metadata.name as $secretName | (.data | to_entries[] | [$secretName, .key, .value] | @tsv)' | "$envsubst" |
+DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "Secret") | .metadata.name as $secretName | (.data | to_entries[] | [$secretName, .key, .value] | @tsv)' | "$envsubst" |
   while IFS=$'\t' read -r secretName secretKey secretValueBase64; do
 
     saveDir="$configDir/$secretName"
@@ -120,7 +128,7 @@ DEVENV_DEPLOY_ENVIRONMENT=local_development "$DIR/build-jsonnet.sh" show | "$YQ"
 # /run/secrets/outreach.io/<basename vaultKey>/<vault subKey>
 info "Fetching Secret(s) from Vault"
 
-"$DIR/build-jsonnet.sh" show | "$YQ" -r 'select(.kind == "VaultSecret") | .spec.path' |
+"$DIR/build-jsonnet.sh" show | yq -r 'select(.kind == "VaultSecret") | .spec.path' |
   while IFS=$'\n' read -r vaultKey; do
     info_sub "$vaultKey"
     get_vault_secrets "$vaultKey" "$HOME/.outreach/$APPNAME"
