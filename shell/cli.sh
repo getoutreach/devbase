@@ -71,6 +71,14 @@ devbase_cli_version() {
 # devbase_cli_platform echoes "<os>_<arch>", matching goreleaser's own
 # default archive naming (confirmed against real devbase release
 # tarballs, e.g. devbase_2.40.0-rc.2_darwin_amd64.tar.gz).
+#
+# TODO(malept): shell/lib/buildx.sh has its own copy of this same
+# x86_64/aarch64 -> amd64/arm64 mapping. There is no shared helper to
+# call instead today (buildx.sh's own ARCH logic is private to that
+# file, not exported), so fixing this means extracting a real helper
+# (e.g. into shell/lib/shell.sh) and updating both call sites, not just
+# this one -- deferred rather than done here since it touches a file
+# with no other reason to change in this PR.
 devbase_cli_platform() {
   local os arch
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
