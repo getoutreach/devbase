@@ -10,6 +10,7 @@ require (
 	github.com/getoutreach/localizer v1.15.19
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/go-github/v84 v84.0.0
+	github.com/itchyny/go-yaml v0.0.0-20251001235044-fca9a0999f15
 	github.com/magefile/mage v1.17.2
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
