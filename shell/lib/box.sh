@@ -24,7 +24,7 @@ download_box() {
     echo "No box repository URL provided, and no box configuration stub found at $BOXPATH to infer it from" >&2
     return 1
   elif [[ -z $boxGitRepo ]]; then
-    boxGitRepo="$(yq -r '.storageURL' "$BOXPATH")"
+    boxGitRepo="$(yq_wrapper -r '.storageURL' "$BOXPATH")"
   fi
 
   # Why: OK with assigning without checking exit code.
@@ -49,14 +49,14 @@ download_box() {
   # shellcheck disable=SC2016
   local boxconfQuery='. * { config: $boxconf[0] }'
   local newBox
-  # Resolve the yq binary once, in this shell, before the 3 yq calls
+  # Resolve the yq binary once, in this shell, before the 3 calls
   # below: each runs in its own forked subshell (pipe/process
   # substitution), so without this they'd each independently redo
   # yq_resolve_bin's own resolution work.
   yq_resolve_bin
   # Avoid reading and writing to the same file
-  newBox="$(yq . "${BOXPATH}" |
-    yq --yaml-output --slurpfile boxconf <(yq -r . "${tempDir}/box.yaml") "$boxconfQuery")"
+  newBox="$(yq_wrapper . "${BOXPATH}" |
+    yq_wrapper --yaml-output --slurpfile boxconf <(yq_wrapper -r . "${tempDir}/box.yaml") "$boxconfQuery")"
   echo "$newBox" >"$BOXPATH"
 }
 

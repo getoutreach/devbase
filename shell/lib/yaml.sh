@@ -19,7 +19,7 @@ source "${_DEVBASE_YAML_LIB_DIR}/yq.sh"
 yaml_get_array() {
   local filter="$1"
   local file="$2"
-  yq -r "$filter | .[]?" "$file"
+  yq_wrapper -r "$filter | .[]?" "$file"
 }
 
 # yaml_construct_object_filter creates a yq filter for all
@@ -50,7 +50,7 @@ yaml_get_field() {
   local filter="$1"
   local file="$2"
 
-  returnValue=$(yq -r "$filter" "$file")
+  returnValue=$(yq_wrapper -r "$filter" "$file")
 
   # If the return value was null, we want to return an empty string
   # since it's more inline with bash's behavior.

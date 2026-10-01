@@ -253,7 +253,7 @@ docker_create_and_push_manifest() {
 docker_manifest_images() {
   local manifest="$1"
 
-  yq -r 'keys[]' "$manifest"
+  yq_wrapper -r 'keys[]' "$manifest"
 }
 
 # will_push_images determines if current pipeline is configured to actually push image to a registry.
