@@ -55,6 +55,7 @@ load lib/test_helper.sh
 echo "devbase version v2.41.0"
 EOF
   chmod +x "$fake_bin_dir/devbase"
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   find_tool() { echo "$fake_bin_dir/devbase"; }
 
   run devbase_cli_binary "v2.41.0"
