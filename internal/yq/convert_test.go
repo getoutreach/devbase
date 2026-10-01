@@ -95,16 +95,16 @@ func TestSplitYAMLDocuments_KeyOrder_SequenceOfMappings(t *testing.T) {
 	docs, order, err := SplitYAMLDocuments([]byte("items:\n  - z: 1\n    a: 2\n  - b: 3\n    c: 4\n"))
 	assert.NilError(t, err)
 
-	root := docs[0].(map[string]any) //nolint:errcheck,forcetypeassert // Why: test fixture.
-	items := root["items"].([]any)   //nolint:errcheck,forcetypeassert // Why: test fixture.
+	root := docs[0].(map[string]any)
+	items := root["items"].([]any)
 	assert.Equal(t, len(items), 2)
 
-	first := items[0].(map[string]any) //nolint:errcheck,forcetypeassert // Why: test fixture.
+	first := items[0].(map[string]any)
 	firstKeys, found := order.order(first)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, firstKeys, []string{"z", "a"})
 
-	second := items[1].(map[string]any) //nolint:errcheck,forcetypeassert // Why: test fixture.
+	second := items[1].(map[string]any)
 	secondKeys, found := order.order(second)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, secondKeys, []string{"b", "c"})
@@ -118,9 +118,9 @@ func TestSplitYAMLDocuments_MergeKey(t *testing.T) {
 	docs, order, err := SplitYAMLDocuments([]byte("base: &base\n  a: 1\n  b: 2\nchild:\n  <<: *base\n  c: 3\n"))
 	assert.NilError(t, err)
 
-	root := docs[0].(map[string]any)        //nolint:errcheck,forcetypeassert // Why: test fixture.
-	child := root["child"].(map[string]any) //nolint:errcheck,forcetypeassert // Why: test fixture.
-	assert.Equal(t, len(child), 3)          // a, b, c
+	root := docs[0].(map[string]any)
+	child := root["child"].(map[string]any)
+	assert.Equal(t, len(child), 3) // a, b, c
 
 	_, found := order.order(child)
 	assert.Assert(t, !found, "merge-key mapping should not have a usable recorded order")

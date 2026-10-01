@@ -5,6 +5,7 @@
 package yq
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -67,16 +68,6 @@ type yqFlags struct {
 	TOMLRoundtrip bool `short:"T" long:"toml-roundtrip"`
 }
 
-// normalize folds every multi-spelling alias field into its primary
-// field (e.g. YAMLOutputYML into YAMLOutput), so the rest of the
-// package only ever needs to check one field per flag.
-func (f *yqFlags) normalize() {
-	f.YAMLOutput = f.YAMLOutput || f.YAMLOutputYML
-	f.YAMLRoundtrip = f.YAMLRoundtrip || f.YAMLRoundtripYML ||
-		f.YAMLRoundtripGrammarVer || f.YAMLRoundtripGrammarVerYML
-	f.IndentlessLists = f.IndentlessLists || f.IndentlessListsAlt
-}
-
 // parseYqFlags parses args against a fresh yqFlags and returns it
 // alongside the non-flag arguments (the filter, and any file operands
 // for -i). It does not itself reject a recognized-but-unimplemented
@@ -133,6 +124,18 @@ var separateFeatureFlags = []separateFeatureFlag{ //nolint:gochecknoglobals // W
 	{"-T/--toml-roundtrip", "TOML round-trip support", func(f *yqFlags) bool { return f.TOMLRoundtrip }},
 }
 
+// ErrFlagNotImplemented is wrapped into the error Validate returns for
+// a "recognized, deferred" flag: one devbase yq parses but does not
+// yet act on, because no current caller needs it.
+var ErrFlagNotImplemented = errors.New(
+	"a recognized flag that devbase yq does not implement yet (no current caller needs it -- file an issue if you do)",
+)
+
+// ErrFlagSeparateFeature is wrapped into the error Validate returns for
+// a flag that belongs to a real but substantially separate feature
+// (e.g. XML/TOML support) devbase yq does not implement.
+var ErrFlagSeparateFeature = errors.New("a separate feature devbase yq does not implement")
+
 // Validate returns a fatal, actionable error for the first
 // recognized-but-unimplemented flag set in f. A "recognized, deferred"
 // flag and a "separate, larger feature" flag get distinct wording, so
@@ -141,16 +144,25 @@ var separateFeatureFlags = []separateFeatureFlag{ //nolint:gochecknoglobals // W
 func (f *yqFlags) Validate() error {
 	for _, d := range deferredFlags {
 		if d.set(f) {
-			return fmt.Errorf("%s is a recognized flag that devbase yq does not implement yet "+
-				"(no current caller needs it -- file an issue if you do)", d.name)
+			return fmt.Errorf("%s is %w", d.name, ErrFlagNotImplemented)
 		}
 	}
 	for _, d := range separateFeatureFlags {
 		if d.set(f) {
-			return fmt.Errorf("%s is part of %s, a separate feature devbase yq does not implement", d.name, d.feature)
+			return fmt.Errorf("%s is part of %s, %w", d.name, d.feature, ErrFlagSeparateFeature)
 		}
 	}
 	return nil
+}
+
+// normalize folds every multi-spelling alias field into its primary
+// field (e.g. YAMLOutputYML into YAMLOutput), so the rest of the
+// package only ever needs to check one field per flag.
+func (f *yqFlags) normalize() {
+	f.YAMLOutput = f.YAMLOutput || f.YAMLOutputYML
+	f.YAMLRoundtrip = f.YAMLRoundtrip || f.YAMLRoundtripYML ||
+		f.YAMLRoundtripGrammarVer || f.YAMLRoundtripGrammarVerYML
+	f.IndentlessLists = f.IndentlessLists || f.IndentlessListsAlt
 }
 
 // parseFlags is adapted from github.com/itchyny/gojq's unexported
@@ -184,7 +196,14 @@ func (f *yqFlags) Validate() error {
 //	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
-func parseFlags(args []string, opts any) ([]string, error) {
+var (
+	errBoolFlagHasArgument  = errors.New("boolean flag cannot have an argument")
+	errUnknownFlag          = errors.New("unknown flag")
+	errFlagMissingArgument  = errors.New("expected argument for flag")
+	errFlagMissingArguments = errors.New("expected 2 arguments for flag")
+)
+
+func parseFlags(args []string, opts any) ([]string, error) { //nolint:gocyclo // Why: ported verbatim from gojq (see doc comment above).
 	rest := make([]string, 0, len(args))
 	val := reflect.ValueOf(opts).Elem()
 	typ := val.Type()
@@ -218,7 +237,7 @@ func parseFlags(args []string, opts any) ([]string, error) {
 				if j := strings.IndexByte(arg, '='); j >= 0 {
 					if val, ok = longToValue[arg[2:j]]; ok {
 						if val.Kind() == reflect.Bool {
-							return nil, fmt.Errorf("boolean flag `%s' cannot have an argument", arg[:j])
+							return nil, fmt.Errorf("%w: `%s'", errBoolFlagHasArgument, arg[:j])
 						}
 						args[i] = arg[j+1:]
 						arg = arg[:j]
@@ -226,13 +245,13 @@ func parseFlags(args []string, opts any) ([]string, error) {
 					}
 				}
 				if !ok {
-					return nil, fmt.Errorf("unknown flag `%s'", arg)
+					return nil, fmt.Errorf("%w `%s'", errUnknownFlag, arg)
 				}
 			}
 		case len(arg) > 1 && arg[0] == '-':
 			var skip bool
-			for i := 1; i < len(arg); i++ {
-				opt := arg[i : i+1]
+			for j := 1; j < len(arg); j++ {
+				opt := arg[j : j+1]
 				if val, ok = shortToValue[opt]; ok {
 					if val.Kind() != reflect.Bool {
 						break
@@ -252,18 +271,20 @@ func parseFlags(args []string, opts any) ([]string, error) {
 			continue
 		}
 	S:
-		switch val.Kind() {
+		switch val.Kind() { //nolint:exhaustive // Why: only the kinds yqFlags actually uses need handling; others fall through unchanged.
 		case reflect.Bool:
 			val.SetBool(true)
 		case reflect.String:
-			if i++; i >= len(args) {
-				return nil, fmt.Errorf("expected argument for flag `%s'", arg)
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%w `%s'", errFlagMissingArgument, arg)
 			}
 			val.SetString(args[i])
 		case reflect.Pointer:
 			if val.Type().Elem().Kind() == reflect.Int {
-				if i++; i >= len(args) {
-					return nil, fmt.Errorf("expected argument for flag `%s'", arg)
+				i++
+				if i >= len(args) {
+					return nil, fmt.Errorf("%w `%s'", errFlagMissingArgument, arg)
 				}
 				v, err := strconv.Atoi(args[i])
 				if err != nil {
@@ -274,13 +295,13 @@ func parseFlags(args []string, opts any) ([]string, error) {
 			}
 		case reflect.Map:
 			if i += 2; i >= len(args) {
-				return nil, fmt.Errorf("expected 2 arguments for flag `%s'", arg)
+				return nil, fmt.Errorf("%w `%s'", errFlagMissingArguments, arg)
 			}
 			if val.IsNil() {
 				val.Set(reflect.MakeMap(val.Type()))
 			}
 			name := args[i-1]
-			if _, ok := mapKeys[name]; !ok {
+			if _, exists := mapKeys[name]; !exists {
 				mapKeys[name] = struct{}{}
 				val.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(args[i]))
 			}
@@ -289,7 +310,7 @@ func parseFlags(args []string, opts any) ([]string, error) {
 		if shortopts != "" {
 			opt := shortopts[:1]
 			if val, ok = shortToValue[opt]; !ok {
-				return nil, fmt.Errorf("unknown flag `%s'", opt)
+				return nil, fmt.Errorf("%w `%s'", errUnknownFlag, opt)
 			}
 			if val.Kind() != reflect.Bool && len(shortopts) > 1 {
 				if shortopts[1] == '=' {

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -17,6 +18,10 @@ import (
 
 	"github.com/itchyny/gojq"
 )
+
+// errJSONTrailingData is returned by parseJSON when raw contains valid
+// JSON followed by further, unparsed data.
+var errJSONTrailingData = errors.New("invalid JSON: trailing data after value")
 
 // Engine is a compiled jq filter, ready to run against one or more
 // input values.
@@ -176,7 +181,7 @@ func parseJSON(raw string) (any, error) {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
 	}
 	if dec.More() {
-		return nil, fmt.Errorf("invalid JSON: trailing data after value")
+		return nil, errJSONTrailingData
 	}
 	return v, nil
 }

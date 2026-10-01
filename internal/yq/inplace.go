@@ -6,6 +6,7 @@ package yq
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,10 @@ import (
 	yaml "github.com/itchyny/go-yaml"
 	"golang.org/x/sync/errgroup"
 )
+
+// ErrNoOutput is returned by RunFile when a filter emits zero values for
+// a file: the file is left unmodified rather than truncated to nothing.
+var ErrNoOutput = errors.New("filter produced no output")
 
 // RunFile evaluates the compiled filter against the YAML document(s)
 // in path and overwrites path with the result, always as YAML
@@ -65,7 +70,7 @@ func RunFile(ctx context.Context, path string, engine *Engine, opts FormatOption
 	}
 
 	if len(rendered) == 0 {
-		return fmt.Errorf("%s: filter produced no output", path)
+		return fmt.Errorf("%s: %w", path, ErrNoOutput)
 	}
 
 	return writeFileAtomically(path, []byte(strings.Join(rendered, "\n---\n")+"\n"))
@@ -108,7 +113,7 @@ func RunFiles(ctx context.Context, paths []string, engine *Engine, opts FormatOp
 			return nil
 		})
 	}
-	_ = g.Wait() // The Go func above always returns nil; nothing to check.
+	_ = g.Wait() //nolint:errcheck // Why: the Go func above always returns nil; nothing to check.
 
 	var result []error
 	for _, err := range errs {
@@ -138,7 +143,7 @@ func writeFileAtomically(path string, data []byte) error {
 	defer os.Remove(tmpPath) // no-op once the rename below succeeds.
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close() //nolint:errcheck // Why: already returning the write error.
+		tmp.Close() // Already returning the write error, which takes priority over a close error here.
 		return fmt.Errorf("write temp file for %s: %w", path, err)
 	}
 	if err := tmp.Close(); err != nil {

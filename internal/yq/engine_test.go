@@ -151,7 +151,7 @@ func TestEngine_MultiDocumentSelect(t *testing.T) {
 	e, err := Compile(`select(.kind == "ConfigMap")`, nil)
 	assert.NilError(t, err)
 
-	var matched []any
+	matched := make([]any, 0, len(docs))
 	for _, doc := range docs {
 		got, err := e.Run(context.Background(), doc)
 		assert.NilError(t, err)

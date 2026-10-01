@@ -18,6 +18,15 @@ import (
 	yaml "github.com/itchyny/go-yaml"
 )
 
+// ErrNotSingleDocument is returned by NormalizeYAML when its input
+// contains anything other than exactly one YAML document.
+var ErrNotSingleDocument = errors.New("expected exactly one YAML document")
+
+// errMalformedDocumentNode signals an invariant violated by the
+// decoder itself (every DocumentNode it produces has exactly one
+// child), not a user-facing input error.
+var errMalformedDocumentNode = errors.New("yaml document node must have exactly one child")
+
 // KeyOrder records, for a decoded map[string]any, the order its keys
 // appeared in the source document, keyed by the map's own identity
 // (its runtime pointer). Encoding consults this table to reproduce
@@ -48,7 +57,7 @@ func NormalizeYAML(b []byte) (any, KeyOrder, error) {
 		return nil, nil, err
 	}
 	if len(docs) != 1 {
-		return nil, nil, fmt.Errorf("expected exactly one YAML document, got %d", len(docs))
+		return nil, nil, fmt.Errorf("%w, got %d", ErrNotSingleDocument, len(docs))
 	}
 	return docs[0], order, nil
 }
@@ -124,7 +133,7 @@ func recordKeyOrder(node *yaml.Node, v any, order KeyOrder) error {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		if len(node.Content) != 1 {
-			return fmt.Errorf("yaml document node has %d children, want 1", len(node.Content))
+			return fmt.Errorf("%w: got %d", errMalformedDocumentNode, len(node.Content))
 		}
 		return recordKeyOrder(node.Content[0], v, order)
 
@@ -169,6 +178,9 @@ func recordKeyOrder(node *yaml.Node, v any, order KeyOrder) error {
 				}
 			}
 		}
+
+	case yaml.ScalarNode:
+		// No children to record key order for.
 	}
 
 	return nil

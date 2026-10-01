@@ -38,8 +38,8 @@ func TestRunFile_EndToEnd(t *testing.T) {
 
 	v, _, err := NormalizeYAML(got)
 	assert.NilError(t, err)
-	m := v.(map[string]any)                 //nolint:errcheck,forcetypeassert // Why: test fixture.
-	args := m["arguments"].(map[string]any) //nolint:errcheck,forcetypeassert // Why: test fixture.
+	m := v.(map[string]any)
+	args := m["arguments"].(map[string]any)
 	assert.Equal(t, args["enableCgo"], false)
 }
 

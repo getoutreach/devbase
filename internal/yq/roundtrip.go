@@ -91,8 +91,7 @@ func reconcileScalar(original *yaml.Node, result any) *yaml.Node {
 		return original
 	}
 	n := yamlNodeFor(result, FormatOptions{})
-	n.HeadComment, n.LineComment, n.FootComment, n.Anchor =
-		original.HeadComment, original.LineComment, original.FootComment, original.Anchor
+	n.HeadComment, n.LineComment, n.FootComment, n.Anchor = original.HeadComment, original.LineComment, original.FootComment, original.Anchor
 	return n
 }
 
