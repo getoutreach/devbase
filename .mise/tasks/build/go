@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Builds the application binary via 'go build'."
+#MISE depends=["devbase:sync"]
 
 set -euo pipefail
 
@@ -19,10 +20,10 @@ source "$LIB_DIR/secrets.sh"
 
 ensure_bash_5_or_greater
 
-if [[ -d cmd ]]; then
-  buildPath="./cmd"
-elif [[ -d plugin ]]; then
+if [[ -d plugin ]]; then
   buildPath="./plugin"
+elif [[ -d cmd ]]; then
+  buildPath="./cmd"
 else
   warn "This repository produces no artifacts (no 'cmd' or 'plugin' directory found)"
   exit 0
@@ -30,10 +31,7 @@ fi
 
 mkdir -p bin
 
-# CGO_ENABLED: honor an already-set value (Makefile override, or a direct
-# caller like the CircleCI orb that doesn't go through Makefile at all);
-# otherwise derive it from service.yaml's enableCgo argument via the same
-# get_cgo_enabled helper shell/cgo-enabled.sh uses.
+# Honor a caller-provided CGO_ENABLED; callers such as the CircleCI orb skip the Makefile.
 : "${CGO_ENABLED:=$(get_cgo_enabled)}"
 export CGO_ENABLED
 
@@ -42,7 +40,7 @@ appName="$(get_app_name)"
 read_secret_or_warn() {
   local path="$1" label="$2"
   local val
-  val="$(read_local_secret "$path" "$appName" 2>/dev/null || true)"
+  val="$(read_local_secret "$path" "$appName" || true)"
   if [[ -z $val ]]; then
     warn "Failed to get $label api key (did you run .bootstrap/shell/devconfig.sh?)" >&2
   fi
@@ -73,7 +71,12 @@ if [[ ${SKIP_TRIMPATH:-} != "true" ]]; then
 fi
 args+=("$buildPath/...")
 
-envArgs=(GOFLAGS="$goFlags" GOPRIVATE="github.com/$(get_box_field org)/*")
+org="$(get_box_field org)"
+if [[ -z $org ]]; then
+  fatal "Could not determine the GitHub org from box config (get_box_field org); GOPRIVATE would be malformed"
+fi
+
+envArgs=(GOFLAGS="$goFlags" GOPRIVATE="github.com/$org/*")
 if [[ -n ${BUILD_FOR_GOOS:-} ]]; then
   envArgs+=(GOOS="$BUILD_FOR_GOOS")
 fi

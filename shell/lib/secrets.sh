@@ -35,7 +35,7 @@ read_local_secret() {
   for candidate in "${candidates[@]}"; do
     if [[ -e $candidate ]]; then
       cat "$candidate"
-      return 0
+      return $?
     fi
   done
   return 1
