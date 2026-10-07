@@ -86,12 +86,3 @@ func runGoCommand(log zerolog.Logger, args ...string) error {
 
 	return sh.RunWith(vars, "go", args...)
 }
-
-// getLDFlagsStringFromMap returns a string of all the ldflags from the given map
-func getLDFlagsStringFromMap(ldflags map[string]string) string {
-	ldFlags := ""
-	for k, v := range ldflags {
-		ldFlags += fmt.Sprintf("-X %s=%s ", k, v)
-	}
-	return ldFlags
-}

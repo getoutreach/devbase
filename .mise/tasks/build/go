@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#MISE description="Builds the application binary via 'go build'."
+#MISE depends=["devbase:sync"]
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LIB_DIR="$DIR/../../../shell/lib"
+
+# shellcheck source=../../../shell/lib/bootstrap.sh
+source "$LIB_DIR/bootstrap.sh"
+# shellcheck source=../../../shell/lib/logging.sh
+source "$LIB_DIR/logging.sh"
+# shellcheck source=../../../shell/lib/shell.sh
+source "$LIB_DIR/shell.sh"
+# shellcheck source=../../../shell/lib/box.sh
+source "$LIB_DIR/box.sh"
+# shellcheck source=../../../shell/lib/secrets.sh
+source "$LIB_DIR/secrets.sh"
+
+ensure_bash_5_or_greater
+
+if [[ -d plugin ]]; then
+  buildPath="./plugin"
+elif [[ -d cmd ]]; then
+  buildPath="./cmd"
+else
+  warn "This repository produces no artifacts (no 'cmd' or 'plugin' directory found)"
+  exit 0
+fi
+
+mkdir -p bin
+
+# Honor a caller-provided CGO_ENABLED; callers such as the CircleCI orb skip the Makefile.
+: "${CGO_ENABLED:=$(get_cgo_enabled)}"
+export CGO_ENABLED
+
+appName="$(get_app_name)"
+
+read_secret_or_warn() {
+  local path="$1" label="$2"
+  local val
+  val="$(read_local_secret "$path" "$appName" || true)"
+  if [[ -z $val ]]; then
+    warn "Failed to get $label api key (did you run .bootstrap/shell/devconfig.sh?)" >&2
+  fi
+  echo "$val"
+}
+
+honeycombKey="$(read_secret_or_warn "honeycomb/apiKey" honeycomb)"
+teleforkKey="$(read_secret_or_warn "telefork/api-keys/default" telefork)"
+
+ldflags="-X github.com/getoutreach/gobox/pkg/app.Version=$(get_app_version)"
+ldflags+=" -X main.HoneycombTracingKey=${honeycombKey}"
+ldflags+=" -X main.TeleforkAPIKey=${teleforkKey}"
+if [[ -z ${DLV_PORT:-} ]]; then
+  ldflags+=" -w -s"
+fi
+
+goFlags=""
+if [[ -z ${KUBERNETES_SERVICE_HOST:-} ]]; then
+  goFlags="-tags=or_dev"
+fi
+
+args=(build -v -o bin -ldflags "$ldflags")
+if [[ -n ${GC_FLAGS:-} ]]; then
+  args+=(-gcflags "$GC_FLAGS")
+fi
+if [[ ${SKIP_TRIMPATH:-} != "true" ]]; then
+  args+=(-trimpath)
+fi
+args+=("$buildPath/...")
+
+org="$(get_box_field org)"
+if [[ -z $org ]]; then
+  fatal "Could not determine the GitHub org from box config (get_box_field org); GOPRIVATE would be malformed"
+fi
+
+envArgs=(GOFLAGS="$goFlags" GOPRIVATE="github.com/$org/*")
+if [[ -n ${BUILD_FOR_GOOS:-} ]]; then
+  envArgs+=(GOOS="$BUILD_FOR_GOOS")
+fi
+
+info "Building..."
+env "${envArgs[@]}" go "${args[@]}"
