@@ -108,6 +108,12 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
+# COMPILE_ONLY builds the test binaries with the same flags as a normal
+# run, but doesn't run them or write test results. It fills the Go build
+# cache, so a later run with the same flags only needs to link. Set to
+# 'true' to enable.
+COMPILE_ONLY="${COMPILE_ONLY:-}"
+
 # repoDir is the base directory of the repository.
 repoDir=$(get_repo_directory)
 
@@ -158,10 +164,22 @@ run_go_tests() {
       go env -w GOTOOLCHAIN="$toolchain"
       info_sub "Running E2E tests with Go toolchain $toolchain"
     fi
+    if [[ $COMPILE_ONLY == "true" ]]; then
+      # `-exec true` replaces running each test binary with `true`
+      go test -exec true \
+        "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
+        -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
+      exit
+    fi
     mise_exec_tool gotestsum --junitfile "$junitFile" --format "$format" -- \
       "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
       -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
   ) || exitCode=$?
+
+  if [[ $COMPILE_ONLY == "true" ]]; then
+    popd >/dev/null || fatal "Failed to change directory back from $projectDir"
+    return $exitCode
+  fi
 
   if in_ci_environment; then
     # Move this to a temporary directory so that we can control

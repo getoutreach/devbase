@@ -36,6 +36,14 @@ const junitTestResultPath = "./bin/unit-tests.xml"
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
 	"To ensure a clean operation, run `devenv destroy` before running tests"
 
+// e2eTestTags are the build tags for the e2e test run.
+const e2eTestTags = "or_test,or_e2e"
+
+// e2eTestParallelism is the default `go test -p` for the e2e test run.
+// Linking a test binary takes a lot of memory, and it runs next to the
+// devenv, so link fewer at a time.
+const e2eTestParallelism = "2"
+
 // osStdInOutErr is a helper function to use the os stdin/out/err.
 func osStdInOutErr(c *exec.Cmd) *exec.Cmd {
 	c.Stdin = os.Stdin
@@ -335,6 +343,19 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
+	// Compile the tests while the devenv is provisioned and the app is
+	// deployed, so the test run only needs to link them.
+	precompileDone := make(chan struct{})
+	go func() {
+		defer close(precompileDone)
+		log.Info().Msg("Compiling e2e tests in background")
+		if err := precompileTests(ctx); err != nil {
+			log.Warn().Err(err).Msg("Failed to compile e2e tests in background, the test run will compile them")
+			return
+		}
+		log.Info().Msg("Compiling e2e tests in background finished")
+	}()
+
 	log.Info().Msg("Building dependency tree")
 
 	// Provision a devenv if it doesn't already exist. If it does exist,
@@ -444,11 +465,41 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		defer closer(ctx)
 	}
 
+	select {
+	case <-precompileDone:
+	default:
+		log.Info().Msg("Waiting for e2e test compile to finish")
+		<-precompileDone
+	}
+
 	log.Info().Msg("Running e2e tests")
-	os.Setenv("TEST_TAGS", "or_test,or_e2e")
+	os.Setenv("TEST_TAGS", e2eTestTags)
+	os.Setenv("TEST_FLAGS", withTestParallelism(os.Getenv("TEST_FLAGS")))
 	if err := osStdInOutErr(exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")).Run(); err != nil {
 		log.Fatal().Err(err).Msg("E2E tests failed, or failed to run")
 	}
+}
+
+// precompileTests builds the e2e test binaries with the same flags as the
+// test run, without running them.
+func precompileTests(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
+	cmd.Env = append(os.Environ(), "TEST_TAGS="+e2eTestTags, "COMPILE_ONLY=true")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return errors.Wrapf(err, "test.sh output: %s", out)
+	}
+	return nil
+}
+
+// withTestParallelism adds `-p` to the given `go test` flags, unless
+// they already set it.
+func withTestParallelism(flags string) string {
+	for _, f := range strings.Fields(flags) {
+		if f == "-p" || strings.HasPrefix(f, "-p=") {
+			return flags
+		}
+	}
+	return strings.TrimSpace(flags + " -p " + e2eTestParallelism)
 }
 
 // provisionDevenv provisions devenv in correct target based on application dependencies.
