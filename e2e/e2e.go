@@ -36,12 +36,12 @@ const junitTestResultPath = "./bin/unit-tests.xml"
 const devenvAlreadyExists = "Re-using existing cluster, this may lead to a non-reproducible failure/success. " +
 	"To ensure a clean operation, run `devenv destroy` before running tests"
 
-// e2eTestTags are the build tags for the e2e test run.
+// e2eTestTags contains the build tags for e2e tests.
 const e2eTestTags = "or_test,or_e2e"
 
-// e2eTestParallelism is the default `go test -p` for the e2e test run.
-// Linking a test binary takes a lot of memory, and it runs next to the
-// devenv, so link fewer at a time.
+// e2eTestParallelism is the default `go test -p` for e2e tests.
+// Linking test binaries next to the devenv uses a lot of memory, so we
+// link fewer at a time.
 const e2eTestParallelism = "2"
 
 // osStdInOutErr is a helper function to use the os stdin/out/err.
@@ -343,17 +343,17 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 		return
 	}
 
-	// Compile the tests while the devenv is provisioned and the app is
-	// deployed, so the test run only needs to link them.
+	// compile tests in background during provisioning, so the test run
+	// only needs to link them
 	precompileDone := make(chan struct{})
 	go func() {
 		defer close(precompileDone)
-		log.Info().Msg("Compiling e2e tests in background")
+		log.Info().Msg("Starting background e2e test compile")
 		if err := precompileTests(ctx); err != nil {
-			log.Warn().Err(err).Msg("Failed to compile e2e tests in background, the test run will compile them")
+			log.Warn().Err(err).Msg("Error when compiling e2e tests in background, test run will compile them")
 			return
 		}
-		log.Info().Msg("Compiling e2e tests in background finished")
+		log.Info().Msg("Background e2e test compile finished successfully")
 	}()
 
 	log.Info().Msg("Building dependency tree")
@@ -468,7 +468,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	select {
 	case <-precompileDone:
 	default:
-		log.Info().Msg("Waiting for e2e test compile to finish")
+		log.Info().Msg("Waiting for background e2e test compile to finish")
 		<-precompileDone
 	}
 
@@ -480,8 +480,7 @@ func main() { //nolint:funlen,gocyclo // Why: there are no reusable parts to ext
 	}
 }
 
-// precompileTests builds the e2e test binaries with the same flags as the
-// test run, without running them.
+// precompileTests builds e2e test binaries without running them.
 func precompileTests(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "./.bootstrap/shell/test.sh")
 	cmd.Env = append(os.Environ(), "TEST_TAGS="+e2eTestTags, "COMPILE_ONLY=true")
@@ -491,8 +490,7 @@ func precompileTests(ctx context.Context) error {
 	return nil
 }
 
-// withTestParallelism adds `-p` to the given `go test` flags, unless
-// they already set it.
+// withTestParallelism adds `-p` to `go test` flags if they don't set it already.
 func withTestParallelism(flags string) string {
 	for _, f := range strings.Fields(flags) {
 		if f == "-p" || strings.HasPrefix(f, "-p=") {

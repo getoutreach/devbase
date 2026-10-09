@@ -108,10 +108,9 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
-# COMPILE_ONLY builds the test binaries with the same flags as a normal
-# run, but doesn't run them or write test results. It fills the Go build
-# cache, so a later run with the same flags only needs to link. Set to
-# 'true' to enable.
+# COMPILE_ONLY determines if test binaries should only be built, not run.
+# If set to 'true', they're built with the same flags as a normal run and
+# no test results are written. A later run then reuses the build cache.
 COMPILE_ONLY="${COMPILE_ONLY:-}"
 
 # repoDir is the base directory of the repository.
@@ -165,7 +164,7 @@ run_go_tests() {
       info_sub "Running E2E tests with Go toolchain $toolchain"
     fi
     if [[ $COMPILE_ONLY == "true" ]]; then
-      # `-exec true` replaces running each test binary with `true`
+      # `-exec true` builds the test binaries without running them
       go test -exec true \
         "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
         -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
