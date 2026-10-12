@@ -108,6 +108,11 @@ SHUFFLE="${SHUFFLE:-enabled}"
 # is "standard-verbose".
 TEST_OUTPUT_FORMAT="${TEST_OUTPUT_FORMAT:-}"
 
+# COMPILE_ONLY determines if test binaries should only be built, not run.
+# If set to 'true', they're built with the same flags as a normal run and
+# no test results are written. A later run then reuses the build cache.
+COMPILE_ONLY="${COMPILE_ONLY:-}"
+
 # repoDir is the base directory of the repository.
 repoDir=$(get_repo_directory)
 
@@ -158,10 +163,22 @@ run_go_tests() {
       go env -w GOTOOLCHAIN="$toolchain"
       info_sub "Running E2E tests with Go toolchain $toolchain"
     fi
+    if [[ $COMPILE_ONLY == "true" ]]; then
+      # `-exec true` builds the test binaries without running them
+      go test -exec true \
+        "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
+        -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
+      exit
+    fi
     mise_exec_tool gotestsum --junitfile "$junitFile" --format "$format" -- \
       "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
       -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
   ) || exitCode=$?
+
+  if [[ $COMPILE_ONLY == "true" ]]; then
+    popd >/dev/null || fatal "Failed to change directory back from $projectDir"
+    return $exitCode
+  fi
 
   if in_ci_environment; then
     # Move this to a temporary directory so that we can control
