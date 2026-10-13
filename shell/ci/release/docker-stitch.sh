@@ -70,24 +70,12 @@ stitch_and_push_image() {
     done
 
     for remoteImageName in "${remoteImageNames[@]}"; do
-      amendedArgs=()
-      for suffixedTag in "${suffixedTags[@]}"; do
-        amendedArgs+=("--amend" "$remoteImageName:$suffixedTag")
-      done
-
       for suffixedTag in "${suffixedTags[@]}"; do
         echo "Pushing suffixed tag: $suffixedTag"
         run_docker push "$remoteImageName:$suffixedTag"
       done
 
-      echo "Creating Manifest for '$tag' from suffixed tags"
-      run_docker manifest create \
-        "$remoteImageName:$tag" "${amendedArgs[@]}"
-
-      for suffixedTag in "${suffixedTags[@]}"; do
-        echo "Pushing Manifest: $tag"
-        run_docker manifest push "$remoteImageName:$tag"
-      done
+      docker_create_and_push_manifest "$remoteImageName" "$tag" "${suffixedTags[@]}"
     done
   done
 }

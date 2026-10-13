@@ -14,8 +14,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.11.0
-	github.com/vektah/gqlparser/v2 v2.5.36
-	google.golang.org/grpc v1.83.1
+	github.com/vektah/gqlparser/v2 v2.5.60
+	google.golang.org/grpc v1.84.0
 	gotest.tools/v3 v3.5.2
 )
 
@@ -97,7 +97,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/ulikunitz/xz v0.5.16 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
