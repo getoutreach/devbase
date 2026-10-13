@@ -98,6 +98,21 @@ write_tool_versions() {
   assert_output "which --cd $expectedDir --env devbase fake-tool"
 }
 
+@test "find_tool falls back to the current directory's config for repo-declared tools" {
+  mkdir -p "$REPO_DIR/shims" "$REPO_DIR/bin" "$REPO_DIR/shell/lib"
+  printf '#!/usr/bin/env bash\n' >"$REPO_DIR/shims/fake-tool"
+  chmod +x "$REPO_DIR/shims/fake-tool"
+  # The devbase env doesn't declare the tool, so only the plain lookup succeeds.
+  printf '#!/usr/bin/env bash\n[[ $* == *--env* ]] && exit 1\necho "$*"\n' >"$REPO_DIR/bin/mise"
+  chmod +x "$REPO_DIR/bin/mise"
+  # shellcheck disable=SC2034 # Read by find_tool.
+  DEVBASE_LIB_DIR="$REPO_DIR/shell/lib"
+
+  MISE_SHIMS_DIR="$REPO_DIR/shims" PATH="$REPO_DIR/shims:$REPO_DIR/bin:$PATH" run find_tool fake-tool
+  assert_success
+  assert_output "which fake-tool"
+}
+
 @test "find_tool returns a non-shim PATH hit directly" {
   mkdir -p "$REPO_DIR/bin"
   printf '#!/usr/bin/env bash\n' >"$REPO_DIR/bin/fake-tool"

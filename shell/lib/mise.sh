@@ -287,8 +287,8 @@ wait_for_gh_rate_limit() {
 # find_tool TOOL_NAME
 #
 # Prints the path to a tool from PATH, ignoring mise shims. Otherwise,
-# prints the path that mise resolves from devbase's config. Returns
-# non-zero if neither finds the tool.
+# prints the path that mise resolves from devbase's config, then from
+# the current directory's config. Returns non-zero if none finds the tool.
 find_tool() {
   local toolName="$1" toolPath
   # Deliberately not using command_exists here because we want to
@@ -302,23 +302,27 @@ find_tool() {
   fi
 
   local misePath devbaseDir
-  misePath="$(find_mise)"
+  misePath="$(find_mise)" || true
   if [[ -z $misePath ]]; then
     error "mise not found (find_tool)"
     return 1
   fi
   # Not using get_devbase_directory: it needs bootstrap.sh and runs yq.sh,
   # which calls find_tool.
-  devbaseDir="$(cd "$DEVBASE_LIB_DIR/../.." >/dev/null 2>&1 && pwd)" || return 1
-  # Resolve against devbase's config. Calls mise directly instead of
-  # mise_for_env because run_mise calls find_tool via wait_for_gh_rate_limit.
-  # If mise resolves nothing, callers fall through to `mise exec`.
-  if mise_manages_tool_versions; then
-    "$misePath" which --cd "$devbaseDir" --env devbase "$toolName" 2>/dev/null
-  else
-    MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none \
-      "$misePath" which --cd "$devbaseDir" --env devbase "$toolName" 2>/dev/null
+  if devbaseDir="$(cd "$DEVBASE_LIB_DIR/../.." >/dev/null 2>&1 && pwd)"; then
+    # Resolve against devbase's config first, so devbase pins win. Calls mise
+    # directly instead of mise_for_env because run_mise calls find_tool via
+    # wait_for_gh_rate_limit.
+    if mise_manages_tool_versions; then
+      "$misePath" which --cd "$devbaseDir" --env devbase "$toolName" 2>/dev/null && return 0
+    else
+      MISE_OVERRIDE_TOOL_VERSIONS_FILENAMES=none \
+        "$misePath" which --cd "$devbaseDir" --env devbase "$toolName" 2>/dev/null && return 0
+    fi
   fi
+  # Fall back to the current directory's config for tools the repo declares.
+  # If mise resolves nothing, callers fall through to `mise exec`.
+  "$misePath" which "$toolName" 2>/dev/null
 }
 
 # mise_exec_tool(toolName[, args...])
