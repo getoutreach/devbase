@@ -69,7 +69,7 @@ steps:
             install_e2e_tools: true
         - run:
             name: Build to populate Go build/module caches
-            command: make build
+            command: mise run --quiet build:go
         # E2E cache with mise tool installs and Go caches for machine-executor jobs
         - save_cache:
             key: v1-e2e-daily-cache-{{ arch }}-{{ epoch }}

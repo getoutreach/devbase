@@ -68,6 +68,32 @@ EOF
   assert_output "baz"
 }
 
+@test "get_cgo_enabled returns 1 when service.yaml enables cgo" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+arguments:
+  enableCgo: true
+EOF
+  run get_cgo_enabled
+  assert_output "1"
+}
+
+@test "get_cgo_enabled returns 0 when service.yaml does not enable cgo" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+arguments:
+  enableCgo: false
+EOF
+  run get_cgo_enabled
+  assert_output "0"
+}
+
+@test "get_cgo_enabled returns 0 when enableCgo is unset" {
+  cat >"$REPOPATH"/service.yaml <<EOF
+arguments:
+EOF
+  run get_cgo_enabled
+  assert_output "0"
+}
+
 @test "stencil_module_version returns the version from stencil.lock" {
   # Create a mock stencil.lock file
   cat >"$REPOPATH"/stencil.lock <<EOF

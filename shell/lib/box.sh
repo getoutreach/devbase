@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Interact with box configuration
 
-# BOXPATH is the default path that box configuration is stored on disk.
-BOXPATH="$HOME/.outreach/.config/box/box.yaml"
+# BOXPATH is the path that box configuration is stored on disk. Overridable
+# so tests (and anything invoking a script that re-sources this file in a
+# fresh process) don't have to write into the real path.
+BOXPATH="${BOXPATH:-$HOME/.outreach/.config/box/box.yaml}"
 
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"

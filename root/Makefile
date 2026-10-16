@@ -107,7 +107,8 @@ pre-commit: fmt
 
 ## build:           run codegen and build application binary
 .PHONY: build
-build:: pre-build gobuild
+build:: pre-build
+	@CGO_ENABLED=$(CGO_ENABLED) mise run --quiet build:go
 
 ## lint:            run code linters
 .PHONY: lint
@@ -157,10 +158,10 @@ gogenerate:: pre-gogenerate
 	@$(LOG) info "Running gogenerate"
 	@GOPROXY=$(GOPROXY) GOPRIVATE=$(GOPRIVATE) $(GO) generate ./...
 
-## gobuild:         build application binary
+## gobuild:         [DEPRECATED] build application binary
 .PHONY: gobuild
 gobuild:
-	@CGO_ENABLED=$(CGO_ENABLED) $(MAGE_CMD) gobuild
+	@./scripts/shell-wrapper.sh deprecated-task.sh gobuild build:go
 
 ## grpcui:          run grpcui for an already locally running service
 .PHONY: grpcui
@@ -181,7 +182,7 @@ devspace-watch:
 ## devspace:               build sources for linux with debugging symbols. To be used with devspace using `devenv apps run --sync-binaries .`
 .PHONY: devspace
 devspace:
-	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=$(CGO_ENABLED) SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 GC_FLAGS="all=-N -l" $(MAGE_CMD) gobuild
+	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=$(CGO_ENABLED) SKIP_TRIMPATH="true" SKIP_STARTING_APP="true" DLV_PORT=42097 GC_FLAGS="all=-N -l" mise run --quiet build:go
 	@DEVBOX_LOGFMT="$(LOGFMT)" BUILD_FOR_GOOS="linux" CGO_ENABLED=$(CGO_ENABLED) $(MAGE_CMD) e2etestbuild
 	@echo "Use 'devenv apps run --sync-binaries .' to sync binaries to devspace pod"
 
