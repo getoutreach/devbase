@@ -33,6 +33,8 @@ arguments:
   versions:
     urfave-cli: v3
     prettier: "3"
+    mise:
+      hard: "2026.8.9"
 modules:
   - name: github.com/getoutreach/stencil-circleci
     channel: rc
