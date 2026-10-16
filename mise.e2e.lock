@@ -103,38 +103,38 @@ url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_dar
 url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854925"
 
 [[tools."github:getoutreach/devenv"]]
-version = "1.67.0"
+version = "1.68.0"
 backend = "github:getoutreach/devenv"
 
 [tools."github:getoutreach/devenv"."platforms.linux-arm64"]
-checksum = "sha256:d0e8337a1399abd24064f2631f538750cdf034292dcfbf69dfcc611664c0eed4"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235220"
+checksum = "sha256:ab219348e507d04eaa55f2056d0be6ab6dfd8b868721a9bacddb204ebc7aacb1"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972177"
 
 [tools."github:getoutreach/devenv"."platforms.linux-arm64-musl"]
-checksum = "sha256:d0e8337a1399abd24064f2631f538750cdf034292dcfbf69dfcc611664c0eed4"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235220"
+checksum = "sha256:ab219348e507d04eaa55f2056d0be6ab6dfd8b868721a9bacddb204ebc7aacb1"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972177"
 
 [tools."github:getoutreach/devenv"."platforms.linux-x64"]
-checksum = "sha256:041438f547efe930631a587606707978e7210eef5ac22d3d95f8c2790f25af13"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235197"
+checksum = "sha256:f933f043509f0982ba0e0159a15a130b1eaa78a3a126e328fb56fc48ae80fd45"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972252"
 
 [tools."github:getoutreach/devenv"."platforms.linux-x64-musl"]
-checksum = "sha256:041438f547efe930631a587606707978e7210eef5ac22d3d95f8c2790f25af13"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235197"
+checksum = "sha256:f933f043509f0982ba0e0159a15a130b1eaa78a3a126e328fb56fc48ae80fd45"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972252"
 
 [tools."github:getoutreach/devenv"."platforms.macos-arm64"]
-checksum = "sha256:8971ed42977151bd31215d441b902e3c5d023f7e01caf783c46a80108aaefe6a"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235182"
+checksum = "sha256:2f545fd951e2ffe3756bcc8f34c59fcf6f9429311a9961a285c89a78ca227612"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972210"
 
 [tools."github:getoutreach/devenv"."platforms.macos-x64"]
-checksum = "sha256:04d5b4c9de17a56b7a5dcd62c0d68c8c5ddf667751d5c9f130e7b343964e9288"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.67.0/devenv_1.67.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/528235240"
+checksum = "sha256:471dbf35a02ff66bab7ec28bb88c3c60734182a059c68e5accb989706a67425b"
+url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972234"
 
 [[tools."github:getoutreach/kubecfg"]]
 version = "0.28.1"
