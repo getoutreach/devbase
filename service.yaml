@@ -31,10 +31,10 @@ arguments:
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
   versions:
-    urfave-cli: v3
-    prettier: "3"
     mise:
       hard: "2026.8.9"
+    prettier: "3"
+    urfave-cli: v3
 modules:
   - name: github.com/getoutreach/stencil-circleci
     channel: rc
