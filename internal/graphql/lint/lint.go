@@ -43,6 +43,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -104,6 +105,7 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 }
 
 // FilesFromSources parses fileSources as one combined GraphQL schema,
+// skipping any source that holds only operations or fragments,
 // returning the Tier 1 violation gqlparser raised, if any, or -- once
 // the schema validates cleanly -- any Tier 2 gap-fill and Tier 3
 // violations found in it. fileSources are parsed together, not
@@ -117,6 +119,8 @@ func Files(paths []string, cfg *config.Lint) ([]Violation, error) {
 // merged into the parsed sources before validation; a nil cfg parses
 // fileSources exactly as given, with no merged prelude.
 func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation, error) {
+	fileSources = withoutOperationDocuments(fileSources)
+
 	extraSources, err := preludeSources(fileSources, cfg)
 	if err != nil {
 		// preludeSources parses paths' own files looking for @link, so a
@@ -154,6 +158,23 @@ func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation,
 	violations = append(violations, tier3Violations...)
 
 	return violations, nil
+}
+
+// withoutOperationDocuments returns sources minus every source that
+// parses as an executable document: one or more operations or fragments
+// and nothing else, such as a genqlient input. Those are client
+// documents, not schema SDL, and gqlparser's schema parser rejects
+// them. A source that mixes the two kinds parses as neither, so it is
+// kept and reported as a syntax error.
+func withoutOperationDocuments(sources []*ast.Source) []*ast.Source {
+	return slices.DeleteFunc(slices.Clone(sources), isOperationDocument)
+}
+
+// isOperationDocument reports whether src parses as an executable
+// document with at least one operation or fragment.
+func isOperationDocument(src *ast.Source) bool {
+	doc, err := parser.ParseQuery(src)
+	return err == nil && len(doc.Operations)+len(doc.Fragments) > 0
 }
 
 // parsedSchema bundles a validated schema with the raw, pre-merge
