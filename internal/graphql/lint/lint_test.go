@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
+	"github.com/vektah/gqlparser/v2/ast"
 	"gotest.tools/v3/assert"
 )
 
@@ -255,6 +256,56 @@ func TestLintFilesUnclassifiedRule(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 1)
 	assert.Equal(t, violations[0].Rule, UnclassifiedRule)
+}
+
+// TestLintFilesSkipsOperationDocuments confirms that a file holding only
+// executable definitions (operations and fragments, such as a genqlient
+// input) is not linted as schema SDL.
+func TestLintFilesSkipsOperationDocuments(t *testing.T) {
+	operations := map[string]string{
+		"query":        `query Foo($id: ID!) { foo(id: $id) { a } }`,
+		"mutation":     `mutation Foo { setFoo { a } }`,
+		"subscription": `subscription Foo { foo { a } }`,
+		"fragment":     `fragment FooParts on Foo { a }`,
+		"shorthand":    `{ foo { a } }`,
+	}
+	for name, doc := range operations {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			schemaPath := writeFile(t, dir, "schema.graphql", `type Foo { a: String }`)
+			opPath := writeFile(t, dir, "op.graphql", doc)
+
+			violations, err := Files([]string{schemaPath, opPath}, nil)
+			assert.NilError(t, err)
+			assert.Equal(t, len(violations), 0)
+		})
+	}
+}
+
+// TestLintFilesReportsMixedOperationAndSchemaDocument confirms that a
+// file mixing schema and executable definitions is not skipped: it is
+// valid as neither a schema nor an operation document.
+func TestLintFilesReportsMixedOperationAndSchemaDocument(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "mixed.graphql", "type Foo { a: String }\nquery Q { a }")
+
+	violations, err := Files([]string{path}, nil)
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 1)
+	assert.Equal(t, violations[0].Rule, UnclassifiedRule)
+}
+
+// TestWithoutOperationDocumentsKeepsSchemaAndEmptySources confirms that
+// only sources with at least one operation or fragment are dropped:
+// schema, empty, and comment-only sources are kept, in order.
+func TestWithoutOperationDocumentsKeepsSchemaAndEmptySources(t *testing.T) {
+	schema := &ast.Source{Name: "schema.graphql", Input: `type Foo { a: String }`}
+	empty := &ast.Source{Name: "empty.graphql", Input: ""}
+	comment := &ast.Source{Name: "comment.graphql", Input: "# nothing here"}
+	operation := &ast.Source{Name: "op.graphql", Input: `query Q { a }`}
+
+	got := withoutOperationDocuments([]*ast.Source{schema, operation, empty, comment})
+	assert.DeepEqual(t, got, []*ast.Source{schema, empty, comment})
 }
 
 func TestFindGraphQLFilesSkipsExcludedAndNonGraphQLFiles(t *testing.T) {
