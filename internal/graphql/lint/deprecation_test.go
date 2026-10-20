@@ -83,7 +83,8 @@ func TestRequireDeprecationReasonDisabledByDefault(t *testing.T) {
 
 // dateString formats when as require-deprecation-date's "DD/MM/YYYY"
 // argument value, computed relative to time.Now() so these tests never
-// go stale the way a hardcoded calendar date eventually would.
+// go stale the way a hardcoded calendar date eventually would. The rule
+// parses dates as UTC midnight, so callers build when from time.Now().UTC().
 func dateString(when time.Time) string {
 	return when.Format(deletionDateLayout)
 }
@@ -103,8 +104,8 @@ func redeclareDeprecated(argName string) string {
 }
 
 func TestRequireDeprecationDateValidCases(t *testing.T) {
-	tomorrow := dateString(time.Now().AddDate(0, 0, 1))
-	farFuture := dateString(time.Now().AddDate(5, 0, 0))
+	tomorrow := dateString(time.Now().UTC().AddDate(0, 0, 1))
+	farFuture := dateString(time.Now().UTC().AddDate(5, 0, 0))
 
 	cases := []struct {
 		name string
@@ -144,7 +145,7 @@ func TestRequireDeprecationDateValidCases(t *testing.T) {
 }
 
 func TestRequireDeprecationDateInvalidCases(t *testing.T) {
-	yesterday := dateString(time.Now().AddDate(0, 0, -1))
+	yesterday := dateString(time.Now().UTC().AddDate(0, 0, -1))
 
 	cases := []struct {
 		name            string
