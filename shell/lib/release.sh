@@ -183,7 +183,9 @@ release_head_has_net_changes() {
 #           the job ran), so preview <base> as-is. Skipping would let a blocked
 #           release, such as a major bump, pass the check.
 #   none    <head> is an ancestor of <base> or adds no content, so there is
-#           nothing to release.
+#           nothing to release. A merge-commit merge also gives this result,
+#           because <head> becomes an ancestor of <base>. This is a known
+#           limit.
 #   error   the merge could not be previewed. A report is written to stderr.
 # Always exits 0 so callers can capture the result under set -e. Requires
 # bootstrap.sh and version.sh to be sourced.

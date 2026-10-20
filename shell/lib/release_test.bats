@@ -270,6 +270,7 @@ diverging_conflict() {
   git -C "$REPO" checkout --quiet main
   git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
   run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
   assert_output "none"
 }
 
@@ -278,11 +279,13 @@ diverging_conflict() {
   git -C "$REPO" checkout --quiet main
   git -C "$REPO" merge --quiet --no-ff feature --message "Merge feature"
   run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
   assert_output "none"
 }
 
 @test "release_preview_action returns error for a nonexistent ref" {
   run --separate-stderr release_preview_action "$REPO" main does-not-exist
+  [ "$status" -eq 0 ]
   assert_output "error"
   [[ $stderr == *"operational error"* ]]
 }
