@@ -9,9 +9,12 @@ load test_helper.sh
 bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
-# Note: base resolution is unit-tested here. The "No changes to release" no-op
-# guard for an ancestor-of-base branch lives in dryrun.sh, an orchestration
-# script exercised by the CI/manual dry-run path rather than bats.
+# Required for `run --separate-stderr`.
+bats_require_minimum_version 1.5.0
+
+# Note: base resolution and the preview decision (release_preview_action) are
+# unit-tested here. dryrun.sh only maps that decision to commands and is
+# exercised by the CI/manual dry-run path rather than bats.
 
 setup() {
   REPO="$(mktempdir devbase-release-XXXXXX)"
@@ -33,6 +36,44 @@ prereleases_on() {
 
 prereleases_off() {
   printf 'arguments:\n  releaseOptions:\n    enablePrereleases: false\n' >"$REPO/service.yaml"
+}
+
+# feature_adds_work leaves the repo on a new "feature" branch with one commit
+# that adds work.txt, using $1 as the commit message.
+feature_adds_work() {
+  git -C "$REPO" checkout --quiet -b feature
+  echo "feature work" >"$REPO/work.txt"
+  git -C "$REPO" add work.txt
+  git -C "$REPO" commit --quiet --message "$1"
+}
+
+# squash_merge_feature lands the "feature" branch's work.txt on main as a new
+# commit, as a squash merge would.
+squash_merge_feature() {
+  git -C "$REPO" checkout --quiet main
+  echo "feature work" >"$REPO/work.txt"
+  git -C "$REPO" add work.txt
+  git -C "$REPO" commit --quiet --message "feat!: feature work (#1)"
+}
+
+# ancestor_head leaves the repo on a "tmp" branch that is an ancestor of main.
+ancestor_head() {
+  git -C "$REPO" tag rc
+  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
+  git -C "$REPO" checkout --quiet -b tmp rc
+}
+
+# diverging_conflict leaves "main" and "feature" with conflicting edits to f.txt.
+diverging_conflict() {
+  printf 'line1\n' >"$REPO/f.txt"
+  git -C "$REPO" add f.txt
+  git -C "$REPO" commit --quiet --message "base line"
+  git -C "$REPO" checkout --quiet -b feature
+  printf 'feature-version\n' >"$REPO/f.txt"
+  git -C "$REPO" commit --quiet --all --message "feature change"
+  git -C "$REPO" checkout --quiet main
+  printf 'main-version\n' >"$REPO/f.txt"
+  git -C "$REPO" commit --quiet --all --message "main change"
 }
 
 @test "feature branch ahead of main resolves to default branch" {
@@ -93,26 +134,19 @@ prereleases_off() {
 }
 
 @test "release_commit_message is empty when head is an ancestor of base" {
-  git -C "$REPO" tag rc
-  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
-  git -C "$REPO" checkout --quiet -b tmp rc
+  ancestor_head
   run release_commit_message "$REPO" main tmp
   assert_output ""
 }
 
 @test "release_has_changes returns 0 when head has a real delta over base" {
-  git -C "$REPO" checkout --quiet -b feature
-  echo "feature work" >"$REPO/work.txt"
-  git -C "$REPO" add work.txt
-  git -C "$REPO" commit --quiet --message "feature work"
+  feature_adds_work "feature work"
   run release_has_changes "$REPO" main feature
   [ "$status" -eq 0 ]
 }
 
 @test "release_has_changes returns 1 when head is an ancestor of base" {
-  git -C "$REPO" tag rc
-  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
-  git -C "$REPO" checkout --quiet -b tmp rc
+  ancestor_head
   run release_has_changes "$REPO" main tmp
   [ "$status" -eq 1 ]
 }
@@ -130,16 +164,60 @@ prereleases_off() {
   [ "$status" -eq 1 ]
 }
 
-@test "release_has_changes returns 2 and reports on a divergent conflict" {
-  printf 'line1\n' >"$REPO/f.txt"
-  git -C "$REPO" add f.txt
-  git -C "$REPO" commit --quiet --message "base line"
-  git -C "$REPO" checkout --quiet -b feature
-  printf 'feature-version\n' >"$REPO/f.txt"
-  git -C "$REPO" commit --quiet --all --message "feature change"
+@test "release_head_has_net_changes returns 0 when head was squash-merged into base" {
+  feature_adds_work "feature work"
+  squash_merge_feature
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 1 ]
+  run release_head_has_net_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+}
+
+@test "release_head_has_net_changes returns 0 when head was rebase-merged into base" {
+  feature_adds_work "feat!: feature work"
   git -C "$REPO" checkout --quiet main
-  printf 'main-version\n' >"$REPO/f.txt"
-  git -C "$REPO" commit --quiet --all --message "main change"
+  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
+  git -C "$REPO" cherry-pick feature >/dev/null
+  run release_has_changes "$REPO" main feature
+  [ "$status" -eq 1 ]
+  run release_head_has_net_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+}
+
+@test "release_head_has_net_changes returns 0 when git diff fails" {
+  feature_adds_work "feature work"
+  # Remove head's tree object: merge-base only reads commits, but diff needs the tree.
+  local tree
+  tree="$(git -C "$REPO" rev-parse "feature^{tree}")"
+  rm -f "$REPO/.git/objects/${tree:0:2}/${tree:2}"
+  run git -C "$REPO" diff --quiet main feature
+  [ "$status" -gt 1 ]
+  run release_head_has_net_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+}
+
+@test "release_head_has_net_changes returns 0 when the merge-base cannot be determined" {
+  run release_head_has_net_changes "$REPO" main does-not-exist
+  [ "$status" -eq 0 ]
+}
+
+@test "release_head_has_net_changes returns 1 when head is an ancestor of base" {
+  ancestor_head
+  run release_head_has_net_changes "$REPO" main tmp
+  [ "$status" -eq 1 ]
+}
+
+@test "release_head_has_net_changes returns 1 when head only adds empty commits" {
+  git -C "$REPO" checkout --quiet -b feature
+  git -C "$REPO" commit --quiet --allow-empty --message "chore: nothing"
+  git -C "$REPO" checkout --quiet main
+  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
+  run release_head_has_net_changes "$REPO" main feature
+  [ "$status" -eq 1 ]
+}
+
+@test "release_has_changes returns 2 and reports on a divergent conflict" {
+  diverging_conflict
   run release_has_changes "$REPO" main feature
   [ "$status" -eq 2 ]
   assert_output --partial "main"           # base ref named in header
@@ -156,11 +234,64 @@ prereleases_off() {
   assert_output --partial "does-not-exist"
 }
 
-@test "squash_branch commits the delta onto base with the given message" {
+@test "release_preview_action returns squash when head has a real delta over base" {
+  feature_adds_work "feature work"
+  run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
+  assert_output "squash"
+}
+
+@test "release_preview_action returns merged when head was squash-merged into base" {
+  feature_adds_work "feature work"
+  squash_merge_feature
+  run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
+  assert_output "merged"
+}
+
+@test "release_preview_action returns none when head is an ancestor of base" {
+  ancestor_head
+  run release_preview_action "$REPO" main tmp
+  [ "$status" -eq 0 ]
+  assert_output "none"
+}
+
+@test "release_preview_action returns error on a merge conflict" {
+  diverging_conflict
+  run --separate-stderr release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
+  assert_output "error"
+  [[ $stderr == *"cannot preview"* ]]
+}
+
+@test "release_preview_action returns none when head only adds empty commits" {
   git -C "$REPO" checkout --quiet -b feature
-  echo "feature work" >"$REPO/work.txt"
-  git -C "$REPO" add work.txt
-  git -C "$REPO" commit --quiet --message "feature work"
+  git -C "$REPO" commit --quiet --allow-empty --message "chore: nothing"
+  git -C "$REPO" checkout --quiet main
+  git -C "$REPO" commit --quiet --allow-empty --message "newer on main"
+  run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
+  assert_output "none"
+}
+
+@test "release_preview_action returns none when head was merge-committed into base (known limit)" {
+  feature_adds_work "feature work"
+  git -C "$REPO" checkout --quiet main
+  git -C "$REPO" merge --quiet --no-ff feature --message "Merge feature"
+  run release_preview_action "$REPO" main feature
+  [ "$status" -eq 0 ]
+  assert_output "none"
+}
+
+@test "release_preview_action returns error for a nonexistent ref" {
+  run --separate-stderr release_preview_action "$REPO" main does-not-exist
+  [ "$status" -eq 0 ]
+  assert_output "error"
+  [[ $stderr == *"operational error"* ]]
+}
+
+@test "squash_branch commits the delta onto base with the given message" {
+  feature_adds_work "feature work"
 
   run release_has_changes "$REPO" main feature
   [ "$status" -eq 0 ]
