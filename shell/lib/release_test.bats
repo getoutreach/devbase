@@ -184,6 +184,18 @@ diverging_conflict() {
   [ "$status" -eq 0 ]
 }
 
+@test "release_head_has_net_changes returns 0 when git diff fails" {
+  feature_adds_work "feature work"
+  # Remove head's tree object: merge-base only reads commits, but diff needs the tree.
+  local tree
+  tree="$(git -C "$REPO" rev-parse "feature^{tree}")"
+  rm -f "$REPO/.git/objects/${tree:0:2}/${tree:2}"
+  run git -C "$REPO" diff --quiet main feature
+  [ "$status" -gt 1 ]
+  run release_head_has_net_changes "$REPO" main feature
+  [ "$status" -eq 0 ]
+}
+
 @test "release_head_has_net_changes returns 0 when the merge-base cannot be determined" {
   run release_head_has_net_changes "$REPO" main does-not-exist
   [ "$status" -eq 0 ]
