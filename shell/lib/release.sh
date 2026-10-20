@@ -151,6 +151,63 @@ release_has_changes() {
   esac
 }
 
+# release_head_has_net_changes <repo_dir> <base> <head>
+#
+# Succeeds when <head> changes the tree relative to its merge-base with <base>.
+# Paired with a release_has_changes result of 1, this identifies a branch whose
+# changes already landed on <base> by a squash or rebase merge, as opposed to an
+# ancestor of <base> or a branch with no content. A merge-commit merge makes
+# <head> an ancestor of <base>, so it is not detected here.
+#
+# Fails closed: when the merge-base or the diff cannot be computed, this
+# succeeds so the caller runs the check instead of skipping it.
+#
+# Exit codes:
+#   0  <head> has net changes over the merge-base, or this cannot be determined
+#   1  <head> has no net changes
+release_head_has_net_changes() {
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+
+  local fork_point
+  fork_point="$(git -C "$repo_dir" merge-base "$base" "$head")" || return 0
+  ! git -C "$repo_dir" diff --quiet "$fork_point" "$head"
+}
+
+# release_preview_action <repo_dir> <base> <head>
+#
+# Prints how a release dry run should preview <head> against <base>:
+#   squash  <head> has a real delta, so squash it onto <base> and preview.
+#   merged  <head> changes are already in <base> (for example a PR merged while
+#           the job ran), so preview <base> as-is. Skipping would let a blocked
+#           release, such as a major bump, pass the check.
+#   none    <head> is an ancestor of <base> or adds no content, so there is
+#           nothing to release.
+#   error   the merge could not be previewed. A report is written to stderr.
+# Always exits 0 so callers can capture the result under set -e. Requires
+# bootstrap.sh and version.sh to be sourced.
+release_preview_action() {
+  local repo_dir="$1"
+  local base="$2"
+  local head="$3"
+
+  local rc=0
+  release_has_changes "$repo_dir" "$base" "$head" || rc=$?
+
+  case "$rc" in
+  0) echo "squash" ;;
+  1)
+    if release_head_has_net_changes "$repo_dir" "$base" "$head"; then
+      echo "merged"
+    else
+      echo "none"
+    fi
+    ;;
+  *) echo "error" ;;
+  esac
+}
+
 # _release_conflict_report <repo_dir> <base> <head> <merge_output>
 #
 # Writes a self-contained conflict diagnostic to stderr so the CI log alone
@@ -173,7 +230,7 @@ _release_conflict_report() {
 # squash_branch <repo_dir> <base> <head> <message>
 #
 # Squashes <head> onto <base> as a single commit with <message>. Only call
-# after release_has_changes has confirmed a delta (exit 0). Runs under the
+# after release_preview_action has returned "squash". Runs under the
 # caller's set -e, so any failure aborts loudly. On success the working tree is
 # left checked out on <base> (the squash commit is on <base>).
 squash_branch() {

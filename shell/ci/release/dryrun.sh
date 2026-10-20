@@ -38,6 +38,26 @@ fetch_branch() {
   fi
 }
 
+# run_release_preview
+#
+# Runs semantic-release in dry-run mode on the checked out branch, then the
+# prerelease dry-run.
+run_release_preview() {
+  GITHUB_TOKEN="$(github_token)"
+  if [[ -z $GITHUB_TOKEN ]]; then
+    warn "Failed to read GitHub token" >&2
+  fi
+
+  run_gh auth setup-git
+
+  MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
+    yarn --frozen-lockfile semantic-release --dry-run
+
+  # Handle prereleases for CLIs, pre-conditions for this exist
+  # in the script.
+  "$DIR/pre-release.sh" --dry-run
+}
+
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
   exit 0
@@ -97,38 +117,27 @@ if ! git merge-base "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" >/dev/null 2>&1; then
   fatal "The clone is likely still shallow (git fetch --unshallow failed)."
 fi
 
-# Decide whether the branch has anything to release, then squash and preview.
-# The tri-state exit code keeps a merge conflict from being silently treated
-# as "no changes".
-set +e
-release_has_changes "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH"
-rc=$?
-set -e
-
-case "$rc" in
-0)
+# Decide how to preview the branch. The "error" result keeps a merge conflict
+# from being silently treated as "no changes".
+action="$(release_preview_action "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH")"
+case "$action" in
+squash)
   COMMIT_MESSAGE="$(release_commit_message "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH")"
   squash_branch "$(get_repo_directory)" "$CIRCLE_BRANCH" "$OLD_CIRCLE_BRANCH" "$COMMIT_MESSAGE"
-
-  GITHUB_TOKEN="$(github_token)"
-  if [[ -z $GITHUB_TOKEN ]]; then
-    warn "Failed to read GitHub token" >&2
-  fi
-
-  run_gh auth setup-git
-
-  MISE_GITHUB_TOKEN="$GITHUB_TOKEN" GH_TOKEN="$GITHUB_TOKEN" \
-    yarn --frozen-lockfile semantic-release --dry-run
-
-  # Handle prereleases for CLIs, pre-conditions for this exist
-  # in the script.
-  "$DIR/pre-release.sh" --dry-run
+  run_release_preview
   ;;
-1)
+merged)
+  info "Changes from '$OLD_CIRCLE_BRANCH' are already in '$CIRCLE_BRANCH', previewing '$CIRCLE_BRANCH' as-is"
+  run_release_preview
+  ;;
+none)
   echo "No changes to release"
   ;;
-*)
-  # release_has_changes already logged the diagnostic report to stderr.
+error)
+  # release_preview_action already logged the diagnostic report to stderr.
   exit 1
+  ;;
+*)
+  fatal "unexpected release preview action: '$action'"
   ;;
 esac
