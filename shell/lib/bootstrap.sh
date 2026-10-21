@@ -94,6 +94,16 @@ has_feature() {
   return 1
 }
 
+# get_cgo_enabled returns "1" if service.yaml has explicitly enabled cgo
+# via its enableCgo argument, or "0" otherwise.
+get_cgo_enabled() {
+  if has_feature "enableCgo"; then
+    echo "1"
+  else
+    echo "0"
+  fi
+}
+
 get_service_yaml() {
   if [[ -e "service.yaml" ]]; then
     echo "service.yaml"
