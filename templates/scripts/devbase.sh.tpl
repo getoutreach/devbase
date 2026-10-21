@@ -9,12 +9,6 @@ serviceYaml="$DIR/../service.yaml"
 {{- /* This needs to be synced with versions.yaml since the template can't read that file. */}}
 gojqVersion="v0.12.18"
 
-# get_absolute_path returns the absolute path of a file
-get_absolute_path() {
-  python="$(command -v python3 || command -v python)"
-  "$python" -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"
-}
-
 # gojq returns the path to a JIT-downloaded gojq binary.
 gojq() {
   set -uo pipefail
@@ -99,7 +93,7 @@ if [[ ! -e $libDir ]] || [[ $existingVersion != "$version" ]] || [[ ! -e "$libDi
     # to map the local devbase into the bootstrap dir
 
     path=$(get_field_from_yaml '.replacements["github.com/getoutreach/devbase"]' "$serviceYaml")
-    absolute_path=$(get_absolute_path "$path")
+    absolute_path=$(realpath "$path")
 
     ln -sf "$absolute_path" "$libDir"
   else
