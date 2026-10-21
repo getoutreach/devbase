@@ -2,7 +2,6 @@ name: devbase
 arguments:
   ciOptions:
     skipE2e: true
-    skipDocker: true
   commands:
     - devbase
   deployment:
