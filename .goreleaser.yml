@@ -26,7 +26,16 @@ builds:
       ## <</Stencil::Block>>
 
 ## <<Stencil::Block(archives)>>
-archives: []
+archives:
+  - files:
+      - src: license*
+      - src: LICENSE*
+      - src: readme*
+      - src: README*
+      - src: release/yq
+        dst: yq
+        info:
+          mode: 0755
 ## <</Stencil::Block>>
 checksum:
   name_template: "checksums.txt"
