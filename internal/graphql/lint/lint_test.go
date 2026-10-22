@@ -177,9 +177,6 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			wantErrSubstring: "Argument arg for directive foo cannot be null.",
 		},
 		{
-			// gqlparser rejects any second schema { } block outright,
-			// regardless of whether its root operations overlap with the
-			// first block's.
 			rule: config.RuleLoneSchemaDefinition,
 			sdl: `
 				schema { query: Query }
@@ -188,6 +185,28 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 				type Mutation { a: String }
 			`,
 			wantErrSubstring: "Cannot have multiple schema entry points",
+		},
+		{
+			rule: config.RuleUniqueOperationTypes,
+			sdl: `
+				schema {
+					query: Query
+					query: OtherQuery
+				}
+				type Query { a: String }
+				type OtherQuery { a: String }
+			`,
+			wantErrSubstring: "There can be only one query type in schema.",
+		},
+		{
+			rule: config.RuleUniqueOperationTypes,
+			sdl: `
+				schema { query: Query }
+				extend schema { query: OtherQuery }
+				type Query { a: String }
+				type OtherQuery { a: String }
+			`,
+			wantErrSubstring: "There can be only one query type in schema.",
 		},
 	}
 
@@ -203,27 +222,6 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			assert.ErrorContains(t, violations[0].err, c.wantErrSubstring)
 		})
 	}
-}
-
-// TestLintFilesUniqueOperationTypesWithinSingleSchemaBlock confirms that
-// two "query:" entries inside a single schema { } block are reported as
-// a unique-operation-types violation (gqlparser v2.5.63 and later).
-func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlock(t *testing.T) {
-	dir := t.TempDir()
-	path := writeFile(t, dir, "schema.graphql", `
-		schema {
-			query: Query
-			query: OtherQuery
-		}
-		type Query { a: String }
-		type OtherQuery { a: String }
-	`)
-
-	violations, err := Files([]string{path}, nil)
-	assert.NilError(t, err)
-	assert.Equal(t, len(violations), 1)
-	assert.Equal(t, violations[0].Rule, config.RuleUniqueOperationTypes)
-	assert.ErrorContains(t, violations[0].err, "There can be only one query type in schema.")
 }
 
 // TestLintFilesCombinesMultipleFilesIntoOneSchema confirms that
