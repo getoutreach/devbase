@@ -17,7 +17,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "${DIR}/cli.sh"
 
 if ! find_tool go >/dev/null 2>&1; then
-  exec "$(find_tool gojq)" --yaml-input "$@"
+  gojq_path="$(find_tool gojq || true)"
+  if [[ -z $gojq_path ]]; then
+    fatal "neither go nor gojq found; cannot run yq"
+  fi
+  exec "$gojq_path" --yaml-input "$@"
 fi
 
 devbase_cli yq "$@"
