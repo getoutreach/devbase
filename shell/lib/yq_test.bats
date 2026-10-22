@@ -244,7 +244,10 @@ stub_gojq_env() {
 @test "yq_wrapper uses gojq instead of building devbase when go is missing" {
   stub_gojq_env local ""
   yq_run_gojq() { echo "gojq fallback $*"; }
-  yq_resolve_bin() { echo "unexpected build" >&2; return 1; }
+  yq_resolve_bin() {
+    echo "unexpected build" >&2
+    return 1
+  }
 
   run yq_wrapper .a
   assert_success
