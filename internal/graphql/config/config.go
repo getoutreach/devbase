@@ -404,7 +404,9 @@ func Load(startDir string) (*Lint, string, error) {
 
 // LoadFile parses the config file at path, which uses the same format
 // as scripts/devbase.yaml. Unlike Load, it does not search for the file,
-// and a missing file is an error.
+// and a missing file is an error. Because it returns no directory, callers
+// match Lint.Exclude against the paths they lint, not against the location
+// of the config file.
 func LoadFile(path string) (*Lint, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
