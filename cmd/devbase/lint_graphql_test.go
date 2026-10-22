@@ -7,12 +7,16 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/getoutreach/devbase/v2/internal/graphql/lint"
+	"github.com/urfave/cli/v3"
 	"gotest.tools/v3/assert"
 )
 
@@ -107,4 +111,43 @@ func TestReportViolations(t *testing.T) {
 			assert.Equal(t, buf.String(), wantOutput.String())
 		})
 	}
+}
+
+// TestLintGraphQLConfigFlag confirms --config applies a config file
+// that lives outside the linted repository, and that a missing file
+// is an error instead of a silent fall back to the defaults.
+func TestLintGraphQLConfigFlag(t *testing.T) {
+	repo := t.TempDir()
+	assert.NilError(t, os.Mkdir(filepath.Join(repo, ".git"), 0o755))
+	assert.NilError(t, os.WriteFile(filepath.Join(repo, "schema.graphql"), []byte("type foo { a: String }\n"), 0o600))
+
+	configPath := filepath.Join(t.TempDir(), "devbase.yaml")
+	assert.NilError(t, os.WriteFile(configPath, []byte(devbaseYAML), 0o600))
+
+	t.Run("applies the given config file", func(t *testing.T) {
+		defer chdir(t, repo)()
+
+		cmd := newLintGraphQLCommand()
+		var out bytes.Buffer
+		cmd.Writer = &out
+		cmd.ExitErrHandler = func(context.Context, *cli.Command, error) {}
+
+		runErr := cmd.Run(context.Background(), []string{"graphql", "--config", configPath, "schema.graphql"})
+
+		var exitErr cli.ExitCoder
+		assert.Assert(t, errors.As(runErr, &exitErr), runErr)
+		assert.Equal(t, exitErr.ExitCode(), 1)
+		assert.Assert(t, strings.Contains(out.String(), `"foo"`), out.String())
+	})
+
+	t.Run("fails when the config file is missing", func(t *testing.T) {
+		defer chdir(t, repo)()
+
+		cmd := newLintGraphQLCommand()
+		cmd.ExitErrHandler = func(context.Context, *cli.Command, error) {}
+
+		missing := filepath.Join(t.TempDir(), "missing.yaml")
+		runErr := cmd.Run(context.Background(), []string{"graphql", "--config", missing, "schema.graphql"})
+		assert.ErrorIs(t, runErr, os.ErrNotExist)
+	})
 }

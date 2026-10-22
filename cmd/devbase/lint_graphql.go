@@ -27,6 +27,10 @@ func newLintGraphQLCommand() *cli.Command {
 		Usage:     "Run GraphQL lint checks on the codebase",
 		ArgsUsage: "[paths...]",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "config",
+				Usage: "Path to a config file to use instead of searching for scripts/devbase.yaml",
+			},
 			&cli.StringSliceFlag{
 				Name:    "exclude",
 				Aliases: []string{"e"},
@@ -47,9 +51,10 @@ func newLintGraphQLCommand() *cli.Command {
 }
 
 // lintGraphQL is the Action for the "graphql" subcommand. It resolves
-// scripts/devbase.yaml for the current working directory, finds the
-// *.graphql files under the given paths (the current directory if none
-// are given), runs the Tier 1 and enabled Tier 2 rules against them,
+// scripts/devbase.yaml for the current working directory (or reads the
+// file given by --config instead), finds the *.graphql files under the
+// given paths (the current directory if none are given), runs the
+// Tier 1 and enabled Tier 2 rules against them,
 // and prints every violation found -- or, with --diff, only the
 // violations not already present at the merge-base of HEAD and --base.
 // It returns a non-zero exit code only if at least one reported
@@ -72,9 +77,20 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("get working directory: %w", err)
 	}
 
-	lintConfig, configDir, err := config.Load(cwd)
-	if err != nil {
-		return fmt.Errorf("load scripts/devbase.yaml: %w", err)
+	var (
+		lintConfig *config.Lint
+		configDir  string
+	)
+	if configPath := c.String("config"); configPath != "" {
+		lintConfig, err = config.LoadFile(configPath)
+		if err != nil {
+			return fmt.Errorf("load config file: %w", err)
+		}
+	} else {
+		lintConfig, configDir, err = config.Load(cwd)
+		if err != nil {
+			return fmt.Errorf("load scripts/devbase.yaml: %w", err)
+		}
 	}
 
 	excludes := lintConfig.MergeExcludes(c.StringSlice("exclude")...)
