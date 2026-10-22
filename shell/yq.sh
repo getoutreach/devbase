@@ -14,15 +14,12 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./cli.sh
-source "${DIR}/cli.sh"
+# shellcheck source=./lib/yq.sh
+source "${DIR}/lib/yq.sh"
 
-if ! devbase_cli_is_tagged_version "$(devbase_cli_version)" && ! find_tool go >/dev/null 2>&1; then
-  gojq_path="$(find_tool gojq || true)"
-  if [[ -z $gojq_path ]]; then
-    fatal "neither go nor gojq found; cannot run yq"
-  fi
-  exec "$gojq_path" --yaml-input "$@"
+if yq_use_gojq; then
+  yq_run_gojq "$@"
+  exit
 fi
 
 devbase_cli yq "$@"
