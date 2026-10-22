@@ -5,8 +5,9 @@
 # resolved (a tagged release binary, or `go run` from source).
 #
 # Some devbase jobs do not have Go installed. In that case, fall back to
-# `gojq`, which `devbase yq` replaced. Callers of this script do not use
-# the `devbase yq` flags that `gojq` lacks.
+# `gojq`, which `devbase yq` replaced. Callers of this script using an
+# unstable devbase version do not use the `devbase yq` flags that `gojq`
+# lacks.
 #
 
 set -euo pipefail
