@@ -10,14 +10,18 @@ require (
 	github.com/getoutreach/localizer v1.15.19
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/go-github/v84 v84.0.0
+	github.com/itchyny/go-yaml v0.0.0-20251001235044-fca9a0999f15
+	github.com/itchyny/gojq v0.12.19
 	github.com/magefile/mage v1.17.2
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.11.0
-	github.com/vektah/gqlparser/v2 v2.5.62
+	github.com/vektah/gqlparser/v2 v2.5.63
 	google.golang.org/grpc v1.84.0
 	gotest.tools/v3 v3.5.2
 )
+
+require github.com/itchyny/timefmt-go v0.1.8 // indirect
 
 require (
 	charm.land/bubbles/v2 v2.2.1 // indirect
@@ -121,7 +125,7 @@ require (
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.41.0 // indirect

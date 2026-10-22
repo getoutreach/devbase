@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+# Shim installed alongside the `devbase` release binary so a working
+# `yq` (python-yq/gojq-compatible, not mikefarah go-yq v4) is available
+# without a separate install. Delegates to `devbase yq`.
+#
+# Wiring this into .goreleaser.yml's archives[].files is a separate,
+# stencil-golang-side change (see the design plan's "Release
+# packaging" section) -- this file is the devbase-side half.
+
+set -euo pipefail
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/devbase" yq "$@"

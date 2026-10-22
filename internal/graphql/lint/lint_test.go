@@ -177,13 +177,6 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			wantErrSubstring: "Argument arg for directive foo cannot be null.",
 		},
 		{
-			// gqlparser rejects any second schema { } block outright,
-			// regardless of whether its root operations overlap with the
-			// first block's. ruleForMessage tags this as
-			// lone-schema-definition rather than unique-operation-types --
-			// gqlparser raises the identical message for a genuine
-			// cross-block operation-type duplicate, and the two are not
-			// distinguishable from the message alone.
 			rule: config.RuleLoneSchemaDefinition,
 			sdl: `
 				schema { query: Query }
@@ -192,6 +185,28 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 				type Mutation { a: String }
 			`,
 			wantErrSubstring: "Cannot have multiple schema entry points",
+		},
+		{
+			rule: config.RuleUniqueOperationTypes,
+			sdl: `
+				schema {
+					query: Query
+					query: OtherQuery
+				}
+				type Query { a: String }
+				type OtherQuery { a: String }
+			`,
+			wantErrSubstring: "There can be only one query type in schema.",
+		},
+		{
+			rule: config.RuleUniqueOperationTypes,
+			sdl: `
+				schema { query: Query }
+				extend schema { query: OtherQuery }
+				type Query { a: String }
+				type OtherQuery { a: String }
+			`,
+			wantErrSubstring: "There can be only one query type in schema.",
 		},
 	}
 
@@ -207,28 +222,6 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 			assert.ErrorContains(t, violations[0].err, c.wantErrSubstring)
 		})
 	}
-}
-
-// TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap documents
-// a gap in the unique-operation-types rule: gqlparser only rejects
-// multiple schema { } blocks. Two "query:" entries inside a single block
-// parse without error, and gqlparser silently keeps the last one, so
-// Files reports no violation here. A Tier 2 gap-fill pass is
-// required to flag this case (matching @graphql-eslint's behavior).
-func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
-	dir := t.TempDir()
-	path := writeFile(t, dir, "schema.graphql", `
-		schema {
-			query: Query
-			query: OtherQuery
-		}
-		type Query { a: String }
-		type OtherQuery { a: String }
-	`)
-
-	violations, err := Files([]string{path}, nil)
-	assert.NilError(t, err)
-	assert.Equal(t, len(violations), 0)
 }
 
 // TestLintFilesCombinesMultipleFilesIntoOneSchema confirms that
