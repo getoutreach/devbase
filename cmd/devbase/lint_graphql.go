@@ -53,9 +53,8 @@ func newLintGraphQLCommand() *cli.Command {
 // lintGraphQL is the Action for the "graphql" subcommand. It resolves
 // scripts/devbase.yaml for the current working directory (or reads the
 // file given by --config instead), finds the *.graphql files under the
-// given paths (the current directory if none are given), runs the
-// Tier 1 and enabled Tier 2 rules against them,
-// and prints every violation found -- or, with --diff, only the
+// given paths (the current directory if none are given), runs the Tier 1
+// and enabled Tier 2 rules against them, and prints every violation found -- or, with --diff, only the
 // violations not already present at the merge-base of HEAD and --base.
 // It returns a non-zero exit code only if at least one reported
 // violation resolves to "error" severity: every Tier 1 rule always
@@ -81,8 +80,8 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 		lintConfig *config.Lint
 		configDir  string
 	)
-	if configPath := c.String("config"); configPath != "" {
-		lintConfig, err = config.LoadFile(configPath)
+	if c.IsSet("config") {
+		lintConfig, err = config.LoadFile(c.String("config"))
 		if err != nil {
 			return fmt.Errorf("load config file: %w", err)
 		}
@@ -95,9 +94,10 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 
 	excludes := lintConfig.MergeExcludes(c.StringSlice("exclude")...)
 	logrus.WithFields(logrus.Fields{
-		"configDir": configDir,
-		"excludes":  excludes,
-		"ruleCount": len(lintConfig.Rules),
+		"configDir":  configDir,
+		"configFlag": c.String("config"),
+		"excludes":   excludes,
+		"ruleCount":  len(lintConfig.Rules),
 	}).Debug("resolved graphql lint config")
 
 	paths := c.Args().Slice()
