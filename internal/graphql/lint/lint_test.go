@@ -179,11 +179,7 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 		{
 			// gqlparser rejects any second schema { } block outright,
 			// regardless of whether its root operations overlap with the
-			// first block's. ruleForMessage tags this as
-			// lone-schema-definition rather than unique-operation-types --
-			// gqlparser raises the identical message for a genuine
-			// cross-block operation-type duplicate, and the two are not
-			// distinguishable from the message alone.
+			// first block's.
 			rule: config.RuleLoneSchemaDefinition,
 			sdl: `
 				schema { query: Query }
@@ -209,13 +205,10 @@ func TestLintFilesClassifiesTier1Rules(t *testing.T) {
 	}
 }
 
-// TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap documents
-// a gap in the unique-operation-types rule: gqlparser only rejects
-// multiple schema { } blocks. Two "query:" entries inside a single block
-// parse without error, and gqlparser silently keeps the last one, so
-// Files reports no violation here. A Tier 2 gap-fill pass is
-// required to flag this case (matching @graphql-eslint's behavior).
-func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
+// TestLintFilesUniqueOperationTypesWithinSingleSchemaBlock confirms that
+// two "query:" entries inside a single schema { } block are reported as
+// a unique-operation-types violation (gqlparser v2.5.63 and later).
+func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlock(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFile(t, dir, "schema.graphql", `
 		schema {
@@ -228,7 +221,9 @@ func TestLintFilesUniqueOperationTypesWithinSingleSchemaBlockGap(t *testing.T) {
 
 	violations, err := Files([]string{path}, nil)
 	assert.NilError(t, err)
-	assert.Equal(t, len(violations), 0)
+	assert.Equal(t, len(violations), 1)
+	assert.Equal(t, violations[0].Rule, config.RuleUniqueOperationTypes)
+	assert.ErrorContains(t, violations[0].err, "There can be only one query type in schema.")
 }
 
 // TestLintFilesCombinesMultipleFilesIntoOneSchema confirms that

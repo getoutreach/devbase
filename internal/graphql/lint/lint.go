@@ -244,12 +244,12 @@ func ruleForMessage(msg string) string {
 	case strings.HasPrefix(msg, "Enum value ") && strings.HasSuffix(msg, "can only be defined once."):
 		return config.RuleUniqueEnumValueNames
 	case strings.HasPrefix(msg, "Cannot have multiple schema entry points"):
-		// gqlparser raises this single message both for a second
-		// schema { } block and for a duplicate root operation type
-		// declared across two blocks; see the RuleUniqueOperationTypes
-		// gap documented in lint_test.go. RuleLoneSchemaDefinition names
-		// the check gqlparser actually performs.
+		// gqlparser raises this message for any second schema { } block,
+		// whether or not its root operation types overlap the first
+		// block's, so RuleLoneSchemaDefinition names the check it performs.
 		return config.RuleLoneSchemaDefinition
+	case strings.HasPrefix(msg, "There can be only one ") && strings.HasSuffix(msg, " type in schema."):
+		return config.RuleUniqueOperationTypes
 	case strings.HasPrefix(msg, "Cannot redeclare type "):
 		return config.RuleUniqueTypeNames
 	case strings.HasPrefix(msg, "Undefined argument "):
