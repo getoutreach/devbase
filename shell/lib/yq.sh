@@ -89,10 +89,34 @@ yq_dirty_tree_hash() {
   } | sha256sum | awk '{ print $1 }'
 }
 
-# yq_wrapper runs devbase yq with the given arguments. Unlike
-# devbase_cli, it doesn't exec: that would terminate the caller instead
-# of letting it call yq_wrapper again.
+# yq_use_gojq returns success if `devbase yq` cannot be built here: the
+# devbase version is not a tagged release and Go is not installed. A
+# tagged release uses a downloaded binary, which does not need Go.
+yq_use_gojq() {
+  ! devbase_cli_is_tagged_version "$(devbase_cli_version)" &&
+    ! find_tool go >/dev/null 2>&1
+}
+
+# yq_run_gojq runs `gojq`, which `devbase yq` replaced, with the given
+# arguments. Callers on an unstable devbase version do not use the
+# `devbase yq` flags that `gojq` lacks.
+yq_run_gojq() {
+  local gojq_path
+  gojq_path="$(find_tool gojq || true)"
+  if [[ -z $gojq_path ]]; then
+    fatal "neither go nor gojq found; cannot run yq"
+  fi
+  "$gojq_path" --yaml-input "$@"
+}
+
+# yq_wrapper runs devbase yq with the given arguments, or gojq when Go is
+# missing (see yq_use_gojq). Unlike devbase_cli, it doesn't exec: that
+# would terminate the caller instead of letting it call yq_wrapper again.
 yq_wrapper() {
+  if yq_use_gojq; then
+    yq_run_gojq "$@"
+    return
+  fi
   yq_resolve_bin
   "$DEVBASE_YQ_BIN" yq "$@"
 }
