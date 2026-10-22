@@ -180,3 +180,76 @@ stub_go_git() {
   assert_success
   assert_output ""
 }
+
+# stub_gojq_env stubs the version and tool lookups behind yq_use_gojq:
+# $1 is the devbase version, $2 is the path find_tool reports for go
+# (empty means not found), and $3 is the same for gojq.
+stub_gojq_env() {
+  # Not local: the stubs below read these after this function returns.
+  STUB_VERSION="$1"
+  STUB_GO_PATH="$2"
+  STUB_GOJQ_PATH="${3:-}"
+  # shellcheck disable=SC2317,SC2329 # Why: called indirectly as a stub.
+  devbase_cli_version() { echo "$STUB_VERSION"; }
+  # shellcheck disable=SC2317,SC2329 # Why: called indirectly as a stub.
+  find_tool() {
+    local path=""
+    case "$1" in
+    go) path="$STUB_GO_PATH" ;;
+    gojq) path="$STUB_GOJQ_PATH" ;;
+    esac
+    [[ -n $path ]] || return 1
+    echo "$path"
+  }
+}
+
+@test "yq_use_gojq succeeds for an unstable version without go" {
+  stub_gojq_env local ""
+  run yq_use_gojq
+  assert_success
+}
+
+@test "yq_use_gojq fails when go is installed" {
+  stub_gojq_env local /usr/bin/go
+  run yq_use_gojq
+  assert_failure
+}
+
+@test "yq_use_gojq fails for a tagged version even without go" {
+  stub_gojq_env v2.40.0 ""
+  run yq_use_gojq
+  assert_failure
+}
+
+@test "yq_run_gojq runs gojq with --yaml-input" {
+  fake_bin_dir="$(mktempdir devbase-yq-gojq-XXXXXX)"
+  printf '#!/usr/bin/env bash\necho "gojq $*"\n' >"$fake_bin_dir/gojq"
+  chmod +x "$fake_bin_dir/gojq"
+  stub_gojq_env local "" "$fake_bin_dir/gojq"
+
+  run yq_run_gojq .a file.yaml
+  assert_success
+  assert_output "gojq --yaml-input .a file.yaml"
+
+  rm -rf "$fake_bin_dir"
+}
+
+@test "yq_run_gojq fails with a clear error when gojq is missing" {
+  stub_gojq_env local ""
+  run yq_run_gojq .a
+  assert_failure
+  assert_output --partial "neither go nor gojq found"
+}
+
+@test "yq_wrapper uses gojq instead of building devbase when go is missing" {
+  stub_gojq_env local ""
+  yq_run_gojq() { echo "gojq fallback $*"; }
+  yq_resolve_bin() {
+    echo "unexpected build" >&2
+    return 1
+  }
+
+  run yq_wrapper .a
+  assert_success
+  assert_output "gojq fallback .a"
+}

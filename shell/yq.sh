@@ -4,12 +4,22 @@
 # `devbase yq` -- see shell/cli.sh for how the devbase CLI itself is
 # resolved (a tagged release binary, or `go run` from source).
 #
+# Some devbase jobs do not have Go installed. An unstable devbase version
+# needs Go to build `devbase yq`, so in that case fall back to `gojq`, which
+# `devbase yq` replaced. Callers using an unstable devbase version do not use
+# the `devbase yq` flags that `gojq` lacks. A tagged release does not need Go.
+#
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# shellcheck source=./cli.sh
-source "${DIR}/cli.sh"
+# shellcheck source=./lib/yq.sh
+source "${DIR}/lib/yq.sh"
+
+if yq_use_gojq; then
+  yq_run_gojq "$@"
+  exit
+fi
 
 devbase_cli yq "$@"
