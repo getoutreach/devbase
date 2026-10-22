@@ -6,11 +6,8 @@
 // suite (packages/plugin/tests/no-typename-prefix.spec.ts,
 // @graphql-eslint/eslint-plugin@3.13.1, a version still in real use
 // downstream), dropping the "eslint-disable-next-line"
-// valid case: devbase has no inline-suppression comment syntax
-// anywhere in its lint package, and unlike no-hashtag-description's
-// own such case (hashtag_test.go), that comment has nothing to do with
-// no-typename-prefix's own logic, so there is nothing meaningful to
-// invert it into.
+// valid case: that comment has nothing to do with no-typename-prefix's
+// own logic, so there is nothing meaningful to test with it.
 
 package lint
 
