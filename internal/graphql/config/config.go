@@ -395,22 +395,34 @@ func Load(startDir string) (*Lint, string, error) {
 		return &Lint{}, "", nil
 	}
 
-	path := filepath.Join(dir, scriptsDevbaseYAML)
+	lint, err := LoadFile(filepath.Join(dir, scriptsDevbaseYAML))
+	if err != nil {
+		return nil, "", err
+	}
+	return lint, dir, nil
+}
+
+// LoadFile parses the config file at path, which uses the same format
+// as scripts/devbase.yaml. Unlike Load, it does not search for the file,
+// and a missing file is an error. Because it returns no directory, callers
+// match Lint.Exclude against the paths they lint, not against the location
+// of the config file.
+func LoadFile(path string) (*Lint, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, "", fmt.Errorf("read %s: %w", path, err)
+		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
 
 	var fc fileConfig
 	if err := yaml.Unmarshal(b, &fc); err != nil {
-		return nil, "", fmt.Errorf("parse %s: %w", path, err)
+		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 
 	if err := validateNoTier1Overrides(fc.GraphQL.Lint.Rules); err != nil {
-		return nil, "", fmt.Errorf("%s: %w", path, err)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 
-	return &fc.GraphQL.Lint, dir, nil
+	return &fc.GraphQL.Lint, nil
 }
 
 // validateNoTier1Overrides rejects a rule override targeting one of the

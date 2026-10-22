@@ -219,6 +219,41 @@ graphql:
 	assert.DeepEqual(t, got.Scalars, []string{"Datetime", "JSON"})
 }
 
+func TestLoadFileParsesTheGivenFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "custom.yaml")
+	assert.NilError(t, os.WriteFile(path, []byte(`
+graphql:
+  lint:
+    exclude:
+      - "**/shared.graphql"
+    scalars:
+      - DateTime
+`), 0o600))
+
+	got, err := LoadFile(path)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, got.Exclude, []string{"**/shared.graphql"})
+	assert.DeepEqual(t, got.Scalars, []string{"DateTime"})
+}
+
+func TestLoadFileFailsWhenTheFileIsMissing(t *testing.T) {
+	_, err := LoadFile(filepath.Join(t.TempDir(), "missing.yaml"))
+	assert.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestLoadFileRejectsTier1Overrides(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "custom.yaml")
+	assert.NilError(t, os.WriteFile(path, []byte(`
+graphql:
+  lint:
+    rules:
+      `+Tier1RuleNames()[0]+`: warn
+`), 0o600))
+
+	_, err := LoadFile(path)
+	assert.ErrorIs(t, err, ErrTier1RuleNotConfigurable)
+}
+
 func TestMergeExcludesIsAdditiveAndDoesNotMutateConfig(t *testing.T) {
 	c := &Lint{Exclude: []string{"**/shared.graphql"}}
 
