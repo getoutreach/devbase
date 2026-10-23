@@ -14,7 +14,8 @@ source "$DIR/lib/yq.sh"
 # Resolve the yq binary once, up front: each yq_wrapper call below runs
 # as its own pipeline stage (a forked subshell), so without this each of
 # the 3 pipelines further down would independently redo yq_resolve_bin's
-# own resolution work.
+# own resolution work. Without Go, this resolves nothing and yq_wrapper
+# runs gojq instead.
 yq_resolve_bin
 
 # shellcheck source=./lib/box.sh
