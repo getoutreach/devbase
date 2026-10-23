@@ -295,6 +295,33 @@ func TestEnabledRequiresAnExplicitNonOffSeverity(t *testing.T) {
 	}
 }
 
+func TestDisabledIsFalseByDefault(t *testing.T) {
+	var nilConfig *Lint
+	assert.Equal(t, nilConfig.Disabled(RuleUnusedSuppression), false)
+
+	c := &Lint{}
+	assert.Equal(t, c.Disabled(RuleUnusedSuppression), false)
+}
+
+func TestDisabledRequiresAnExplicitOffSeverity(t *testing.T) {
+	cases := []struct {
+		name     string
+		severity Severity
+		want     bool
+	}{
+		{name: "off", severity: SeverityOff, want: true},
+		{name: "warn", severity: SeverityWarn, want: false},
+		{name: "error", severity: SeverityError, want: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Lint{Rules: map[string]Rule{RuleUnusedSuppression: {Severity: tc.severity}}}
+			assert.Equal(t, c.Disabled(RuleUnusedSuppression), tc.want)
+		})
+	}
+}
+
 func TestSeverityOfDefaultsToErrorWhenRuleIsNotInTheMap(t *testing.T) {
 	var nilConfig *Lint
 	assert.Equal(t, nilConfig.SeverityOf("unique-type-names"), SeverityError)
