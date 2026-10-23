@@ -264,5 +264,6 @@ stub_gojq_env() {
   }
 
   yq_resolve_bin
+  # shellcheck disable=SC2031 # Why: yq_resolve_bin runs in this shell, not a subshell.
   assert_equal "$DEVBASE_YQ_BIN" ""
 }
