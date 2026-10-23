@@ -194,3 +194,36 @@ workflows:
                 - main
             tags:
               only: /v\d+(\.\d+)*(-.*)*/
+      - shared/docker_stitch:
+          context: *contexts
+          ## <<Stencil::Block(circleDockerStitchExtra)>>
+          push_registries: "ghcr.io/getoutreach"
+          ## <</Stencil::Block>>
+          requires:
+            - shared/docker_amd64
+            - shared/docker_arm64
+          filters:
+            branches:
+              ignore: *release_branches
+            tags:
+              only: /v\d+(\.\d+)*(-.*)*/
+      - shared/docker_amd64:
+          context: *contexts
+          ## <<Stencil::Block(circleDockerAMD64Extra)>>
+          push_registries: "ghcr.io/getoutreach"
+          ## <</Stencil::Block>>
+          filters:
+            branches:
+              ignore: *release_branches
+            tags:
+              only: /v\d+(\.\d+)*(-.*)*/
+      - shared/docker_arm64:
+          context: *contexts
+          ## <<Stencil::Block(circleDockerArm64Extra)>>
+          push_registries: "ghcr.io/getoutreach"
+          ## <</Stencil::Block>>
+          filters:
+            branches:
+              ignore: *release_branches
+            tags:
+              only: /v\d+(\.\d+)*(-.*)*/
