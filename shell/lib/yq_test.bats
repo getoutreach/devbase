@@ -267,3 +267,13 @@ stub_gojq_env() {
   # shellcheck disable=SC2031 # Why: yq_resolve_bin runs in this shell, not a subshell.
   assert_equal "$DEVBASE_YQ_BIN" ""
 }
+
+@test "yq_resolve_bin still resolves a tagged version when go is missing" {
+  stub_gojq_env v2.40.0 ""
+  # shellcheck disable=SC2317,SC2329 # Why: called indirectly as a stub.
+  devbase_cli_binary() { echo "/fake/devbase-v2.40.0"; }
+
+  yq_resolve_bin
+  # shellcheck disable=SC2031 # Why: yq_resolve_bin runs in this shell, not a subshell.
+  assert_equal "$DEVBASE_YQ_BIN" "/fake/devbase-v2.40.0"
+}
