@@ -156,6 +156,10 @@ func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation,
 	if err != nil {
 		return nil, err
 	}
+	violations, err = withNativeSuppression(fileSources, violations, cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	return withoutSuppressed(fileSources, violations)
 }
