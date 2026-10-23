@@ -31,7 +31,6 @@ yq_resolve_bin() {
     return
   fi
 
-  # Nothing to resolve: yq_wrapper runs gojq instead (see yq_use_gojq).
   if yq_use_gojq; then
     return
   fi

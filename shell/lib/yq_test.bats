@@ -263,7 +263,6 @@ stub_gojq_env() {
     return 1
   }
 
-  run yq_resolve_bin
-  assert_success
-  assert_output ""
+  yq_resolve_bin
+  assert_equal "$DEVBASE_YQ_BIN" ""
 }
