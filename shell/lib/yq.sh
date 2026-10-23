@@ -25,9 +25,14 @@ DEVBASE_YQ_BIN=""
 # yq_resolve_bin resolves and caches in DEVBASE_YQ_BIN the binary
 # yq_wrapper() should run: built-from-source for "local"/dev (see
 # yq_build_from_source), or devbase_cli's own tagged-release resolution
-# otherwise.
+# otherwise. It resolves nothing when yq_wrapper will run gojq instead.
 yq_resolve_bin() {
   if [[ -n $DEVBASE_YQ_BIN ]]; then
+    return
+  fi
+
+  # Nothing to resolve: yq_wrapper runs gojq instead (see yq_use_gojq).
+  if yq_use_gojq; then
     return
   fi
 

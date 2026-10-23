@@ -129,6 +129,8 @@ stub_go_git() {
 @test "yq_resolve_bin uses yq_build_from_source for a local/dev version" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   devbase_cli_version() { echo "local"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "/fake/go"; }
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   stub_go_git "$build_count_file"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
@@ -252,4 +254,16 @@ stub_gojq_env() {
   run yq_wrapper .a
   assert_success
   assert_output "gojq fallback .a"
+}
+
+@test "yq_resolve_bin does not build devbase when go is missing" {
+  stub_gojq_env local ""
+  yq_build_from_source() {
+    echo "unexpected build" >&2
+    return 1
+  }
+
+  run yq_resolve_bin
+  assert_success
+  assert_output ""
 }
