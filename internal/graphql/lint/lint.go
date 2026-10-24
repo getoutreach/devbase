@@ -148,6 +148,21 @@ func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation,
 		return []Violation{*tier1Violation}, nil
 	}
 
+	violations, err := runRules(fileSources, parsed, cfg)
+	if err != nil {
+		return nil, err
+	}
+	violations, err = withConfigComments(fileSources, parsed, violations)
+	if err != nil {
+		return nil, err
+	}
+
+	return withoutSuppressed(fileSources, violations)
+}
+
+// runRules runs the Tier 2 gap-fill passes and the Tier 3 rules cfg
+// enables against a schema that already passed Tier 1 validation.
+func runRules(fileSources []*ast.Source, parsed *parsedSchema, cfg *config.Lint) ([]Violation, error) {
 	violations := gapFillDirectivesPerLocation(parsed, cfg)
 	violations = append(violations, gapFillPossibleTypeExtension(parsed, cfg)...)
 
@@ -155,9 +170,7 @@ func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation,
 	if err != nil {
 		return nil, err
 	}
-	violations = append(violations, tier3Violations...)
-
-	return withoutSuppressed(fileSources, violations)
+	return append(violations, tier3Violations...), nil
 }
 
 // withoutOperationDocuments returns sources minus every source that
