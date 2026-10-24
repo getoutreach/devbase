@@ -224,24 +224,26 @@ func parseNamingConventionOptions(opts map[string]any) namingConventionOptions {
 	return o
 }
 
-// ruleFor resolves the namingRule that applies to s, if any: s's own
-// root-field selector (if it has one) or base selector, whichever
-// scripts/devbase.yaml actually configured, falling back to the
-// shared "types" rule only for a type-definition site whose own kind
-// key was not configured individually.
-func (o namingConventionOptions) ruleFor(s *namingSite) (namingRule, bool) {
+// rulesFor resolves the namingRules that apply to s, in check order:
+// its base selector (falling back to the shared "types" rule only for
+// a type-definition site whose own kind key was not configured
+// individually), then its root-field selector, if configured. The
+// root-field rule adds to the base rule instead of replacing it, because
+// @graphql-eslint registers one listener per option key and runs the
+// least specific first.
+func (o namingConventionOptions) rulesFor(s *namingSite) []namingRule {
+	var rules []namingRule
+	if r, ok := o.selectors[s.baseSelector]; ok {
+		rules = append(rules, r)
+	} else if s.typeDefKindKey != "" && o.types != nil {
+		rules = append(rules, *o.types)
+	}
 	if s.rootSelector != "" {
 		if r, ok := o.selectors[s.rootSelector]; ok {
-			return r, true
+			rules = append(rules, r)
 		}
 	}
-	if r, ok := o.selectors[s.baseSelector]; ok {
-		return r, true
-	}
-	if s.typeDefKindKey != "" && o.types != nil {
-		return *o.types, true
-	}
-	return namingRule{}, false
+	return rules
 }
 
 // namingSite is one name in a schema file that naming-convention
@@ -384,15 +386,15 @@ func namingRuleMessage(name string, rule *namingRule) string {
 }
 
 // namingConventionViolations reports a RuleNamingConvention violation
-// for every site in sites that either has a configured namingRule it
-// fails (per namingRuleMessage) or an underscore opts forbids, in
-// document order. Both checks run for the same site independently, and
-// neither one skips the other, matching @graphql-eslint's own behavior
-// of registering them as separate listeners.
+// for each configured namingRule a site fails (per namingRuleMessage)
+// and for each underscore opts forbids, in document order. A site can
+// fail several of these. The checks run independently, and none skips
+// another, matching @graphql-eslint's own behavior of registering them
+// as separate listeners.
 func namingConventionViolations(sites []namingSite, opts namingConventionOptions) []Violation {
 	var violations []Violation
 	for _, s := range sites {
-		if rule, ok := opts.ruleFor(&s); ok {
+		for _, rule := range opts.rulesFor(&s) {
 			if msg := namingRuleMessage(s.name, &rule); msg != "" {
 				violations = append(violations, Violation{
 					err:  gqlerror.ErrorPosf(s.pos, "%s %q %s", s.kindLabel, s.name, msg),
