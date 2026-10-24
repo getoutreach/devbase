@@ -4,16 +4,12 @@
 
 // Cases below are ported from @graphql-eslint/eslint-plugin's own test
 // suite (packages/plugin/src/rules/no-hashtag-description/index.test.ts,
-// graphql-hive/graphql-eslint@master as of 2026-08-22), with two
-// adaptations. Cases exercising an OperationDefinition or
+// graphql-hive/graphql-eslint@master as of 2026-08-22), with one
+// adaptation: cases exercising an OperationDefinition or
 // FragmentDefinition document are dropped, since devbase graphql lint
 // has no notion of either: it only ever parses standalone *.graphql
 // schema files (see lint.go's Files), never query/mutation/subscription/
-// fragment documents. And the "# eslint-disable-next-line" case is
-// inverted from valid to invalid: devbase has no inline-suppression
-// comment syntax anywhere in its lint package, so to it that line is
-// just an ordinary attached comment like any other; see
-// TestNoHashtagDescriptionInvalidCases' last case.
+// fragment documents.
 
 package lint
 
@@ -89,6 +85,28 @@ func TestNoHashtagDescriptionValidCases(t *testing.T) {
 				): User
 			}`,
 		},
+		{
+			"eslint directive immediately before the type",
+			`# eslint-disable-next-line
+			type Query {
+				foo: String
+			}`,
+		},
+		{
+			"eslint directive with no space after the hash",
+			`#eslint-disable @graphql-eslint/naming-convention -- Reason: Existing enum.
+			enum Kind {
+				Foo
+			}
+			#eslint-enable @graphql-eslint/naming-convention`,
+		},
+		{
+			"eslint directive immediately before a field",
+			`type Query {
+				# eslint-disable-next-line
+				foo: String
+			}`,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -146,8 +164,16 @@ func TestNoHashtagDescriptionInvalidCases(t *testing.T) {
 			}`,
 		},
 		{
-			"a comment shaped like an eslint directive is still an ordinary comment to devbase",
-			`# eslint-disable-next-line
+			"only the last comment of a group decides, and it is prose",
+			`# eslint-foo
+			# prose
+			type Query {
+				foo: String
+			}`,
+		},
+		{
+			"comment that only mentions eslint is still a description",
+			`# Not an eslint directive
 			type Query {
 				foo: String
 			}`,
@@ -168,6 +194,17 @@ func TestNoHashtagDescriptionDisabledByDefault(t *testing.T) {
 	}`)
 
 	violations, err := Files([]string{path}, nil)
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
+}
+
+// TestNoHashtagDescriptionIgnoresGroupEndingInDirective confirms a group of
+// comments is judged by its last comment only, as @graphql-eslint does:
+// prose followed by a directive is not reported.
+func TestNoHashtagDescriptionIgnoresGroupEndingInDirective(t *testing.T) {
+	path := writeFile(t, t.TempDir(), "schema.graphql", "# prose\n# eslint-foo\ntype Query {\n\tfoo: String\n}\n")
+
+	violations, err := Files([]string{path}, enableRule(config.RuleNoHashtagDescription))
 	assert.NilError(t, err)
 	assert.Equal(t, len(violations), 0)
 }

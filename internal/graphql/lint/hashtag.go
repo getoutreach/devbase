@@ -21,7 +21,9 @@
 // example "type Query { # trailing"). noHashtagDescriptionViolations
 // recovers both distinctions the same way @graphql-eslint's own rule
 // does: by comparing line numbers, using trailingCommentStarts for the
-// second one.
+// second one. Like that rule, it also skips a comment whose text starts
+// with "eslint", so a directive such as "# eslint-disable ..." above a
+// definition is not mistaken for a description.
 //
 // Unlike require-description, no-hashtag-description has no per-kind
 // options: it applies unconditionally to every site groupDescriptionSites
@@ -37,6 +39,7 @@ package lint
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/graphql/config"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -73,6 +76,13 @@ func trailingCommentStarts(src *ast.Source) (map[int]bool, error) {
 	return trailing, nil
 }
 
+// isEslintDirective reports whether c is an ESLint directive comment,
+// such as "# eslint-disable ...". @graphql-eslint never treats these as
+// descriptions.
+func isEslintDirective(c *ast.Comment) bool {
+	return strings.HasPrefix(strings.TrimSpace(c.Text()), "eslint")
+}
+
 // noHashtagDescriptionViolations reports a RuleNoHashtagDescription
 // violation for every site in sites whose afterDescriptionComment is
 // attached to it with no blank line in between. Two comment tokens can
@@ -90,7 +100,12 @@ func noHashtagDescriptionViolations(sites []descriptionSite, trailing map[int]bo
 			continue
 		}
 
+		// Only the last comment of a group is reported, so only it is
+		// checked for being a directive.
 		last := group.List[len(group.List)-1]
+		if isEslintDirective(last) {
+			continue
+		}
 		if len(group.List) == 1 && trailing[last.Position.Start] {
 			continue
 		}
