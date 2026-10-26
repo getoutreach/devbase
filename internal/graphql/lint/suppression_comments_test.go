@@ -276,6 +276,40 @@ func TestDevbaseLintSuppression(t *testing.T) {
 	}
 }
 
+// TestDevbaseLintDisableNextLineCoversDescriptionStyle confirms a
+// disable-next-line above a description also covers the description's own
+// line, where description-style reports, without covering a later one.
+func TestDevbaseLintDisableNextLineCoversDescriptionStyle(t *testing.T) {
+	cfg := enableRuleWithOptions(config.RuleDescriptionStyle, map[string]any{"style": "inline"})
+
+	for name, sdl := range map[string]string{
+		"a one-line block description": `# devbase-lint-disable-next-line description-style -- Legacy.
+"""Legacy"""
+type Foo { a: String }`,
+		"a multi-line block description": `# devbase-lint-disable-next-line description-style -- Legacy.
+"""
+Legacy
+"""
+type Foo { a: String }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := ruleMessages(t, sdl, cfg)
+			assert.Equal(t, len(got), 0, "got %v", got)
+		})
+	}
+
+	t.Run("a later description is not covered", func(t *testing.T) {
+		got := ruleMessages(t, `# devbase-lint-disable-next-line description-style -- Legacy.
+type Foo { a: String }
+
+"""Other"""
+type Bar { a: String }`, cfg)
+		assert.Equal(t, len(got), 2, "got %v", got)
+		assert.Assert(t, strings.HasPrefix(got[0], "description-style Unexpected block description"), "got %v", got)
+		assert.Equal(t, got[1], unusedSuppression("devbase-lint-disable-next-line", "description-style"))
+	})
+}
+
 // TestDevbaseLintSuppressionDiagnosticsCanBeTurnedOff confirms
 // scripts/devbase.yaml can set either diagnostic to "off".
 func TestDevbaseLintSuppressionDiagnosticsCanBeTurnedOff(t *testing.T) {

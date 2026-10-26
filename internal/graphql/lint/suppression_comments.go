@@ -324,7 +324,10 @@ func suppressedBy(ss []*suppression, rule string, line int) bool {
 		}
 		switch s.kind {
 		case suppressDisableNextLine, suppressDisableLine:
-			if s.target == line && slices.Contains(s.rules, rule) {
+			// A disable-next-line above a description also covers the
+			// description's own line, where description-style reports.
+			onTarget := s.target == line || (s.kind == suppressDisableNextLine && s.pos.Line+1 == line)
+			if onTarget && slices.Contains(s.rules, rule) {
 				covering = append(covering, s)
 			}
 		case suppressDisable:
