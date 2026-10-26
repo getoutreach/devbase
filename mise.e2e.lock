@@ -102,40 +102,6 @@ checksum = "sha256:a27dfecb63877d3f25c3a0c0a1cbb60352e58d234df8e1cc81fe77169d6c7
 url = "https://github.com/getoutreach/ci/releases/download/v1.6.14/ci_1.6.14_darwin_amd64.tar.gz"
 url_api = "https://api.github.com/repos/getoutreach/ci/releases/assets/331854925"
 
-[[tools."github:getoutreach/devenv"]]
-version = "1.68.0"
-backend = "github:getoutreach/devenv"
-
-[tools."github:getoutreach/devenv"."platforms.linux-arm64"]
-checksum = "sha256:ab219348e507d04eaa55f2056d0be6ab6dfd8b868721a9bacddb204ebc7aacb1"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972177"
-
-[tools."github:getoutreach/devenv"."platforms.linux-arm64-musl"]
-checksum = "sha256:ab219348e507d04eaa55f2056d0be6ab6dfd8b868721a9bacddb204ebc7aacb1"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972177"
-
-[tools."github:getoutreach/devenv"."platforms.linux-x64"]
-checksum = "sha256:f933f043509f0982ba0e0159a15a130b1eaa78a3a126e328fb56fc48ae80fd45"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972252"
-
-[tools."github:getoutreach/devenv"."platforms.linux-x64-musl"]
-checksum = "sha256:f933f043509f0982ba0e0159a15a130b1eaa78a3a126e328fb56fc48ae80fd45"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972252"
-
-[tools."github:getoutreach/devenv"."platforms.macos-arm64"]
-checksum = "sha256:2f545fd951e2ffe3756bcc8f34c59fcf6f9429311a9961a285c89a78ca227612"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972210"
-
-[tools."github:getoutreach/devenv"."platforms.macos-x64"]
-checksum = "sha256:471dbf35a02ff66bab7ec28bb88c3c60734182a059c68e5accb989706a67425b"
-url = "https://github.com/getoutreach/devenv/releases/download/v1.68.0/devenv_1.68.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/devenv/releases/assets/565972234"
-
 [[tools."github:getoutreach/kubecfg"]]
 version = "0.28.1"
 backend = "github:getoutreach/kubecfg"
