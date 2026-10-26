@@ -16,6 +16,8 @@ source "$DIR/../../lib/mise.sh"
 source "$DIR/../../lib/shell.sh"
 # shellcheck source=../../lib/version.sh
 source "$DIR/../../lib/version.sh"
+# shellcheck source=../../lib/devenv.sh
+source "$DIR/../../lib/devenv.sh"
 
 # Arguments
 PROVISION="${PROVISION:-"false"}"
@@ -47,18 +49,14 @@ if in_ci_environment; then
   mise_path="$(find_mise)"
   eval "$("$mise_path" activate bash --shims)"
 
-  # In E2E mode, setup_environment installs kubectl/kubecfg/devenv from
-  # mise.e2e.lock before this script runs. If any are missing, the
+  # In E2E mode, setup_environment installs kubectl/kubecfg from
+  # mise.e2e.lock before this script runs. If either is missing, the
   # lockfile-based install drifted from this script's expectations;
   # fail loudly rather than silently falling through to unpinned
-  # installs below. devenv is excluded when DEVENV_PRE_RELEASE=true,
-  # since the pre-release path below intentionally overrides whatever
-  # mise.e2e.lock provided.
+  # installs below. devenv isn't in the lockfile: it's installed
+  # below by install_devenv_for_ci.
   if [[ $E2E == "true" ]]; then
     required_tools=(kubectl kubecfg)
-    if [[ $DEVENV_PRE_RELEASE != "true" ]]; then
-      required_tools+=(devenv)
-    fi
     for tool in "${required_tools[@]}"; do
       if ! command_exists "$tool"; then
         fatal "$tool not on PATH in E2E mode; expected setup_environment to install it from mise.e2e.lock"
@@ -74,14 +72,7 @@ if in_ci_environment; then
     install_tool_with_mise github:getoutreach/kubecfg "$(tool_version_from_mise_env e2e github:getoutreach/kubecfg)"
   fi
 
-  # DEVENV_PRE_RELEASE forces the pre-release install regardless of
-  # whether mise.e2e.lock already provided devenv, so the requested
-  # behavior wins.
-  if [[ $DEVENV_PRE_RELEASE == "true" ]]; then
-    install_latest_github_release getoutreach/devenv "$DEVENV_PRE_RELEASE"
-  elif ! command_exists devenv; then
-    install_tool_with_mise github:getoutreach/devenv "$(tool_version_from_mise_env e2e github:getoutreach/devenv)"
-  fi
+  install_devenv_for_ci
 
   info "Setting up Git"
   git config --global user.name "CircleCI E2E Test"
