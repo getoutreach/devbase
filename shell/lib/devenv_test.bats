@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # Why: each test sets its own env, run in its own subshell.
 
 load logging.sh
 load devenv.sh
@@ -15,8 +16,11 @@ setup() {
 
   # Stand-ins for the github.sh and mise.sh helpers: record the call,
   # touch no network.
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   bootstrap_github_token() { :; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   install_tool_with_mise() { echo "install_tool_with_mise $*" >>"$CALLS_FILE"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   install_latest_github_release() { echo "install_latest_github_release $*" >>"$CALLS_FILE"; }
 }
 
