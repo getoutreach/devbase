@@ -10,32 +10,48 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 
+	toml "github.com/BurntSushi/toml"
 	yaml "github.com/itchyny/go-yaml"
-	toml "github.com/pelletier/go-toml/v2"
+)
+
+// BurntSushi/toml decodes every TOML date and time into a time.Time and
+// names the location of the zoneless forms after them.
+const (
+	tomlLocalDateTime = "datetime-local"
+	tomlLocalDate     = "date-local"
+	tomlLocalTime     = "time-local"
 )
 
 // decodeTOML decodes the TOML document in b into the plain value shape
-// gojq expects (see decodeNode for YAML's equivalent). Integers and
-// floats become json.Number, and dates and times become strings: JSON
-// has no date type, and gojq cannot operate on a time.Time. The result
-// is always a map, as TOML's top level is always a table.
-//
-// Unlike YAML decoding, DecodeTOML records no key order, so a filter's
-// object results are written with their keys sorted alphabetically.
-func decodeTOML(b []byte) (any, error) {
-	var v map[string]any
-	if err := toml.Unmarshal(b, &v); err != nil {
-		return nil, fmt.Errorf("decode toml: %w", err)
+// gojq expects (see decodeNode for YAML's equivalent), along with the
+// KeyOrder of every table decoded. Integers and floats become
+// json.Number, and dates and times become strings: JSON has no date
+// type, and gojq cannot operate on a time.Time. The value is always a
+// map, as TOML's top level is always a table.
+func decodeTOML(b []byte) (any, KeyOrder, error) {
+	v := map[string]any{}
+	md, err := toml.Decode(string(b), &v)
+	if err != nil {
+		return nil, nil, fmt.Errorf("decode toml: %w", err)
 	}
-	return normalizeTOML(v), nil
+
+	// Record order only once v is in its final shape: KeyOrder is keyed
+	// by map pointer, and normalizeTOML keeps every map but replaces
+	// every array of tables.
+	root := normalizeTOML(v)
+	order := KeyOrder{}
+	recordTOMLOrder(root, newTOMLOrder(md.Keys()), order)
+	return root, order, nil
 }
 
-// normalizeTOML recursively converts the numeric and date/time values
-// go-toml decodes into the types the rest of this package expects. It
-// edits v's maps and slices in place, as DecodeTOML owns the tree.
+// normalizeTOML recursively converts the numeric, date/time, and
+// array-of-tables values BurntSushi/toml decodes into the types the
+// rest of this package expects. It edits v's maps in place, as
+// decodeTOML owns the tree.
 func normalizeTOML(v any) any {
 	switch val := v.(type) {
 	case int64:
@@ -49,9 +65,7 @@ func normalizeTOML(v any) any {
 		}
 		return json.Number(strconv.FormatFloat(val, 'g', -1, 64))
 	case time.Time:
-		return val.Format(time.RFC3339Nano)
-	case fmt.Stringer: // go-toml's LocalDate, LocalTime, and LocalDateTime, which have no zone.
-		return val.String()
+		return formatTOMLTime(val)
 	case map[string]any:
 		for k, item := range val {
 			val[k] = normalizeTOML(item)
@@ -62,19 +76,132 @@ func normalizeTOML(v any) any {
 			val[i] = normalizeTOML(item)
 		}
 		return val
+	case []map[string]any:
+		// An array of tables: gojq only accepts []any.
+		out := make([]any, len(val))
+		for i, item := range val {
+			out[i] = normalizeTOML(item)
+		}
+		return out
 	default:
 		return v
 	}
 }
 
+// formatTOMLTime renders t in the form it had in the TOML source.
+func formatTOMLTime(t time.Time) string {
+	switch t.Location().String() {
+	case tomlLocalDateTime:
+		return t.Format("2006-01-02T15:04:05.999999999")
+	case tomlLocalDate:
+		return t.Format("2006-01-02")
+	case tomlLocalTime:
+		return t.Format("15:04:05.999999999")
+	default:
+		return t.Format(time.RFC3339Nano)
+	}
+}
+
+// tomlTable is the keys, in document order, that one occurrence of a
+// TOML table defines.
+type tomlTable struct {
+	keys []string
+	kids map[string]*tomlPath
+}
+
+func newTOMLTable() *tomlTable {
+	return &tomlTable{kids: map[string]*tomlPath{}}
+}
+
+// tomlPath is every occurrence of one key path in the document: one
+// for most keys, but one per element for an array of tables.
+type tomlPath struct {
+	tables []*tomlTable
+}
+
+// last returns p's most recent occurrence, adding one if the document
+// never named p itself (as with the "a" of a dotted key "a.b = 1").
+func (p *tomlPath) last() *tomlTable {
+	if len(p.tables) == 0 {
+		p.tables = append(p.tables, newTOMLTable())
+	}
+	return p.tables[len(p.tables)-1]
+}
+
+// newTOMLOrder builds, from BurntSushi/toml's list of every key path in
+// document order, the tree recordTOMLOrder reads each table's key order
+// from. A key inside an inline table in an array is listed without
+// saying which element it belongs to, so such a table has no entry of
+// its own to read an order from.
+func newTOMLOrder(keys []toml.Key) *tomlPath {
+	root := newTOMLTable()
+	for _, key := range keys {
+		table := root
+		for i, segment := range key {
+			path, ok := table.kids[segment]
+			if !ok {
+				path = &tomlPath{}
+				table.kids[segment] = path
+				table.keys = append(table.keys, segment)
+			}
+			if i == len(key)-1 {
+				path.tables = append(path.tables, newTOMLTable())
+			} else {
+				table = path.last()
+			}
+		}
+	}
+	return &tomlPath{tables: []*tomlTable{root}}
+}
+
+// recordTOMLOrder walks v, a value decodeTOML produced, together with
+// the tomlPath for its position, recording the key order of every map
+// into order. A table a document defines in several places (like
+// "[a.b]" before "[a]") has its keys joined in document order. A map
+// missing a recorded order is left to fall back to alphabetical order
+// (see KeyOrder.order).
+func recordTOMLOrder(v any, path *tomlPath, order KeyOrder) {
+	switch val := v.(type) {
+	case map[string]any:
+		keys := make([]string, 0, len(val))
+		seen := make(map[string]bool, len(val))
+		for _, table := range path.tables {
+			for _, k := range table.keys {
+				if _, ok := val[k]; ok && !seen[k] {
+					seen[k] = true
+					keys = append(keys, k)
+				}
+			}
+		}
+		order[reflect.ValueOf(val).Pointer()] = keys
+
+		for k, item := range val {
+			for _, table := range path.tables {
+				if kid, ok := table.kids[k]; ok {
+					recordTOMLOrder(item, kid, order)
+					break
+				}
+			}
+		}
+	case []any:
+		// Only an array of tables has one occurrence per element.
+		if len(path.tables) != len(val) {
+			return
+		}
+		for i, item := range val {
+			recordTOMLOrder(item, &tomlPath{tables: path.tables[i : i+1]}, order)
+		}
+	}
+}
+
 // decodeTOMLInput is the decodeFunc for TOML: one document per input,
-// with no YAML parse tree and no recorded key order.
+// with no YAML parse tree.
 func decodeTOMLInput(b []byte) ([]any, []*yaml.Node, KeyOrder, error) {
-	v, err := decodeTOML(b)
+	v, order, err := decodeTOML(b)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return []any{v}, []*yaml.Node{nil}, KeyOrder{}, nil
+	return []any{v}, []*yaml.Node{nil}, order, nil
 }
 
 // errTOMLUnsupportedFlag is wrapped into the error validateTOML

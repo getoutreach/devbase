@@ -5,6 +5,7 @@ go 1.25.0
 toolchain go1.25.7
 
 require (
+	github.com/BurntSushi/toml v1.5.0
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.120.1
 	github.com/getoutreach/localizer v1.15.19
@@ -13,7 +14,6 @@ require (
 	github.com/itchyny/go-yaml v0.0.0-20251001235044-fca9a0999f15
 	github.com/itchyny/gojq v0.12.19
 	github.com/magefile/mage v1.17.2
-	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.11.0

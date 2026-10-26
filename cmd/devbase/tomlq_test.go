@@ -32,6 +32,20 @@ func TestTomlqCommand_StdinFilter(t *testing.T) {
 	assert.Equal(t, stdout, "{\"n\":3,\"when\":\"1979-05-27\"}\n")
 }
 
+// TestTomlqCommand_KeyOrder confirms output keeps the document's key
+// order by default, and sorts it under -S.
+func TestTomlqCommand_KeyOrder(t *testing.T) {
+	const doc = "zebra = 1\nalpha = 2\n[tbl]\nz = 1\na = 2\n"
+
+	stdout, _, err := runTomlqCommand(t, doc, "-c", ".")
+	assert.NilError(t, err)
+	assert.Equal(t, stdout, "{\"zebra\":1,\"alpha\":2,\"tbl\":{\"z\":1,\"a\":2}}\n")
+
+	stdout, _, err = runTomlqCommand(t, doc, "-c", "-S", ".")
+	assert.NilError(t, err)
+	assert.Equal(t, stdout, "{\"alpha\":2,\"tbl\":{\"a\":2,\"z\":1},\"zebra\":1}\n")
+}
+
 // lockDriftFilter lists each tool version a mise TOML requests that
 // its lockfile (bound to $lock, as tool -> locked versions) does not
 // satisfy. A request is a plain string, an inline table's "version", or
