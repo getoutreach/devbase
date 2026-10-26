@@ -6,7 +6,7 @@
 extensions=(yaml yml json md ts)
 
 oxfmt_linter() {
-  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$DIR/oxfmt.sh" --check --list-different
+  find_files_with_extensions "${extensions[@]}" | xargs -n40 "$DIR/oxfmt.sh" --check
 }
 
 oxfmt_formatter() {
