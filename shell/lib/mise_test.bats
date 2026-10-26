@@ -62,3 +62,57 @@ write_tool_versions() {
   assert_success
   assert_output "20.11.0"
 }
+
+# lock_missing_versions TOML LOCK
+#
+# Prints each `tool@version` requested in the [tools] section of TOML
+# that has no matching entry in LOCK.
+lock_missing_versions() {
+  awk '
+    FNR == NR {
+      if ($0 ~ /^\[\[tools\./) {
+        name = $0
+        sub(/^\[\[tools\./, "", name)
+        sub(/\]\]$/, "", name)
+        gsub(/"/, "", name)
+      } else if (name != "" && $0 ~ /^version = "/) {
+        version = $0
+        sub(/^version = "/, "", version)
+        sub(/"$/, "", version)
+        locked[name "@" version] = 1
+        name = ""
+      }
+      next
+    }
+    /^\[/ { inTools = ($0 == "[tools]"); next }
+    inTools && $0 ~ /^[^#].* = "/ {
+      tool = $0
+      sub(/ = .*/, "", tool)
+      gsub(/"/, "", tool)
+      version = $0
+      sub(/^[^=]*= "/, "", version)
+      sub(/".*$/, "", version)
+      if (!((tool "@" version) in locked)) print tool "@" version
+    }
+  ' "$2" "$1"
+}
+
+@test "lock_missing_versions reports a requested version missing from the lockfile" {
+  printf '%s\n' '[tools]' '"github:getoutreach/devenv" = "1.68.0"' 'kubectl = "1.34.7"' >"$REPO_DIR/mise.test.toml"
+  printf '%s\n' '[[tools."github:getoutreach/devenv"]]' 'version = "1.67.0"' '[[tools.kubectl]]' 'version = "1.34.7"' >"$REPO_DIR/mise.test.lock"
+  run lock_missing_versions "$REPO_DIR/mise.test.toml" "$REPO_DIR/mise.test.lock"
+  assert_success
+  assert_output "github:getoutreach/devenv@1.68.0"
+}
+
+@test "mise.devbase.lock pins every version requested in mise.devbase.toml" {
+  run lock_missing_versions "$BATS_TEST_DIRNAME/../../mise.devbase.toml" "$BATS_TEST_DIRNAME/../../mise.devbase.lock"
+  assert_success
+  assert_output ""
+}
+
+@test "mise.e2e.lock pins every version requested in mise.e2e.toml" {
+  run lock_missing_versions "$BATS_TEST_DIRNAME/../../mise.e2e.toml" "$BATS_TEST_DIRNAME/../../mise.e2e.lock"
+  assert_success
+  assert_output ""
+}
