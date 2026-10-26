@@ -26,7 +26,7 @@ parameters:
     description: >-
       When true, the CI machine bootstrap installs only the slim E2E
       mise toolset pinned in mise.e2e.toml (currently kubectl, kubecfg,
-      devenv, and a small set of bootstrap tools) and skips asdf
+      and a small set of bootstrap tools) and skips asdf
       entirely. Also restores the v1-e2e-daily-cache populated by
       save_e2e_cache. When false, the broader mise.devbase.toml
       toolset is installed. Used by E2E jobs.
