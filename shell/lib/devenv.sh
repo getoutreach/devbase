@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Helpers for installing devenv in CI.
+
+# install_devenv_for_ci installs the devenv version CI should use:
+#
+# 1. DEVENV_CI_VERSION, if set and non-empty (with or without a leading `v`)
+# 2. the newest release of any kind, if DEVENV_PRE_RELEASE=true
+# 3. otherwise, the latest stable release
+#
+# It always installs, so a devenv restored from a tool cache never wins.
+# Requires github.sh, logging.sh and mise.sh to be sourced.
+install_devenv_for_ci() {
+  local version="${DEVENV_CI_VERSION:-}"
+  local preRelease="${DEVENV_PRE_RELEASE:-false}"
+
+  # mise reads GITHUB_TOKEN when it resolves the release assets.
+  bootstrap_github_token
+
+  if [[ -n $version ]]; then
+    if [[ $preRelease == "true" ]]; then
+      warn "Ignoring DEVENV_PRE_RELEASE because DEVENV_CI_VERSION is set"
+    fi
+    if [[ $version =~ ^v[0-9] ]]; then
+      version="${version#v}"
+    fi
+    info "Using devenv $version (from DEVENV_CI_VERSION)"
+    install_tool_with_mise github:getoutreach/devenv "$version"
+  elif [[ $preRelease == "true" ]]; then
+    info "Using the latest devenv pre-release (DEVENV_PRE_RELEASE=true)"
+    install_latest_github_release getoutreach/devenv true
+  else
+    info "Using the latest stable devenv release (DEVENV_CI_VERSION not set)"
+    install_latest_github_release getoutreach/devenv false
+  fi
+}
