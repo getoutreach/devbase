@@ -52,7 +52,8 @@ download_box() {
   # Resolve the yq binary once, in this shell, before the 3 calls
   # below: each runs in its own forked subshell (pipe/process
   # substitution), so without this they'd each independently redo
-  # yq_resolve_bin's own resolution work.
+  # yq_resolve_bin's own resolution work. Without Go, this resolves
+  # nothing and yq_wrapper runs gojq instead.
   yq_resolve_bin
   # Avoid reading and writing to the same file
   newBox="$(yq_wrapper . "${BOXPATH}" |
