@@ -21,9 +21,14 @@ import (
 // BurntSushi/toml decodes every TOML date and time into a time.Time and
 // names the location of the zoneless forms after them.
 const (
+	// tomlLocalDateTime is the location name of a date and time with no offset.
 	tomlLocalDateTime = "datetime-local"
-	tomlLocalDate     = "date-local"
-	tomlLocalTime     = "time-local"
+
+	// tomlLocalDate is the location name of a date alone.
+	tomlLocalDate = "date-local"
+
+	// tomlLocalTime is the location name of a time alone.
+	tomlLocalTime = "time-local"
 )
 
 // decodeTOML decodes the TOML document in b into the plain value shape

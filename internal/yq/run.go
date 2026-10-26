@@ -53,7 +53,10 @@ type inputFormat struct {
 
 //nolint:gochecknoglobals // Why: read-only lookup tables.
 var (
+	// yamlInput is the input format of `devbase yq`.
 	yamlInput = inputFormat{name: "yq", decode: SplitYAMLDocumentsWithNodes}
+
+	// tomlInput is the input format of `devbase tomlq`.
 	tomlInput = inputFormat{name: "tomlq", decode: decodeTOMLInput, validate: validateTOML}
 )
 
