@@ -111,6 +111,12 @@ install_mise() {
   run_mise settings set http_retries 3
   run_mise settings set lockfile true
   run_mise settings set use_versions_host_track false
+  # mise 2026.10.19 made lockfile_mode=generate the default, which also locks
+  # platforms missing from our lockfiles. For private getoutreach repos that
+  # fails before CI has a GitHub token, so keep the previous behavior.
+  if mise_version_compatible "2026.9.5"; then
+    run_mise settings set lockfile_mode merge
+  fi
   # TODO: remove when the default changes, reportedly in 2026.8.0
   run_mise settings set ruby.compile true
 }
