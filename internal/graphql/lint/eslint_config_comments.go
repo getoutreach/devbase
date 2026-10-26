@@ -9,7 +9,7 @@
 //	# eslint @graphql-eslint/naming-convention: ["error", { FieldDefinition: "camelCase" }]
 //	# eslint @graphql-eslint/naming-convention: "off", @graphql-eslint/require-description: "error"
 //
-// As in ESLint, such a comment applies to its whole file wherever it
+// As in ESLint 8, such a comment applies to its whole file wherever it
 // appears, replaces the rule's configured options entirely instead of
 // merging with them (so a severity alone leaves the rule with no
 // options), and the last comment for a rule wins. A rule is named with
@@ -17,6 +17,11 @@
 // ("off", "warn", "error", 0, 1 or 2) or a [severity, options] list,
 // written as YAML flow syntax so unquoted keys work as they do in ESLint.
 // A "-- reason" suffix is ignored.
+//
+// ESLint 9 differs: a severity-only comment keeps the configured
+// options, and the first comment for a rule wins while later ones are
+// reported as errors. See
+// https://eslint.org/docs/latest/use/migrate-to-9.0.0.
 //
 // Only the rule's on/off state and options can differ per file: a file's
 // "warn" or "error" still reports at the severity scripts/devbase.yaml
