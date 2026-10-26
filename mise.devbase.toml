@@ -1,6 +1,7 @@
 [tools]
 aws-cli = "2.34.31"
 "aqua:fullstorydev/grpcui" = "1.3.1"
+"aqua:oxc-project/oxc/oxfmt" = "1.84.0"
 # For provenance verification
 cosign = "3.0.5"
 github-cli = "2.83.2"

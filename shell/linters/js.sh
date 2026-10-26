@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Linters for js (node)
-
-# Note: This is called from the perspective of shell/
-# shellcheck source=../languages/nodejs.sh
-source "$DIR/languages/nodejs.sh"
+# Linters for js (node.js)
 
 # Why: Used by the script that calls us
 # shellcheck disable=SC2034

@@ -39,6 +39,45 @@ checksum = "sha256:ff666b684f51d146599cc3ff26509284bf1af0206fc6dca1cfe908a0da481
 url = "https://github.com/fullstorydev/grpcui/releases/download/v1.3.1/grpcui_1.3.1_windows_x86_64.zip"
 url_api = "https://api.github.com/repos/fullstorydev/grpcui/releases/assets/74079803"
 
+[[tools."aqua:oxc-project/oxc/oxfmt"]]
+version = "1.84.0"
+backend = "aqua:oxc-project/oxc/oxfmt"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.linux-arm64"]
+checksum = "sha256:48f5fc710ebb565446253c02ed8ecfa88a506570e928df560788dd32937bf5e0"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056485"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.linux-arm64-musl"]
+checksum = "sha256:f7bef5a4ad9809a8a0bcd2fa036def222f2f0aa5611194a395b212d43ce0ed28"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056483"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.linux-x64"]
+checksum = "sha256:85b1d6563e9f3988cd5120c8920e32a6ee953eec3dbfc60e6d38d4a159a5210a"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056533"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.linux-x64-musl"]
+checksum = "sha256:ecec56bb2c30569bfabff904d21be15f8757a43c9010bdd7491ca4e26f03a1cd"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056540"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.macos-arm64"]
+checksum = "sha256:b529ba6a1a832e1fbf5395eb0f93d23a6a9b57cb5c8c3bb83ef4fc74ee2658d4"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056486"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.macos-x64"]
+checksum = "sha256:11014bf0341dcddf7fe5c50ff4ade802500613981f45020281553510ff6ea3c5"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056529"
+
+[tools."aqua:oxc-project/oxc/oxfmt"."platforms.windows-x64"]
+checksum = "sha256:357a9ceb585fd5acc25d6c6ae069bed7ed3cf7b559411ece5900a404b3599ce6"
+url = "https://github.com/oxc-project/oxc/releases/download/apps_v1.84.0/oxfmt-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/oxc-project/oxc/releases/assets/579056530"
+
 [[tools.aws-cli]]
 version = "2.34.31"
 backend = "aqua:aws/aws-cli"
