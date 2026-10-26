@@ -4,8 +4,7 @@
 # (python-yq-compatible, reads TOML and writes JSON) is available
 # without a separate install. Delegates to `devbase tomlq`.
 #
-# Like release/yq, wiring this into .goreleaser.yml's archives[].files
-# is a separate, stencil-golang-side change.
+# It is listed in .goreleaser.yml's archives[].files, like release/yq.
 
 set -euo pipefail
 exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/devbase" tomlq "$@"

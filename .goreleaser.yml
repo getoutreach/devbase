@@ -36,6 +36,10 @@ archives:
         dst: yq
         info:
           mode: 0755
+      - src: release/tomlq
+        dst: tomlq
+        info:
+          mode: 0755
 ## <</Stencil::Block>>
 checksum:
   name_template: "checksums.txt"
