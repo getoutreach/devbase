@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# Shim installed alongside the `devbase` release binary so a `tomlq`
+# (python-yq-compatible, reads TOML and writes JSON) is available
+# without a separate install. Delegates to `devbase tomlq`.
+#
+# It is listed in .goreleaser.yml's archives[].files, like release/yq.
+
+set -euo pipefail
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/devbase" tomlq "$@"

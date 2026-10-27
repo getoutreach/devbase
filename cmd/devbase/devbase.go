@@ -69,6 +69,7 @@ func main() {
 		// <<Stencil::Block(commands)>>
 		newLintCommand(),
 		newYqCommand(),
+		newTomlqCommand(),
 		// <</Stencil::Block>>
 	}
 

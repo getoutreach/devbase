@@ -277,3 +277,25 @@ stub_gojq_env() {
   # shellcheck disable=SC2031 # Why: yq_resolve_bin runs in this shell, not a subshell.
   assert_equal "$DEVBASE_YQ_BIN" "/fake/devbase-v2.40.0"
 }
+
+@test "tomlq_wrapper runs devbase tomlq with the given arguments" {
+  fake_bin_dir="$(mktempdir devbase-yq-tomlq-XXXXXX)"
+  printf '#!/usr/bin/env bash\necho "devbase $*"\n' >"$fake_bin_dir/devbase"
+  chmod +x "$fake_bin_dir/devbase"
+  stub_gojq_env local /usr/bin/go
+  DEVBASE_YQ_BIN="$fake_bin_dir/devbase"
+
+  run tomlq_wrapper -r .a file.toml
+  assert_success
+  assert_output "devbase tomlq -r .a file.toml"
+
+  rm -rf "$fake_bin_dir"
+}
+
+@test "tomlq_wrapper fails with a clear error instead of falling back to gojq" {
+  stub_gojq_env local ""
+
+  run tomlq_wrapper .a
+  assert_failure
+  assert_output --partial "cannot run tomlq"
+}
