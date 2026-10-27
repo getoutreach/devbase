@@ -3,6 +3,8 @@
 # - SC2155: Declare and assign separately to avoid masking return values.
 # shellcheck disable=SC2155
 
+bats_require_minimum_version 1.5.0
+
 load shell.sh
 load test_helper.sh
 
@@ -40,4 +42,29 @@ teardown() {
 .mise/tasks/foo/bash_script
 .mise/tasks/foo/untracked_bash_script
 EOF
+}
+
+# flaky_echo fails until it has been called $1 times, then prints "ok".
+flaky_echo() {
+  local count
+  count="$(($(cat "$TMP_GITDIR/flaky_calls" 2>/dev/null || echo 0) + 1))"
+  echo "$count" >"$TMP_GITDIR/flaky_calls"
+  if [[ $count -lt $1 ]]; then
+    return 1
+  fi
+  echo "ok"
+}
+
+@test "retry keeps its notices out of the command's stdout" {
+  run --separate-stderr retry 0 3 flaky_echo 2
+  assert_success
+  assert_output "ok"
+  [[ $stderr == "RETRYING: flaky_echo (2/3)" ]]
+}
+
+@test "retry returns the command's exit code after the last attempt" {
+  run retry 0 2 flaky_echo 5
+  assert_failure
+  run cat "$TMP_GITDIR/flaky_calls"
+  assert_output "2"
 }
