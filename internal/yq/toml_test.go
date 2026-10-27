@@ -6,6 +6,7 @@ package yq
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,22 +108,30 @@ func TestDecodeTOML_NonFiniteNumber(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNonFiniteNumber)
 }
 
-// TestValidateTOML confirms each flag with no meaning for TOML input is
-// rejected, and that ordinary jq flags are not.
+// TestValidateTOML confirms each YAML or XML flag, and each flag that
+// cannot apply to TOML output, is rejected as tomlq's own, and that
+// ordinary jq flags are not.
 func TestValidateTOML(t *testing.T) {
-	for _, tt := range []struct {
-		name string
-		args []string
-	}{
-		{"-y", []string{"-y", "."}},
-		{"-Y", []string{"-Y", "."}},
-		{"--indentless-lists", []string{"--indentless-lists", "."}},
-		{"-i", []string{"-i", "."}},
-		{"-t", []string{"-t", "."}},
-		{"-T", []string{"-T", "."}},
+	for _, args := range [][]string{
+		{"-y"},
+		{"-Y"},
+		{"--indentless-lists"},
+		{"-i"},
+		{"-t"},
+		{"-T"},
+		{"-F"},
+		{"-w", "10"},
+		{"--explicit-start"},
+		{"--explicit-end"},
+		{"--no-expand-aliases"},
+		{"--max-expansion-factor", "2"},
+		{"--yaml-output-grammar-version", "1.1"},
+		{"--yml-out-ver", "1.2"},
+		{"-x"},
+		{"--xml-input"},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
-			flags, _, err := parseYqFlags(tt.args)
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			flags, _, err := parseYqFlags(append(args, "."))
 			assert.NilError(t, err)
 			assert.ErrorIs(t, validateTOML(flags), errTOMLUnsupportedFlag)
 		})

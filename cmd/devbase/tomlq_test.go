@@ -121,6 +121,8 @@ func TestTomlqCommand_Errors(t *testing.T) {
 		{"yaml output", "a = 1\n", []string{"-y", "."}, "tomlq: -y/--yaml-output is not supported"},
 		{"in place", "", []string{"-i", ".", "x.toml"}, "tomlq: -i/--in-place is not supported"},
 		{"toml output", "a = 1\n", []string{"-t", "."}, "tomlq: -t/--toml-output is not supported"},
+		{"yaml only flag", "a = 1\n", []string{"--explicit-start", "."}, "tomlq: --explicit-start is not supported"},
+		{"xml flag", "a = 1\n", []string{"-x", "."}, "tomlq: -x/--xml-output is not supported"},
 		{"no filter", "", nil, "tomlq: missing filter argument"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

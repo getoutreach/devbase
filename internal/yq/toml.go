@@ -219,8 +219,9 @@ func decodeTOMLInput(b []byte) ([]any, []*yaml.Node, KeyOrder, error) {
 var errTOMLUnsupportedFlag = errors.New("not supported by devbase tomlq, which reads TOML and writes JSON")
 
 // validateTOML returns an error for the first flag set in f that
-// devbase tomlq cannot honor. It runs before yqFlags.Validate, so -t
-// and -T are reported as tomlq's own, not as a missing yq feature.
+// devbase tomlq cannot honor: the YAML and XML flags, which can never
+// apply to TOML input. It runs before yqFlags.Validate, so these are
+// reported as tomlq's own, not as a missing yq feature.
 func validateTOML(f *yqFlags) error {
 	unsupported := []struct {
 		name string
@@ -232,6 +233,15 @@ func validateTOML(f *yqFlags) error {
 		{"-i/--in-place", f.InPlace},
 		{"-t/--toml-output", f.TOMLOutput},
 		{"-T/--toml-roundtrip", f.TOMLRoundtrip},
+		{"-F/--yaml-frontmatter", f.YAMLFrontmatter},
+		{"-w/--width", f.Width != nil},
+		{"--explicit-start", f.ExplicitStart},
+		{"--explicit-end", f.ExplicitEnd},
+		{"--no-expand-aliases", f.NoExpandAliases},
+		{"--max-expansion-factor", f.MaxExpansionFactor != nil},
+		{"--yaml-output-grammar-version/--yml-out-ver", f.YAMLOutputGrammarVersion != ""},
+		{"-x/--xml-output", f.XMLOutput},
+		{"--xml-input", f.XMLInput},
 	}
 	for _, u := range unsupported {
 		if u.set {
