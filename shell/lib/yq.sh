@@ -2,11 +2,10 @@
 #
 # yq_wrapper() wraps `devbase yq`, and tomlq_wrapper() wraps `devbase
 # tomlq`, building the devbase binary once per source commit (cached on
-# disk) instead of a fresh `go run` per call --
-# real savings, since yaml_get_field/yaml_get_array alone call it 15+
-# times per `make` invocation. shell/yq.sh stays as the one-shot script
-# for callers that can't source a bash function (root/Makefile) or
-# only call it once.
+# disk) instead of a fresh `go run` per call -- real savings, since
+# yaml_get_field/yaml_get_array alone call it 15+ times per `make`
+# invocation. shell/yq.sh stays as the one-shot script for callers that
+# can't source a bash function (root/Makefile) or only call it once.
 
 _DEVBASE_YQ_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 

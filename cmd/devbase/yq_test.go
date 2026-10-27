@@ -26,8 +26,8 @@ func runYqCommand(t *testing.T, stdin string, args ...string) (stdout, stderr st
 	return runSubcommand(t, newYqCommand(), stdin, args...)
 }
 
-// runSubcommand runs cmd, named by its own Name, as runYqCommand
-// describes.
+// runSubcommand runs cmd with args and returns what runYqCommand
+// documents: stdout, stderr, and the error from Run.
 func runSubcommand(t *testing.T, cmd *cli.Command, stdin string, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 
