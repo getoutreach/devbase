@@ -71,6 +71,51 @@ teardown() {
   refute_line "--exclude-pre-releases"
 }
 
+@test "latest_github_release_version waits for the GraphQL rate limit in CI" {
+  stub_command gh "v1.45.0"
+  stub_command wait-for-gh-rate-limit ""
+
+  CI=true GITHUB_TOKEN=test-token run latest_github_release_version getoutreach/stencil false
+  assert_success
+  assert_output "v1.45.0"
+
+  run stub_argv wait-for-gh-rate-limit
+  assert_output "graphql"
+  run head -n 1 "$STUB_CALLS_FILE"
+  assert_output "wait-for-gh-rate-limit graphql"
+}
+
+@test "latest_github_release_version uses gh's token for the rate limit check when GITHUB_TOKEN is unset" {
+  stub_command gh "v1.45.0"
+  stub_command wait-for-gh-rate-limit ""
+
+  CI=true GITHUB_TOKEN='' run latest_github_release_version getoutreach/stencil false
+  assert_success
+
+  run grep -c "^gh auth token" "$STUB_CALLS_FILE"
+  assert_output "1"
+}
+
+@test "latest_github_release_version continues when the rate limit check fails" {
+  stub_command gh "v1.45.0"
+  stub_command wait-for-gh-rate-limit "" 1
+
+  CI=true GITHUB_TOKEN=test-token run latest_github_release_version getoutreach/stencil false
+  assert_success
+  assert_line "v1.45.0"
+  assert_output --partial "Could not check the GitHub GraphQL rate limit"
+}
+
+@test "latest_github_release_version doesn't wait for the rate limit outside CI" {
+  stub_command gh "v1.45.0"
+  stub_command wait-for-gh-rate-limit ""
+
+  CI='' run latest_github_release_version getoutreach/stencil false
+  assert_success
+  assert_output "v1.45.0"
+  assert_stub_not_called wait-for-gh-rate-limit
+}
+
 @test "install_latest_github_release fails when there is no release to install" {
   stub_command gh ""
 

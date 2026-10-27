@@ -63,6 +63,16 @@ latest_github_release_version() {
     gh_args+=(--exclude-pre-releases)
   fi
 
+  # `gh release list` uses the GraphQL API, which has its own rate limit.
+  if in_ci_environment; then
+    local gh_token="${GITHUB_TOKEN:-}"
+    if [[ -z $gh_token ]]; then
+      gh_token="$(github_token)"
+    fi
+    GITHUB_TOKEN="$gh_token" wait_for_gh_rate_limit graphql ||
+      warn "Could not check the GitHub GraphQL rate limit, continuing"
+  fi
+
   run_gh release --repo "$slug" list "${gh_args[@]}"
 }
 
