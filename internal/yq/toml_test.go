@@ -133,6 +133,15 @@ func TestValidateTOML(t *testing.T) {
 	assert.NilError(t, validateTOML(flags))
 }
 
+// TestDecodeTOML_DuplicateKey confirms a key defined twice is an error,
+// including an array key, which BurntSushi/toml accepted before v1.6.0.
+func TestDecodeTOML_DuplicateKey(t *testing.T) {
+	for _, doc := range []string{"a = 1\na = 2\n", "arr = [1]\narr = [2]\n"} {
+		_, _, err := decodeTOML([]byte(doc))
+		assert.ErrorContains(t, err, "already been defined")
+	}
+}
+
 // tomlKeyOrder returns the key order decodeTOML recorded for the map at
 // path in doc, failing the test if there is none.
 func tomlKeyOrder(t *testing.T, doc string, path ...any) []string {
