@@ -10,18 +10,20 @@
 # It always installs, so a devenv restored from a tool cache never wins.
 # Requires github.sh, logging.sh and mise.sh to be sourced.
 install_devenv_for_ci() {
-  local version="${DEVENV_CI_VERSION:-}"
+  local version
+  version="$(normalize_semver "${DEVENV_CI_VERSION:-}")"
   local pre_release="${DEVENV_PRE_RELEASE:-false}"
 
   # mise reads GITHUB_TOKEN when it resolves the release assets.
   bootstrap_github_token
 
   if [[ -n $version ]]; then
+    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+      error "DEVENV_CI_VERSION must be a devenv release version such as 1.68.0, got '${DEVENV_CI_VERSION}'"
+      return 1
+    fi
     if [[ $pre_release == "true" ]]; then
       warn "Ignoring DEVENV_PRE_RELEASE because DEVENV_CI_VERSION is set"
-    fi
-    if [[ $version =~ ^v[0-9] ]]; then
-      version="${version#v}"
     fi
     info "Using devenv $version (from DEVENV_CI_VERSION)"
     install_tool_with_mise github:getoutreach/devenv "$version"

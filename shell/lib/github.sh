@@ -63,6 +63,22 @@ latest_github_release_version() {
   run_gh release --repo "$slug" list "${gh_args[@]}"
 }
 
+# normalize_semver trims surrounding whitespace and strips a leading
+# `v` or `V` before a digit, so mise receives a plain version.
+#
+# mise 2026.6.14+ drops the `v` when installing a pre-release tag but
+# re-adds it during `mise which`/`mise where`, so the tool resolves as
+# not installed.
+normalize_semver() {
+  local version="$1"
+  version="${version#"${version%%[![:space:]]*}"}"
+  version="${version%"${version##*[![:space:]]}"}"
+  if [[ $version =~ ^[vV][0-9] ]]; then
+    version="${version:1}"
+  fi
+  echo "$version"
+}
+
 # install_latest_github_release downloads the latest version of a tool
 # from Github. Requires the 'gh' cli to be installed either directly or via mise.
 #
@@ -91,12 +107,7 @@ install_latest_github_release() {
 
   info "Using $slug:${binary_name} version: ($tag)"
 
-  # Strip a leading `v` (before a digit) so mise receives a normalized version.
-  # mise 2026.6.14+ drops the `v` when installing a pre-release tag but re-adds
-  # it during `mise which`/`mise where`, so the tool resolves as not installed.
-  if [[ $tag =~ ^v[0-9] ]]; then
-    tag="${tag#v}"
-  fi
+  tag="$(normalize_semver "$tag")"
 
   # Need to export GITHUB_TOKEN so that future calls to `mise`
   # continue to use it for the configured private repos.
