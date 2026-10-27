@@ -68,7 +68,7 @@ func normalizeTOML(v any) any {
 		if math.IsNaN(val) || math.IsInf(val, 0) {
 			return val
 		}
-		return json.Number(strconv.FormatFloat(val, 'g', -1, 64))
+		return json.Number(formatTOMLFloat(val))
 	case time.Time:
 		return formatTOMLTime(val)
 	case map[string]any:
@@ -91,6 +91,17 @@ func normalizeTOML(v any) any {
 	default:
 		return v
 	}
+}
+
+// formatTOMLFloat writes f in plain decimal form, and in exponent form
+// only below 1e-6 or from 1e21, as JSON.stringify does. strconv's
+// default form switches to exponent form from 1e6, which would print
+// 1500000.5 as 1.5000005e+06.
+func formatTOMLFloat(f float64) string {
+	if abs := math.Abs(f); abs != 0 && (abs < 1e-6 || abs >= 1e21) {
+		return strconv.FormatFloat(f, 'g', -1, 64)
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
 // formatTOMLTime renders t as a date, time, or datetime string. A value

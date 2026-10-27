@@ -75,6 +75,28 @@ clock = 07:32:00
 	})
 }
 
+// TestDecodeTOML_FloatForms confirms floats print in plain decimal form
+// except at extreme exponents, where the exponent form is kept.
+func TestDecodeTOML_FloatForms(t *testing.T) {
+	for _, tt := range []struct{ src, want string }{
+		{"1.0", "1"},
+		{"3.14", "3.14"},
+		{"1e6", "1000000"},
+		{"1500000.5", "1500000.5"},
+		{"123456789.0", "123456789"},
+		{"0.00001", "0.00001"},
+		{"1.5e-7", "1.5e-07"},
+		{"1e21", "1e+21"},
+		{"0.0", "0"},
+	} {
+		t.Run(tt.src, func(t *testing.T) {
+			v, _, err := decodeTOML([]byte("x = " + tt.src + "\n"))
+			assert.NilError(t, err)
+			assert.Equal(t, v.(map[string]any)["x"], json.Number(tt.want))
+		})
+	}
+}
+
 // TestFormatTOMLTime_Zone confirms a time with a real zone is not
 // mistaken for a zoneless one.
 func TestFormatTOMLTime_Zone(t *testing.T) {
