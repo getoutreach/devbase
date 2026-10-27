@@ -14,9 +14,6 @@ install_devenv_for_ci() {
   version="$(normalize_semver "${DEVENV_CI_VERSION:-}")"
   local pre_release="${DEVENV_PRE_RELEASE:-false}"
 
-  # mise reads GITHUB_TOKEN when it resolves the release assets.
-  bootstrap_github_token
-
   if [[ -n $version ]]; then
     if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
       error "DEVENV_CI_VERSION must be a devenv release version such as 1.68.0, got '${DEVENV_CI_VERSION}'"
@@ -26,6 +23,8 @@ install_devenv_for_ci() {
       warn "Ignoring DEVENV_PRE_RELEASE because DEVENV_CI_VERSION is set"
     fi
     info "Using devenv $version (from DEVENV_CI_VERSION)"
+    # mise reads GITHUB_TOKEN when it resolves the release assets.
+    bootstrap_github_token
     install_tool_with_mise github:getoutreach/devenv "$version"
   elif [[ $pre_release == "true" ]]; then
     info "Using the latest devenv pre-release (DEVENV_PRE_RELEASE=true)"
