@@ -29,7 +29,6 @@ PROVISION_ARGS="${PROVISION_ARGS:-""}"
 # shell/ci/env/mise.sh) that picks mise.e2e.toml over mise.devbase.toml
 # before this script runs.
 E2E="${E2E:-"false"}"
-DEVENV_PRE_RELEASE="${DEVENV_PRE_RELEASE:-"false"}"
 
 if [[ $PROVISION == "true" ]] && [[ $E2E == "true" ]]; then
   info "e2e was set, ignoring provision"
