@@ -49,7 +49,7 @@ func decodeTOML(b []byte) (any, KeyOrder, error) {
 	// every array of tables.
 	root := normalizeTOML(v)
 	order := KeyOrder{}
-	recordTOMLOrder(root, newTOMLOrder(md.Keys()), order)
+	recordTOMLOrder(root, newTOMLOrder(&md), order)
 	return root, order, nil
 }
 
@@ -93,7 +93,8 @@ func normalizeTOML(v any) any {
 	}
 }
 
-// formatTOMLTime renders t in the form it had in the TOML source.
+// formatTOMLTime renders t as a date, time, or datetime string. A value
+// with an offset is written in RFC 3339, so "+00:00" becomes "Z".
 func formatTOMLTime(t time.Time) string {
 	switch t.Location().String() {
 	case tomlLocalDateTime:
@@ -122,6 +123,10 @@ func newTOMLTable() *tomlTable {
 // for most keys, but one per element for an array of tables.
 type tomlPath struct {
 	tables []*tomlTable
+
+	// arrayOfTables is set for a path written as "[[path]]", as opposed
+	// to an array of inline tables.
+	arrayOfTables bool
 }
 
 // last returns p's most recent occurrence, adding one if the document
@@ -133,14 +138,13 @@ func (p *tomlPath) last() *tomlTable {
 	return p.tables[len(p.tables)-1]
 }
 
-// newTOMLOrder builds, from BurntSushi/toml's list of every key path in
-// document order, the tree recordTOMLOrder reads each table's key order
-// from. A key inside an inline table in an array is listed without
-// saying which element it belongs to, so such a table has no entry of
-// its own to read an order from.
-func newTOMLOrder(keys []toml.Key) *tomlPath {
+// newTOMLOrder builds, from md's list of every key path in document
+// order, the tree recordTOMLOrder reads each table's key order from. A
+// key inside an inline table in an array is listed without saying which
+// element it belongs to, so those tables have no order to read.
+func newTOMLOrder(md *toml.MetaData) *tomlPath {
 	root := newTOMLTable()
-	for _, key := range keys {
+	for _, key := range md.Keys() {
 		table := root
 		for i, segment := range key {
 			path, ok := table.kids[segment]
@@ -151,6 +155,7 @@ func newTOMLOrder(keys []toml.Key) *tomlPath {
 			}
 			if i == len(key)-1 {
 				path.tables = append(path.tables, newTOMLTable())
+				path.arrayOfTables = md.Type(key...) == "ArrayHash"
 			} else {
 				table = path.last()
 			}
@@ -190,7 +195,7 @@ func recordTOMLOrder(v any, path *tomlPath, order KeyOrder) {
 		}
 	case []any:
 		// Only an array of tables has one occurrence per element.
-		if len(path.tables) != len(val) {
+		if !path.arrayOfTables || len(path.tables) != len(val) {
 			return
 		}
 		for i, item := range val {

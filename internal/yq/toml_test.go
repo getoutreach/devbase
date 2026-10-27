@@ -55,9 +55,9 @@ version = "1.0.0"
 	assert.DeepEqual(t, lock, []any{map[string]any{"version": "1.0.0"}})
 }
 
-// TestDecodeTOML_DateTimeForms confirms every date and time form is
-// written as it was in the source. This also guards the location names
-// BurntSushi/toml gives zoneless values, which formatTOMLTime relies on.
+// TestDecodeTOML_DateTimeForms confirms each date and time form decodes
+// to a string. It also guards the location names BurntSushi/toml gives
+// zoneless values, which formatTOMLTime relies on.
 func TestDecodeTOML_DateTimeForms(t *testing.T) {
 	v, _, err := decodeTOML([]byte(`
 offset = 1979-05-27T07:32:00.5-07:00
@@ -188,15 +188,21 @@ func TestDecodeTOML_KeyOrder(t *testing.T) {
 	})
 }
 
-// TestDecodeTOML_InlineTablesInArray confirms a map with no usable
-// recorded order is left to the alphabetical fallback instead of
-// getting a wrong order.
+// TestDecodeTOML_InlineTablesInArray confirms a table inside an inline
+// array has no recorded order, whatever the array's length, so it falls
+// back to alphabetical order instead of getting a wrong or inconsistent
+// one.
 func TestDecodeTOML_InlineTablesInArray(t *testing.T) {
-	v, order, err := decodeTOML([]byte("a = [{ z = 1, y = 2 }, { w = 3 }]\n"))
-	assert.NilError(t, err)
+	for _, doc := range []string{
+		"a = [{ z = 1, y = 2 }]\n",
+		"a = [{ z = 1, y = 2 }, { x = 1, w = 2 }]\n",
+	} {
+		v, order, err := decodeTOML([]byte(doc))
+		assert.NilError(t, err)
 
-	items := v.(map[string]any)["a"].([]any)
-	assert.Equal(t, len(items), 2)
-	_, ok := order.order(items[1].(map[string]any))
-	assert.Assert(t, !ok)
+		for _, item := range v.(map[string]any)["a"].([]any) {
+			_, ok := order.order(item.(map[string]any))
+			assert.Assert(t, !ok, doc)
+		}
+	}
 }
