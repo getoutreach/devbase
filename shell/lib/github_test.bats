@@ -26,6 +26,10 @@ setup() {
     echo 'wait-for-gh-rate-limit = "1.1.1"'
   } >>"$MISE_GLOBAL_CONFIG_FILE"
 
+  # Start every test outside CI, wherever the suite runs. Tests of the
+  # CI-only rate limit check set CI themselves.
+  unset CI
+
   setup_command_stubs
 }
 

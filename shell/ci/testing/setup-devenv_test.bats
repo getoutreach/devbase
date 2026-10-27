@@ -16,12 +16,14 @@ setup() {
   stub_command git ""
   stub_command kubectl ""
   stub_command kubecfg ""
+  stub_command wait-for-gh-rate-limit ""
 
   HOME="$(mktempdir setup-devenv-home-XXXXXX)"
   export HOME
   export CI=true VAULT_ROLE_ID=test GITHUB_TOKEN=test-token
   export PROVISION=false E2E=false
   unset DEVENV_CI_VERSION DEVENV_PRE_RELEASE DATADOG_API_KEY BASH_ENV
+  unset MISE_GITHUB_TOKEN GH_TOKEN
 }
 
 teardown() {
