@@ -115,7 +115,7 @@ func run(ctx context.Context, in inputFormat, args []string, stdin io.Reader, st
 	}
 
 	if flags.InPlace {
-		return runInPlace(ctx, files, engine, opts, flags.Slurp, flags.YAMLRoundtrip, stderr)
+		return runInPlace(ctx, in.name, files, engine, opts, flags.Slurp, flags.YAMLRoundtrip, stderr)
 	}
 	return runToStdout(ctx, in, stdin, stdout, stderr, files, flags.Slurp, flags.YAMLRoundtrip, engine, opts)
 }
@@ -131,10 +131,12 @@ func fail(stderr io.Writer, name, format string, args ...any) int {
 
 // runInPlace edits every file in files independently via RunFiles,
 // reporting every failure without letting one abort the rest.
-func runInPlace(ctx context.Context, files []string, engine *Engine, opts FormatOptions, slurp, roundtrip bool, stderr io.Writer) int {
+func runInPlace(ctx context.Context, name string, files []string, engine *Engine, opts FormatOptions,
+	slurp, roundtrip bool, stderr io.Writer,
+) int {
 	errs := RunFiles(ctx, files, engine, opts, slurp, roundtrip)
 	for _, err := range errs {
-		fmt.Fprintf(stderr, "yq: %v\n", err)
+		fmt.Fprintf(stderr, "%s: %v\n", name, err)
 	}
 	if len(errs) > 0 {
 		return 1
