@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# yq_wrapper() wraps `devbase yq`, building the devbase binary once per
-# source commit (cached on disk) instead of a fresh `go run` per call --
-# real savings, since yaml_get_field/yaml_get_array alone call it 15+
-# times per `make` invocation. shell/yq.sh stays as the one-shot script
-# for callers that can't source a bash function (root/Makefile) or
-# only call it once.
+# yq_wrapper() wraps `devbase yq`, and tomlq_wrapper() wraps `devbase
+# tomlq`, building the devbase binary once per source commit (cached on
+# disk) instead of a fresh `go run` per call -- real savings, since
+# yaml_get_field/yaml_get_array alone call it 15+ times per `make`
+# invocation. shell/yq.sh stays as the one-shot script for callers that
+# can't source a bash function (root/Makefile) or only call it once.
 
 _DEVBASE_YQ_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
@@ -123,4 +123,16 @@ yq_wrapper() {
   fi
   yq_resolve_bin
   "$DEVBASE_YQ_BIN" yq "$@"
+}
+
+# tomlq_wrapper runs devbase tomlq with the given arguments, resolving
+# the binary the same way yq_wrapper does. It has no gojq fallback, as
+# gojq cannot read TOML, so it fails when devbase can be neither built
+# nor downloaded (see yq_use_gojq).
+tomlq_wrapper() {
+  if yq_use_gojq; then
+    fatal "go not found and devbase is not a tagged release; cannot run tomlq"
+  fi
+  yq_resolve_bin
+  "$DEVBASE_YQ_BIN" tomlq "$@"
 }
