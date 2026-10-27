@@ -42,3 +42,19 @@ has_minimum_version() {
 is_semver() {
   [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
 }
+
+# normalize_semver trims surrounding whitespace and strips a leading
+# `v` or `V` before a digit, so mise receives a plain version.
+#
+# mise 2026.6.14+ drops the `v` when installing a pre-release tag but
+# re-adds it during `mise which`/`mise where`, so the tool resolves as
+# not installed.
+normalize_semver() {
+  local version="$1"
+  version="${version#"${version%%[![:space:]]*}"}"
+  version="${version%"${version##*[![:space:]]}"}"
+  if [[ $version =~ ^[vV][0-9] ]]; then
+    version="${version:1}"
+  fi
+  echo "$version"
+}

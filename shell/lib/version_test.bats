@@ -110,3 +110,15 @@ load version.sh
   run is_semver ""
   assert_failure
 }
+
+@test "normalize_semver trims whitespace and strips a leading v or V" {
+  run normalize_semver "  V1.68.0 "
+  assert_output "1.68.0"
+  run normalize_semver "v1.69.0-rc.1"
+  assert_output "1.69.0-rc.1"
+}
+
+@test "normalize_semver leaves a tag without a v before a digit unchanged" {
+  run normalize_semver "unstable"
+  assert_output "unstable"
+}
