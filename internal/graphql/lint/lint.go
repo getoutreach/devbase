@@ -157,7 +157,7 @@ func FilesFromSources(fileSources []*ast.Source, cfg *config.Lint) ([]Violation,
 	}
 	violations = append(violations, tier3Violations...)
 
-	return violations, nil
+	return withoutSuppressed(fileSources, violations)
 }
 
 // withoutOperationDocuments returns sources minus every source that
