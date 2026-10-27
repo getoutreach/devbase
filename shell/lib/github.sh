@@ -70,12 +70,22 @@ latest_github_release_version() {
       gh_token="$(github_token)"
     fi
     GITHUB_TOKEN="$gh_token" wait_for_gh_rate_limit graphql ||
-      warn "Could not check the GitHub GraphQL rate limit, continuing"
+      warn "Could not check the GitHub GraphQL rate limit, continuing" >&2
   fi
 
-  # Retry for brief GitHub outages. retry prints its notices to stderr,
-  # so stdout stays the tag alone.
-  retry 5 3 run_gh release --repo "$slug" list "${gh_args[@]}"
+  # Retry for brief GitHub outages. Messages go to stderr, so stdout
+  # stays the tag alone for callers that capture it.
+  local attempt
+  for attempt in 1 2 3; do
+    if run_gh release --repo "$slug" list "${gh_args[@]}"; then
+      return 0
+    fi
+    if [[ $attempt -lt 3 ]]; then
+      warn "Failed to list releases for $slug, retrying ($attempt/3)" >&2
+      sleep 5
+    fi
+  done
+  return 1
 }
 
 # install_latest_github_release downloads the latest version of a tool

@@ -102,10 +102,10 @@ teardown() {
   stub_command gh "v1.45.0"
   stub_command wait-for-gh-rate-limit "" 1
 
-  CI=true GITHUB_TOKEN=test-token run latest_github_release_version getoutreach/stencil false
+  CI=true GITHUB_TOKEN=test-token run --separate-stderr latest_github_release_version getoutreach/stencil false
   assert_success
-  assert_line "v1.45.0"
-  assert_output --partial "Could not check the GitHub GraphQL rate limit"
+  assert_output "v1.45.0"
+  [[ $stderr == *"Could not check the GitHub GraphQL rate limit"* ]]
 }
 
 @test "latest_github_release_version doesn't wait for the rate limit outside CI" {
@@ -142,6 +142,7 @@ STUB
   run --separate-stderr latest_github_release_version getoutreach/stencil false
   assert_success
   assert_output "v1.45.0"
+  [[ $stderr == *"retrying (1/3)"* ]]
   run cat "$STUB_DIR/gh.count"
   assert_output "2"
 }
