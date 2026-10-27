@@ -8,14 +8,14 @@
 # 3. otherwise, the latest stable release
 #
 # It always installs, so a devenv restored from a tool cache never wins.
-# Requires github.sh, logging.sh and mise.sh to be sourced.
+# Requires github.sh, logging.sh, mise.sh and version.sh to be sourced.
 install_devenv_for_ci() {
   local version
   version="$(normalize_semver "${DEVENV_CI_VERSION:-}")"
   local pre_release="${DEVENV_PRE_RELEASE:-false}"
 
   if [[ -n $version ]]; then
-    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+    if ! is_semver "$version"; then
       error "DEVENV_CI_VERSION must be a devenv release version such as 1.68.0, got '${DEVENV_CI_VERSION}'"
       return 1
     fi

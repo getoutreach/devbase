@@ -3,6 +3,7 @@
 
 load logging.sh
 load github.sh
+load version.sh
 load devenv.sh
 load test_helper.sh
 

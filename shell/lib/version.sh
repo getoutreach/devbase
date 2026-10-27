@@ -32,3 +32,13 @@ has_minimum_version() {
   ((ver_minor < min_minor)) && return 1
   ((ver_patch >= min_patch))
 }
+
+# is_semver(version)
+#
+# Succeeds if version is MAJOR.MINOR.PATCH with an optional pre-release
+# suffix, e.g. `1.68.0` or `1.69.0-rc.1`. A simplified form of the
+# semver.org regex: no build metadata, and leading zeros are allowed.
+# Does not strip a leading `v`.
+is_semver() {
+  [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+}

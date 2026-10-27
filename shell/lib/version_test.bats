@@ -92,3 +92,21 @@ load version.sh
   run has_minimum_version "2.5.0" "v1.62.2"
   assert_failure
 }
+
+@test "is_semver accepts a release and a pre-release version" {
+  run is_semver "1.68.0"
+  assert_success
+  run is_semver "1.69.0-rc.1"
+  assert_success
+}
+
+@test "is_semver rejects partial, prefixed and non-version values" {
+  run is_semver "1.68"
+  assert_failure
+  run is_semver "v1.68.0"
+  assert_failure
+  run is_semver "latest"
+  assert_failure
+  run is_semver ""
+  assert_failure
+}
