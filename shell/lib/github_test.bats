@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+bats_require_minimum_version 1.5.0
+
 load circleci.sh
 load github.sh
 load test_helper.sh
@@ -114,6 +116,44 @@ teardown() {
   assert_success
   assert_output "v1.45.0"
   assert_stub_not_called wait-for-gh-rate-limit
+}
+
+# stub_flaky_gh makes gh fail until it has been called $1 times, then
+# print v1.45.0. The call count is in $STUB_DIR/gh.count.
+stub_flaky_gh() {
+  echo "$1" >"$STUB_DIR/gh.succeed_at"
+  cat >"$STUB_DIR/gh" <<'STUB'
+#!/usr/bin/env bash
+count="$(($(cat "$STUB_DIR/gh.count" 2>/dev/null || echo 0) + 1))"
+echo "$count" >"$STUB_DIR/gh.count"
+if [[ $count -lt $(cat "$STUB_DIR/gh.succeed_at") ]]; then
+  echo "HTTP 502: Bad Gateway" >&2
+  exit 1
+fi
+echo "v1.45.0"
+STUB
+  chmod +x "$STUB_DIR/gh"
+}
+
+@test "latest_github_release_version retries a failed lookup" {
+  stub_flaky_gh 2
+  stub_command sleep ""
+
+  run --separate-stderr latest_github_release_version getoutreach/stencil false
+  assert_success
+  assert_output "v1.45.0"
+  run cat "$STUB_DIR/gh.count"
+  assert_output "2"
+}
+
+@test "latest_github_release_version fails after three failed lookups" {
+  stub_flaky_gh 99
+  stub_command sleep ""
+
+  run latest_github_release_version getoutreach/stencil false
+  assert_failure
+  run cat "$STUB_DIR/gh.count"
+  assert_output "3"
 }
 
 @test "install_latest_github_release fails when there is no release to install" {

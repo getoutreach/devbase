@@ -73,7 +73,9 @@ latest_github_release_version() {
       warn "Could not check the GitHub GraphQL rate limit, continuing"
   fi
 
-  run_gh release --repo "$slug" list "${gh_args[@]}"
+  # Retry for brief GitHub outages. retry prints its notices to stderr,
+  # so stdout stays the tag alone.
+  retry 5 3 run_gh release --repo "$slug" list "${gh_args[@]}"
 }
 
 # install_latest_github_release downloads the latest version of a tool
