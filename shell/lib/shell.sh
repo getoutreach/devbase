@@ -39,7 +39,7 @@ retry() {
   local exitCode=0
   for i in $(seq 1 "$maxRetries"); do
     if [[ $i -gt 1 ]]; then
-      echo "RETRYING: $command ($i/$maxRetries)" >&2
+      echo "RETRYING: $command ($i/$maxRetries)"
     fi
 
     # execute command, if succeeds break out of loop and
