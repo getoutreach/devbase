@@ -164,11 +164,14 @@ func suppresses(directives []eslintDirective, rule string, line int) bool {
 }
 
 // unsuppressibleRules are the rules a directive comment never silences.
-// Tier 1 violations currently return from FilesFromSources before
-// suppression runs, so this guard only protects against that changing.
+// Tier 1 violations return from FilesFromSources before suppression runs,
+// so for those this guard only protects against that changing. The two
+// suppression diagnostics are added before the "eslint-" directives are
+// applied, so this set is what keeps them visible.
 //
 //nolint:gochecknoglobals // Why: built once, never mutated.
-var unsuppressibleRules = set.Of(append(config.Tier1RuleNames(), UnclassifiedRule)...)
+var unsuppressibleRules = set.Of(append(config.Tier1RuleNames(), UnclassifiedRule,
+	config.RuleInvalidSuppression, config.RuleUnusedSuppression)...)
 
 // withoutSuppressed returns violations minus every Tier 2 or Tier 3
 // violation silenced by a directive comment in the source it was found

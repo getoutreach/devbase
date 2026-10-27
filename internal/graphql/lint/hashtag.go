@@ -76,11 +76,13 @@ func trailingCommentStarts(src *ast.Source) (map[int]bool, error) {
 	return trailing, nil
 }
 
-// isEslintDirective reports whether c is an ESLint directive comment,
-// such as "# eslint-disable ...". @graphql-eslint never treats these as
-// descriptions.
-func isEslintDirective(c *ast.Comment) bool {
-	return strings.HasPrefix(strings.TrimSpace(c.Text()), "eslint")
+// isDirectiveComment reports whether c is a directive comment, such as
+// "# eslint-disable ..." or "# devbase-lint-disable-next-line ...". A
+// directive is never a description: @graphql-eslint skips the ESLint ones,
+// and the same holds for devbase's own.
+func isDirectiveComment(c *ast.Comment) bool {
+	text := strings.TrimSpace(c.Text())
+	return strings.HasPrefix(text, "eslint") || strings.HasPrefix(text, devbaseDirectivePrefix)
 }
 
 // noHashtagDescriptionViolations reports a RuleNoHashtagDescription
@@ -103,7 +105,7 @@ func noHashtagDescriptionViolations(sites []descriptionSite, trailing map[int]bo
 		// Only the last comment of a group is reported, so only it is
 		// checked for being a directive.
 		last := group.List[len(group.List)-1]
-		if isEslintDirective(last) {
+		if isDirectiveComment(last) {
 			continue
 		}
 		if len(group.List) == 1 && trailing[last.Position.Start] {
