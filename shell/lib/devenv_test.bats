@@ -14,8 +14,8 @@ setup() {
   export CALLS_FILE
   unset DEVENV_CI_VERSION DEVENV_PRE_RELEASE
 
-  # Stand-ins for the github.sh and mise.sh helpers: record the call,
-  # touch no network.
+  # These stubs replace the github.sh and mise.sh helpers. They record each
+  # call and make no network requests.
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   bootstrap_github_token() { :; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.

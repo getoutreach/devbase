@@ -53,8 +53,8 @@ if in_ci_environment; then
   # mise.e2e.lock before this script runs. If either is missing, the
   # lockfile-based install drifted from this script's expectations;
   # fail loudly rather than silently falling through to unpinned
-  # installs below. devenv isn't in the lockfile: it's installed
-  # below by install_devenv_for_ci.
+  # installs below. devenv is not in the lockfile. install_devenv_for_ci
+  # installs it later in this script.
   if [[ $E2E == "true" ]]; then
     required_tools=(kubectl kubecfg)
     for tool in "${required_tools[@]}"; do
