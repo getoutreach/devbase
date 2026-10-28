@@ -75,10 +75,13 @@ else
   info "Removing existing Go-based (incompatible) yq"
   sudo rm -f "$(command -v yq)"
 
-  info "Installing yq (Python)"
-  install_tool_with_mise uv
-  mise config set settings.pipx.uvx true
-  install_tool_with_mise pipx:yq
+  devbaseVersion="$(devbase_cli_version)"
+  if devbase_cli_is_tagged_version "$devbaseVersion"; then
+    info "Installing devbase CLI $devbaseVersion"
+    install_tool_with_mise github:getoutreach/devbase "${devbaseVersion#v}"
+  else
+    info "devbase version is '$devbaseVersion', skipping devbase CLI install"
+  fi
 fi
 
 if [[ -e /opt/vault ]]; then
