@@ -25,11 +25,10 @@
 // Directive signatures below come from the Apollo Federation subgraph
 // specification (github.com/apollographql/federation,
 // docs/source/schema-design/federated-schemas/reference/subgraph-spec.mdx,
-// fetched 2026-08-21). Only the 9 directives named in
+// fetched 2026-10-22). Only the directives named in
 // federationDirectives are supported; an import naming any other
-// directive, for example @interfaceObject or @authenticated added in
-// later spec versions, is reported by name instead of assuming an
-// unverified signature.
+// directive, for example @authenticated added in later spec versions,
+// is reported by name instead of assuming an unverified signature.
 
 package lint
 
@@ -91,15 +90,17 @@ type federationDirective struct {
 //
 //nolint:gochecknoglobals,lll // Why: a fixed lookup table, never mutated; Go has no map consts, and directive location lists can't be wrapped.
 var federationDirectives = map[string]federationDirective{
-	"key":          {sdl: "directive @%[1]s(fields: FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE", needsFieldSet: true},
-	"shareable":    {sdl: "directive @%[1]s repeatable on OBJECT | FIELD_DEFINITION"},
-	"override":     {sdl: "directive @%[1]s(from: String!) on FIELD_DEFINITION"},
-	"inaccessible": {sdl: "directive @%[1]s on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION"},
-	"external":     {sdl: "directive @%[1]s on FIELD_DEFINITION | OBJECT"},
-	"requires":     {sdl: "directive @%[1]s(fields: FieldSet!) on FIELD_DEFINITION", needsFieldSet: true},
-	"provides":     {sdl: "directive @%[1]s(fields: FieldSet!) on FIELD_DEFINITION", needsFieldSet: true},
-	"tag":          {sdl: "directive @%[1]s(name: String!) repeatable on FIELD_DEFINITION | INTERFACE | OBJECT | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION"},
-	"extends":      {sdl: "directive @%[1]s on OBJECT | INTERFACE"},
+	"key":              {sdl: "directive @%[1]s(fields: FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE", needsFieldSet: true},
+	"shareable":        {sdl: "directive @%[1]s repeatable on OBJECT | FIELD_DEFINITION"},
+	"override":         {sdl: "directive @%[1]s(from: String!) on FIELD_DEFINITION"},
+	"inaccessible":     {sdl: "directive @%[1]s on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION"},
+	"external":         {sdl: "directive @%[1]s on FIELD_DEFINITION | OBJECT"},
+	"requires":         {sdl: "directive @%[1]s(fields: FieldSet!) on FIELD_DEFINITION", needsFieldSet: true},
+	"provides":         {sdl: "directive @%[1]s(fields: FieldSet!) on FIELD_DEFINITION", needsFieldSet: true},
+	"tag":              {sdl: "directive @%[1]s(name: String!) repeatable on FIELD_DEFINITION | INTERFACE | OBJECT | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION"},
+	"extends":          {sdl: "directive @%[1]s on OBJECT | INTERFACE"},
+	"interfaceObject":  {sdl: "directive @%[1]s on OBJECT"},
+	"composeDirective": {sdl: "directive @%[1]s(name: String!) repeatable on SCHEMA"},
 }
 
 // federationImport is a single entry from a `@link` import list,
