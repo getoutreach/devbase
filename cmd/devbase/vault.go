@@ -20,6 +20,7 @@ import (
 // vaultFormatJSON is the only output format "vault kv get" supports.
 const vaultFormatJSON = "json"
 
+// Errors that the vault command returns.
 var (
 	// errVaultUnsupported is returned for any `devbase vault` command or
 	// flag that is not implemented. It must be an error and never a

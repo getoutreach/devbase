@@ -47,6 +47,7 @@ var (
 	errInvalidCACert = errors.New("VAULT_CACERT has no valid PEM certificates")
 )
 
+// Settings for the token file and for requests to Vault.
 const (
 	// tokenFileName is the file in the home directory that the `vault`
 	// CLI, and many scripts, read and write the token from.
