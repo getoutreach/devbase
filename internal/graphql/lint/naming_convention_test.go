@@ -70,14 +70,6 @@ func TestNamingConventionValidCases(t *testing.T) {
 			},
 		},
 		{
-			"Query field selector overrides the general FieldDefinition rule",
-			`type One { fieldA: String } type Query { QUERY_A(id: ID!): String }`,
-			map[string]any{
-				"FieldDefinition[parent.name.value=Query]": map[string]any{"style": "UPPER_CASE", "prefix": "QUERY"},
-				"FieldDefinition":                          map[string]any{"style": "camelCase", "prefix": "field"},
-			},
-		},
-		{
 			"should ignore fields matching ignorePattern",
 			`type Test { EU: ID EUIntlFlag: ID UPC: ID }`,
 			map[string]any{
@@ -200,6 +192,67 @@ func TestNamingConventionInvalidCases(t *testing.T) {
 				`Field "getA" should not have "get" prefix`,
 				`Field "queryB" should not have "query" prefix`,
 				`Field "getC" should not have "get" prefix`,
+			},
+		},
+		{
+			// @graphql-eslint registers one listener per option key, so
+			// the Query selector adds to the FieldDefinition rule
+			// instead of replacing it (verified against
+			// @graphql-eslint/eslint-plugin 3.13.1 and 3.20.1).
+			"Query field selector adds to the general FieldDefinition rule",
+			`type One { fieldA: String } type Query { QUERY_A(id: ID!): String }`,
+			opts(map[string]any{
+				"FieldDefinition[parent.name.value=Query]": map[string]any{"style": "UPPER_CASE", "prefix": "QUERY"},
+				"FieldDefinition":                          map[string]any{"style": "camelCase", "prefix": "field"},
+			}),
+			[]string{`Field "QUERY_A" should have "field" prefix`},
+		},
+		{
+			"a root field's casing is still checked when only forbiddenPrefixes is set on the Query selector",
+			`type Query { Bad_name: String, getThing: String }`,
+			opts(map[string]any{
+				"FieldDefinition":                          map[string]any{"style": "camelCase"},
+				"FieldDefinition[parent.name.value=Query]": map[string]any{"forbiddenPrefixes": []any{"get"}},
+			}),
+			[]string{
+				`Field "Bad_name" should be in camelCase format`,
+				`Field "getThing" should not have "get" prefix`,
+			},
+		},
+		{
+			"Mutation and Subscription fields get both rules too",
+			`type Query { a: String } type Mutation { Bad_m: String, getM: String } type Subscription { Bad_s: String, getS: String }`,
+			opts(map[string]any{
+				"FieldDefinition": map[string]any{"style": "camelCase"},
+				"FieldDefinition[parent.name.value=Mutation]":     map[string]any{"forbiddenPrefixes": []any{"get"}},
+				"FieldDefinition[parent.name.value=Subscription]": map[string]any{"forbiddenPrefixes": []any{"get"}},
+			}),
+			[]string{
+				`Field "Bad_m" should be in camelCase format`,
+				`Field "getM" should not have "get" prefix`,
+				`Field "Bad_s" should be in camelCase format`,
+				`Field "getS" should not have "get" prefix`,
+			},
+		},
+		{
+			"the types rule never applies to a field, only to type definitions",
+			`type Query { getX: String, lower: String }`,
+			opts(map[string]any{
+				"types": "PascalCase",
+				"FieldDefinition[parent.name.value=Query]": map[string]any{"forbiddenPrefixes": []any{"get"}},
+			}),
+			[]string{`Field "getX" should not have "get" prefix`},
+		},
+		{
+			"a root field that breaks both rules is reported for each, general rule first",
+			`type Query { Get_x: String }`,
+			opts(map[string]any{
+				"FieldDefinition":                          map[string]any{"style": "camelCase"},
+				"FieldDefinition[parent.name.value=Query]": map[string]any{"forbiddenPrefixes": []any{"Get"}},
+			}),
+			[]string{
+				`Field "Get_x" should be in camelCase format`,
+				`Field "Get_x" should not have "Get" prefix`,
 			},
 		},
 	})

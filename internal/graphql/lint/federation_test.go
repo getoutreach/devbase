@@ -34,6 +34,94 @@ func TestFilesFederationImportedDirectivesPass(t *testing.T) {
 	assert.Equal(t, len(violations), 0)
 }
 
+// TestFilesFederationInterfaceObjectAndComposeDirectivePass confirms
+// that @interfaceObject and @composeDirective are defined when
+// imported. @composeDirective is applied to the schema itself.
+func TestFilesFederationInterfaceObjectAndComposeDirectivePass(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", `
+		extend schema
+			@link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@interfaceObject", "@composeDirective"])
+			@composeDirective(name: "@custom")
+
+		directive @custom on FIELD_DEFINITION
+
+		type Widget @key(fields: "id") @interfaceObject {
+			id: ID!
+			name: String @custom
+		}
+	`)
+
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
+}
+
+// TestFilesFederationInterfaceObjectAndComposeDirectiveLocations
+// confirms @interfaceObject is limited to object types and
+// @composeDirective to the schema.
+func TestFilesFederationInterfaceObjectAndComposeDirectiveLocations(t *testing.T) {
+	cases := []struct {
+		name    string
+		sdl     string
+		wantErr string
+	}{
+		{
+			"interfaceObject on a field",
+			`type Widget { id: ID! @interfaceObject }`,
+			"Directive interfaceObject is not applicable on FIELD_DEFINITION.",
+		},
+		{
+			"composeDirective on a type",
+			`type Widget @composeDirective(name: "@custom") { id: ID! }`,
+			"Directive composeDirective is not applicable on OBJECT.",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := writeFile(t, dir, "schema.graphql", `
+				extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@interfaceObject", "@composeDirective"])
+
+				`+c.sdl)
+
+			violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+			assert.NilError(t, err)
+			assert.Equal(t, len(violations), 1)
+			assert.ErrorContains(t, violations[0].err, c.wantErr)
+		})
+	}
+}
+
+// TestFilesFederationInterfaceObjectAndComposeDirectiveHonorAs confirms
+// both directives can be imported under an alias, and that
+// @composeDirective is repeatable on the schema.
+func TestFilesFederationInterfaceObjectAndComposeDirectiveHonorAs(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "schema.graphql", `
+		extend schema
+			@link(
+				url: "https://specs.apollo.dev/federation/v2.3"
+				import: [{name: "@composeDirective", as: "@compose"}, {name: "@interfaceObject", as: "@iface"}]
+			)
+			@compose(name: "@a")
+			@compose(name: "@b")
+
+		directive @a on FIELD_DEFINITION
+		directive @b on FIELD_DEFINITION
+
+		type Widget @iface {
+			id: ID!
+			name: String @a
+			label: String @b
+		}
+	`)
+
+	violations, err := Files([]string{path}, &config.Lint{Federation: "v2.3"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(violations), 0)
+}
+
 // TestFilesFederationDirectiveNotImportedFails confirms the real
 // point of import-list awareness: a directive that exists in the
 // Federation spec but was never imported by this schema's own @link
