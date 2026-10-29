@@ -127,6 +127,8 @@ func New(addr string) (*Client, error) {
 	}
 
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
+	// VAULT_CACERT is set by whoever runs the process, as with the vault CLI.
+	// The file is only parsed as PEM certificates, and its content is never printed.
 	if caFile := os.Getenv("VAULT_CACERT"); caFile != "" {
 		pem, err := os.ReadFile(caFile)
 		if err != nil {
