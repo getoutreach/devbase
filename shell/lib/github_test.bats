@@ -161,6 +161,28 @@ STUB
   assert_output "3"
 }
 
+@test "latest_github_release_version doesn't retry when gh needs authentication" {
+  stub_command gh "" 4
+  stub_command sleep ""
+
+  run latest_github_release_version getoutreach/stencil false
+  assert_failure
+  run grep -c "^gh release" "$STUB_CALLS_FILE"
+  assert_output "1"
+  assert_stub_not_called sleep
+}
+
+@test "latest_github_release_version fails without retrying when gh is missing" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  gh_installed() { return 1; }
+  stub_command sleep ""
+
+  run latest_github_release_version getoutreach/stencil false
+  assert_failure
+  assert_output --partial "gh is required to look up the latest release of getoutreach/stencil"
+  assert_stub_not_called sleep
+}
+
 @test "install_latest_github_release fails when there is no release to install" {
   stub_command gh ""
 

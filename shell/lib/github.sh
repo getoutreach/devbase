@@ -73,17 +73,26 @@ latest_github_release_version() {
       warn "Could not check the GitHub GraphQL rate limit, continuing" >&2
   fi
 
+  if ! gh_installed; then
+    error "gh is required to look up the latest release of $slug"
+    return 1
+  fi
+
   # Retry for brief GitHub outages. Messages go to stderr, so stdout
   # stays the tag alone for callers that capture it.
-  local attempt
+  local attempt status
   for attempt in 1 2 3; do
     if run_gh release --repo "$slug" list "${gh_args[@]}"; then
       return 0
+    else
+      status=$?
     fi
-    if [[ $attempt -lt 3 ]]; then
-      warn "Failed to list releases for $slug, retrying ($attempt/3)" >&2
-      sleep 5
+    # gh exits 4 when it needs authentication, and a retry cannot fix that.
+    if [[ $status -eq 4 || $attempt -eq 3 ]]; then
+      break
     fi
+    warn "Failed to list releases for $slug, retrying ($attempt/3)" >&2
+    sleep 5
   done
   return 1
 }
