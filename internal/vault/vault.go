@@ -45,6 +45,12 @@ var (
 
 	// errInvalidCACert is returned when VAULT_CACERT has no usable certificates.
 	errInvalidCACert = errors.New("VAULT_CACERT has no valid PEM certificates")
+
+	// errNoMountInfo is returned when the lookup of a path's mount has no mount path in it.
+	errNoMountInfo = errors.New("vault returned no mount path")
+
+	// errNoValue is returned when a secret has no data, as when its latest KV v2 version is deleted.
+	errNoValue = errors.New("no value found at path")
 )
 
 // Settings for the token file and for requests to Vault.
@@ -206,6 +212,9 @@ func (c *Client) KVGet(ctx context.Context, path string) (*Secret, error) {
 	if v2 {
 		data, _ = data["data"].(map[string]any)
 	}
+	if data == nil {
+		return nil, fmt.Errorf("%s: %w", path, errNoValue)
+	}
 	return &Secret{Response: resp, Data: data}, nil
 }
 
@@ -227,6 +236,9 @@ func (c *Client) kvMount(ctx context.Context, path string) (mountPath string, v2
 	}
 	if err != nil {
 		return "", false, err
+	}
+	if out.Data.Path == "" {
+		return "", false, fmt.Errorf("%s: %w", path, errNoMountInfo)
 	}
 	return out.Data.Path, out.Data.Options["version"] == "2", nil
 }
@@ -270,7 +282,13 @@ func (c *Client) do(ctx context.Context, method, path, token string, body, out a
 	if resp.StatusCode >= http.StatusMultipleChoices {
 		return newAPIError(method, path, resp.StatusCode, data)
 	}
-	if err := json.Unmarshal(data, out); err != nil {
+	if len(data) == 0 {
+		return nil
+	}
+	// Keep numbers as written: a float64 rounds an integer above 2^53.
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(out); err != nil {
 		return fmt.Errorf("vault %s %s: decode response: %w", method, path, err)
 	}
 	return nil

@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -184,7 +185,7 @@ func TestKVGet(t *testing.T) {
 			secret, err := c.KVGet(context.Background(), tt.path)
 			assert.NilError(t, err)
 			assert.Equal(t, secret.Data["token"], "abc")
-			assert.Equal(t, secret.Data["n"], float64(1))
+			assert.Equal(t, secret.Data["n"], json.Number("1"))
 			assert.Assert(t, secret.Response["data"] != nil)
 		})
 	}
@@ -265,6 +266,75 @@ func TestDo_RetriesServerErrors(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, secret.Data["k"], "v")
 	assert.Equal(t, calls.Load(), int32(3))
+}
+
+// TestDo_EmptyResponse confirms a success with no body, such as a 204, is
+// not a decode error, and leaves what it was to decode into as it was.
+func TestDo_EmptyResponse(t *testing.T) {
+	isolateEnv(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(srv.Close)
+	c := newClient(t, srv)
+
+	var out map[string]any
+	assert.NilError(t, c.do(t.Context(), http.MethodGet, "sys/anything", "", nil, &out))
+	assert.Assert(t, out == nil)
+
+	_, err := c.AppRoleLogin(t.Context(), "role", "secret")
+	assert.Assert(t, errors.Is(err, errNoClientToken), err)
+}
+
+// TestKVGet_KeepsNumbers confirms a number is not rounded to a float64, as
+// an integer above 2^53 would be.
+func TestKVGet_KeepsNumbers(t *testing.T) {
+	isolateEnv(t)
+	t.Setenv("VAULT_TOKEN", "tok")
+	srv := kvServer(t, "legacy/", "1", "app", map[string]any{"id": int64(9007199254740993)})
+
+	secret, err := newClient(t, srv).KVGet(t.Context(), "legacy/app")
+	assert.NilError(t, err)
+	assert.Equal(t, secret.Data["id"], json.Number("9007199254740993"))
+}
+
+// TestKVGet_NothingReturned confirms a response with no mount path, or no
+// data, is an error and not a guess or an empty secret.
+func TestKVGet_NothingReturned(t *testing.T) {
+	isolateEnv(t)
+	t.Setenv("VAULT_TOKEN", "tok")
+
+	for name, tt := range map[string]struct {
+		mount   func(w http.ResponseWriter)
+		wantErr error
+	}{
+		"no mount path": {
+			mount:   func(w http.ResponseWriter) { w.WriteHeader(http.StatusNoContent) },
+			wantErr: errNoMountInfo,
+		},
+		"no data": {
+			mount: func(w http.ResponseWriter) {
+				writeJSON(t, w, map[string]any{"data": map[string]any{"path": "deploy/", "options": map[string]string{"version": "2"}}})
+			},
+			wantErr: errNoValue,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/v1/sys/internal/ui/mounts/") {
+					tt.mount(w)
+					return
+				}
+				// A KV v2 secret whose latest version is deleted has null data.
+				writeJSON(t, w, map[string]any{"data": map[string]any{"data": nil}})
+			}))
+			t.Cleanup(srv.Close)
+
+			_, err := newClient(t, srv).KVGet(t.Context(), "deploy/app")
+			assert.Assert(t, errors.Is(err, tt.wantErr), err)
+		})
+	}
 }
 
 func TestDo_ReportsServerErrorAfterRetries(t *testing.T) {
