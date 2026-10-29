@@ -11,6 +11,7 @@ require (
 	github.com/getoutreach/localizer v1.15.19
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/go-github/v84 v84.0.0
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/itchyny/go-yaml v0.0.0-20251001235044-fca9a0999f15
 	github.com/itchyny/gojq v0.12.19
 	github.com/magefile/mage v1.17.2
@@ -22,7 +23,10 @@ require (
 	gotest.tools/v3 v3.5.2
 )
 
-require github.com/itchyny/timefmt-go v0.1.8 // indirect
+require (
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/itchyny/timefmt-go v0.1.8 // indirect
+)
 
 require (
 	charm.land/bubbles/v2 v2.2.1 // indirect
