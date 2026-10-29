@@ -6,10 +6,6 @@ bats_load_library "bats-assert/load.bash"
 load devbase.sh
 load test_helper.sh
 
-# TestDevbaseCliVersion_LocalWhenRunFromDevbaseItself confirms
-# devbase_cli_version reports "local" when run from this repository
-# (devbase's own), without ever invoking $YQ (shell/yq.sh) -- see
-# devbase_tree_root's own comment on why that would recurse.
 @test "devbase_cli_version is local when run from devbase's own repo" {
   run devbase_cli_version
   assert_success
@@ -26,9 +22,8 @@ load test_helper.sh
   fake_tree="$(mktempdir devbase-cli-test-XXXXXX)"
   echo -n "v2.40.0" >"$fake_tree/.version"
 
-  # Simulate running from inside a consumer repo's .bootstrap by
-  # overriding devbase_tree_root's own notion of where devbase
-  # lives, and get_repo_directory so it doesn't match tree_root.
+  # Simulate running from a consumer repo's .bootstrap by stubbing both
+  # functions so that the tree root and the repo root differ.
   devbase_tree_root() { echo "$fake_tree"; }
   get_repo_directory() { echo "/some/other/consumer/repo"; }
 

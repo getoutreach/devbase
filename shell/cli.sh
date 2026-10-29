@@ -15,7 +15,7 @@
 # version is "local", a symlink to the on-disk checkout named in
 # service.yaml's `.replacements["github.com/getoutreach/devbase"]`. It
 # records the resolved value in .bootstrap/.version, which is what
-# devbase_cli_version (shell/lib/bootstrap.sh) reads.
+# devbase_cli_version (shell/lib/devbase.sh) reads.
 #
 # This file does not set `set -euo pipefail` at the top level: `set`
 # inside a sourced file changes the *sourcing* shell's own options for
@@ -42,12 +42,10 @@ source "${_DEVBASE_CLI_LIB_DIR}/devbase.sh"
 # shellcheck source=./lib/mise.sh
 source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 
-# devbase_cli_download_release installs the devbase release binary for
-# version (a real git tag, e.g. "v2.40.0" or "v2.41.0-rc.1") globally
-# with mise (see devbase_mise_tool), and echoes the binary's path. It
-# does not check for an already-installed devbase: that is
-# devbase_cli_binary's job, and it only calls this when the installed
-# one is missing or is a different version.
+# devbase_cli_download_release installs the devbase release for the
+# given tag (for example, "v2.40.0") with mise and echoes the binary's
+# path. devbase_cli_binary calls it only when no devbase of that
+# version is installed.
 devbase_cli_download_release() {
   local devbaseTool devbaseVersion
   devbaseTool="$(devbase_mise_tool)"
