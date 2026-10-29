@@ -47,7 +47,7 @@ devbase_cli_is_tagged_version() {
 # the http backend, which downloads the release archive directly
 # instead of making GitHub API requests.
 devbase_mise_tool() {
-  echo "http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos=\"darwin\") }}_{{ arch(x64=\"amd64\") }}.tar.gz]"
+  echo 'http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.tar.gz]'
 }
 
 # devbase_cli_download_release installs the devbase release for the
