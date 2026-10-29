@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/vault"
@@ -160,9 +161,8 @@ func runVaultKVGet(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	// Like the vault CLI, -field wins over -format.
 	if field != "" {
-		return printVaultField(c.Writer, secret, field)
+		return printVaultField(c.Writer, secret, field, format == vaultFormatJSON)
 	}
 	enc := json.NewEncoder(c.Writer)
 	enc.SetIndent("", "  ")
@@ -171,26 +171,50 @@ func runVaultKVGet(ctx context.Context, c *cli.Command) error {
 
 // printVaultField prints the value of one field of secret. Like the
 // vault CLI, it ends the value with a newline only on a terminal, so
-// that `$(...)` and redirects get the exact value.
-func printVaultField(w io.Writer, secret *vault.Secret, field string) error {
+// that `$(...)` and redirects get the exact value, and treats a null
+// field as missing. A string, number or boolean is printed as is, and
+// any value is printed as JSON with asJSON. Another value, such as a map,
+// is not implemented without it, as the vault CLI prints it in a Go-only format.
+func printVaultField(w io.Writer, secret *vault.Secret, field string, asJSON bool) error {
 	value, ok := secret.Data[field]
-	if !ok {
+	if !ok || value == nil {
 		return fmt.Errorf("%q: %w", field, errVaultFieldMissing)
 	}
 
-	out, isString := value.(string)
-	if !isString {
-		b, err := json.Marshal(value)
+	var out string
+	text, plain := plainValue(value)
+	switch {
+	case asJSON:
+		b, err := json.MarshalIndent(value, "", "  ")
 		if err != nil {
 			return fmt.Errorf("encode field %q: %w", field, err)
 		}
 		out = string(b)
+	case plain:
+		out = text
+	default:
+		return fmt.Errorf("field %q is not a string, number or boolean, so it needs -format=json: %w",
+			field, errVaultUnsupported)
 	}
 	if isTerminal(w) {
 		out += "\n"
 	}
 	_, err := io.WriteString(w, out)
 	return err
+}
+
+// plainValue returns the text of a string, number or boolean, which the
+// vault CLI prints as is, and false for any other value.
+func plainValue(v any) (string, bool) {
+	switch v := v.(type) {
+	case string:
+		return v, true
+	case json.Number:
+		return v.String(), true
+	case bool:
+		return strconv.FormatBool(v), true
+	}
+	return "", false
 }
 
 // isTerminal reports whether w is a terminal.

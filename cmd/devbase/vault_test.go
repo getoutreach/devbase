@@ -59,7 +59,10 @@ func vaultTestServer(t *testing.T) (url, home string) {
 			write(w, map[string]any{"data": map[string]any{"path": "deploy/", "options": map[string]string{"version": "2"}}})
 		case "/v1/deploy/data/app":
 			write(w, map[string]any{"data": map[string]any{
-				"data":     map[string]any{"token": "abc", "count": 3},
+				"data": map[string]any{
+					"token": "abc", "count": 3, "big": int64(9007199254740993), "ok": true, "empty": nil,
+					"nested": map[string]any{"k": "v"},
+				},
 				"metadata": map[string]any{"version": 1},
 			}})
 		default:
@@ -127,10 +130,10 @@ func TestVaultCommand_KVGetJSON(t *testing.T) {
 		assert.Equal(t, got.Data.Metadata["version"], float64(1))
 	}
 
-	// Like the vault CLI, -field wins over -format.
+	// Like the vault CLI, a field is printed as JSON with -format=json.
 	stdout, _, err := runVaultCommand(t, "kv", "get", "-address="+url, "-format=json", "-field=token", "deploy/app")
 	assert.NilError(t, err)
-	assert.Equal(t, stdout, "abc")
+	assert.Equal(t, stdout, `"abc"`)
 }
 
 // TestVaultCommand_KVGetErrors confirms bad input and server errors are
@@ -249,4 +252,37 @@ func TestVaultCommand_LoginAppRoleErrors(t *testing.T) {
 	got, err := os.ReadFile(tokenPath)
 	assert.NilError(t, err)
 	assert.Equal(t, string(got), "old")
+}
+
+// TestVaultCommand_KVGetFieldTypes confirms how each type of field is printed,
+// and that a field the vault CLI would not print as it is, is an error.
+func TestVaultCommand_KVGetFieldTypes(t *testing.T) {
+	url, _ := vaultTestServer(t)
+
+	for _, tt := range []struct {
+		field, format, want string
+	}{
+		{field: "count", want: "3"},
+		{field: "ok", want: "true"},
+		// A number is not rounded to a float64.
+		{field: "big", want: "9007199254740993"},
+		{field: "nested", format: "json", want: "{\n  \"k\": \"v\"\n}"},
+		{field: "ok", format: "json", want: "true"},
+	} {
+		args := []string{"kv", "get", "-address=" + url, "-field=" + tt.field}
+		if tt.format != "" {
+			args = append(args, "-format="+tt.format)
+		}
+		stdout, _, err := runVaultCommand(t, append(args, "deploy/app")...)
+		assert.NilError(t, err, tt.field)
+		assert.Equal(t, stdout, tt.want, tt.field)
+	}
+
+	// A null field is missing.
+	_, _, err := runVaultCommand(t, "kv", "get", "-address="+url, "-field=empty", "deploy/app")
+	assert.ErrorIs(t, err, errVaultFieldMissing)
+
+	// A map is not printed as Go prints it, or as JSON that the vault CLI would not print.
+	_, _, err = runVaultCommand(t, "kv", "get", "-address="+url, "-field=nested", "deploy/app")
+	assert.ErrorIs(t, err, errVaultUnsupported)
 }
