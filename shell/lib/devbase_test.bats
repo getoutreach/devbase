@@ -106,3 +106,21 @@ EOF
 
   rm -rf "$workdir"
 }
+
+@test "devbase_cli_download_release fails when the installed binary is not found" {
+  install_tool_with_mise() { :; }
+  run_mise() { return 1; }
+
+  run devbase_cli_download_release "v2.41.0"
+  assert_failure
+  assert_output --partial "devbase 2.41.0 was installed, but its binary was not found"
+}
+
+@test "devbase_cli_download_release echoes the binary path from mise" {
+  install_tool_with_mise() { :; }
+  run_mise() { echo "/fake/mise/devbase"; }
+
+  run devbase_cli_download_release "v2.41.0"
+  assert_success
+  assert_output "/fake/mise/devbase"
+}

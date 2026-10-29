@@ -64,7 +64,11 @@ devbase_cli_download_release() {
   # stdout is the binary's path, so send the install's output to stderr.
   install_tool_with_mise "$devbaseTool" "$devbaseVersion" >&2
 
-  run_mise which --tool "$devbaseTool@$devbaseVersion" devbase
+  local binary
+  if ! binary="$(run_mise which --tool "$devbaseTool@$devbaseVersion" devbase)" || [[ -z $binary ]]; then
+    fatal "devbase $devbaseVersion was installed, but its binary was not found"
+  fi
+  echo "$binary"
 }
 
 # devbase_cli_binary echoes the path to a devbase binary for the given
