@@ -50,6 +50,20 @@ devbase_mise_tool() {
   echo 'http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.tar.gz]'
 }
 
+# devbase_build_from_source builds devbase from this source tree to the
+# given path. It returns non-zero after printing an error if the build
+# fails.
+devbase_build_from_source() {
+  local output="$1"
+  local treeRoot
+  treeRoot="$(devbase_tree_root)"
+
+  go -C "$treeRoot" build -o "$output" ./cmd/devbase || {
+    error "failed to build devbase from $treeRoot"
+    return 1
+  }
+}
+
 # devbase_install_from_source builds devbase from this source tree into
 # the given directory, along with the release's yq shim. It needs go,
 # since a dev version has no release archive to install.
@@ -59,9 +73,7 @@ devbase_install_from_source() {
   command_exists go || fatal "using dev version of devbase, needs go installed"
 
   mkdir -p "$binDir"
-  if ! (cd "$(devbase_tree_root)" && go build -o "$binDir/devbase" ./cmd/devbase); then
-    fatal "failed to build devbase from source"
-  fi
+  devbase_build_from_source "$binDir/devbase" || exit 1
   install -m 0755 "$(devbase_tree_root)/release/yq" "$binDir/yq"
 }
 
@@ -117,9 +129,9 @@ devbase_cli() {
     bin="$(mktemp)"
     # Not `go run -C`: it would also change the binary's working
     # directory, which breaks relative path arguments.
-    if ! (cd "$(devbase_tree_root)" && go build -o "$bin" ./cmd/devbase); then
+    if ! devbase_build_from_source "$bin"; then
       rm -f "$bin"
-      fatal "failed to build devbase from source"
+      exit 1
     fi
     chmod +x "$bin"
     "$bin" "$@"

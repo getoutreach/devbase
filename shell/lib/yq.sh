@@ -70,8 +70,7 @@ yq_build_from_source() {
   cached="$(get_cached_binary devbase-src "$cache_key")"
   if [[ -z $cached ]]; then
     cached="$(cached_binary_path devbase-src "$cache_key")"
-    go -C "$tree_root" build -o "$cached" ./cmd/devbase ||
-      fatal "failed to build devbase from $tree_root"
+    devbase_build_from_source "$cached" || exit 1
   fi
   echo "$cached"
 }

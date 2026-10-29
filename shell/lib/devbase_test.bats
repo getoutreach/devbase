@@ -137,10 +137,19 @@ EOF
 
 @test "devbase_install_from_source installs devbase and the yq shim" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  go() { echo "built" >"$3"; }
+  go() { echo "built" >"$5"; }
 
   run devbase_install_from_source "$BATS_TEST_TMPDIR/bin"
   assert_success
   assert_equal "$(cat "$BATS_TEST_TMPDIR/bin/devbase")" "built"
   assert [ -x "$BATS_TEST_TMPDIR/bin/yq" ]
+}
+
+@test "devbase_build_from_source fails with a message when the build fails" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  go() { return 1; }
+
+  run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
+  assert_failure
+  assert_output --partial "failed to build devbase from"
 }
