@@ -13,6 +13,9 @@ source "$LIB_DIR"/bootstrap.sh
 # shellcheck source=../lib/circleci.sh
 source "$LIB_DIR"/circleci.sh
 
+# shellcheck source=../lib/devbase.sh
+source "$LIB_DIR"/devbase.sh
+
 # shellcheck source=../lib/github.sh
 source "$LIB_DIR"/github.sh
 
@@ -75,10 +78,15 @@ else
   info "Removing existing Go-based (incompatible) yq"
   sudo rm -f "$(command -v yq)"
 
-  info "Installing yq (Python)"
-  install_tool_with_mise uv
-  mise config set settings.pipx.uvx true
-  install_tool_with_mise pipx:yq
+  devbaseVersion="$(devbase_cli_version)"
+  if devbase_cli_is_tagged_version "$devbaseVersion"; then
+    info "Installing devbase CLI $devbaseVersion"
+    install_tool_with_mise "$(devbase_mise_tool)" "${devbaseVersion#v}"
+  else
+    info "Building devbase $devbaseVersion from source"
+    devbase_install_from_source "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
 fi
 
 if [[ -e /opt/vault ]]; then
