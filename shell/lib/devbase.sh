@@ -11,13 +11,14 @@ source "${_DEVBASE_LIB_DEVBASE_DIR}/bootstrap.sh"
 # devbase_tree_root echoes the root of the devbase source tree this
 # file itself lives in: the real devbase repo root when this
 # repository is devbase itself, or a consumer repository's .bootstrap
-# clone/symlink of it otherwise. It is computed from DEVBASE_DIR,
-# deliberately not via get_devbase_directory (or get_app_name, which it
-# calls): both read service.yaml's name field through $YQ, which is
-# shell/yq.sh -- and shell/yq.sh's own job, once it delegates to
-# devbase_cli (shell/cli.sh), is to call that file. Going through $YQ
-# here would recurse into the very yq invocation devbase_cli exists to
-# resolve.
+# clone/symlink of it otherwise. It echoes DEVBASE_DIR, which
+# bootstrap.sh defines as the root of the tree it lives in. It is
+# deliberately not computed via get_devbase_directory (or get_app_name,
+# which it calls): both read service.yaml's name field through $YQ,
+# which is shell/yq.sh -- and shell/yq.sh's own job, once it delegates
+# to devbase_cli (shell/cli.sh), is to call that file. Going through
+# $YQ here would recurse into the very yq invocation devbase_cli exists
+# to resolve.
 devbase_tree_root() {
   echo "$DEVBASE_DIR"
 }

@@ -43,19 +43,24 @@ source "${_DEVBASE_CLI_LIB_DIR}/devbase.sh"
 source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 
 # devbase_cli_download_release installs the devbase release binary for
-# version (a real git tag, e.g. "v2.40.0" or "v2.41.0-rc.1") with mise
-# (see devbase_mise_tool), which caches it, and echoes the binary's
-# path.
+# version (a real git tag, e.g. "v2.40.0" or "v2.41.0-rc.1") globally
+# with mise (see devbase_mise_tool), and echoes the binary's path. It
+# does not check for an already-installed devbase: that is
+# devbase_cli_binary's job, and it only calls this when the installed
+# one is missing or is a different version.
 devbase_cli_download_release() {
   local version="$1"
 
   ensure_mise_installed
 
-  local binary
-  if ! binary="$(run_mise exec "$(devbase_mise_tool)@${version#v}" -- sh -c 'command -v devbase')"; then
+  # stdout is the binary's path, so send mise's own output to stderr.
+  if ! run_mise use --global "$(devbase_mise_tool)@${version#v}" >&2; then
     fatal "failed to install devbase $version release"
   fi
-  echo "$binary"
+
+  # Not find_tool: it prefers a devbase on PATH, which may be the
+  # wrong version.
+  run_mise which devbase
 }
 
 # devbase_cli_binary echoes the path to a devbase binary for version (a
