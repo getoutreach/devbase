@@ -194,6 +194,21 @@ const (
 	RuleNoUnreachableTypes = "no-unreachable-types"
 )
 
+// These constants name the 2 diagnostics raised about "devbase-lint-"
+// suppression comments. Unlike the Tier 2 and Tier 3 rules, they run
+// without being enabled, at "error" severity; scripts/devbase.yaml can
+// lower either to "warn" or turn it "off". They are never themselves
+// suppressible.
+const (
+	// RuleInvalidSuppression reports a suppression comment that is
+	// malformed, names no rule or an unknown one, or has no reason.
+	RuleInvalidSuppression = "invalid-suppression"
+
+	// RuleUnusedSuppression reports a suppression comment that
+	// suppressed no violation of a rule it names.
+	RuleUnusedSuppression = "unused-suppression"
+)
+
 // Rule is the per-rule override for a single lint rule. It accepts
 // two YAML shapes:
 //
@@ -314,6 +329,17 @@ func (c *Lint) MergeExcludes(extra ...string) []string {
 	merged = append(merged, c.Exclude...)
 	merged = append(merged, extra...)
 	return merged
+}
+
+// Disabled reports whether scripts/devbase.yaml sets the rule to "off".
+// A rule absent from the config is not disabled, so diagnostics that run
+// by default stay on. c may be nil.
+func (c *Lint) Disabled(rule string) bool {
+	if c == nil {
+		return false
+	}
+	rc, ok := c.Rules[rule]
+	return ok && rc.Severity == SeverityOff
 }
 
 // Enabled reports whether the rule should run at all. A Tier 2 or Tier 3

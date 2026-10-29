@@ -23,15 +23,21 @@ import (
 // non-zero exit code on failure).
 func runYqCommand(t *testing.T, stdin string, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
+	return runSubcommand(t, newYqCommand(), stdin, args...)
+}
 
-	cmd := newYqCommand()
+// runSubcommand runs cmd with args and returns what runYqCommand
+// documents: stdout, stderr, and the error from Run.
+func runSubcommand(t *testing.T, cmd *cli.Command, stdin string, args ...string) (stdout, stderr string, err error) {
+	t.Helper()
+
 	var out, errOut bytes.Buffer
 	cmd.Reader = strings.NewReader(stdin)
 	cmd.Writer = &out
 	cmd.ErrWriter = &errOut
 	cmd.ExitErrHandler = func(context.Context, *cli.Command, error) {}
 
-	runErr := cmd.Run(context.Background(), append([]string{"yq"}, args...))
+	runErr := cmd.Run(context.Background(), append([]string{cmd.Name}, args...))
 	return out.String(), errOut.String(), runErr
 }
 

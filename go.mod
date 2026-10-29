@@ -5,6 +5,7 @@ go 1.25.0
 toolchain go1.25.7
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.120.1
 	github.com/getoutreach/localizer v1.15.19
