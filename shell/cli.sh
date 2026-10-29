@@ -51,12 +51,8 @@ source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 devbase_cli_download_release() {
   local version="$1"
 
-  ensure_mise_installed
-
-  # stdout is the binary's path, so send mise's own output to stderr.
-  if ! run_mise use --global "$(devbase_mise_tool)@${version#v}" >&2; then
-    fatal "failed to install devbase $version release"
-  fi
+  # stdout is the binary's path, so send the install's output to stderr.
+  install_tool_with_mise "$(devbase_mise_tool)" "${version#v}" >&2
 
   # Not find_tool: it prefers a devbase on PATH, which may be the
   # wrong version.
