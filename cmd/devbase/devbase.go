@@ -70,6 +70,7 @@ func main() {
 		newLintCommand(),
 		newYqCommand(),
 		newTomlqCommand(),
+		newVaultCommand(),
 		// <</Stencil::Block>>
 	}
 

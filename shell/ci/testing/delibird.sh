@@ -26,17 +26,6 @@ DELIBIRD_ENABLED=$(get_box_field "delibird.enabled")
 VAULT_ADDR=${VAULT_ADDR:-$(get_box_field devenv.vault.address)}
 export VAULT_ADDR
 
-find_vault() {
-  local vault_path
-  vault_path="$(find_tool vault)"
-
-  if [[ -z $vault_path ]]; then
-    fatal "Vault command not found. Please install Vault or ensure it is in your PATH."
-  fi
-
-  echo "$vault_path"
-}
-
 # Configures the delibird log uploader.
 configure_delibird() {
   # tokenPath is the path that the delibird token should be written to.
@@ -44,7 +33,7 @@ configure_delibird() {
   mkdir -p "$(dirname "$tokenPath")"
 
   # Fetch the delibird token from Vault.
-  DELIBIRD_TOKEN=$("$(find_vault)" kv get -field token deploy/delibird/development/upload)
+  DELIBIRD_TOKEN=$("$DIR/../../vault.sh" kv get -field token deploy/delibird/development/upload)
   if [[ -z $DELIBIRD_TOKEN ]]; then
     echo "Error: Failed to fetch delibird token from Vault." \
       "Please ensure that the deploy/delibird/development/upload secret exists and" \
