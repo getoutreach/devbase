@@ -45,11 +45,9 @@ devbase_cli_is_tagged_version() {
 # devbase_mise_tool echoes the mise tool for installing the devbase CLI,
 # without a version. Append "@<version>" without the "v" prefix. It uses
 # the http backend, which downloads the release archive directly
-# instead of making GitHub API requests, and checks the archive against
-# the release's checksums.txt.
+# instead of making GitHub API requests.
 devbase_mise_tool() {
-  local releaseURL="https://github.com/getoutreach/devbase/releases/download/v{{ version }}"
-  echo "http:devbase[url=$releaseURL/devbase_{{ version }}_{{ os(macos=\"darwin\") }}_{{ arch(x64=\"amd64\") }}.tar.gz,checksum_url=$releaseURL/checksums.txt]"
+  echo "http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos=\"darwin\") }}_{{ arch(x64=\"amd64\") }}.tar.gz]"
 }
 
 # devbase_cli_download_release installs the devbase release for the

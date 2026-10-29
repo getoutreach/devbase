@@ -47,11 +47,11 @@ load test_helper.sh
   assert_failure
 }
 
-@test "devbase_mise_tool uses the http backend with a checksums.txt checksum_url" {
+@test "devbase_mise_tool uses the http backend with a version-templated release URL" {
   run devbase_mise_tool
   assert_success
-  assert_output --partial "http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/"
-  assert_output --partial "checksum_url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/checksums.txt]"
+  assert_output --partial "http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_"
+  refute_output --partial "checksum"
 }
 
 @test "devbase_cli_binary uses an exact version match" {
