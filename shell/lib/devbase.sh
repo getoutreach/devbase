@@ -55,17 +55,19 @@ devbase_mise_tool() {
 # fails.
 devbase_build_from_source() {
   local output="$1"
-  local treeRoot
+  local treeRoot goPath
   treeRoot="$(devbase_tree_root)"
+  # find_tool also finds a go that mise manages but that is not on PATH.
+  goPath="$(find_tool go 2>/dev/null || true)"
 
-  go -C "$treeRoot" build -o "$output" ./cmd/devbase || {
+  PATH="${goPath:+$(dirname "$goPath"):}$PATH" go -C "$treeRoot" build -o "$output" ./cmd/devbase || {
     error "failed to build devbase from $treeRoot"
     return 1
   }
 }
 
 # devbase_install_from_source builds devbase from this source tree into
-# the given directory, along with the release's yq shim. It needs go,
+# the given directory, along with the release's yq and tomlq shims. It needs go,
 # since a dev version has no release archive to install.
 devbase_install_from_source() {
   local binDir="$1"
@@ -74,7 +76,10 @@ devbase_install_from_source() {
 
   mkdir -p "$binDir"
   devbase_build_from_source "$binDir/devbase" || exit 1
-  install -m 0755 "$(devbase_tree_root)/release/yq" "$binDir/yq"
+  local shim
+  for shim in yq tomlq; do
+    install -m 0755 "$(devbase_tree_root)/release/$shim" "$binDir/$shim"
+  done
 }
 
 # devbase_cli_download_release installs the devbase release for the

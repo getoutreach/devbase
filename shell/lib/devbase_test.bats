@@ -136,7 +136,7 @@ EOF
   assert_output --partial "using dev version of devbase, needs go installed"
 }
 
-@test "devbase_install_from_source installs devbase and the yq shim" {
+@test "devbase_install_from_source installs devbase and the yq and tomlq shims" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   find_tool() { echo "/fake/go"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
@@ -146,6 +146,7 @@ EOF
   assert_success
   assert_equal "$(cat "$BATS_TEST_TMPDIR/bin/devbase")" "built"
   assert [ -x "$BATS_TEST_TMPDIR/bin/yq" ]
+  assert [ -x "$BATS_TEST_TMPDIR/bin/tomlq" ]
 }
 
 @test "devbase_build_from_source fails with a message when the build fails" {
@@ -155,4 +156,15 @@ EOF
   run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
   assert_failure
   assert_output --partial "failed to build devbase from"
+}
+
+@test "devbase_build_from_source puts the directory of the go found by find_tool on PATH" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "/fake/mise/go/bin/go"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  go() { echo "$PATH" >"$BATS_TEST_TMPDIR/path"; }
+
+  run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
+  assert_success
+  assert_equal "$(cut -d: -f1 "$BATS_TEST_TMPDIR/path")" "/fake/mise/go/bin"
 }
