@@ -31,8 +31,8 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-// Errors returned by this package, wrapped with context where they are
-// returned.
+// These are the errors that this package returns. Each is wrapped with
+// context where it is returned.
 var (
 	// errAddressNotSet is returned when no Vault address is configured.
 	errAddressNotSet = errors.New("vault address is not set (use -address or VAULT_ADDR)")
@@ -53,7 +53,8 @@ var (
 	errNoValue = errors.New("no value found at path")
 )
 
-// Settings for the token file and for requests to Vault.
+// These constants set the token file's name and mode, and the limits for
+// requests to Vault.
 const (
 	// tokenFileName is the file in the home directory that the `vault`
 	// CLI, and many scripts, read and write the token from.
@@ -294,7 +295,9 @@ func (c *Client) do(ctx context.Context, method, path, token string, body, out a
 	return nil
 }
 
-// newAPIError builds an APIError from an error response.
+// newAPIError returns an APIError for a response with an error status. The
+// messages are empty if the body is not Vault's JSON error format, for
+// example an HTML page from a proxy.
 func newAPIError(method, path string, status int, body []byte) *APIError {
 	var parsed struct {
 		Errors []string `json:"errors"`
@@ -317,7 +320,6 @@ func escapePath(p string) string {
 	return strings.Join(segments, "/")
 }
 
-// tokenFilePath returns the path of the token file, ~/.vault-token.
 func tokenFilePath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

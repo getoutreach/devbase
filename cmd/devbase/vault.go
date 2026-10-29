@@ -21,7 +21,7 @@ import (
 // vaultFormatJSON is the only output format "vault kv get" supports.
 const vaultFormatJSON = "json"
 
-// Errors that the vault command returns.
+// These are the errors that the vault command returns.
 var (
 	// errVaultUnsupported is returned for any `devbase vault` command or
 	// flag that is not implemented. It must be an error and never a
@@ -92,7 +92,8 @@ func newVaultLoginAppRoleCommand() *cli.Command {
 	}
 }
 
-// runVaultLoginAppRole is the Action for "vault login-approle".
+// runVaultLoginAppRole is the Action for "vault login-approle". It prints
+// nothing to stdout, so the token only goes to ~/.vault-token.
 func runVaultLoginAppRole(ctx context.Context, c *cli.Command) error {
 	roleID, secretID := os.Getenv("VAULT_ROLE_ID"), os.Getenv("VAULT_SECRET_ID")
 	if roleID == "" || secretID == "" {
@@ -139,7 +140,8 @@ func newVaultKVCommand() *cli.Command {
 	}
 }
 
-// runVaultKVGet is the Action for "vault kv get".
+// runVaultKVGet is the Action for "vault kv get". It prints the whole response
+// with -format=json, or one field with -field.
 func runVaultKVGet(ctx context.Context, c *cli.Command) error {
 	if c.NArg() != 1 {
 		return fmt.Errorf("%w: got %d", errVaultKVGetArgs, c.NArg())
@@ -217,7 +219,6 @@ func plainValue(v any) (string, bool) {
 	return "", false
 }
 
-// isTerminal reports whether w is a terminal.
 func isTerminal(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {

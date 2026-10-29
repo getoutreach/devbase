@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # vault: a minimal replacement for the `vault` CLI, backed by `devbase
-# vault` -- see shell/cli.sh for how the devbase CLI itself is resolved
+# vault`. See shell/cli.sh for how the devbase CLI itself is resolved
 # (a tagged release binary, or a build from source).
 #
 # It only implements what devbase's own scripts use. Any other command or

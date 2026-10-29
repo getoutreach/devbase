@@ -46,7 +46,6 @@ func newClient(t *testing.T, srv *httptest.Server) *Client {
 	return c
 }
 
-// writeJSON writes v as a JSON response.
 func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
 	w.Header().Set("Content-Type", "application/json")
