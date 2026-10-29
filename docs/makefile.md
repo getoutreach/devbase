@@ -122,3 +122,4 @@ will run it right after the devenv has been provisioned (before the tests run).
 * `PROVISION_TARGET`: Maps to `devenv provision --snapshot-target $PROVISION_TARGET`, allowing to specify the provision target used. Otherwise, the default is either "flagship" or "base", latter being used when "outreach" is not included.
 * `SKIP_LOCALIZER`: Set "true" to skip creating a localizer tunnel before test start.
 * `REQUIRE_DEVCONFIG_AFTER_DEPLOY`: Set to "true" to run `devconfig.sh` after deploy. Otherwise, the step is executed before deploy.
+* `DEVENV_CI_VERSION`: CI only. The devenv version to install, e.g. `1.68.0`. When unset or empty, CI installs the latest stable devenv release. Set it as a CircleCI project environment variable to pin one repository; it takes precedence over `DEVENV_PRE_RELEASE`. See [Pinning the devenv version in E2E CI](https://outreach-io.atlassian.net/wiki/spaces/DT/pages/5572788863/Pinning+the+devenv+version+in+E2E+CI).

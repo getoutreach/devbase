@@ -5,6 +5,7 @@
 # * logging.sh (required by mise.sh)
 # * mise.sh
 # * shell.sh (required by mise.sh)
+# * version.sh
 #
 # Setting the GitHub token requires bootstrap.sh.
 
@@ -17,6 +18,8 @@ source "$LIB_DIR/logging.sh"
 source "$LIB_DIR/mise.sh"
 # shellcheck source=shell.sh
 source "$LIB_DIR/shell.sh"
+# shellcheck source=version.sh
+source "$LIB_DIR/version.sh"
 
 ghCmd=""
 
@@ -60,7 +63,38 @@ latest_github_release_version() {
     gh_args+=(--exclude-pre-releases)
   fi
 
-  run_gh release --repo "$slug" list "${gh_args[@]}"
+  # `gh release list` uses the GraphQL API, which has its own rate limit.
+  if in_ci_environment; then
+    local gh_token="${GITHUB_TOKEN:-}"
+    if [[ -z $gh_token ]]; then
+      gh_token="$(github_token)"
+    fi
+    GITHUB_TOKEN="$gh_token" wait_for_gh_rate_limit graphql ||
+      warn "Could not check the GitHub GraphQL rate limit, continuing" >&2
+  fi
+
+  if ! gh_installed; then
+    error "gh is required to look up the latest release of $slug"
+    return 1
+  fi
+
+  # Retry for brief GitHub outages. Messages go to stderr, so stdout
+  # stays the tag alone for callers that capture it.
+  local attempt status
+  for attempt in 1 2 3; do
+    if run_gh release --repo "$slug" list "${gh_args[@]}"; then
+      return 0
+    else
+      status=$?
+    fi
+    # gh exits 4 when it needs authentication, and a retry cannot fix that.
+    if [[ $status -eq 4 || $attempt -eq 3 ]]; then
+      break
+    fi
+    warn "Failed to list releases for $slug, retrying ($attempt/3)" >&2
+    sleep 5
+  done
+  return 1
 }
 
 # install_latest_github_release downloads the latest version of a tool
@@ -91,12 +125,7 @@ install_latest_github_release() {
 
   info "Using $slug:${binary_name} version: ($tag)"
 
-  # Strip a leading `v` (before a digit) so mise receives a normalized version.
-  # mise 2026.6.14+ drops the `v` when installing a pre-release tag but re-adds
-  # it during `mise which`/`mise where`, so the tool resolves as not installed.
-  if [[ $tag =~ ^v[0-9] ]]; then
-    tag="${tag#v}"
-  fi
+  tag="$(normalize_semver "$tag")"
 
   # Need to export GITHUB_TOKEN so that future calls to `mise`
   # continue to use it for the configured private repos.

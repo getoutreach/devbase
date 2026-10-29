@@ -92,3 +92,33 @@ load version.sh
   run has_minimum_version "2.5.0" "v1.62.2"
   assert_failure
 }
+
+@test "is_semver accepts a release and a pre-release version" {
+  run is_semver "1.68.0"
+  assert_success
+  run is_semver "1.69.0-rc.1"
+  assert_success
+}
+
+@test "is_semver rejects partial, prefixed and non-version values" {
+  run is_semver "1.68"
+  assert_failure
+  run is_semver "v1.68.0"
+  assert_failure
+  run is_semver "latest"
+  assert_failure
+  run is_semver ""
+  assert_failure
+}
+
+@test "normalize_semver trims whitespace and strips a leading v or V" {
+  run normalize_semver "  V1.68.0 "
+  assert_output "1.68.0"
+  run normalize_semver "v1.69.0-rc.1"
+  assert_output "1.69.0-rc.1"
+}
+
+@test "normalize_semver leaves a tag without a v before a digit unchanged" {
+  run normalize_semver "unstable"
+  assert_output "unstable"
+}

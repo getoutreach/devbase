@@ -272,7 +272,8 @@ run_mise() {
 }
 
 # If `wait-for-gh-rate-limit` is installed, runs it to wait for
-# GitHub rate limits to clear.
+# GitHub rate limits to clear. Any arguments are passed to it, e.g.
+# `graphql` to wait on the GraphQL rate limit instead of the REST one.
 wait_for_gh_rate_limit() {
   local binName
   set +e
@@ -280,7 +281,7 @@ wait_for_gh_rate_limit() {
   set -e
   if [[ -n $binName ]]; then
     # Send output to stderr so that it doesn't affect stdout of mise
-    "$binName" >&2
+    "$binName" "$@" >&2
   fi
 }
 
