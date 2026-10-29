@@ -67,21 +67,17 @@ devbase_cli_download_release() {
   run_mise which --tool "$devbaseTool@$devbaseVersion" devbase
 }
 
-# devbase_cli_binary echoes the path to a devbase binary for version (a
-# real git tag): an already-resolvable devbase (via find_tool, which
-# checks PATH then a mise-managed install) if its own --version matches
-# version exactly, otherwise a freshly installed release binary.
+# devbase_cli_binary echoes the path to a devbase binary for the given
+# tag. It uses the devbase that find_tool resolves if its version
+# matches exactly, and installs the release otherwise.
 devbase_cli_binary() {
   local version="$1"
 
   local existing
   existing="$(find_tool devbase 2>/dev/null || true)"
   if [[ -n $existing ]]; then
-    # cli/v3's own version output is "<name> version <version>"; take
-    # the last field rather than substring-matching the whole line, so
-    # a requested "v2.41.0" doesn't wrongly match an installed
-    # "v2.41.0-rc.1" (a real devbase tag pattern) just because it
-    # contains that substring.
+    # Compare exactly: a substring match would accept v2.41.0-rc.1 for
+    # v2.41.0.
     local existing_version
     existing_version="$("$existing" --version 2>/dev/null | awk '{print $NF}')"
     if [[ $existing_version == "$version" ]]; then
@@ -93,30 +89,8 @@ devbase_cli_binary() {
   devbase_cli_download_release "$version"
 }
 
-# devbase_cli runs the devbase CLI with the given arguments, resolving
-# between a tagged release binary and a from-source build depending on
-# what version of devbase the current repository requires (see
-# devbase_cli_version).
-#
-# The from-source path builds to a temp binary rather than `exec go -C
-# "$(devbase_tree_root)" run ./cmd/devbase "$@"`: `go run`'s `-C`
-# changes the directory of the whole invocation, including the
-# resulting binary's own working directory, not just where the module
-# is resolved from. A caller like shell/lib/bootstrap.sh's
-# stencil_version passes stencil.lock as a path relative to ITS OWN
-# cwd, not devbase_tree_root's, so a devbase process that silently
-# started in devbase_tree_root instead would look for that relative
-# path in the wrong place. Building separately (cd'd into
-# devbase_tree_root only for the build step, in a subshell) and then
-# running the result from the caller's own, unchanged cwd keeps
-# relative-path arguments correct. Go's package build cache still
-# makes repeat calls fast; only the final link is repeated each time.
-#
-# This function is generic to any devbase subcommand: any script
-# needing to run one (e.g. a future shell entry point for `lint
-# graphql`, which has no shell wrapper today) should use this instead
-# of duplicating the resolution logic -- see shell/yq.sh for the
-# pattern.
+# devbase_cli runs any devbase subcommand. It uses the release binary
+# for a tagged version, and a build from source otherwise.
 devbase_cli() {
   local version
   version="$(devbase_cli_version)"
@@ -124,6 +98,8 @@ devbase_cli() {
   if ! devbase_cli_is_tagged_version "$version"; then
     local bin status
     bin="$(mktemp)"
+    # Not `go run -C`: it would also change the binary's working
+    # directory, which breaks relative path arguments.
     if ! (cd "$(devbase_tree_root)" && go build -o "$bin" ./cmd/devbase); then
       rm -f "$bin"
       fatal "failed to build devbase from source"

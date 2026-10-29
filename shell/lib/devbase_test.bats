@@ -71,10 +71,6 @@ EOF
   rm -rf "$fake_bin_dir"
 }
 
-# TestDevbaseCliBinary_RejectsSubstringMatch confirms a version match
-# is exact, not a substring search: a requested "v2.41.0" must not
-# match an installed "v2.41.0-rc.1" just because the latter contains
-# the former as a substring (a real devbase tag pattern).
 @test "devbase_cli_binary rejects a substring-only version match" {
   fake_bin_dir="$(mktempdir devbase-cli-fakebin-XXXXXX)"
   cat >"$fake_bin_dir/devbase" <<'EOF'
@@ -92,14 +88,8 @@ EOF
   rm -rf "$fake_bin_dir"
 }
 
-# Regression test: devbase_cli's from-source path builds with its cwd
-# changed to devbase_tree_root (to resolve the module), but must run
-# the resulting binary from the CALLER's own, original cwd. A caller
-# like shell/lib/bootstrap.sh's stencil_version passes stencil.lock as
-# a path relative to its own cwd, not devbase_tree_root's; an earlier
-# version of this function used `go run -C`, which changes the
-# directory of the whole invocation -- including the resulting
-# binary's own working directory -- breaking exactly that case.
+# Regression test: `go run -C` also changed the binary's working
+# directory, which broke relative path arguments.
 @test "devbase_cli runs the built binary from the caller's own working directory" {
   workdir="$(mktempdir devbase-cli-cwd-XXXXXX)"
   cat >"$workdir/marker.yaml" <<EOF
