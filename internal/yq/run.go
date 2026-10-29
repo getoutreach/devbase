@@ -1,6 +1,6 @@
 // Copyright 2026 Outreach Corporation. Licensed under the Apache License 2.0.
 
-// Description: Top-level orchestration for the `devbase yq` CLI
+// Description: Top-level orchestration for the `devbase yq` and `devbase tomlq` CLI
 // subcommand: parsing argv, compiling the filter, and running it
 // against stdin/files or editing files in place.
 
@@ -26,12 +26,53 @@ import (
 // package can stay thin CLI wiring: everything about how a flag or a
 // filter behaves lives here in the yq package instead.
 func Main(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return run(ctx, yamlInput, args, stdin, stdout, stderr)
+}
+
+// MainTOML is Main for the `devbase tomlq` subcommand: the same filter
+// engine and flags, but reading TOML instead of YAML, and always
+// writing JSON.
+func MainTOML(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return run(ctx, tomlInput, args, stdin, stdout, stderr)
+}
+
+// decodeFunc decodes one input's bytes into its documents, the parse
+// tree of each (nil when the format has none, so -Y cannot apply), and
+// the key order of every object decoded.
+type decodeFunc func(b []byte) ([]any, []*yaml.Node, KeyOrder, error)
+
+// inputFormat is what differs between `devbase yq` and `devbase tomlq`.
+type inputFormat struct {
+	// name is the command name used to prefix error messages.
+	name   string
+	decode decodeFunc
+	// validate, when set, runs before Validate and rejects flags this
+	// format cannot honor.
+	validate func(*yqFlags) error
+}
+
+//nolint:gochecknoglobals // Why: read-only lookup tables.
+var (
+	// yamlInput is the input format of `devbase yq`.
+	yamlInput = inputFormat{name: "yq", decode: SplitYAMLDocumentsWithNodes}
+
+	// tomlInput is the input format of `devbase tomlq`.
+	tomlInput = inputFormat{name: "tomlq", decode: decodeTOMLInput, validate: validateTOML}
+)
+
+// run is Main and MainTOML's shared implementation.
+func run(ctx context.Context, in inputFormat, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	flags, rest, err := parseYqFlags(args)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return fail(stderr, in.name, "%v", err)
+	}
+	if in.validate != nil {
+		if err := in.validate(flags); err != nil {
+			return fail(stderr, in.name, "%v", err)
+		}
 	}
 	if err := flags.Validate(); err != nil {
-		return fail(stderr, "%v", err)
+		return fail(stderr, in.name, "%v", err)
 	}
 
 	// -V/--version works standalone, without a filter argument, the
@@ -41,27 +82,27 @@ func Main(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io
 	// not gojq's, python-yq's, or mikefarah go-yq's, per the design
 	// plan's stance of not imitating another dialect's version string.
 	if flags.Version {
-		fmt.Fprintf(stdout, "devbase yq (devbase %s)\n", app.Version)
+		fmt.Fprintf(stdout, "devbase %s (devbase %s)\n", in.name, app.Version)
 		return 0
 	}
 
 	if len(rest) == 0 {
-		return fail(stderr, "missing filter argument")
+		return fail(stderr, in.name, "missing filter argument")
 	}
 	filter, files := rest[0], rest[1:]
 
 	if flags.InPlace && len(files) == 0 {
-		return fail(stderr, "-i/--in-place requires at least one file, not stdin")
+		return fail(stderr, in.name, "-i/--in-place requires at least one file, not stdin")
 	}
 
 	vars, err := BuildVars(flags)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return fail(stderr, in.name, "%v", err)
 	}
 
 	engine, err := Compile(filter, vars)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return fail(stderr, in.name, "%v", err)
 	}
 
 	opts := FormatOptions{
@@ -74,26 +115,28 @@ func Main(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io
 	}
 
 	if flags.InPlace {
-		return runInPlace(ctx, files, engine, opts, flags.Slurp, flags.YAMLRoundtrip, stderr)
+		return runInPlace(ctx, in.name, files, engine, opts, flags.Slurp, flags.YAMLRoundtrip, stderr)
 	}
-	return runToStdout(ctx, stdin, stdout, stderr, files, flags.Slurp, flags.YAMLRoundtrip, engine, opts)
+	return runToStdout(ctx, in, stdin, stdout, stderr, files, flags.Slurp, flags.YAMLRoundtrip, engine, opts)
 }
 
-// fail writes a "yq: "-prefixed message to stderr (the one place that
-// prefix gets added, so every error site above stays uniform whether
-// it wraps an error value or a literal message) and returns the exit
-// code Main should return for it.
-func fail(stderr io.Writer, format string, args ...any) int {
-	fmt.Fprintf(stderr, "yq: "+format+"\n", args...)
+// fail writes a message prefixed with the command name to stderr (the
+// one place that prefix gets added, so every error site above stays
+// uniform whether it wraps an error value or a literal message) and
+// returns the exit code Main should return for it.
+func fail(stderr io.Writer, name, format string, args ...any) int {
+	fmt.Fprintf(stderr, name+": "+format+"\n", args...)
 	return 1
 }
 
 // runInPlace edits every file in files independently via RunFiles,
 // reporting every failure without letting one abort the rest.
-func runInPlace(ctx context.Context, files []string, engine *Engine, opts FormatOptions, slurp, roundtrip bool, stderr io.Writer) int {
+func runInPlace(ctx context.Context, name string, files []string, engine *Engine, opts FormatOptions,
+	slurp, roundtrip bool, stderr io.Writer,
+) int {
 	errs := RunFiles(ctx, files, engine, opts, slurp, roundtrip)
 	for _, err := range errs {
-		fmt.Fprintf(stderr, "yq: %v\n", err)
+		fmt.Fprintf(stderr, "%s: %v\n", name, err)
 	}
 	if len(errs) > 0 {
 		return 1
@@ -108,12 +151,12 @@ func runInPlace(ctx context.Context, files []string, engine *Engine, opts Format
 // results get a "---" document separator between them, matching
 // gojq's own --yaml-output behavior; JSON results need no separator,
 // since each is already self-delimiting.
-func runToStdout(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer,
+func runToStdout(ctx context.Context, in inputFormat, stdin io.Reader, stdout, stderr io.Writer,
 	files []string, slurp, roundtrip bool, engine *Engine, opts FormatOptions,
 ) int {
-	docs, nodes, order, err := readDocuments(stdin, files)
+	docs, nodes, order, err := readDocuments(stdin, files, in.decode)
 	if err != nil {
-		fmt.Fprintf(stderr, "yq: %v\n", err)
+		fmt.Fprintf(stderr, "%s: %v\n", in.name, err)
 		return 1
 	}
 	opts.Order = order
@@ -141,7 +184,7 @@ func runToStdout(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer,
 			first = false
 		}
 		if err != nil {
-			fmt.Fprintf(stderr, "yq: %v\n", err)
+			fmt.Fprintf(stderr, "%s: %v\n", in.name, err)
 			hasError = true
 		}
 	}
@@ -183,12 +226,12 @@ func renderDocument(ctx context.Context, doc any, node *yaml.Node, engine *Engin
 // either error with path for context. Shared by RunFile (inplace.go,
 // one file at a time, for -i) and readDocuments below (several file
 // operands combined into one stream, for plain stdout output).
-func decodeFile(path string) (docs []any, nodes []*yaml.Node, order KeyOrder, err error) {
+func decodeFile(path string, decode decodeFunc) (docs []any, nodes []*yaml.Node, order KeyOrder, err error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("read %s: %w", path, err)
 	}
-	docs, nodes, order, err = SplitYAMLDocumentsWithNodes(b)
+	docs, nodes, order, err = decode(b)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("decode %s: %w", path, err)
 	}
@@ -206,18 +249,18 @@ func decodeFile(path string) (docs []any, nodes []*yaml.Node, order KeyOrder, er
 // KeyOrder's own doc comment), and every decoded map stays referenced,
 // through the growing docs slice, for the rest of this function, so no
 // two of them can ever share an address.
-func readDocuments(stdin io.Reader, files []string) (docs []any, nodes []*yaml.Node, order KeyOrder, err error) {
+func readDocuments(stdin io.Reader, files []string, decode decodeFunc) (docs []any, nodes []*yaml.Node, order KeyOrder, err error) {
 	if len(files) == 0 {
 		b, err := io.ReadAll(stdin)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("read stdin: %w", err)
 		}
-		return SplitYAMLDocumentsWithNodes(b)
+		return decode(b)
 	}
 
 	order = make(KeyOrder)
 	for _, path := range files {
-		fileDocs, fileNodes, fileOrder, err := decodeFile(path)
+		fileDocs, fileNodes, fileOrder, err := decodeFile(path, decode)
 		if err != nil {
 			return nil, nil, nil, err
 		}

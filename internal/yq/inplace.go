@@ -40,7 +40,7 @@ var ErrNoOutput = errors.New("filter produced no output")
 // interrupted write leaves the original file intact instead of a
 // broken, empty one.
 func RunFile(ctx context.Context, path string, engine *Engine, opts FormatOptions, slurp, roundtrip bool) error {
-	docs, nodes, order, err := decodeFile(path)
+	docs, nodes, order, err := decodeFile(path, SplitYAMLDocumentsWithNodes)
 	if err != nil {
 		return err
 	}
