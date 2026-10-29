@@ -49,14 +49,14 @@ source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 # devbase_cli_binary's job, and it only calls this when the installed
 # one is missing or is a different version.
 devbase_cli_download_release() {
-  local version="$1"
+  local devbaseTool devbaseVersion
+  devbaseTool="$(devbase_mise_tool)"
+  devbaseVersion="${1#v}"
 
   # stdout is the binary's path, so send the install's output to stderr.
-  install_tool_with_mise "$(devbase_mise_tool)" "${version#v}" >&2
+  install_tool_with_mise "$devbaseTool" "$devbaseVersion" >&2
 
-  # Not find_tool: it prefers a devbase on PATH, which may be the
-  # wrong version.
-  run_mise which devbase
+  run_mise which --tool "$devbaseTool@$devbaseVersion" devbase
 }
 
 # devbase_cli_binary echoes the path to a devbase binary for version (a
