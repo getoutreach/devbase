@@ -83,7 +83,9 @@ else
     info "Installing devbase CLI $devbaseVersion"
     install_tool_with_mise "$(devbase_mise_tool)" "${devbaseVersion#v}"
   else
-    info "devbase version is '$devbaseVersion', skipping devbase CLI install"
+    info "Building devbase $devbaseVersion from source"
+    devbase_install_from_source "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
   fi
 fi
 

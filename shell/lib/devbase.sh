@@ -50,6 +50,21 @@ devbase_mise_tool() {
   echo 'http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.tar.gz]'
 }
 
+# devbase_install_from_source builds devbase from this source tree into
+# the given directory, along with the release's yq shim. It needs go,
+# since a dev version has no release archive to install.
+devbase_install_from_source() {
+  local binDir="$1"
+
+  command_exists go || fatal "using dev version of devbase, needs go installed"
+
+  mkdir -p "$binDir"
+  if ! (cd "$(devbase_tree_root)" && go build -o "$binDir/devbase" ./cmd/devbase); then
+    fatal "failed to build devbase from source"
+  fi
+  install -m 0755 "$(devbase_tree_root)/release/yq" "$binDir/yq"
+}
+
 # devbase_cli_download_release installs the devbase release for the
 # given tag (for example, "v2.40.0") with mise and echoes the binary's
 # path. devbase_cli_binary calls it only when no devbase of that
