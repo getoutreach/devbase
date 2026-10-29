@@ -108,7 +108,9 @@ EOF
 }
 
 @test "devbase_cli_download_release fails when the installed binary is not found" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   install_tool_with_mise() { :; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   run_mise() { return 1; }
 
   run devbase_cli_download_release "v2.41.0"
