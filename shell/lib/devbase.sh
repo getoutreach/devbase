@@ -70,7 +70,7 @@ devbase_build_from_source() {
 devbase_install_from_source() {
   local binDir="$1"
 
-  command_exists go || fatal "using dev version of devbase, needs go installed"
+  find_tool go >/dev/null 2>&1 || fatal "using dev version of devbase, needs go installed"
 
   mkdir -p "$binDir"
   devbase_build_from_source "$binDir/devbase" || exit 1

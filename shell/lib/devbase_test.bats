@@ -128,7 +128,8 @@ EOF
 }
 
 @test "devbase_install_from_source fails without go" {
-  command_exists() { return 1; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { return 1; }
 
   run devbase_install_from_source "$BATS_TEST_TMPDIR/bin"
   assert_failure
@@ -136,6 +137,8 @@ EOF
 }
 
 @test "devbase_install_from_source installs devbase and the yq shim" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "/fake/go"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   go() { echo "built" >"$5"; }
 
