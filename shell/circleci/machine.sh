@@ -78,7 +78,13 @@ else
   devbaseVersion="$(devbase_cli_version)"
   if devbase_cli_is_tagged_version "$devbaseVersion"; then
     info "Installing devbase CLI $devbaseVersion"
-    install_tool_with_mise github:getoutreach/devbase "${devbaseVersion#v}"
+    # Use the http backend instead of github: it downloads the release
+    # directly rather than going through GitHub API requests, and
+    # verifies the archive against the release's checksums.txt.
+    devbaseReleaseURL="https://github.com/getoutreach/devbase/releases/download/v{{ version }}"
+    install_tool_with_mise \
+      "http:devbase[url=$devbaseReleaseURL/devbase_{{ version }}_{{ os(macos=\"darwin\") }}_{{ arch(x64=\"amd64\") }}.tar.gz,checksum_url=$devbaseReleaseURL/checksums.txt]" \
+      "${devbaseVersion#v}"
   else
     info "devbase version is '$devbaseVersion', skipping devbase CLI install"
   fi
