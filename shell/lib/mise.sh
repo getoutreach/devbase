@@ -113,7 +113,10 @@ install_mise() {
   run_mise settings set use_versions_host_track false
   # mise 2026.10.19 made lockfile_mode=generate the default, which also locks
   # platforms missing from our lockfiles. For private getoutreach repos that
-  # fails before CI has a GitHub token, so keep the previous behavior.
+  # fails before CI has a GitHub token, so keep the previous behavior (merge).
+  # The guard is 2026.9.5, not 2026.10.19, because 2026.9.5 added the setting
+  # (defaulting to merge). Writing it there keeps merge in the global config
+  # if mise is later upgraded past 2026.10.19 without re-running install_mise.
   if mise_version_compatible "2026.9.5"; then
     run_mise settings set lockfile_mode merge
   fi
