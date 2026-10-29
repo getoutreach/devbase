@@ -145,12 +145,15 @@ func New(addr string) (*Client, error) {
 	// Return the last response, not an error, when retries run out, so
 	// callers can report the status code and message.
 	hc.ErrorHandler = retryablehttp.PassthroughErrorHandler
+	// Timeout bounds a whole attempt. The transport sets its limits too, so that
+	// it never waits without one.
 	hc.HTTPClient = &http.Client{
 		Timeout: requestTimeout,
 		Transport: &http.Transport{
-			Proxy:               http.ProxyFromEnvironment,
-			TLSClientConfig:     tlsCfg,
-			TLSHandshakeTimeout: requestTimeout,
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSClientConfig:       tlsCfg,
+			TLSHandshakeTimeout:   requestTimeout,
+			ResponseHeaderTimeout: requestTimeout,
 		},
 	}
 
