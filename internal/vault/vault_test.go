@@ -5,7 +5,6 @@
 package vault
 
 import (
-	"context"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 // isolateEnv points HOME at an empty temp directory and clears the
@@ -50,7 +50,7 @@ func newClient(t *testing.T, srv *httptest.Server) *Client {
 func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
 	w.Header().Set("Content-Type", "application/json")
-	assert.NilError(t, json.NewEncoder(w).Encode(v))
+	assert.Check(t, json.NewEncoder(w).Encode(v))
 }
 
 func TestNew_Address(t *testing.T) {
@@ -92,12 +92,12 @@ func TestAppRoleLogin(t *testing.T) {
 	t.Setenv("VAULT_TOKEN", "should-not-be-sent")
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, r.Method, http.MethodPost)
-		assert.Equal(t, r.URL.Path, "/v1/auth/approle/login")
-		assert.Equal(t, r.Header.Get("X-Vault-Token"), "")
+		assert.Check(t, cmp.Equal(r.Method, http.MethodPost))
+		assert.Check(t, cmp.Equal(r.URL.Path, "/v1/auth/approle/login"))
+		assert.Check(t, cmp.Equal(r.Header.Get("X-Vault-Token"), ""))
 
 		var body map[string]string
-		assert.NilError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Check(t, json.NewDecoder(r.Body).Decode(&body))
 		if body["role_id"] != "role" || body["secret_id"] != "secret" {
 			w.WriteHeader(http.StatusBadRequest)
 			writeJSON(t, w, map[string]any{"errors": []string{"invalid role or secret ID"}})
@@ -108,13 +108,13 @@ func TestAppRoleLogin(t *testing.T) {
 	t.Cleanup(srv.Close)
 	c := newClient(t, srv)
 
-	_, err := c.AppRoleLogin(context.Background(), "role", "wrong")
+	_, err := c.AppRoleLogin(t.Context(), "role", "wrong")
 	var apiErr *APIError
 	assert.Assert(t, errors.As(err, &apiErr), err)
 	assert.Equal(t, apiErr.StatusCode, http.StatusBadRequest)
 	assert.ErrorContains(t, err, "invalid role or secret ID")
 
-	token, err := c.AppRoleLogin(context.Background(), "role", "secret")
+	token, err := c.AppRoleLogin(t.Context(), "role", "secret")
 	assert.NilError(t, err)
 	assert.Equal(t, token, "s.abc")
 	assert.Equal(t, c.token, "s.abc")
@@ -128,7 +128,7 @@ func TestAppRoleLogin_NoClientToken(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	_, err := newClient(t, srv).AppRoleLogin(context.Background(), "role", "secret")
+	_, err := newClient(t, srv).AppRoleLogin(t.Context(), "role", "secret")
 	assert.Assert(t, errors.Is(err, errNoClientToken), err)
 }
 
@@ -148,10 +148,10 @@ func kvServer(t *testing.T, mount, version, rest string, data map[string]any) *h
 				"data": map[string]any{"path": mount, "options": map[string]string{"version": version}},
 			})
 		case "/v1/" + mount + "data/" + rest:
-			assert.Equal(t, version, "2")
+			assert.Check(t, cmp.Equal(version, "2"))
 			writeJSON(t, w, map[string]any{"data": map[string]any{"data": data, "metadata": map[string]any{"version": 3}}})
 		case "/v1/" + mount + rest:
-			assert.Equal(t, version, "1")
+			assert.Check(t, cmp.Equal(version, "1"))
 			writeJSON(t, w, map[string]any{"data": data})
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -182,7 +182,7 @@ func TestKVGet(t *testing.T) {
 			srv := kvServer(t, tt.mount, tt.version, tt.rest, map[string]any{"token": "abc", "n": 1})
 			c := newClient(t, srv)
 
-			secret, err := c.KVGet(context.Background(), tt.path)
+			secret, err := c.KVGet(t.Context(), tt.path)
 			assert.NilError(t, err)
 			assert.Equal(t, secret.Data["token"], "abc")
 			assert.Equal(t, secret.Data["n"], json.Number("1"))
@@ -204,7 +204,7 @@ func TestKVGet_MountLookupNotFoundMeansV1(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	secret, err := newClient(t, srv).KVGet(context.Background(), "legacy/app")
+	secret, err := newClient(t, srv).KVGet(t.Context(), "legacy/app")
 	assert.NilError(t, err)
 	assert.Equal(t, secret.Data["k"], "v")
 }
@@ -217,7 +217,7 @@ func TestKVGet_SpecialCharacters(t *testing.T) {
 	// The "/" separators stay; characters that need escaping are escaped.
 	assert.Equal(t, escapePath("deploy/my app/a%b"), "deploy/my%20app/a%25b")
 
-	secret, err := newClient(t, srv).KVGet(context.Background(), "deploy/my app/a%b")
+	secret, err := newClient(t, srv).KVGet(t.Context(), "deploy/my app/a%b")
 	assert.NilError(t, err)
 	assert.Equal(t, secret.Data["k"], "v")
 }
@@ -228,18 +228,18 @@ func TestKVGet_Errors(t *testing.T) {
 	srv := kvServer(t, "deploy/", "2", "app", map[string]any{})
 	c := newClient(t, srv)
 
-	_, err := c.KVGet(context.Background(), "deploy/app")
+	_, err := c.KVGet(t.Context(), "deploy/app")
 	assert.Assert(t, errors.Is(err, errNoToken), err)
 
 	c.token = "wrong"
-	_, err = c.KVGet(context.Background(), "deploy/app")
+	_, err = c.KVGet(t.Context(), "deploy/app")
 	var apiErr *APIError
 	assert.Assert(t, errors.As(err, &apiErr), err)
 	assert.Equal(t, apiErr.StatusCode, http.StatusForbidden)
 	assert.ErrorContains(t, err, "permission denied")
 
 	c.token = "tok"
-	_, err = c.KVGet(context.Background(), "deploy/missing")
+	_, err = c.KVGet(t.Context(), "deploy/missing")
 	assert.Assert(t, errors.As(err, &apiErr), err)
 	assert.Equal(t, apiErr.StatusCode, http.StatusNotFound)
 }
@@ -262,7 +262,7 @@ func TestDo_RetriesServerErrors(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	secret, err := newClient(t, srv).KVGet(context.Background(), "legacy/app")
+	secret, err := newClient(t, srv).KVGet(t.Context(), "legacy/app")
 	assert.NilError(t, err)
 	assert.Equal(t, secret.Data["k"], "v")
 	assert.Equal(t, calls.Load(), int32(3))
@@ -349,7 +349,7 @@ func TestDo_ReportsServerErrorAfterRetries(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	_, err := newClient(t, srv).KVGet(context.Background(), "deploy/app")
+	_, err := newClient(t, srv).KVGet(t.Context(), "deploy/app")
 	var apiErr *APIError
 	assert.Assert(t, errors.As(err, &apiErr), err)
 	assert.Equal(t, apiErr.StatusCode, http.StatusBadGateway)
@@ -368,7 +368,7 @@ func TestDo_Namespace(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	_, err := newClient(t, srv).KVGet(context.Background(), "legacy/app")
+	_, err := newClient(t, srv).KVGet(t.Context(), "legacy/app")
 	assert.NilError(t, err)
 }
 
@@ -385,7 +385,7 @@ func TestNew_CACert(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	// Without the server's certificate, TLS verification fails.
-	_, err := newClient(t, srv).KVGet(context.Background(), "legacy/app")
+	_, err := newClient(t, srv).KVGet(t.Context(), "legacy/app")
 	assert.Assert(t, err != nil)
 
 	caFile := filepath.Join(t.TempDir(), "ca.pem")
@@ -393,7 +393,7 @@ func TestNew_CACert(t *testing.T) {
 	assert.NilError(t, os.WriteFile(caFile, pemBytes, 0o600))
 	t.Setenv("VAULT_CACERT", caFile)
 
-	_, err = newClient(t, srv).KVGet(context.Background(), "legacy/app")
+	_, err = newClient(t, srv).KVGet(t.Context(), "legacy/app")
 	assert.NilError(t, err)
 
 	assert.NilError(t, os.WriteFile(caFile, []byte("not a certificate"), 0o600))

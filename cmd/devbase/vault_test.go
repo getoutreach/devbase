@@ -37,7 +37,7 @@ func vaultTestServer(t *testing.T) (url, home string) {
 	}
 
 	write := func(w http.ResponseWriter, v any) {
-		assert.NilError(t, json.NewEncoder(w).Encode(v))
+		assert.Check(t, json.NewEncoder(w).Encode(v))
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if tok := r.Header.Get("X-Vault-Token"); r.URL.Path != "/v1/auth/approle/login" && tok != "tok" && tok != "s.logged-in" {
@@ -48,7 +48,7 @@ func vaultTestServer(t *testing.T) (url, home string) {
 		switch r.URL.Path {
 		case "/v1/auth/approle/login":
 			var body map[string]string
-			assert.NilError(t, json.NewDecoder(r.Body).Decode(&body))
+			assert.Check(t, json.NewDecoder(r.Body).Decode(&body))
 			if body["role_id"] != "role" || body["secret_id"] != "secret" {
 				w.WriteHeader(http.StatusBadRequest)
 				write(w, map[string]any{"errors": []string{"invalid secret id"}})
