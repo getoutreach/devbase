@@ -317,12 +317,22 @@ func WriteTokenFile(token string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(p, []byte(token), tokenFileMode); err != nil {
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, tokenFileMode)
+	if err != nil {
+		return "", fmt.Errorf("open token file: %w", err)
+	}
+	defer f.Close()
+
+	// OpenFile does not change the mode of a file that already exists, and
+	// has emptied it. Change the mode before the token is written.
+	if err := f.Chmod(tokenFileMode); err != nil {
+		return "", fmt.Errorf("set token file mode: %w", err)
+	}
+	if _, err := f.WriteString(token); err != nil {
 		return "", fmt.Errorf("write token file: %w", err)
 	}
-	// WriteFile does not change the mode of a file that already exists.
-	if err := os.Chmod(p, tokenFileMode); err != nil {
-		return "", fmt.Errorf("set token file mode: %w", err)
+	if err := f.Close(); err != nil {
+		return "", fmt.Errorf("close token file: %w", err)
 	}
 	return p, nil
 }
