@@ -37,82 +37,31 @@ ensure_bash_5_or_greater
 
 # shellcheck source=./lib/bootstrap.sh
 source "${_DEVBASE_CLI_LIB_DIR}/bootstrap.sh"
+# shellcheck source=./lib/devbase.sh
+source "${_DEVBASE_CLI_LIB_DIR}/devbase.sh"
 # shellcheck source=./lib/mise.sh
 source "${_DEVBASE_CLI_LIB_DIR}/mise.sh"
 
-# devbase_cli_platform echoes "<os>_<arch>", matching goreleaser's own
-# default archive naming (confirmed against real devbase release
-# tarballs, e.g. devbase_2.40.0-rc.2_darwin_amd64.tar.gz).
-#
-# TODO(malept): shell/lib/buildx.sh has its own copy of this same
-# x86_64/aarch64 -> amd64/arm64 mapping. There is no shared helper to
-# call instead today (buildx.sh's own ARCH logic is private to that
-# file, not exported), so fixing this means extracting a real helper
-# (e.g. into shell/lib/shell.sh) and updating both call sites, not just
-# this one -- deferred rather than done here since it touches a file
-# with no other reason to change in this PR.
-devbase_cli_platform() {
-  local os arch
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  arch="$(uname -m)"
-  case "$arch" in
-  x86_64) arch=amd64 ;;
-  aarch64 | arm64) arch=arm64 ;;
-  esac
-  echo "${os}_${arch}"
-}
-
-# devbase_cli_download_release downloads and caches the devbase release
-# binary for version (a real git tag, e.g. "v2.40.0" or
-# "v2.41.0-rc.1"), mirroring shell/gobin.sh's own download-and-cache
-# pattern (retry, a temp dir, shell/lib/shell.sh's cached_binary_path/
-# get_cached_binary), and echoes the cached binary's path.
-#
-# Every step below checks its own exit status explicitly rather than
-# relying on `set -e`: this file does not set it globally (see the
-# comment above _DEVBASE_CLI_DIR), since sourcing it must not impose strict mode on
-# a caller's own shell.
+# devbase_cli_download_release installs the devbase release binary for
+# version (a real git tag, e.g. "v2.40.0" or "v2.41.0-rc.1") with mise
+# (see devbase_mise_tool), which caches it, and echoes the binary's
+# path.
 devbase_cli_download_release() {
   local version="$1"
 
-  local cached
-  cached="$(get_cached_binary devbase "$version")"
-  if [[ -n $cached ]]; then
-    echo "$cached"
-    return
+  ensure_mise_installed
+
+  local binary
+  if ! binary="$(run_mise exec "$(devbase_mise_tool)@${version#v}" -- sh -c 'command -v devbase')"; then
+    fatal "failed to install devbase $version release"
   fi
-  cached="$(cached_binary_path devbase "$version")"
-
-  local platform archive tmp_dir
-  platform="$(devbase_cli_platform)"
-  archive="devbase_${version#v}_${platform}.tar.gz"
-  tmp_dir="$(mktemp -d)"
-
-  if ! retry 5 5 curl --fail --location --silent --output "$tmp_dir/$archive" \
-    "https://github.com/getoutreach/devbase/releases/download/$version/$archive"; then
-    rm -rf "$tmp_dir"
-    fatal "failed to download devbase $version release archive"
-  fi
-
-  if ! tar --directory="$tmp_dir" --extract --file="$tmp_dir/$archive" devbase; then
-    rm -rf "$tmp_dir"
-    fatal "failed to extract devbase $version release archive"
-  fi
-
-  if ! cp "$tmp_dir/devbase" "$cached" || ! chmod +x "$cached"; then
-    rm -rf "$tmp_dir"
-    fatal "failed to install devbase $version release binary to $cached"
-  fi
-
-  rm -rf "$tmp_dir"
-  echo "$cached"
+  echo "$binary"
 }
 
 # devbase_cli_binary echoes the path to a devbase binary for version (a
 # real git tag): an already-resolvable devbase (via find_tool, which
 # checks PATH then a mise-managed install) if its own --version matches
-# version exactly, otherwise a freshly downloaded-and-cached release
-# binary.
+# version exactly, otherwise a freshly installed release binary.
 devbase_cli_binary() {
   local version="$1"
 

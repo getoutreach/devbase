@@ -9,12 +9,6 @@ load lib/logging.sh
 load cli.sh
 load lib/test_helper.sh
 
-@test "devbase_cli_platform reports this machine's os_arch" {
-  run devbase_cli_platform
-  assert_success
-  assert_output "$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')"
-}
-
 @test "devbase_cli_binary uses an exact version match" {
   fake_bin_dir="$(mktempdir devbase-cli-fakebin-XXXXXX)"
   cat >"$fake_bin_dir/devbase" <<'EOF'
