@@ -91,7 +91,7 @@ Before each scenario in the following list, ask the user if they allow the chang
 - Commit secrets, credentials, API keys, or tokens
 - Use `panic()` in production code paths
 <!-- <<Stencil::Block(agentsBoundariesNeverCustom)>> -->
-
+- Put .bats test files in `shell/`. `shell/*.sh` are scripts, testable functions and their tests should go into `shell/lib/`.
 <!-- <</Stencil::Block>> -->
 
 ## Other
