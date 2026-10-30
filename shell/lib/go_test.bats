@@ -130,3 +130,15 @@ teardown() {
   assert_failure 2
   assert_output ""
 }
+
+@test "golangci_lint_built_with_go prints only the first golangci-lint line" {
+  run golangci_lint_built_with_go "$(printf 'noise built with go9.9.9\ngolangci-lint has version 2.9.0 built with go1.26.0 from abc1234\ngolangci-lint has version 2.0.0 built with go1.24.0 from abc1234')"
+  assert_success
+  assert_output "1.26.0"
+}
+
+@test "golangci_lint_built_with_go ignores text that is not from golangci-lint" {
+  run golangci_lint_built_with_go "mise: built with go1.26.0"
+  assert_success
+  assert_output ""
+}

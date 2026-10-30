@@ -68,8 +68,8 @@ if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; 
   fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
 fi
 
-# golangci-lint can only lint with a Go toolchain that is not newer than the Go
-# that built it. Reading that from the tool means that this does not have to be
+# devbase requires a Go toolchain that is not newer than the Go that built
+# golangci-lint. Reading that from the tool means that this does not have to be
 # updated for each new Go version.
 GOLANGCI_LINT_GO_VERSION=$(golangci_lint_built_with_go "$GOLANGCI_LINT_VERSION_OUTPUT")
 if [[ -z $GOLANGCI_LINT_GO_VERSION ]]; then
