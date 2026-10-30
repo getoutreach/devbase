@@ -106,3 +106,27 @@ teardown() {
   run golangci_lint_supports_go "2.0.0" "1.99.0"
   assert_failure
 }
+
+@test "golangci_lint_supports_go ignores a prerelease suffix of the toolchain" {
+  run golangci_lint_supports_go "1.26rc1" "1.26.0"
+  assert_success
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go fails for a prerelease of a newer minor version" {
+  run golangci_lint_supports_go "1.27rc1" "1.26.3"
+  assert_failure 1
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go returns 2 for a development toolchain" {
+  run golangci_lint_supports_go "devel" "1.26.3"
+  assert_failure 2
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go returns 2 for an empty toolchain version" {
+  run golangci_lint_supports_go "" "1.26.3"
+  assert_failure 2
+  assert_output ""
+}

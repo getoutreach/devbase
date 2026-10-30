@@ -73,9 +73,15 @@ fi
 # updated for each new Go version.
 GOLANGCI_LINT_GO_VERSION=$(golangci_lint_built_with_go "$GOLANGCI_LINT_VERSION_OUTPUT")
 if [[ -z $GOLANGCI_LINT_GO_VERSION ]]; then
-  warn "Could not tell which Go built golangci-lint ${GOLANGCI_LINT_VERSION}, so not checking that it supports Go ${GO_VERSION}"
-elif ! golangci_lint_supports_go "$GO_VERSION" "$GOLANGCI_LINT_GO_VERSION"; then
-  fatal "Go ${GO_VERSION} is newer than Go ${GOLANGCI_LINT_GO_VERSION}, which built golangci-lint ${GOLANGCI_LINT_VERSION}. Please upgrade golangci-lint"
+  warn "Could not tell which Go built golangci-lint ${GOLANGCI_LINT_VERSION}, so not checking that it supports Go ${GO_VERSION}" >&2
+else
+  supportsGo=0
+  golangci_lint_supports_go "$GO_VERSION" "$GOLANGCI_LINT_GO_VERSION" || supportsGo=$?
+  case $supportsGo in
+  0) ;;
+  1) fatal "Go ${GO_VERSION} is newer than Go ${GOLANGCI_LINT_GO_VERSION}, which built golangci-lint ${GOLANGCI_LINT_VERSION}. Please upgrade golangci-lint" ;;
+  *) warn "Could not read the Go version '${GO_VERSION}', so not checking that golangci-lint supports it" >&2 ;;
+  esac
 fi
 
 if [[ -n $needRunFlags || -n $needConfigFlag ]]; then

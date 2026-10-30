@@ -31,10 +31,14 @@ golangci_lint_built_with_go() {
 #
 # Succeeds if a golangci-lint that was built with built_with_go_version can lint
 # with the Go toolchain go_version, which is when the toolchain is not newer
-# than the Go that built golangci-lint. The patch versions are ignored.
-# Requires version.sh.
+# than the Go that built golangci-lint. The patch versions and any prerelease
+# suffix of go_version are ignored. Fails with 1 if the toolchain is newer, and
+# with 2 if go_version has no major and minor version, as with a development
+# build of Go. Requires version.sh.
 golangci_lint_supports_go() {
-  local goVersion="$1" builtWith="$2" major minor
-  read -r major minor _ <<<"$(parse_version "$goVersion")"
-  has_minimum_version "${major}.${minor}.0" "$builtWith"
+  local goVersion="$1" builtWith="$2"
+  if [[ ! $goVersion =~ ^([0-9]+)\.([0-9]+) ]]; then
+    return 2
+  fi
+  has_minimum_version "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0" "$builtWith"
 }
