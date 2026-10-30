@@ -2,9 +2,10 @@ name: devbase
 arguments:
   ciOptions:
     skipE2e: true
-    skipDocker: true
   commands:
     - devbase
+  deployment:
+    buildContainerForCLI: true
   description: A collection of scripts and ci configuration
   go:
     formatter: gofumpt
