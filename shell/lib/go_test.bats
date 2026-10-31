@@ -4,6 +4,7 @@ bats_load_library "bats-support/load.bash"
 bats_load_library "bats-assert/load.bash"
 
 load go.sh
+load version.sh
 load test_helper.sh
 
 setup() {
@@ -44,4 +45,100 @@ teardown() {
   IGNORED_GO_MOD_DIRS="moduleB/submodule moduleC" run go_mod_dirs
   assert_success
   assert_output ". moduleA" # output is sorted
+}
+
+@test "golangci_lint_built_with_go reads the Go version from golangci-lint --version" {
+  run golangci_lint_built_with_go "golangci-lint has version 2.9.0 built with go1.26.0 from abc1234 on 2026-02-10T18:00:00Z"
+  assert_success
+  assert_output "1.26.0"
+}
+
+@test "golangci_lint_built_with_go reads a Go version without a patch" {
+  run golangci_lint_built_with_go "golangci-lint has version 2.13.0 built with go1.27 from abc1234 on 2026-08-12T18:00:00Z"
+  assert_success
+  assert_output "1.27"
+}
+
+@test "golangci_lint_built_with_go drops the prerelease suffix of a Go version" {
+  run golangci_lint_built_with_go "golangci-lint has version 2.13.0 built with go1.27rc1 from abc1234 on 2026-08-12T18:00:00Z"
+  assert_success
+  assert_output "1.27"
+}
+
+@test "golangci_lint_built_with_go prints nothing for a development build of Go" {
+  run golangci_lint_built_with_go "golangci-lint has version 2.13.0 built with devel go1.28-abc1234 from abc1234 on 2026-08-12T18:00:00Z"
+  assert_success
+  assert_output ""
+}
+
+@test "golangci_lint_built_with_go prints nothing for unexpected output" {
+  run golangci_lint_built_with_go "unexpected"
+  assert_success
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go succeeds when golangci-lint was built with the same Go" {
+  run golangci_lint_supports_go "1.26.0" "1.26.0"
+  assert_success
+}
+
+@test "golangci_lint_supports_go ignores the patch version of both" {
+  run golangci_lint_supports_go "1.26.3" "1.26.0"
+  assert_success
+}
+
+@test "golangci_lint_supports_go succeeds when golangci-lint was built with a newer Go" {
+  run golangci_lint_supports_go "1.25.7" "1.26.0"
+  assert_success
+}
+
+@test "golangci_lint_supports_go fails when golangci-lint was built with an older Go" {
+  run golangci_lint_supports_go "1.26.0" "1.25.7"
+  assert_failure
+}
+
+@test "golangci_lint_supports_go compares minor versions as numbers" {
+  run golangci_lint_supports_go "1.10.0" "1.9.0"
+  assert_failure
+}
+
+@test "golangci_lint_supports_go fails for an older major version" {
+  run golangci_lint_supports_go "2.0.0" "1.99.0"
+  assert_failure
+}
+
+@test "golangci_lint_supports_go ignores a prerelease suffix of the toolchain" {
+  run golangci_lint_supports_go "1.26rc1" "1.26.0"
+  assert_success
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go fails for a prerelease of a newer minor version" {
+  run golangci_lint_supports_go "1.27rc1" "1.26.3"
+  assert_failure 1
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go returns 2 for a development toolchain" {
+  run golangci_lint_supports_go "devel" "1.26.3"
+  assert_failure 2
+  assert_output ""
+}
+
+@test "golangci_lint_supports_go returns 2 for an empty toolchain version" {
+  run golangci_lint_supports_go "" "1.26.3"
+  assert_failure 2
+  assert_output ""
+}
+
+@test "golangci_lint_built_with_go prints only the first golangci-lint line" {
+  run golangci_lint_built_with_go "$(printf 'noise built with go9.9.9\ngolangci-lint has version 2.9.0 built with go1.26.0 from abc1234\ngolangci-lint has version 2.0.0 built with go1.24.0 from abc1234')"
+  assert_success
+  assert_output "1.26.0"
+}
+
+@test "golangci_lint_built_with_go ignores text that is not from golangci-lint" {
+  run golangci_lint_built_with_go "mise: built with go1.26.0"
+  assert_success
+  assert_output ""
 }
