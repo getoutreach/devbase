@@ -11,6 +11,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source "$DIR/lib/bootstrap.sh"
 # shellcheck source=./lib/github.sh
 source "$DIR/lib/github.sh"
+# shellcheck source=./lib/go.sh
+source "$DIR/lib/go.sh"
 # shellcheck source=./lib/logging.sh
 source "$DIR/lib/logging.sh"
 # shellcheck source=./lib/mise.sh
@@ -55,7 +57,8 @@ fi
 
 # Determine the version of Go and golangci-lint to calculate compatibility.
 GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
-GOLANGCI_LINT_VERSION=$(mise_exec_tool golangci-lint --version | awk '{print $4}')
+GOLANGCI_LINT_VERSION_OUTPUT=$(mise_exec_tool golangci-lint --version)
+GOLANGCI_LINT_VERSION=$(awk '{print $4}' <<<"$GOLANGCI_LINT_VERSION_OUTPUT")
 # Only update this if something in devbase requires a specific version.
 # For example, if the config schema has a breaking change, or the templated
 # config file references a linter that was recently introduced.
@@ -65,8 +68,20 @@ if ! has_minimum_version "$MIN_GOLANGCI_LINT_VERSION" "$GOLANGCI_LINT_VERSION"; 
   fatal "golangci-lint version ${GOLANGCI_LINT_VERSION} is not supported. Please upgrade to >= ${MIN_GOLANGCI_LINT_VERSION}"
 fi
 
-if has_minimum_version "1.26.0" "$GO_VERSION" && ! has_minimum_version "2.9.0" "$GOLANGCI_LINT_VERSION"; then
-  fatal "Go 1.26 and later requires golangci-lint 2.9.0 or later"
+# devbase requires a Go toolchain that is not newer than the Go that built
+# golangci-lint. Reading that from the tool means that this does not have to be
+# updated for each new Go version.
+GOLANGCI_LINT_GO_VERSION=$(golangci_lint_built_with_go "$GOLANGCI_LINT_VERSION_OUTPUT")
+if [[ -z $GOLANGCI_LINT_GO_VERSION ]]; then
+  warn "Could not tell which Go built golangci-lint ${GOLANGCI_LINT_VERSION}, so not checking that it supports Go ${GO_VERSION}" >&2
+else
+  supportsGo=0
+  golangci_lint_supports_go "$GO_VERSION" "$GOLANGCI_LINT_GO_VERSION" || supportsGo=$?
+  case $supportsGo in
+  0) ;;
+  1) fatal "Go ${GO_VERSION} is newer than Go ${GOLANGCI_LINT_GO_VERSION}, which built golangci-lint ${GOLANGCI_LINT_VERSION}. Please upgrade golangci-lint" ;;
+  *) warn "Could not read the Go version '${GO_VERSION}', so not checking that golangci-lint supports it" >&2 ;;
+  esac
 fi
 
 if [[ -n $needRunFlags || -n $needConfigFlag ]]; then
