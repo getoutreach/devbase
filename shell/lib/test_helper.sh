@@ -93,8 +93,18 @@ stub_argv() {
 }
 
 # assert_stub_called NAME [ARGS...] asserts that the named stub ran at
-# least once with exactly these arguments.
+# least once with these arguments.
 assert_stub_called() {
+  # The -F option matches the pattern as a fixed string, because arguments
+  # can contain regex metacharacters such as `.` or `*`.
+  # The -x option requires a whole-line match, so a call with extra
+  # arguments or a longer version string does not match. The call log
+  # joins arguments with spaces, so an argument that contains a space
+  # matches the same as two arguments.
+  # The -q option suppresses output, because the failure branch prints
+  # its own message.
+  # The -- option ends option parsing, so a pattern that starts with `-`
+  # is not read as an option.
   if ! grep -Fxq -- "$*" "$STUB_CALLS_FILE"; then
     {
       echo "expected stub call: $*"
