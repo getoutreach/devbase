@@ -38,13 +38,11 @@ teardown_command_stubs() {
 # Install an executable stub on PATH that records its invocation to
 # $STUB_CALLS_FILE (one line: "NAME ARGS..."), records its full argv to
 # $STUB_ARGS_DIR/NAME.argv (one arg per line, latest invocation only),
-# prints OUTPUT, and exits with an exit code.
+# and prints OUTPUT to stdout when the call exits 0 and to stderr otherwise.
 #
-# EXIT_CODES is a space-separated list with one exit code per call, and
-# the last one repeats for later calls. The default is 0, so
-# `stub_command gh v1 "1 1 0"` fails twice and then succeeds. OUTPUT goes to
-# stdout when the call exits 0 and to stderr otherwise, like a CLI that
-# reports failures on stderr.
+# EXIT_CODES is a space-separated list with one exit code per call. The
+# last code repeats for later calls, and the default is 0. For example,
+# `stub_command gh v1 "1 1 0"` fails twice and then succeeds.
 stub_command() {
   local name="$1" output="$2" exitCodes="${3:-0}"
   printf '%s' "$output" >"$STUB_OUTPUTS_DIR/$name"
@@ -73,11 +71,11 @@ EOF
 # stub_function NAME [EXIT_CODE]
 #
 # Define a shell function NAME that records its invocation to
-# $STUB_CALLS_FILE, then returns EXIT_CODE (default 0). Use it to replace
-# a function that the code under test calls, since stub_command only
-# replaces executables. The calls are recorded in a file, so they are
-# visible after `run`, which executes the function in a subshell. The
-# call format must match the one that stub_command writes.
+# $STUB_CALLS_FILE in the same "NAME ARGS..." format as stub_command, then
+# returns EXIT_CODE (default 0). Use it for functions that the code under
+# test calls, because stub_command only replaces executables. The calls go
+# to a file so that they remain visible after `run`, which executes the
+# function in a subshell.
 stub_function() {
   local name="$1" exitCode="${2:-0}"
   eval "$name() {
@@ -92,19 +90,14 @@ stub_argv() {
   cat "$STUB_ARGS_DIR/$1.argv"
 }
 
-# assert_stub_called NAME [ARGS...] asserts that the named stub ran at
+# assert_stub_called NAME ARGS... asserts that the named stub ran at
 # least once with these arguments.
 assert_stub_called() {
-  # The -F option matches the pattern as a fixed string, because arguments
-  # can contain regex metacharacters such as `.` or `*`.
-  # The -x option requires a whole-line match, so a call with extra
-  # arguments or a longer version string does not match. The call log
-  # joins arguments with spaces, so an argument that contains a space
-  # matches the same as two arguments.
-  # The -q option suppresses output, because the failure branch prints
-  # its own message.
-  # The -- option ends option parsing, so a pattern that starts with `-`
-  # is not read as an option.
+  # -F treats the call as literal text, so regex metacharacters match
+  # themselves. -x requires the whole line to match, so a call with extra
+  # arguments does not. -q hides grep's output, since the failure branch
+  # prints its own message. The call log joins arguments with spaces, so
+  # one argument that contains a space is the same as two arguments.
   if ! grep -Fxq -- "$*" "$STUB_CALLS_FILE"; then
     {
       echo "expected stub call: $*"
