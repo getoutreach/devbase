@@ -153,8 +153,7 @@ teardown() {
 }
 
 @test "latest_github_release_version fails without retrying when gh is missing" {
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  gh_installed() { return 1; }
+  stub_function gh_installed 1
   stub_command sleep ""
 
   run latest_github_release_version getoutreach/stencil false
