@@ -44,7 +44,8 @@ is_semver() {
 }
 
 # normalize_semver trims surrounding whitespace and strips a leading
-# `v` or `V` before a digit, so mise receives a plain version.
+# `v` or `V` before a digit, so mise receives a plain version. It prints
+# the result with printf, because echo treats values such as `-n` as options.
 #
 # mise 2026.6.14+ drops the `v` when installing a pre-release tag but
 # re-adds it during `mise which`/`mise where`, so the tool resolves as
@@ -56,5 +57,5 @@ normalize_semver() {
   if [[ $version =~ ^[vV][0-9] ]]; then
     version="${version:1}"
   fi
-  echo "$version"
+  printf '%s\n' "$version"
 }
