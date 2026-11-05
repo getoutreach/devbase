@@ -122,3 +122,11 @@ load version.sh
   run normalize_semver "unstable"
   assert_output "unstable"
 }
+
+@test "normalize_semver prints values that echo treats as options" {
+  # The `--` keeps assert_output from reading `-e` as its --regexp option.
+  run normalize_semver "-n"
+  assert_output -- "-n"
+  run normalize_semver "-e"
+  assert_output -- "-e"
+}

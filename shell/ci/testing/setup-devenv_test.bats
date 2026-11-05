@@ -35,8 +35,7 @@ teardown() {
   run bash "$BATS_TEST_DIRNAME/setup-devenv.sh"
   assert_success
 
-  run grep -F "mise use --global github:getoutreach/devenv@1.68.0" "$STUB_CALLS_FILE"
-  assert_success
+  assert_stub_called mise use --global github:getoutreach/devenv@1.68.0
   run stub_argv gh
   assert_line "--exclude-pre-releases"
 }
@@ -46,9 +45,16 @@ teardown() {
   run bash "$BATS_TEST_DIRNAME/setup-devenv.sh"
   assert_success
 
-  run grep -F "mise use --global github:getoutreach/devenv@1.67.0" "$STUB_CALLS_FILE"
-  assert_success
+  assert_stub_called mise use --global github:getoutreach/devenv@1.67.0
   assert_stub_not_called gh
+}
+
+@test "setup-devenv.sh installs devenv even when one is already on PATH" {
+  stub_command devenv "1.0.0"
+  run bash "$BATS_TEST_DIRNAME/setup-devenv.sh"
+  assert_success
+
+  assert_stub_called mise use --global github:getoutreach/devenv@1.68.0
 }
 
 @test "setup-devenv.sh doesn't install devenv outside CI" {

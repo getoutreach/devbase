@@ -56,5 +56,6 @@ normalize_semver() {
   if [[ $version =~ ^[vV][0-9] ]]; then
     version="${version:1}"
   fi
-  echo "$version"
+  # Use printf because echo would treat a value such as `-n` as an option.
+  printf '%s\n' "$version"
 }
