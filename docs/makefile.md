@@ -122,4 +122,5 @@ will run it right after the devenv has been provisioned (before the tests run).
 * `PROVISION_TARGET`: Maps to `devenv provision --snapshot-target $PROVISION_TARGET`, allowing to specify the provision target used. Otherwise, the default is either "flagship" or "base", latter being used when "outreach" is not included.
 * `SKIP_LOCALIZER`: Set "true" to skip creating a localizer tunnel before test start.
 * `REQUIRE_DEVCONFIG_AFTER_DEPLOY`: Set to "true" to run `devconfig.sh` after deploy. Otherwise, the step is executed before deploy.
-* `DEVENV_CI_VERSION`: CI only. The devenv version to install, e.g. `1.68.0`. When unset or empty, CI installs the latest stable devenv release. Set it in the repository's CI environment to pin one repository; it takes precedence over `DEVENV_PRE_RELEASE`.
+* `DEVENV_CI_VERSION`: CI only. The devenv version to install, e.g. `1.68.0`. A leading `v` is optional. Set it in a repository's CI environment to pin that repository to one version. When it is unset or empty, `DEVENV_PRE_RELEASE` selects the version.
+* `DEVENV_PRE_RELEASE`: CI only. Set to "true" to install the newest devenv release of any kind, which can be a stable release. When `DEVENV_CI_VERSION` is unset and this is not "true", CI installs the latest stable release. The `devenv_pre_release` parameter of the `e2e` orb job sets it.
