@@ -10,6 +10,8 @@ _DEVBASE_LIB_DEVBASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 
 source "${_DEVBASE_LIB_DEVBASE_DIR}/bootstrap.sh"
 # shellcheck source=./mise.sh
 source "${_DEVBASE_LIB_DEVBASE_DIR}/mise.sh"
+# shellcheck source=./version.sh
+source "${_DEVBASE_LIB_DEVBASE_DIR}/version.sh"
 
 # devbase_tree_root echoes the root of the devbase source tree that
 # bootstrap.sh belongs to: devbase's own repository, or a consumer
