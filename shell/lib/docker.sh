@@ -150,9 +150,10 @@ docker_buildx_args() {
   done
   args+=("--platform" "$platformArgumentString")
 
-  # tags are the tags to apply to the image. We always tag the image with "latest" tag
+  # tags are the tags to apply to the image. We tag the image with the "latest" tag
   # for each arch and the version tag the same. Tags are only applied if we intend to push
-  # the image to registries later.
+  # the image to registries later. The stitch step (ci/release/docker-stitch.sh) decides
+  # which of these tags are pushed, e.g. it skips "latest" for pre-release versions.
   if [[ $(will_push_images) == "true" ]]; then
     local tags=("$image")
 

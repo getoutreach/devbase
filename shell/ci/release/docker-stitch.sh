@@ -20,6 +20,9 @@ source "${LIB_DIR}/docker.sh"
 # shellcheck source=../../lib/logging.sh
 source "${LIB_DIR}/logging.sh"
 
+# shellcheck source=../../lib/version.sh
+source "${LIB_DIR}/version.sh"
+
 # shellcheck source=../../lib/docker/authn/aws-ecr.sh
 source "${DOCKER_DIR}/aws-ecr.sh"
 
@@ -38,7 +41,12 @@ fi
 
 info "Arches to stitch together: ${archs[*]}"
 
-tags=(latest "$VERSION")
+# Pre-release versions (e.g. release candidates) must not become "latest".
+if is_prerelease_version "$VERSION"; then
+  tags=("$VERSION")
+else
+  tags=(latest "$VERSION")
+fi
 will_push="$(will_push_images)"
 
 stitch_and_push_image() {
