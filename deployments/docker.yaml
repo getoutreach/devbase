@@ -1,4 +1,4 @@
 devbase:
 ## <<Stencil::Block(customDockerImages)>>
-  pushTo: ghcr.io/getoutreach
+  pushTo: ghcr.io/getoutreach/devbase
 ## <</Stencil::Block>>
