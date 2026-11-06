@@ -18,6 +18,9 @@ source "${DIR}/yaml.sh"
 # shellcheck source=./box.sh
 source "${DIR}/box.sh"
 
+# shellcheck source=./version.sh
+source "${DIR}/version.sh"
+
 # get_image_field is a helper to return a field from the manifest
 # for a given image. It will return an empty string if the field
 # is not set.
@@ -152,8 +155,7 @@ docker_buildx_args() {
 
   # tags are the tags to apply to the image. We tag the image with the "latest" tag
   # for each arch and the version tag the same. Tags are only applied if we intend to push
-  # the image to registries later. The stitch step (ci/release/docker-stitch.sh) decides
-  # which of these tags are pushed, e.g. it skips "latest" for pre-release versions.
+  # the image to registries later. docker_release_tags decides which of these tags are pushed.
   if [[ $(will_push_images) == "true" ]]; then
     local tags=("$image")
 
@@ -255,6 +257,21 @@ docker_manifest_images() {
   local manifest="$1"
 
   yq_wrapper -r 'keys[]' "$manifest"
+}
+
+# docker_release_tags prints the tags to push for a version, one per line.
+# Pre-release versions (e.g. release candidates) are not tagged "latest"
+# unless TAG_LATEST_FOR_PRERELEASE is "true".
+#
+# Arguments:
+#   $1 - version
+docker_release_tags() {
+  local version="$1"
+  if is_prerelease_version "$version" && [[ ${TAG_LATEST_FOR_PRERELEASE:-false} != "true" ]]; then
+    echo "$version"
+  else
+    printf '%s\n' latest "$version"
+  fi
 }
 
 # will_push_images determines if current pipeline is configured to actually push image to a registry.
