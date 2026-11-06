@@ -92,3 +92,23 @@ load version.sh
   run has_minimum_version "2.5.0" "v1.62.2"
   assert_failure
 }
+
+@test "is_prerelease_version succeeds for a release candidate" {
+  run is_prerelease_version "v1.2.3-rc.1"
+  assert_success
+}
+
+@test "is_prerelease_version fails for a stable version" {
+  run is_prerelease_version "v1.2.3"
+  assert_failure
+}
+
+@test "is_prerelease_version ignores hyphens in build metadata" {
+  run is_prerelease_version "v1.2.3+build-5"
+  assert_failure
+}
+
+@test "is_prerelease_version fails for a commit SHA" {
+  run is_prerelease_version "0123456789abcdef0123456789abcdef01234567"
+  assert_failure
+}
