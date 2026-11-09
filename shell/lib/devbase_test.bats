@@ -109,6 +109,42 @@ EOF
   rm -rf "$workdir"
 }
 
+# Stubs a release devbase that logs its arguments and the auth-check setting.
+make_logging_devbase() {
+  fake_bin="$BATS_TEST_TMPDIR/devbase"
+  calls="$BATS_TEST_TMPDIR/calls"
+  cat >"$fake_bin" <<EOF
+#!/usr/bin/env bash
+echo "\$* auth=\${GOBOX_SKIP_VALIDATE_AUTH:-unset}" >>"$calls"
+echo "devbase version v2.41.0"
+EOF
+  chmod +x "$fake_bin"
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_cli_version() { echo "v2.41.0"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "$fake_bin"; }
+}
+
+@test "devbase_cli never self-updates devbase, and skips the GitHub auth check in CI" {
+  make_logging_devbase
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  in_ci_environment() { return 0; }
+
+  run devbase_cli yq
+  assert_success
+  assert_equal "$(cat "$calls")" $'--skip-update --version auth=true\n--skip-update yq auth=true'
+}
+
+@test "devbase_cli never self-updates devbase, and leaves the GitHub auth check outside CI" {
+  make_logging_devbase
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  in_ci_environment() { return 1; }
+
+  run devbase_cli yq
+  assert_success
+  assert_equal "$(cat "$calls")" $'--skip-update --version auth=unset\n--skip-update yq auth=unset'
+}
+
 @test "devbase_cli_download_release fails when the installed binary is not found" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   install_tool_with_mise() { :; }
