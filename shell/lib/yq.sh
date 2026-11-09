@@ -121,7 +121,7 @@ yq_wrapper() {
     return
   fi
   yq_resolve_bin
-  "$DEVBASE_YQ_BIN" yq "$@"
+  devbase_run "$DEVBASE_YQ_BIN" yq "$@"
 }
 
 # tomlq_wrapper runs devbase tomlq with the given arguments, resolving
@@ -133,5 +133,5 @@ tomlq_wrapper() {
     fatal "go not found and devbase is not a tagged release; cannot run tomlq"
   fi
   yq_resolve_bin
-  "$DEVBASE_YQ_BIN" tomlq "$@"
+  devbase_run "$DEVBASE_YQ_BIN" tomlq "$@"
 }

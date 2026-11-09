@@ -287,7 +287,7 @@ stub_gojq_env() {
 
   run tomlq_wrapper -r .a file.toml
   assert_success
-  assert_output "devbase tomlq -r .a file.toml"
+  assert_output "devbase --skip-update tomlq -r .a file.toml"
 
   rm -rf "$fake_bin_dir"
 }

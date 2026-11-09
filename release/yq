@@ -5,4 +5,9 @@
 # without a separate install. Delegates to `devbase yq`.
 
 set -euo pipefail
-exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/devbase" yq "$@"
+
+# Mirrors devbase_run (shell/lib/devbase.sh), which a shim can't source.
+if [[ -n ${CI:-} ]]; then
+  export GOBOX_SKIP_VALIDATE_AUTH=true
+fi
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/devbase" --skip-update yq "$@"
