@@ -293,3 +293,27 @@ EOF
   run grep "^docker manifest create" "$STUB_CALLS_FILE"
   assert_output "docker manifest create example.com/repo:v1.0.0 --amend example.com/repo:v1.0.0-amd64 --amend example.com/repo:v1.0.0-arm64"
 }
+
+@test "docker_release_tags tags a stable version as latest" {
+  run docker_release_tags "v1.2.3"
+  assert_success
+  assert_output $'latest\nv1.2.3'
+}
+
+@test "docker_release_tags does not tag a pre-release as latest" {
+  run docker_release_tags "v1.2.3-rc.1"
+  assert_success
+  assert_output "v1.2.3-rc.1"
+}
+
+@test "docker_release_tags does not tag a pre-release as latest when TAG_LATEST_FOR_PRERELEASE is false" {
+  TAG_LATEST_FOR_PRERELEASE=false run docker_release_tags "v1.2.3-rc.1"
+  assert_success
+  assert_output "v1.2.3-rc.1"
+}
+
+@test "docker_release_tags tags a pre-release as latest when TAG_LATEST_FOR_PRERELEASE is true" {
+  TAG_LATEST_FOR_PRERELEASE=true run docker_release_tags "v1.2.3-rc.1"
+  assert_success
+  assert_output $'latest\nv1.2.3-rc.1'
+}

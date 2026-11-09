@@ -38,7 +38,7 @@ fi
 
 info "Arches to stitch together: ${archs[*]}"
 
-tags=(latest "$VERSION")
+mapfile -t tags < <(docker_release_tags "$VERSION")
 will_push="$(will_push_images)"
 
 stitch_and_push_image() {
