@@ -32,16 +32,9 @@ func TestNormalizeYAML(t *testing.T) {
 	assert.Assert(t, args["name"] == nil)
 }
 
-// TestNormalizeYAML_LeadingDotFloat is a regression test for a real
-// bug found during review: go-yaml's own generic decode-into-any
-// mistypes some valid YAML 1.1 number literals as a plain Go float64
-// instead of json.Number -- ".5" (no digit before the leading dot) and
-// "-0" are the two found in practice, among values go-yaml otherwise
-// classifies as numeric (node.Tag "!!float") -- silently, with no
-// error. An uncorrected float64 here would always look "changed" to
-// Engine.Run's normalizeValueCOW, forcing its containing object to be
-// rebuilt and lose its recorded KeyOrder, reordering untouched keys
-// under even a no-op identity filter.
+// TestNormalizeYAML_LeadingDotFloat confirms leading-dot and negative-
+// zero floats (".5", "-.5", "-0") decode as json.Number, so an
+// untouched object keeps its KeyOrder under an identity filter.
 func TestNormalizeYAML_LeadingDotFloat(t *testing.T) {
 	v, _, err := NormalizeYAML([]byte("foo: .5\nbar: -0\nbaz: 1\nqux: -.5\n"))
 	assert.NilError(t, err)
@@ -60,14 +53,8 @@ func TestNormalizeYAML_LeadingDotFloat(t *testing.T) {
 	assert.Equal(t, m["qux"], json.Number("-0.5"))
 }
 
-// TestNormalizeYAML_AliasedLeadingDotFloat is a regression test for a
-// real bug found during review: unlike a mapping/sequence (a reference
-// type, so an alias to one shares its anchor's already-fixed-up
-// identity), go-yaml decodes an aliased scalar independently -- so
-// fixupNumberScalars following node.Alias, not just returning early
-// for an AliasNode the way recordKeyOrder does for an unrelated
-// reason, is what keeps an anchor's own fix from being lost at every
-// place that aliases it.
+// TestNormalizeYAML_AliasedLeadingDotFloat confirms an aliased ".5"
+// decodes the same as its anchor.
 func TestNormalizeYAML_AliasedLeadingDotFloat(t *testing.T) {
 	v, _, err := NormalizeYAML([]byte("base: &n .5\nfoo: *n\n"))
 	assert.NilError(t, err)
@@ -77,13 +64,9 @@ func TestNormalizeYAML_AliasedLeadingDotFloat(t *testing.T) {
 	assert.Equal(t, m["foo"], json.Number("0.5"))
 }
 
-// TestNormalizeYAML_PreservesCorrectlyResolvedNumberForms confirms the
-// fix for the leading-dot case doesn't discard go-yaml's own already-
-// correct number resolution for other forms (hex, octal, underscore
-// separators): these decode as json.Number holding plain decimal text
-// (not the original source spelling), which TestNormalizeYAML_
-// LeadingDotFloat's own fix must not override by reconstructing from
-// raw source text unconditionally.
+// TestNormalizeYAML_PreservesCorrectlyResolvedNumberForms confirms
+// hex, octal, and underscore-separated numbers decode as json.Number
+// holding plain decimal text, not their original source spelling.
 func TestNormalizeYAML_PreservesCorrectlyResolvedNumberForms(t *testing.T) {
 	v, _, err := NormalizeYAML([]byte("hex: 0x1F\noctal: 010\nunderscore: 1_000\n"))
 	assert.NilError(t, err)
@@ -94,12 +77,9 @@ func TestNormalizeYAML_PreservesCorrectlyResolvedNumberForms(t *testing.T) {
 	assert.Equal(t, m["underscore"], json.Number("1000"))
 }
 
-// TestNormalizeYAML_InfinityStaysFloat64 confirms .inf/.nan are left
-// as float64, deliberately: json.Number has no valid JSON text for
-// either, so Engine.Run's normalizeValue rejecting a non-finite
-// float64 with ErrNonFiniteNumber (already true for an arithmetic
-// result) also applies to one appearing literally in the input,
-// instead of this package inventing a second, different way to fail.
+// TestNormalizeYAML_InfinityStaysFloat64 confirms .inf/.nan stay
+// float64, so Engine.Run rejects them with ErrNonFiniteNumber, as it
+// does for an arithmetic result.
 func TestNormalizeYAML_InfinityStaysFloat64(t *testing.T) {
 	v, _, err := NormalizeYAML([]byte("a: .inf\n"))
 	assert.NilError(t, err)

@@ -16,7 +16,7 @@ import (
 // decodeForRoundtrip decodes a single YAML document into both its
 // plain gojq value and its comment/anchor/style-preserving root Node,
 // as -Y's real callers do via SplitYAMLDocumentsWithNodes.
-func decodeForRoundtrip(t *testing.T, doc string) (any, *yaml.Node) {
+func decodeForRoundtrip(t *testing.T, doc string) (value any, node *yaml.Node) {
 	t.Helper()
 	values, nodes, _, err := SplitYAMLDocumentsWithNodes([]byte(doc))
 	assert.NilError(t, err)
@@ -77,28 +77,26 @@ func TestRoundtrip_LargeIntegerEdit(t *testing.T) {
 	assert.Equal(t, string(got), "foo: 9007199254740993 # keep me")
 }
 
-// TestRoundtrip_LeadingDotFloatIdentity is a regression test for a
-// real bug found during review: decodeScalarValue re-implemented
-// decodeNode's own job by calling original.Decode(&v) directly,
-// skipping decodeNode's fixupNumberScalars fix (yq.go) for a
-// leading-dot float like ".5", which go-yaml's own decode mistypes as
-// a plain float64 instead of json.Number. valuesEqual then compared
-// that float64 against Engine.Run's json.Number("0.5") result (always
-// json.Number, per Engine.Run's own doc comment) as unequal types, so
-// even a pure identity query on an untouched ".5" silently reformatted
-// it to "0.5" instead of preserving its exact original text.
+// TestRoundtrip_LeadingDotFloatIdentity confirms an identity query on
+// an untouched leading-dot or negative-zero float (".5", "-.5", "-0")
+// preserves its exact original text: decodeScalarValue's decoded value
+// must have the same type (json.Number) as Engine.Run's result, or
+// valuesEqual sees them as unequal and silently reformats it.
 func TestRoundtrip_LeadingDotFloatIdentity(t *testing.T) {
-	doc := "foo: .5 # keep me\n"
-	v, node := decodeForRoundtrip(t, doc)
+	for _, literal := range []string{".5", "-.5", "-0"} {
+		t.Run(literal, func(t *testing.T) {
+			v, node := decodeForRoundtrip(t, "foo: "+literal+" # keep me\n")
 
-	e, err := Compile(".", nil)
-	assert.NilError(t, err)
-	results, err := e.Run(context.Background(), v)
-	assert.NilError(t, err)
+			e, err := Compile(".", nil)
+			assert.NilError(t, err)
+			results, err := e.Run(context.Background(), v)
+			assert.NilError(t, err)
 
-	got, err := Roundtrip(node, results[0], FormatOptions{})
-	assert.NilError(t, err)
-	assert.Equal(t, string(got), "foo: .5 # keep me")
+			got, err := Roundtrip(node, results[0], FormatOptions{})
+			assert.NilError(t, err)
+			assert.Equal(t, string(got), "foo: "+literal+" # keep me")
+		})
+	}
 }
 
 // TestRoundtrip_KaiagatewayMerge exercises the real production case
