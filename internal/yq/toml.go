@@ -32,7 +32,7 @@ const (
 )
 
 // decodeTOML decodes the TOML document in b into the plain value shape
-// gojq expects (see decodeNode for YAML's equivalent), along with the
+// gojq expects (see SplitYAMLDocumentsWithNodes for YAML's equivalent), along with the
 // KeyOrder of every table decoded. Integers and floats become
 // json.Number, and dates and times become strings: JSON has no date
 // type, and gojq cannot operate on a time.Time. The value is always a
@@ -64,7 +64,7 @@ func normalizeTOML(v any) any {
 	case float64:
 		// NaN and infinity stay float64, so Engine.Run rejects them
 		// with ErrNonFiniteNumber instead of this wrapping invalid
-		// JSON text (see fixupNumberScalars for the YAML equivalent).
+		// JSON text (as with ".inf"/".nan" decoded from YAML).
 		if math.IsNaN(val) || math.IsInf(val, 0) {
 			return val
 		}
