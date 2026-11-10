@@ -97,11 +97,11 @@ func reconcileScalar(original *yaml.Node, result any) *yaml.Node {
 }
 
 // decodeScalarValue decodes original into the same plain value shape
-// yq.go's decodeNode produces, so it can be compared against a
-// gojq result value directly.
+// SplitYAMLDocumentsWithNodes produces, so it can be compared against
+// a gojq result value directly.
 func decodeScalarValue(original *yaml.Node) any {
-	v, err := decodeNode(original)
-	if err != nil {
+	var v any
+	if err := original.Decode(&v); err != nil {
 		return nil
 	}
 	return v

@@ -64,6 +64,18 @@ write_tool_versions() {
   assert_output "20.11.0"
 }
 
+@test "mise_tool_display_name truncates bracketed backend options" {
+  run mise_tool_display_name 'http:devbase[url=https://example.com/v{{ version }}/devbase_{{ os(macos="darwin") }}.tar.gz]@2.41.0-rc.6'
+  assert_success
+  assert_output "http:devbase[...]@2.41.0-rc.6"
+}
+
+@test "mise_tool_display_name leaves tools without backend options unchanged" {
+  run mise_tool_display_name "github:getoutreach/devenv@1.68.0"
+  assert_success
+  assert_output "github:getoutreach/devenv@1.68.0"
+}
+
 # lock_missing_versions TOML LOCK
 #
 # Prints each `tool@version` requested in the [tools] section of TOML

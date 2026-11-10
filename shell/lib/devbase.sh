@@ -103,6 +103,21 @@ devbase_cli_download_release() {
   echo "$binary"
 }
 
+# devbase_run runs the devbase binary at the given path with --skip-update
+# and the rest of the arguments. In CI it also sets
+# GOBOX_SKIP_VALIDATE_AUTH, as the binary's GitHub auth check can fall
+# back to an interactive `gh auth login` that CI can't answer.
+devbase_run() {
+  local bin="$1"
+  shift
+
+  if in_ci_environment; then
+    GOBOX_SKIP_VALIDATE_AUTH=true "$bin" --skip-update "$@"
+  else
+    "$bin" --skip-update "$@"
+  fi
+}
+
 # devbase_cli_binary echoes the path to a devbase binary for the given
 # tag. It uses the devbase that find_tool resolves if its version
 # matches exactly, and installs the release otherwise.
@@ -115,7 +130,7 @@ devbase_cli_binary() {
     # Compare exactly: a substring match would accept v2.41.0-rc.1 for
     # v2.41.0.
     local existing_version
-    existing_version="$("$existing" --version 2>/dev/null | awk '{print $NF}')"
+    existing_version="$(devbase_run "$existing" --version 2>/dev/null | awk '{print $NF}')"
     if [[ $existing_version == "$version" ]]; then
       echo "$existing"
       return
@@ -141,11 +156,16 @@ devbase_cli() {
       exit 1
     fi
     chmod +x "$bin"
-    "$bin" "$@"
+    devbase_run "$bin" "$@"
     status=$?
     rm -f "$bin"
     exit "$status"
   fi
 
-  exec "$(devbase_cli_binary "$version")" "$@"
+  # Replace this shell with devbase, so signals reach it directly. That
+  # rules out devbase_run, so this repeats its CI check.
+  if in_ci_environment; then
+    export GOBOX_SKIP_VALIDATE_AUTH=true
+  fi
+  exec "$(devbase_cli_binary "$version")" --skip-update "$@"
 }
