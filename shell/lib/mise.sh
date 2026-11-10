@@ -179,6 +179,19 @@ install_mise_via_apt() {
   sudo apt install --yes mise
 }
 
+# mise_tool_display_name tool
+#
+# Prints a short form of a mise tool, replacing the bracketed backend options
+# (e.g. `http:devbase[url=...]@1.0.0`) with `[...]`.
+mise_tool_display_name() {
+  local tool="$1"
+  if [[ $tool == *\[*\]* ]]; then
+    echo "${tool%%\[*}[...]${tool#*\]}"
+  else
+    echo "$tool"
+  fi
+}
+
 # install_tool_with_mise tool [version]
 #
 # Installs a tool using mise. If the version is not specified, the latest
@@ -198,7 +211,7 @@ install_tool_with_mise() {
 
   ensure_mise_installed
 
-  info "Installing $tool via mise"
+  info "Installing $(mise_tool_display_name "$tool") via mise"
 
   if ! run_mise use --global "$tool"; then
     fatal "Error: failed to install $tool via mise" >&2
