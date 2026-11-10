@@ -20,6 +20,11 @@ parameters:
     type: string
     description: "Space-separated list of arches to stitch together. Defaults to empty string (equivalent to 'arm64 amd64')"
     default: ""
+  tag_latest_for_prerelease:
+    type: enum
+    description: Also tag pre-release versions (e.g. release candidates) as "latest".
+    enum: ["true", "false"]
+    default: "false"
   dry_run:
     type: enum
     description: Skip push to registries when versioning_scheme is "sha". Intended to use in test pipeline.
@@ -35,4 +40,5 @@ steps:
         CUSTOM_ARCHES: << parameters.arches >>
         DOCKER_PUSH_REGISTRIES: << parameters.push_registries >>
         DRY_RUN: << parameters.dry_run >>
+        TAG_LATEST_FOR_PRERELEASE: << parameters.tag_latest_for_prerelease >>
         VERSIONING_SCHEME: << parameters.versioning_scheme >>

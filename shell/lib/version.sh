@@ -59,3 +59,13 @@ normalize_semver() {
   # Use printf because echo would treat a value such as `-n` as an option.
   printf '%s\n' "$version"
 }
+
+# is_prerelease_version(version)
+#
+# Succeeds if the given semantic version (semver) has a pre-release
+# suffix (e.g. `v1.2.3-rc.1`). Build metadata (`+...`) alone does not
+# make a version a pre-release.
+is_prerelease_version() {
+  local v="${1%%+*}"
+  [[ $v == *-* ]]
+}

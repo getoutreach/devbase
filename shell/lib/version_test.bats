@@ -130,3 +130,23 @@ load version.sh
   run normalize_semver "-e"
   assert_output -- "-e"
 }
+
+@test "is_prerelease_version succeeds for a release candidate" {
+  run is_prerelease_version "v1.2.3-rc.1"
+  assert_success
+}
+
+@test "is_prerelease_version fails for a stable version" {
+  run is_prerelease_version "v1.2.3"
+  assert_failure
+}
+
+@test "is_prerelease_version ignores hyphens in build metadata" {
+  run is_prerelease_version "v1.2.3+build-5"
+  assert_failure
+}
+
+@test "is_prerelease_version fails for a commit SHA" {
+  run is_prerelease_version "0123456789abcdef0123456789abcdef01234567"
+  assert_failure
+}
