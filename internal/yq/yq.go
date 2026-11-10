@@ -222,6 +222,9 @@ func fixupNumberScalars(node *yaml.Node, v any) any {
 			return fixupNumberScalars(node.Alias, v)
 		}
 		return v
+
+	case yaml.StreamNode:
+		// Never produced: this package does not set yaml.WithStreamNodes.
 	}
 	return v
 }
@@ -307,7 +310,7 @@ func recordKeyOrder(node *yaml.Node, v any, order KeyOrder) error {
 			}
 		}
 
-	case yaml.ScalarNode:
+	case yaml.ScalarNode, yaml.StreamNode:
 		// No children to record key order for.
 	}
 

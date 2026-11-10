@@ -217,7 +217,7 @@ func recordTOMLOrder(v any, path *tomlPath, order KeyOrder) {
 
 // decodeTOMLInput is the decodeFunc for TOML: one document per input,
 // with no YAML parse tree.
-func decodeTOMLInput(b []byte) ([]any, []*yaml.Node, KeyOrder, error) {
+func decodeTOMLInput(b []byte) (values []any, nodes []*yaml.Node, order KeyOrder, err error) {
 	v, order, err := decodeTOML(b)
 	if err != nil {
 		return nil, nil, nil, err

@@ -16,7 +16,7 @@ import (
 // decodeForRoundtrip decodes a single YAML document into both its
 // plain gojq value and its comment/anchor/style-preserving root Node,
 // as -Y's real callers do via SplitYAMLDocumentsWithNodes.
-func decodeForRoundtrip(t *testing.T, doc string) (any, *yaml.Node) {
+func decodeForRoundtrip(t *testing.T, doc string) (value any, node *yaml.Node) {
 	t.Helper()
 	values, nodes, _, err := SplitYAMLDocumentsWithNodes([]byte(doc))
 	assert.NilError(t, err)
