@@ -140,6 +140,13 @@ func TestRenderNotesFirstRelease(t *testing.T) {
 	assert.Equal(t, strings.SplitN(got, "\n", 2)[0], "## 1.0.0 (2026-11-11)")
 }
 
+func TestShortHash(t *testing.T) {
+	// JavaScript's substring counts UTF-16 code units, not bytes.
+	assert.Equal(t, shortHash(fakeHash("a")), "aaaaaaa")
+	assert.Equal(t, shortHash("İİ fixes #12"), "İİ fixe")
+	assert.Equal(t, shortHash("abc"), "abc")
+}
+
 func TestRepoURLFromRemote(t *testing.T) {
 	for _, remote := range []string{
 		"git@github.com:acme/widgets.git",

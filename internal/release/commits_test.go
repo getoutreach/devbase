@@ -37,10 +37,44 @@ func TestParseCommit(t *testing.T) {
 	assert.DeepEqual(t, c.Revert, &Revert{Header: "feat: old", Hash: "abc123"})
 }
 
-func TestParseReferencesNonASCII(t *testing.T) {
-	// "İ" lowercases to a shorter string, which must not shift offsets.
-	refs := parseReferences("İİİİ fixes #1")
-	assert.DeepEqual(t, refs, []Reference{{Action: "fixes", Prefix: "#", Issue: "1", Raw: "#1"}})
+// TestParseReferences checks references against what
+// conventional-commits-parser 6 returned with the github.com keywords.
+func TestParseReferences(t *testing.T) {
+	tests := []struct {
+		line string
+		want []Reference
+	}{
+		{"İİİİ fixes #1", []Reference{{Action: "fixes", Prefix: "#", Issue: "1", Raw: "#1"}}},
+		// JavaScript does not fold "ſ" to "s", so these have no keyword.
+		{"fixeſ #2", []Reference{{Prefix: "#", Issue: "2", Raw: "fixeſ #2"}}},
+		{"cloſes #3", []Reference{{Prefix: "#", Issue: "3", Raw: "cloſes #3"}}},
+		{"fix #1, #2; closes a/b#3)", []Reference{
+			{Action: "fix", Prefix: "#", Issue: "1", Raw: "#1"},
+			{Action: "fix", Prefix: "#", Issue: "2", Raw: ", #2"},
+			{Action: "closes", Owner: "a", Repository: "b", Prefix: "#", Issue: "3", Raw: "a/b#3"},
+		}},
+		{"x#1 y #2-z #3]", []Reference{
+			{Repository: "x", Prefix: "#", Issue: "1", Raw: "x#1"},
+			{Prefix: "#", Issue: "2-z", Raw: " y #2-z"},
+			{Prefix: "#", Issue: "3", Raw: " #3"},
+		}},
+		{"Closes https://x.io/#5", nil},
+		// JavaScript's "i" flag does not fold the Kelvin sign to "k".
+		{"#\u212A", nil},
+		{"a\u212A#1", []Reference{{Prefix: "#", Issue: "1", Raw: "a\u212A#1"}}},
+	}
+	for _, tt := range tests {
+		assert.DeepEqual(t, parseReferences(tt.line), tt.want)
+	}
+}
+
+func TestParseCommitDedupesReferences(t *testing.T) {
+	// toLocaleLowerCase keeps the dot of "İ", so these differ.
+	c := ParseCommit(RawCommit{Hash: "h", Message: "feat: x\n\nfix İ #1 fix I #1 FIX i #1"})
+	assert.DeepEqual(t, c.References, []Reference{
+		{Action: "fix", Prefix: "#", Issue: "1", Raw: "İ #1"},
+		{Action: "fix", Prefix: "#", Issue: "1", Raw: "I #1"},
+	})
 }
 
 func TestFilterReverted(t *testing.T) {

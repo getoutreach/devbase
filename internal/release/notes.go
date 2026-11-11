@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf16"
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -282,7 +283,7 @@ func sectionRank(title string) int {
 // renderCommit renders one commit line.
 func renderCommit(c *noteCommit, links NoteLinks) string {
 	line := "* " + scopePrefix(c.Scope) + c.Text +
-		" ([" + c.Hash[:min(7, len(c.Hash))] + "](" + links.Commit(c.Hash) + "))"
+		" ([" + shortHash(c.Hash) + "](" + links.Commit(c.Hash) + "))"
 	if len(c.Refs) == 0 {
 		return line
 	}
@@ -296,6 +297,14 @@ func renderCommit(c *noteCommit, links NoteLinks) string {
 		b.WriteString(" [" + name + "](" + links.Issue(r.Owner, r.Repository, r.Issue) + ")")
 	}
 	return b.String()
+}
+
+// shortHash returns the first 7 UTF-16 code units of a hash, as
+// JavaScript's substring does. A "-hash-" meta line can make the hash
+// any text.
+func shortHash(hash string) string {
+	units := utf16.Encode([]rune(hash))
+	return string(utf16.Decode(units[:min(7, len(units))]))
 }
 
 // scopePrefix returns the bold scope prefix of a line, or nothing.

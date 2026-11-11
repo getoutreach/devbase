@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // These patterns come from conventional-commits-parser and
@@ -167,10 +169,13 @@ func (c *Commit) cleanup() {
 	for i := range c.Notes {
 		c.Notes[i].Text = trimNewLines(c.Notes[i].Text)
 	}
+	// The parser uses toLocaleLowerCase, which keeps the dot of "İ". A
+	// Caser is not safe for concurrent use, so each call makes its own.
+	lower := cases.Lower(language.Und)
 	seen := map[string]bool{}
 	refs := c.References[:0]
 	for _, r := range c.References {
-		key := strings.ToLower(r.Action + " " + r.Raw)
+		key := lower.String(r.Action + " " + r.Raw)
 		if !seen[key] {
 			seen[key] = true
 			refs = append(refs, r)
