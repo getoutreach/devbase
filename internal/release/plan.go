@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
@@ -77,7 +78,7 @@ type PlanOptions struct {
 
 	// NewLinks returns the links for the release notes of the
 	// repository at repoURL, so that the plan does not depend on one forge.
-	NewLinks func(repoURL string) NoteLinks
+	NewLinks func(repoURL string) forge.NoteLinks
 
 	// Now is the release date. Zero means the current time.
 	Now time.Time
@@ -153,13 +154,22 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
 	})
 	if a := r.Config.Artifacts; a != nil {
+		plan.Targets = planTargets(a)
 		for _, target := range a.Targets {
-			plan.Targets = append(plan.Targets, target.String())
 			plan.Assets = append(plan.Assets, ArchiveName(plan.ProjectName, next.String(), &target))
 		}
 		plan.Assets = append(plan.Assets, a.Checksums)
 	}
 	return plan, nil
+}
+
+// planTargets returns the build targets of a, as os/arch strings.
+func planTargets(a *spec.Artifacts) []string {
+	targets := make([]string, 0, len(a.Targets))
+	for _, t := range a.Targets {
+		targets = append(targets, t.String())
+	}
+	return targets
 }
 
 // syncRemote fetches the tags, the branch and the notes from the remote
@@ -197,7 +207,7 @@ func (r *Repo) newPlan(ctx context.Context, branch string) (plan *Plan, repoURL,
 	if repoURL, err = r.Git.RepoURL(ctx); err != nil {
 		return nil, "", "", err
 	}
-	if current, err = r.Git.Run(ctx, "rev-parse", "--abbrev-ref", "HEAD"); err != nil {
+	if current, err = r.Git.CurrentBranch(ctx); err != nil {
 		return nil, "", "", err
 	}
 	if branch == "" {

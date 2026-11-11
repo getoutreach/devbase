@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/devbase/v2/internal/release/forge/github"
 	"gotest.tools/v3/assert"
 )
 
@@ -38,7 +39,7 @@ func TestRenderNotesMatchesConventionalCommits(t *testing.T) {
 		PreviousTag: "v1.2.0",
 		Date:        time.Date(2026, 11, 11, 23, 0, 0, 0, time.UTC),
 		Commits:     commits,
-		Links:       NewGitHubLinks("https://github.com/acme/widgets"),
+		Links:       github.NewLinks("https://github.com/acme/widgets"),
 	})
 
 	//nolint:lll // Why: the expected output has long lines.
@@ -92,7 +93,7 @@ func TestRenderNotesEdgeCases(t *testing.T) {
 		PreviousTag: "v1.2.0",
 		Date:        time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC),
 		Commits:     commits,
-		Links:       NewGitHubLinks("https://github.com/acme/widgets"),
+		Links:       github.NewLinks("https://github.com/acme/widgets"),
 	})
 
 	//nolint:lll // Why: the expected output has long lines.
@@ -135,7 +136,7 @@ func TestRenderNotesFirstRelease(t *testing.T) {
 		Tag:     "v1.0.0",
 		Date:    time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC),
 		Commits: ParseCommits([]RawCommit{{Hash: fakeHash("a"), Message: "feat: init"}}),
-		Links:   NewGitHubLinks("https://github.com/acme/widgets"),
+		Links:   github.NewLinks("https://github.com/acme/widgets"),
 	})
 	assert.Equal(t, strings.SplitN(got, "\n", 2)[0], "## 1.0.0 (2026-11-11)")
 }

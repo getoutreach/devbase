@@ -1,0 +1,80 @@
+#graphql
+  query getCommitAssociatedPRs($owner: String!, $repo: String!, $sha: String!, $cursor: String) {
+    repository(owner: $owner, name: $repo) {
+      commit: object(oid: $sha) {
+        ...on Commit {
+          oid
+          associatedPullRequests(after: $cursor, first: 100) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            nodes {
+              
+  __typename
+  id
+  title
+  body
+  url
+  number
+  createdAt
+  updatedAt
+  closedAt
+  comments {
+    totalCount
+  }
+  state
+  author {
+    login
+    url
+    avatarUrl
+    __typename
+  }
+  authorAssociation
+  activeLockReason
+  labels(first: 40) {
+    nodes {
+      id
+      url
+      name
+      color
+      description
+      isDefault
+    }
+  }
+  milestone {
+    url
+    id
+    number
+    state
+    title
+    description
+    creator {
+      login
+      url
+      avatarUrl
+    }
+    createdAt
+    closedAt
+    updatedAt
+  }
+  locked
+
+              mergeable
+              changedFiles
+              mergedAt
+              isDraft
+              mergedBy {
+                login
+                avatarUrl
+                url
+              }
+              commits {
+                totalCount
+              }
+            }
+          }
+        }
+      }
+    }
+  }

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/getoutreach/devbase/v2/internal/release"
+	"github.com/getoutreach/devbase/v2/internal/release/forge/github"
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
@@ -116,7 +117,7 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 	}
 	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{
 		Branch:   c.String("branch"),
-		NewLinks: func(repoURL string) release.NoteLinks { return release.NewGitHubLinks(repoURL) },
+		NewLinks: github.NewLinks,
 		Remote:   remote,
 	})
 	if err != nil {

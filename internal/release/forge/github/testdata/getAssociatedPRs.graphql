@@ -1,0 +1,155 @@
+#graphql
+    query getAssociatedPRs($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        commit123: object(oid: "123") {
+            ...on Commit {
+              oid
+              associatedPullRequests(first: 100) {
+                pageInfo {
+                  endCursor
+                  hasNextPage
+                }
+                nodes {
+                  
+  __typename
+  id
+  title
+  body
+  url
+  number
+  createdAt
+  updatedAt
+  closedAt
+  comments {
+    totalCount
+  }
+  state
+  author {
+    login
+    url
+    avatarUrl
+    __typename
+  }
+  authorAssociation
+  activeLockReason
+  labels(first: 40) {
+    nodes {
+      id
+      url
+      name
+      color
+      description
+      isDefault
+    }
+  }
+  milestone {
+    url
+    id
+    number
+    state
+    title
+    description
+    creator {
+      login
+      url
+      avatarUrl
+    }
+    createdAt
+    closedAt
+    updatedAt
+  }
+  locked
+
+                  mergeable
+                  changedFiles
+                  mergedAt
+                  isDraft
+                  mergedBy {
+                    login
+                    avatarUrl
+                    url
+                  }
+                  commits {
+                    totalCount
+                  }
+                }
+              }
+            }
+          }commit4567890abcde: object(oid: "4567890abcdef0123") {
+            ...on Commit {
+              oid
+              associatedPullRequests(first: 100) {
+                pageInfo {
+                  endCursor
+                  hasNextPage
+                }
+                nodes {
+                  
+  __typename
+  id
+  title
+  body
+  url
+  number
+  createdAt
+  updatedAt
+  closedAt
+  comments {
+    totalCount
+  }
+  state
+  author {
+    login
+    url
+    avatarUrl
+    __typename
+  }
+  authorAssociation
+  activeLockReason
+  labels(first: 40) {
+    nodes {
+      id
+      url
+      name
+      color
+      description
+      isDefault
+    }
+  }
+  milestone {
+    url
+    id
+    number
+    state
+    title
+    description
+    creator {
+      login
+      url
+      avatarUrl
+    }
+    createdAt
+    closedAt
+    updatedAt
+  }
+  locked
+
+                  mergeable
+                  changedFiles
+                  mergedAt
+                  isDraft
+                  mergedBy {
+                    login
+                    avatarUrl
+                    url
+                  }
+                  commits {
+                    totalCount
+                  }
+                }
+              }
+            }
+          }
+      }
+    }
+  

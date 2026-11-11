@@ -88,6 +88,12 @@ func (g *Git) FetchNotes(ctx context.Context, url string) {
 	g.fetch(ctx, "--", url, "+refs/notes/*:refs/notes/*")
 }
 
+// CurrentBranch returns the checked-out branch, or "HEAD" when HEAD is
+// detached.
+func (g *Git) CurrentBranch(ctx context.Context) (string, error) {
+	return g.Run(ctx, "rev-parse", "--abbrev-ref", "HEAD")
+}
+
 // RemoteHead returns the commit of the branch on the remote at url, or
 // "" when the remote has no such branch.
 func (g *Git) RemoteHead(ctx context.Context, url, branch string) (string, error) {
@@ -102,11 +108,15 @@ func (g *Git) IsAncestor(ctx context.Context, a, b string) bool {
 	return err == nil
 }
 
-// Tags returns the release tags (v<semver>) that are merged into ref,
-// with their channels. A tag without a git note is on the default
+// Tags returns the release tags (v<semver>) that are merged into ref, or
+// all of them when ref is "", with their channels. A tag without a git note is on the default
 // channel, which is the empty string.
 func (g *Git) Tags(ctx context.Context, ref string) ([]Tag, error) {
-	out, err := g.Run(ctx, "tag", "--merged", ref, "--list", "v*")
+	args := []string{"tag", "--list", "v*"}
+	if ref != "" {
+		args = append(args, "--merged", ref)
+	}
+	out, err := g.Run(ctx, args...)
 	if err != nil || out == "" {
 		return nil, err
 	}

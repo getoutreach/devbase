@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/devbase/v2/internal/release/forge/github"
 	"gotest.tools/v3/assert"
 )
 
@@ -63,7 +64,7 @@ func runUpstreamNotesCases(t *testing.T, cases []upstreamNotesCase) {
 				PreviousTag: previousTag,
 				Date:        upstreamNotesDate,
 				Commits:     ParseCommits(tc.commits),
-				Links:       NewGitHubLinks(cmp.Or(tc.repoURL, "https://github.com/owner/repo")),
+				Links:       github.NewLinks(cmp.Or(tc.repoURL, "https://github.com/owner/repo")),
 			})
 			assert.Equal(t, got, tc.want)
 		})

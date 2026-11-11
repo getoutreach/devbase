@@ -1,0 +1,12 @@
+#graphql
+  query getSRIssues($owner: String!, $repo: String!, $filter: IssueFilters) {
+    repository(owner: $owner, name: $repo) {
+      issues(first: 100, states: OPEN, filterBy: $filter) {
+        nodes {
+          number
+          title
+          body
+        }
+      }
+    }
+  }

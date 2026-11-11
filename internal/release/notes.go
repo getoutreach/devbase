@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf16"
 
+	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -33,23 +34,6 @@ var (
 	// mention.
 	userRegex = regexp.MustCompile("`[^`]*`|\\B@([a-z0-9](?:-?[a-z0-9/]){0,38})")
 )
-
-// NoteLinks builds the links in release notes. A forge implementation
-// provides them, so that the renderer does not depend on one forge.
-type NoteLinks interface {
-	// Compare returns the URL that compares two tags.
-	Compare(from, to string) string
-
-	// Commit returns the URL of a commit.
-	Commit(hash string) string
-
-	// Issue returns the URL of an issue. An empty owner or repo means
-	// the owner or repository of the release.
-	Issue(owner, repo, id string) string
-
-	// User returns the URL of a user.
-	User(name string) string
-}
 
 // commitType is a type entry of the conventionalcommits preset.
 type commitType struct {
@@ -90,7 +74,7 @@ type NotesInput struct {
 
 	Date    time.Time
 	Commits []Commit
-	Links   NoteLinks
+	Links   forge.NoteLinks
 }
 
 // noteCommit is a commit after the preset's transform step.
@@ -160,7 +144,7 @@ func RenderNotes(in *NotesInput) string {
 // for a commit that the notes leave out: a commit with a hidden or
 // unknown type, unless it has a breaking change note or a Release-As
 // footer.
-func transformCommit(c *Commit, links NoteLinks) (noteCommit, bool) {
+func transformCommit(c *Commit, links forge.NoteLinks) (noteCommit, bool) {
 	entry := findCommitType(c)
 	if (entry == nil || entry.Hidden) && len(c.Notes) == 0 &&
 		!releaseAsRegex.MatchString(c.Footer) && !releaseAsRegex.MatchString(c.Body) {
@@ -204,7 +188,7 @@ func findCommitType(c *Commit) *commitType {
 
 // linkSubject adds issue and user links to a subject. It returns the
 // new subject and the issues it links, such as "#12".
-func linkSubject(subject string, links NoteLinks) (linked string, issues []string) {
+func linkSubject(subject string, links forge.NoteLinks) (linked string, issues []string) {
 	subject = subjectIssueRegex.ReplaceAllStringFunc(subject, func(m string) string {
 		issues = append(issues, m)
 		return "[" + m + "](" + links.Issue("", "", m[1:]) + ")"
@@ -282,7 +266,7 @@ func sectionRank(title string) int {
 }
 
 // renderCommit renders one commit line.
-func renderCommit(c *noteCommit, links NoteLinks) string {
+func renderCommit(c *noteCommit, links forge.NoteLinks) string {
 	line := "* " + scopePrefix(c.Scope) + c.Text +
 		" ([" + shortHash(c.Hash) + "](" + links.Commit(c.Hash) + "))"
 	if len(c.Refs) == 0 {

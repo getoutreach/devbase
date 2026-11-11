@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/devbase/v2/internal/release/forge/github"
 	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 	"gotest.tools/v3/assert"
 )
@@ -120,7 +121,7 @@ func (f *fixture) planBranch(branch string) (*Plan, error) {
 	return MakePlan(context.Background(), repo, &PlanOptions{
 		Branch:   branch,
 		Now:      time.Unix(0, 0),
-		NewLinks: func(repoURL string) NoteLinks { return NewGitHubLinks(repoURL) },
+		NewLinks: github.NewLinks,
 		Remote:   f.remote,
 	})
 }
