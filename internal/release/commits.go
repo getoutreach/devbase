@@ -10,6 +10,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 )
 
 // These patterns come from conventional-changelog-conventionalcommits.
@@ -35,7 +37,7 @@ var (
 // conventionalcommits preset.
 //
 //nolint:gochecknoglobals // Why: read-only list.
-var defaultRules = []Rule{
+var defaultRules = []releaserc.Rule{
 	{Breaking: true, Release: string(BumpMajor)},
 	{Revert: true, Release: string(BumpPatch)},
 	{Type: "feat", Release: string(BumpMinor)},
@@ -155,7 +157,7 @@ func ParseCommits(raws []RawCommit) []Commit {
 // Analyze returns the release type for a list of commits. Custom rules
 // are checked first; a commit that matches no custom rule uses the
 // default rules. Commits marked [skip release] are left out.
-func Analyze(commits []Commit, rules []Rule) Bump {
+func Analyze(commits []Commit, rules []releaserc.Rule) Bump {
 	result := BumpNone
 	for i := range commits {
 		c := &commits[i]
@@ -177,7 +179,7 @@ func Analyze(commits []Commit, rules []Rule) Bump {
 // matchRules returns the highest release type of the rules that match
 // c, and whether any rule matched. A matching rule with release "false"
 // counts as a match with no release.
-func matchRules(c *Commit, rules []Rule) (Bump, bool) {
+func matchRules(c *Commit, rules []releaserc.Rule) (Bump, bool) {
 	result, matched := BumpNone, false
 	for _, r := range rules {
 		if (r.Breaking && len(c.Notes) == 0) || (r.Revert && c.Revert == nil) {

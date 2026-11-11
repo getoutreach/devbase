@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/getoutreach/devbase/v2/internal/release"
+	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
 )
@@ -20,7 +21,7 @@ import (
 // These are the errors that the release command returns.
 var (
 	// errNoGoReleaser is returned by build for a repo without .goreleaser.yml.
-	errNoGoReleaser = errors.New("the repository has no " + release.GoReleaserConfigFile)
+	errNoGoReleaser = errors.New("the repository has no " + goreleaser.File)
 
 	// errMissingAsset is returned by checksums when a build job did not
 	// write an archive that the plan lists.
@@ -106,7 +107,7 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	for _, w := range repo.Config.Warnings {
+	for _, w := range repo.ReleaseRC.Warnings {
 		logrus.Warn(w)
 	}
 	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{

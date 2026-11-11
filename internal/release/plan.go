@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io/fs"
 	"os"
 	"path"
@@ -20,15 +21,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-// These are the release configuration files.
-const (
-	// ReleaseConfigFile is the semantic-release config.
-	ReleaseConfigFile = ".releaserc.yaml"
-
-	// GoReleaserConfigFile is the GoReleaser config.
-	GoReleaserConfigFile = ".goreleaser.yml"
+	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 )
 
 // PlanSchema is the version of the plan file format.
@@ -48,10 +43,10 @@ var (
 type Repo struct {
 	Git *Git
 
-	Config *Config
+	ReleaseRC *releaserc.Config
 
 	// GoReleaser is nil when the repo has no .goreleaser.yml.
-	GoReleaser *GoReleaserConfig
+	GoReleaser *goreleaser.Config
 
 	// Digest is the sha256 of the configuration files as parsed.
 	Digest string
@@ -62,27 +57,37 @@ type Repo struct {
 func LoadRepo(dir string) (*Repo, error) {
 	r := &Repo{Git: &Git{Dir: dir}}
 	h := sha256.New()
-	for _, name := range []string{ReleaseConfigFile, GoReleaserConfigFile} {
-		b, err := os.ReadFile(filepath.Join(dir, name))
-		if errors.Is(err, fs.ErrNotExist) && name == GoReleaserConfigFile {
-			continue
-		}
-		if err != nil {
-			return nil, fmt.Errorf("read %s: %w", name, err)
-		}
-		h.Write([]byte(name))
-		h.Write(b)
-		if name == ReleaseConfigFile {
-			r.Config, err = ParseConfig(b)
-		} else {
-			r.GoReleaser, err = ParseGoReleaserConfig(b)
-		}
-		if err != nil {
-			return nil, err
-		}
+	b, err := readConfig(dir, releaserc.File, h)
+	if err != nil {
+		return nil, err
+	}
+	if r.ReleaseRC, err = releaserc.Parse(b); err != nil {
+		return nil, err
+	}
+	b, err = readConfig(dir, goreleaser.File, h)
+	if errors.Is(err, fs.ErrNotExist) {
+		r.Digest = "sha256:" + hex.EncodeToString(h.Sum(nil))
+		return r, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if r.GoReleaser, err = goreleaser.Parse(b); err != nil {
+		return nil, err
 	}
 	r.Digest = "sha256:" + hex.EncodeToString(h.Sum(nil))
 	return r, nil
+}
+
+// readConfig reads a config file and adds its name and contents to h.
+func readConfig(dir, name string, h hash.Hash) ([]byte, error) {
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", name, err)
+	}
+	h.Write([]byte(name))
+	h.Write(b)
+	return b, nil
 }
 
 // Plan is the result of planning a release. It is written to a file so
@@ -100,10 +105,10 @@ type Plan struct {
 	// ProjectName is the archive name prefix: the repository name.
 	ProjectName string `json:"projectName"`
 
-	Branch      Branch       `json:"branch"`
-	LastRelease *PlanRelease `json:"lastRelease,omitempty"`
-	NextRelease *PlanRelease `json:"nextRelease,omitempty"`
-	Notes       string       `json:"notes,omitempty"`
+	Branch      releaserc.Branch `json:"branch"`
+	LastRelease *PlanRelease     `json:"lastRelease,omitempty"`
+	NextRelease *PlanRelease     `json:"nextRelease,omitempty"`
+	Notes       string           `json:"notes,omitempty"`
 
 	// Targets are the build targets as "os/arch".
 	Targets []string `json:"targets,omitempty"`
@@ -143,7 +148,7 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 	branchName := plan.Branch.Name
-	branch := r.Config.Branch(branchName)
+	branch := r.ReleaseRC.Branch(branchName)
 	if branch == nil {
 		plan.Reason = fmt.Sprintf("branch %q is not a release branch", branchName)
 		return plan, nil
@@ -166,14 +171,14 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 	commits := ParseCommits(raws)
-	t := Analyze(commits, r.Config.ReleaseRules)
+	t := Analyze(commits, r.ReleaseRC.ReleaseRules)
 	if t == BumpNone {
 		plan.Reason = "no relevant changes"
 		return plan, nil
 	}
 
 	next := NextVersion(branch, last, tags, t)
-	if r.Config.MajorCheck {
+	if r.ReleaseRC.MajorCheck {
 		if err := CheckMajor(last, next); err != nil {
 			return nil, err
 		}
@@ -221,7 +226,7 @@ func (r *Repo) newPlan(ctx context.Context, branch string) (*Plan, string, error
 	}
 	return &Plan{
 		Schema: PlanSchema, Commit: head, CommitTime: commitTime, ProjectName: path.Base(repoURL),
-		ConfigDigest: r.Digest, Branch: Branch{Name: branch},
+		ConfigDigest: r.Digest, Branch: releaserc.Branch{Name: branch},
 	}, repoURL, nil
 }
 

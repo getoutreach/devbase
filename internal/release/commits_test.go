@@ -7,13 +7,14 @@ package release
 import (
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 	"gotest.tools/v3/assert"
 )
 
 // customRules are the release rules that stencil-base renders when
 // major versions are blocked.
-func customRules() []Rule {
-	return []Rule{
+func customRules() []releaserc.Rule {
+	return []releaserc.Rule{
 		{Breaking: true, Release: "minor"},
 		{Type: "revert", Release: "patch"},
 		{Type: "perf", Release: "patch"},
@@ -51,7 +52,7 @@ func TestAnalyze(t *testing.T) {
 	tests := []struct {
 		name    string
 		message string
-		rules   []Rule
+		rules   []releaserc.Rule
 		want    Bump
 	}{
 		{"feat", "feat: x", nil, BumpMinor},
@@ -61,8 +62,8 @@ func TestAnalyze(t *testing.T) {
 		{"breaking footer default", "fix: x\n\nBREAKING CHANGE: y", nil, BumpMajor},
 		{"breaking custom", "feat!: x", customRules(), BumpMinor},
 		{"skip release", "feat: x [skip release]", nil, BumpNone},
-		{"release false", "feat: x", []Rule{{Type: "feat", Release: "false"}}, BumpNone},
-		{"scope glob", "fix(core-db): x", []Rule{{Scope: "core-*", Release: "minor"}}, BumpMinor},
+		{"release false", "feat: x", []releaserc.Rule{{Type: "feat", Release: "false"}}, BumpNone},
+		{"scope glob", "fix(core-db): x", []releaserc.Rule{{Scope: "core-*", Release: "minor"}}, BumpMinor},
 		{"revert default", "Revert \"feat: x\"\n\nThis reverts commit abc.", nil, BumpPatch},
 	}
 	for _, tt := range tests {
@@ -75,5 +76,5 @@ func TestAnalyze(t *testing.T) {
 	// A custom rule match skips the default rules, so the breaking note
 	// does not make this a major release.
 	perf := ParseCommits([]RawCommit{{Hash: "h", Message: "perf: x\n\nBREAKING CHANGE: y"}})
-	assert.Equal(t, Analyze(perf, []Rule{{Type: "perf", Release: "patch"}}), BumpPatch)
+	assert.Equal(t, Analyze(perf, []releaserc.Rule{{Type: "perf", Release: "patch"}}), BumpPatch)
 }

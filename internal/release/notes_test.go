@@ -12,8 +12,8 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// hash returns a 40-character fake commit hash made of one digit.
-func hash(d string) string {
+// fakeHash returns a 40-character fake commit hash made of one digit.
+func fakeHash(d string) string {
 	return strings.Repeat(d, 40)
 }
 
@@ -22,15 +22,15 @@ func hash(d string) string {
 // same commits with conventional-changelog-conventionalcommits 9.3.
 func TestRenderNotesMatchesConventionalCommits(t *testing.T) {
 	commits := ParseCommits([]RawCommit{
-		{Hash: hash("1"), Message: "feat(api): add widget endpoint (#42)"},
-		{Hash: hash("2"), Message: "fix: handle nil pointer\n\nCloses #7"},
-		{Hash: hash("3"), Message: "feat!: drop v1 config"},
-		{Hash: hash("4"), Message: "chore(deps): bump things"},
-		{Hash: hash("5"), Message: "docs: explain"},
-		{Hash: hash("6"), Message: "perf(db): faster query\n\nBREAKING CHANGE: index removed"},
-		{Hash: hash("7"), Message: "Merge pull request #99 from org/branch"},
-		{Hash: hash("8"), Message: "revert: feat: something old"},
-		{Hash: hash("9"), Message: "feature: alt feature word"},
+		{Hash: fakeHash("1"), Message: "feat(api): add widget endpoint (#42)"},
+		{Hash: fakeHash("2"), Message: "fix: handle nil pointer\n\nCloses #7"},
+		{Hash: fakeHash("3"), Message: "feat!: drop v1 config"},
+		{Hash: fakeHash("4"), Message: "chore(deps): bump things"},
+		{Hash: fakeHash("5"), Message: "docs: explain"},
+		{Hash: fakeHash("6"), Message: "perf(db): faster query\n\nBREAKING CHANGE: index removed"},
+		{Hash: fakeHash("7"), Message: "Merge pull request #99 from org/branch"},
+		{Hash: fakeHash("8"), Message: "revert: feat: something old"},
+		{Hash: fakeHash("9"), Message: "feature: alt feature word"},
 	})
 	got := RenderNotes(&NotesInput{
 		Version:     "1.3.0",
@@ -73,7 +73,7 @@ func TestRenderNotesFirstRelease(t *testing.T) {
 	got := RenderNotes(&NotesInput{
 		Version: "1.0.0",
 		Date:    time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC),
-		Commits: ParseCommits([]RawCommit{{Hash: hash("a"), Message: "feat: init"}}),
+		Commits: ParseCommits([]RawCommit{{Hash: fakeHash("a"), Message: "feat: init"}}),
 		Links:   GitHubLinks{RepoURL: "https://github.com/acme/widgets"},
 	})
 	assert.Equal(t, strings.SplitN(got, "\n", 2)[0], "## 1.0.0 (2026-11-11)")

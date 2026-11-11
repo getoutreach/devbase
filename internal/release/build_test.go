@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
 	"gotest.tools/v3/assert"
 )
 
@@ -77,18 +78,6 @@ func tarEntries(t *testing.T, path string) []string {
 	return out
 }
 
-func TestLoadGoReleaserConfigRejectsBadEnv(t *testing.T) {
-	cfg := strings.Replace(goreleaserFixture, "      - CGO_ENABLED=0\n",
-		"      - CGO_ENABLED=0\n      - '-X \"main.secret={{ .Env.SECRET }}\"'\n", 1)
-	_, err := ParseGoReleaserConfig([]byte(cfg))
-	assert.ErrorIs(t, err, ErrUnsupportedGoReleaser)
-}
-
-func TestLoadGoReleaserConfigRejectsUnknownKeys(t *testing.T) {
-	_, err := ParseGoReleaserConfig([]byte(goreleaserFixture + "nfpms: []\n"))
-	assert.ErrorIs(t, err, ErrUnsupportedGoReleaser)
-}
-
 func TestBuild(t *testing.T) {
 	if _, err := exec.LookPath("go"); err != nil {
 		t.Skip("go is not in PATH")
@@ -100,9 +89,8 @@ func TestBuild(t *testing.T) {
 	writeFile(t, dir, "README.md", "hello\n")
 	writeFile(t, dir, "bin/tool", "#!/bin/sh\n")
 
-	cfg, err := ParseGoReleaserConfig([]byte(goreleaserFixture))
+	cfg, err := goreleaser.Parse([]byte(goreleaserFixture))
 	assert.NilError(t, err)
-	assert.DeepEqual(t, cfg.Targets(), []Target{{"linux", "amd64"}, {"linux", "arm64"}, {"darwin", "arm64"}})
 
 	plan := &Plan{
 		ProjectName: "hello",

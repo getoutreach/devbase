@@ -2,7 +2,7 @@
 
 // Description: Tests for the .releaserc.yaml loader.
 
-package release
+package releaserc
 
 import (
 	"testing"
@@ -40,8 +40,8 @@ plugins:
       orbPath: orb.yml
 `
 
-func TestParseConfig(t *testing.T) {
-	cfg, err := ParseConfig([]byte(prereleaseConfig))
+func TestParse(t *testing.T) {
+	cfg, err := Parse([]byte(prereleaseConfig))
 	assert.NilError(t, err)
 
 	assert.DeepEqual(t, cfg.Branches, []Branch{
@@ -56,7 +56,7 @@ func TestParseConfig(t *testing.T) {
 	assert.Equal(t, len(cfg.Warnings), 0)
 }
 
-func TestParseConfigFailsClosed(t *testing.T) {
+func TestParseFailsClosed(t *testing.T) {
 	tests := map[string]string{
 		"unknown plugin": `
 preset: conventionalcommits
@@ -93,14 +93,14 @@ plugins: [["@semantic-release/exec", {publishCmd: "echo <%= nextRelease.version 
 	}
 	for name, cfg := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := ParseConfig([]byte(cfg))
-			assert.ErrorIs(t, err, ErrUnsupportedConfig)
+			_, err := Parse([]byte(cfg))
+			assert.ErrorIs(t, err, ErrUnsupported)
 		})
 	}
 }
 
-func TestParseConfigWarnsAboutLowercaseDryRun(t *testing.T) {
-	cfg, err := ParseConfig([]byte(`
+func TestParseWarnsAboutLowercaseDryRun(t *testing.T) {
+	cfg, err := Parse([]byte(`
 preset: conventionalcommits
 branches: [main]
 plugins: [["@semantic-release/exec", {publishCmd: "DRYRUN=${options.dryrun} ./publish.sh"}]]`))
@@ -108,13 +108,13 @@ plugins: [["@semantic-release/exec", {publishCmd: "DRYRUN=${options.dryrun} ./pu
 	assert.Equal(t, len(cfg.Warnings), 1)
 }
 
-func TestParseConfigKeepsOtherCommandsOfTheCheckerHook(t *testing.T) {
-	_, err := ParseConfig([]byte(`
+func TestParseKeepsOtherCommandsOfTheCheckerHook(t *testing.T) {
+	_, err := Parse([]byte(`
 preset: conventionalcommits
 branches: [main]
 plugins:
   - - "@semantic-release/exec"
     - generateNotesCmd: ./scripts/shell-wrapper.sh major-release-checker.js ${lastRelease.version} ${nextRelease.version}
       publishCmd: echo ${nextRelease.notes}`))
-	assert.ErrorIs(t, err, ErrUnsupportedConfig)
+	assert.ErrorIs(t, err, ErrUnsupported)
 }

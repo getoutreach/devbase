@@ -1,32 +1,43 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Loads .releaserc.yaml into a typed release model and
-// rejects any plugin or option that devbase release does not support.
+// Description: Loads .releaserc.yaml into a typed model and rejects
+// any plugin or option that the release command does not support.
 
-package release
+// Package releaserc loads the subset of the semantic-release
+// configuration (.releaserc.yaml) that stencil renders.
+package releaserc
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/devbase/v2/internal/release/internal/strictyaml"
 	"go.yaml.in/yaml/v3"
 )
 
+// File is the semantic-release config file name.
+const File = ".releaserc.yaml"
+
 // majorReleaseCheckerCmd is the exec hook that stencil-base renders
-// when major versions are not allowed. devbase release replaces it with
-// a built-in check.
+// when major versions are not allowed. The release command replaces it
+// with a built-in check.
 const majorReleaseCheckerCmd = "./scripts/shell-wrapper.sh major-release-checker.js ${lastRelease.version} ${nextRelease.version}"
 
-// ErrUnsupportedConfig is returned for any part of .releaserc.yaml that
-// devbase release does not support. The loader fails closed so that a
+// ErrUnsupported is returned for any part of .releaserc.yaml that
+// the release command does not support. The loader fails closed so that a
 // repo never releases with part of its configuration ignored.
-var ErrUnsupportedConfig = errors.New("unsupported release configuration")
+var ErrUnsupported = errors.New("unsupported .releaserc.yaml configuration")
 
 // templateExprRegex matches a ${...} lookup in an exec command.
 var templateExprRegex = regexp.MustCompile(`\$\{([^}]*)\}`)
+
+// releaseValues are the allowed values of a release rule's release key.
+//
+//nolint:gochecknoglobals // Why: read-only lookup table.
+var releaseValues = map[string]bool{"patch": true, "minor": true, "major": true, "false": true}
 
 // allowedTemplateFields are the lookups that exec commands may use.
 //
@@ -112,14 +123,14 @@ type execHook struct {
 	Success       string `yaml:"successCmd"`
 }
 
-// ParseConfig parses and validates the contents of a .releaserc.yaml file.
-func ParseConfig(b []byte) (*Config, error) {
+// Parse parses and validates the contents of a .releaserc.yaml file.
+func Parse(b []byte) (*Config, error) {
 	var raw rawConfig
-	if err := decodeStrict(b, &raw, ErrUnsupportedConfig, ".releaserc.yaml"); err != nil {
-		return nil, err
+	if err := strictyaml.Decode(b, &raw); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrUnsupported, err)
 	}
 	if raw.Preset != "conventionalcommits" {
-		return nil, fmt.Errorf("%w: preset %q (only conventionalcommits)", ErrUnsupportedConfig, raw.Preset)
+		return nil, fmt.Errorf("%w: preset %q (only conventionalcommits)", ErrUnsupported, raw.Preset)
 	}
 
 	cfg := &Config{}
@@ -163,8 +174,8 @@ func (c *Config) addPlugin(n *yaml.Node) error {
 			return err
 		}
 		for _, r := range o.ReleaseRules {
-			if r.Release != "false" && Bump(r.Release).rank() <= 0 {
-				return fmt.Errorf("%w: release rule with release %q", ErrUnsupportedConfig, r.Release)
+			if !releaseValues[r.Release] {
+				return fmt.Errorf("%w: release rule with release %q", ErrUnsupported, r.Release)
 			}
 		}
 		c.ReleaseRules = o.ReleaseRules
@@ -188,7 +199,7 @@ func (c *Config) addPlugin(n *yaml.Node) error {
 			return err
 		}
 		if o.OrbName == "" {
-			return fmt.Errorf("%w: %s needs orbName", ErrUnsupportedConfig, name)
+			return fmt.Errorf("%w: %s needs orbName", ErrUnsupported, name)
 		}
 		return nil
 	case "@semantic-release/exec":
@@ -207,7 +218,7 @@ func (c *Config) addPlugin(n *yaml.Node) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("%w: plugin %q", ErrUnsupportedConfig, name)
+	return fmt.Errorf("%w: plugin %q", ErrUnsupported, name)
 }
 
 // validateTemplate rejects exec commands with lookups outside
@@ -216,7 +227,7 @@ func (c *Config) addPlugin(n *yaml.Node) error {
 // accepted with a warning.
 func (c *Config) validateTemplate(cmd string) error {
 	if strings.Contains(cmd, "<%") {
-		return fmt.Errorf("%w: lodash template in %q", ErrUnsupportedConfig, cmd)
+		return fmt.Errorf("%w: lodash template in %q", ErrUnsupported, cmd)
 	}
 	for _, m := range templateExprRegex.FindAllStringSubmatch(cmd, -1) {
 		field := strings.TrimSpace(m[1])
@@ -225,7 +236,7 @@ func (c *Config) validateTemplate(cmd string) error {
 			continue
 		}
 		if !allowedTemplateFields[field] {
-			return fmt.Errorf("%w: template field %q", ErrUnsupportedConfig, field)
+			return fmt.Errorf("%w: template field %q", ErrUnsupported, field)
 		}
 	}
 	return nil
@@ -236,7 +247,7 @@ func (c *Config) validateTemplate(cmd string) error {
 // every other branch is its own channel, as in semantic-release.
 func parseBranches(nodes []yaml.Node) ([]Branch, error) {
 	if len(nodes) == 0 {
-		return nil, fmt.Errorf("%w: no branches", ErrUnsupportedConfig)
+		return nil, fmt.Errorf("%w: no branches", ErrUnsupported)
 	}
 	out := make([]Branch, 0, len(nodes))
 	releaseBranches := 0
@@ -249,7 +260,7 @@ func parseBranches(nodes []yaml.Node) ([]Branch, error) {
 			return nil, err
 		}
 		if rb.Name == "" {
-			return nil, fmt.Errorf("%w: branch with an empty name", ErrUnsupportedConfig)
+			return nil, fmt.Errorf("%w: branch with an empty name", ErrUnsupported)
 		}
 		b := Branch{Name: rb.Name, Channel: rb.Name}
 		switch {
@@ -259,11 +270,11 @@ func parseBranches(nodes []yaml.Node) ([]Branch, error) {
 		case rb.Prerelease.Tag == "!!str":
 			b.Prerelease = rb.Prerelease.Value
 		default:
-			return nil, fmt.Errorf("%w: branch %q prerelease %q", ErrUnsupportedConfig, rb.Name, rb.Prerelease.Value)
+			return nil, fmt.Errorf("%w: branch %q prerelease %q", ErrUnsupported, rb.Name, rb.Prerelease.Value)
 		}
 		// As semantic-release does, check that 1.0.0-<id>.1 is valid.
-		if _, err := ParseVersion("1.0.0-" + b.Prerelease + ".1"); b.IsPrerelease() && err != nil {
-			return nil, fmt.Errorf("%w: branch %q prerelease identifier %q", ErrUnsupportedConfig, rb.Name, b.Prerelease)
+		if _, err := semver.StrictNewVersion("1.0.0-" + b.Prerelease + ".1"); b.IsPrerelease() && err != nil {
+			return nil, fmt.Errorf("%w: branch %q prerelease identifier %q", ErrUnsupported, rb.Name, b.Prerelease)
 		}
 		if !b.IsPrerelease() {
 			if releaseBranches == 0 {
@@ -274,7 +285,7 @@ func parseBranches(nodes []yaml.Node) ([]Branch, error) {
 		out = append(out, b)
 	}
 	if releaseBranches == 0 {
-		return nil, fmt.Errorf("%w: no release branch", ErrUnsupportedConfig)
+		return nil, fmt.Errorf("%w: no release branch", ErrUnsupported)
 	}
 	return out, nil
 }
@@ -290,30 +301,14 @@ func splitPlugin(n *yaml.Node) (string, *yaml.Node, error) {
 	case n.Kind == yaml.SequenceNode && len(n.Content) == 2 && n.Content[0].Kind == yaml.ScalarNode:
 		return n.Content[0].Value, n.Content[1], nil
 	}
-	return "", nil, fmt.Errorf("%w: plugin entry at line %d", ErrUnsupportedConfig, n.Line)
+	return "", nil, fmt.Errorf("%w: plugin entry at line %d", ErrUnsupported, n.Line)
 }
 
-// decodeNode decodes a YAML node into v and rejects unknown keys. A nil
-// node leaves v unchanged. yaml.Node.Decode has no option for unknown
-// keys, so the node is encoded and decoded again.
+// decodeNode decodes a YAML node into v, rejects unknown keys, and
+// wraps a failure in ErrUnsupported.
 func decodeNode(n *yaml.Node, v any, what string) error {
-	if n == nil {
-		return nil
-	}
-	b, err := yaml.Marshal(n)
-	if err != nil {
-		return fmt.Errorf("re-encode %s: %w", what, err)
-	}
-	return decodeStrict(b, v, ErrUnsupportedConfig, what)
-}
-
-// decodeStrict decodes YAML into v and rejects unknown keys. A
-// failure wraps sentinel.
-func decodeStrict(b []byte, v any, sentinel error, what string) error {
-	dec := yaml.NewDecoder(bytes.NewReader(b))
-	dec.KnownFields(true)
-	if err := dec.Decode(v); err != nil {
-		return fmt.Errorf("%w: %s: %w", sentinel, what, err)
+	if err := strictyaml.DecodeNode(n, v); err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrUnsupported, what, err)
 	}
 	return nil
 }

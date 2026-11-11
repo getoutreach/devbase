@@ -1,7 +1,7 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Builds Go binaries, tar.gz archives and checksums.txt
-// from the subset of .goreleaser.yml that stencil-golang renders.
+// for the targets of a release plan.
 
 package release
 
@@ -17,137 +17,27 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"slices"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
+
+	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
 )
 
 // ChecksumsFile is the name of the checksum file.
 const ChecksumsFile = "checksums.txt"
 
-// These are the errors that the builder returns.
-var (
-	// ErrUnsupportedGoReleaser is returned for any part of
-	// .goreleaser.yml that devbase release does not support.
-	ErrUnsupportedGoReleaser = errors.New("unsupported .goreleaser.yml configuration")
-
-	// ErrUnknownTarget is returned for a target that the plan does not have.
-	ErrUnknownTarget = errors.New("target is not in the plan")
-)
-
-// envItemRegex matches a NAME=value build environment item.
-var envItemRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
-
-// defaultArchiveFiles are the GoReleaser default archive files.
-//
-//nolint:gochecknoglobals // Why: read-only list.
-var defaultArchiveFiles = []ArchiveFile{
-	{Src: "license*"}, {Src: "LICENSE*"}, {Src: "readme*"}, {Src: "README*"}, {Src: "changelog*"}, {Src: "CHANGELOG*"},
-}
-
-// GoReleaserConfig is the supported subset of .goreleaser.yml.
-type GoReleaserConfig struct {
-	Before struct {
-		Hooks []string `yaml:"hooks"`
-	} `yaml:"before"`
-	Builds   []GoBuild `yaml:"builds"`
-	Archives []struct {
-		Files []ArchiveFile `yaml:"files"`
-	} `yaml:"archives"`
-	Checksum struct {
-		NameTemplate string `yaml:"name_template"`
-	} `yaml:"checksum"`
-	Release struct {
-		Disable bool `yaml:"disable"`
-	} `yaml:"release"`
-}
-
-// GoBuild is one builds entry.
-type GoBuild struct {
-	Main    string   `yaml:"main"`
-	ID      string   `yaml:"id"`
-	Binary  string   `yaml:"binary"`
-	GOOS    []string `yaml:"goos"`
-	GOARCH  []string `yaml:"goarch"`
-	Ignore  []Target `yaml:"ignore"`
-	LDFlags []string `yaml:"ldflags"`
-	Env     []string `yaml:"env"`
-}
-
-// Target is a GOOS and GOARCH pair.
-type Target struct {
-	OS   string `yaml:"goos"`
-	Arch string `yaml:"goarch"`
-}
-
-// String returns the target as "os/arch".
-func (t Target) String() string {
-	return t.OS + "/" + t.Arch
-}
-
-// ArchiveFile is one archives[].files entry.
-type ArchiveFile struct {
-	Src  string `yaml:"src"`
-	Dst  string `yaml:"dst"`
-	Info struct {
-		Mode os.FileMode `yaml:"mode"`
-	} `yaml:"info"`
-}
-
-// ParseGoReleaserConfig parses and validates a .goreleaser.yml file.
-func ParseGoReleaserConfig(b []byte) (*GoReleaserConfig, error) {
-	var cfg GoReleaserConfig
-	if err := decodeStrict(b, &cfg, ErrUnsupportedGoReleaser, GoReleaserConfigFile); err != nil {
-		return nil, err
-	}
-	if len(cfg.Archives) > 1 {
-		return nil, fmt.Errorf("%w: more than one archive", ErrUnsupportedGoReleaser)
-	}
-	if n := cfg.Checksum.NameTemplate; n != "" && n != ChecksumsFile {
-		return nil, fmt.Errorf("%w: checksum name_template %q", ErrUnsupportedGoReleaser, n)
-	}
-	for i := range cfg.Builds {
-		b := &cfg.Builds[i]
-		if b.Binary == "" {
-			b.Binary = b.ID
-		}
-		for _, e := range b.Env {
-			if !envItemRegex.MatchString(e) {
-				return nil, fmt.Errorf("%w: build %q env item %q is not NAME=value", ErrUnsupportedGoReleaser, b.ID, e)
-			}
-		}
-	}
-	return &cfg, nil
-}
-
-// Targets returns the targets of the first build: the goos/goarch
-// matrix minus the ignore entries. All builds must have the same
-// targets, because each archive holds every build for one target.
-func (c *GoReleaserConfig) Targets() []Target {
-	if len(c.Builds) == 0 {
-		return nil
-	}
-	b := &c.Builds[0]
-	var out []Target
-	for _, goos := range b.GOOS {
-		for _, arch := range b.GOARCH {
-			if t := (Target{OS: goos, Arch: arch}); !slices.Contains(b.Ignore, t) {
-				out = append(out, t)
-			}
-		}
-	}
-	return out
-}
-
 // ArchiveName returns the GoReleaser default archive name. GoReleaser
 // leaves out the default amd64 level (v1) and arm64 has no suffix.
-func ArchiveName(project, version string, t Target) string {
+func ArchiveName(project, version string, t goreleaser.Target) string {
 	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", project, version, t.OS, t.Arch)
 }
+
+// ErrUnknownTarget is returned for a target that the plan does not have.
+var ErrUnknownTarget = errors.New("target is not in the plan")
 
 // BuildOptions are the inputs of Build.
 type BuildOptions struct {
@@ -171,7 +61,7 @@ type BuildOptions struct {
 // Build runs the before hooks, then builds and archives the targets of
 // a plan in parallel. Each target writes to <dist>/<os>_<arch>/, so
 // parallel CI jobs never write the same file.
-func Build(ctx context.Context, cfg *GoReleaserConfig, plan *Plan, opts *BuildOptions) ([]string, error) {
+func Build(ctx context.Context, cfg *goreleaser.Config, plan *Plan, opts *BuildOptions) ([]string, error) {
 	targets, err := selectTargets(cfg, plan, opts.Targets)
 	if err != nil {
 		return nil, err
@@ -246,13 +136,13 @@ func WriteChecksums(file string, archives []string) error {
 }
 
 // selectTargets returns the requested targets, or all plan targets.
-func selectTargets(cfg *GoReleaserConfig, plan *Plan, requested []string) ([]Target, error) {
+func selectTargets(cfg *goreleaser.Config, plan *Plan, requested []string) ([]goreleaser.Target, error) {
 	for _, r := range requested {
 		if !slices.Contains(plan.Targets, r) {
 			return nil, fmt.Errorf("%w: %s", ErrUnknownTarget, r)
 		}
 	}
-	var out []Target
+	var out []goreleaser.Target
 	for _, t := range cfg.Targets() {
 		if slices.Contains(plan.Targets, t.String()) && (len(requested) == 0 || slices.Contains(requested, t.String())) {
 			out = append(out, t)
@@ -263,7 +153,7 @@ func selectTargets(cfg *GoReleaserConfig, plan *Plan, requested []string) ([]Tar
 
 // renderLDFlags renders the ldflags of each build once. They do not
 // depend on the target.
-func renderLDFlags(cfg *GoReleaserConfig, version string, env []string) ([]string, error) {
+func renderLDFlags(cfg *goreleaser.Config, version string, env []string) ([]string, error) {
 	envMap := map[string]string{}
 	for _, e := range env {
 		if k, v, ok := strings.Cut(e, "="); ok {
@@ -299,13 +189,9 @@ type archiveEntry struct {
 // archiveExtras resolves the extra archive files once, sorted by
 // destination. An exact src with a dst uses dst as the name; a glob
 // with a dst puts the matches in that folder.
-func archiveExtras(cfg *GoReleaserConfig, dir string) ([]archiveEntry, error) {
-	files := defaultArchiveFiles
-	if len(cfg.Archives) == 1 && len(cfg.Archives[0].Files) > 0 {
-		files = cfg.Archives[0].Files
-	}
+func archiveExtras(cfg *goreleaser.Config, dir string) ([]archiveEntry, error) {
 	var out []archiveEntry
-	for _, f := range files {
+	for _, f := range cfg.ArchiveFiles() {
 		matches, err := filepath.Glob(filepath.Join(dir, f.Src))
 		if err != nil {
 			return nil, fmt.Errorf("archive file %q: %w", f.Src, err)

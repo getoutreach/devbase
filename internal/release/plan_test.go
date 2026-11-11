@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 	"gotest.tools/v3/assert"
 )
 
@@ -168,7 +169,7 @@ func TestReadPlanChecksConfig(t *testing.T) {
 	assert.DeepEqual(t, got, plan)
 
 	cfg := fixtureConfig + "  - \"@semantic-release/github\"\n"
-	assert.NilError(t, os.WriteFile(filepath.Join(f.git.Dir, ReleaseConfigFile), []byte(cfg), 0o600))
+	assert.NilError(t, os.WriteFile(filepath.Join(f.git.Dir, releaserc.File), []byte(cfg), 0o600))
 	repo, err = LoadRepo(f.git.Dir)
 	assert.NilError(t, err)
 	_, err = ReadPlan(file, repo)
