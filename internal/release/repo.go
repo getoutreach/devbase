@@ -8,8 +8,10 @@ package release
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -68,4 +70,22 @@ func readConfig(dir, name string, h hash.Hash) ([]byte, error) {
 	h.Write([]byte(name))
 	h.Write(b)
 	return b, nil
+}
+
+// unstableArtifacts returns the artifacts of the unstable release: the
+// release artifacts, or those of .goreleaser.yml when the release does
+// not build, as pre-release.sh reads it. It returns nil when the
+// repository has no .goreleaser.yml.
+func (r *Repo) unstableArtifacts() (*spec.Artifacts, error) {
+	if r.Config.Artifacts != nil {
+		return r.Config.Artifacts, nil
+	}
+	b, err := os.ReadFile(filepath.Join(r.Git.Dir, goreleaser.File))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil //nolint:nilnil // Why: no .goreleaser.yml means no artifacts.
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", goreleaser.File, err)
+	}
+	return goreleaser.Parse(b)
 }
