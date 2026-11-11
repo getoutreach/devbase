@@ -17,7 +17,10 @@ import (
 
 // These are the separators in the git log format that Commits uses.
 const (
-	fieldSep  = "\x1f"
+	// fieldSep separates the hash from the message in one record.
+	fieldSep = "\x1f"
+
+	// recordSep separates the commits.
 	recordSep = "\x1e"
 )
 

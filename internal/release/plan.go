@@ -24,7 +24,10 @@ import (
 
 // These are the release configuration files.
 const (
-	ReleaseConfigFile    = ".releaserc.yaml"
+	// ReleaseConfigFile is the semantic-release config.
+	ReleaseConfigFile = ".releaserc.yaml"
+
+	// GoReleaserConfigFile is the GoReleaser config.
 	GoReleaserConfigFile = ".goreleaser.yml"
 )
 

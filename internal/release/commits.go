@@ -14,11 +14,21 @@ import (
 
 // These patterns come from conventional-changelog-conventionalcommits.
 var (
-	headerRegex      = regexp.MustCompile(`^(\w*)(?:\((.*)\))?(!?): (.*)$`)
-	noteRegex        = regexp.MustCompile(`(?i)^[\s|*]*(BREAKING CHANGE|BREAKING-CHANGE)[:\s]+(.*)`)
-	revertRegex      = regexp.MustCompile(`(?is)^(?:Revert|revert:)\s"?([\s\S]+?)"?\s*This reverts commit (\w*)\.`)
+	// headerRegex matches a commit header.
+	headerRegex = regexp.MustCompile(`^(\w*)(?:\((.*)\))?(!?): (.*)$`)
+
+	// noteRegex matches a breaking change note line.
+	noteRegex = regexp.MustCompile(`(?i)^[\s|*]*(BREAKING CHANGE|BREAKING-CHANGE)[:\s]+(.*)`)
+
+	// revertRegex matches a revert commit and captures the reverted
+	// header and hash.
+	revertRegex = regexp.MustCompile(`(?is)^(?:Revert|revert:)\s"?([\s\S]+?)"?\s*This reverts commit (\w*)\.`)
+
+	// skipReleaseRegex matches a commit that opts out of the release analysis.
 	skipReleaseRegex = regexp.MustCompile(`(?i)\[skip\s+release]|\[release\s+skip]`)
-	closesRegex      = regexp.MustCompile(`(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)`)
+
+	// closesRegex matches an issue reference such as "Closes #7".
+	closesRegex = regexp.MustCompile(`(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)`)
 )
 
 // defaultRules are the commit-analyzer default rules that apply to the
