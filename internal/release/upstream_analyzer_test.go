@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -25,7 +26,7 @@ func TestUpstreamCompareReleaseTypes(t *testing.T) {
 	// All cases are from "Compares release types". null is "false" in Go,
 	// so the upstream null rows are the same as the "false" rows.
 	tests := []struct {
-		current, next string
+		current, next spec.Bump
 		want          bool
 	}{
 		{"patch", "minor", true},
@@ -35,9 +36,9 @@ func TestUpstreamCompareReleaseTypes(t *testing.T) {
 		{"major", "minor", false},
 		{"major", "patch", false},
 		{"minor", "patch", false},
-		{"major", releaseFalse, true},
-		{"minor", releaseFalse, true},
-		{"patch", releaseFalse, true},
+		{"major", spec.BumpNoRelease, true},
+		{"minor", spec.BumpNoRelease, true},
+		{"patch", spec.BumpNoRelease, true},
 	}
 	for _, tt := range tests {
 		assert.Equal(t, outranks(tt.next, tt.current), tt.want, "compareReleaseTypes(%q, %q)", tt.current, tt.next)
@@ -50,83 +51,83 @@ func TestUpstreamCompareReleaseTypes(t *testing.T) {
 func TestUpstreamAnalyzeCommit(t *testing.T) {
 	breaking := []Note{{Title: "BREAKING CHANGE", Text: "some breaking change"}}
 	revert := &Revert{Header: "Update: First feature", Hash: "123"}
-	globRules := []releaserc.Rule{{Type: "docs", Scope: "b*", Release: "minor"}}
+	globRules := []spec.Rule{{Type: "docs", Scope: "b*", Release: "minor"}}
 	tests := []struct {
 		name    string
-		rules   []releaserc.Rule
+		rules   []spec.Rule
 		commit  Commit
-		want    Bump
+		want    spec.Bump
 		matched bool
 	}{
 		{
 			name:    "analyze-commit.test.js: Match breaking change",
-			rules:   []releaserc.Rule{{Breaking: true, Release: "major"}},
+			rules:   []spec.Rule{{Breaking: true, Release: "major"}},
 			commit:  Commit{Notes: breaking},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
 			name:    "analyze-commit.test.js: Match revert commit",
-			rules:   []releaserc.Rule{{Revert: true, Release: "patch"}},
+			rules:   []spec.Rule{{Revert: true, Release: "patch"}},
 			commit:  Commit{Revert: revert},
-			want:    BumpPatch,
+			want:    spec.BumpPatch,
 			matched: true,
 		},
 		{
 			name:    "analyze-commit.test.js: Match multiple criteria with breaking change",
-			rules:   []releaserc.Rule{{Type: "feat", Breaking: true, Release: "major"}},
+			rules:   []spec.Rule{{Type: "feat", Breaking: true, Release: "major"}},
 			commit:  Commit{Type: "feat", Notes: breaking},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
 			name:    "analyze-commit.test.js: Match multiple criteria with revert",
-			rules:   []releaserc.Rule{{Type: "feat", Revert: true, Release: "major"}},
+			rules:   []spec.Rule{{Type: "feat", Revert: true, Release: "major"}},
 			commit:  Commit{Type: "feat", Revert: revert},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
 			// Upstream uses the number 1 as the scope; Go scopes are strings.
 			name:    "analyze-commit.test.js: Match multiple criteria",
-			rules:   []releaserc.Rule{{Type: "feat", Scope: "1", Release: "major"}},
+			rules:   []spec.Rule{{Type: "feat", Scope: "1", Release: "major"}},
 			commit:  Commit{Type: "feat", Scope: "1"},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
 			name: "analyze-commit.test.js: Match only if all criteria are verified",
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Type: "fix", Release: "minor"},
 				{Type: "fix", Breaking: true, Release: "major"},
 			},
 			commit:  Commit{Type: "fix", Notes: breaking},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
 			name:   "analyze-commit.test.js: Return undefined if there is no match",
-			rules:  []releaserc.Rule{{Type: "feat", Breaking: true, Release: "major"}},
+			rules:  []spec.Rule{{Type: "feat", Breaking: true, Release: "major"}},
 			commit: Commit{Type: "fix", Notes: breaking},
 		},
 		{
 			// The null type is the empty string in Go.
 			name:   "analyze-commit.test.js: Return undefined for commit with falsy properties",
-			rules:  []releaserc.Rule{{Type: "feat"}},
+			rules:  []spec.Rule{{Type: "feat"}},
 			commit: Commit{},
 		},
 		{
 			name:    "analyze-commit.test.js: Match with glob (bar)",
 			rules:   globRules,
 			commit:  Commit{Type: "docs", Scope: "bar"},
-			want:    BumpMinor,
+			want:    spec.BumpMinor,
 			matched: true,
 		},
 		{
 			name:    "analyze-commit.test.js: Match with glob (baz)",
 			rules:   globRules,
 			commit:  Commit{Type: "docs", Scope: "baz"},
-			want:    BumpMinor,
+			want:    spec.BumpMinor,
 			matched: true,
 		},
 		{
@@ -136,13 +137,13 @@ func TestUpstreamAnalyzeCommit(t *testing.T) {
 		},
 		{
 			name: "analyze-commit.test.js: Return highest release type if multiple rules match",
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Type: "feat", Release: "minor"},
 				{Breaking: true, Release: "minor"},
 				{Type: "feat", Breaking: true, Release: "major"},
 			},
 			commit:  Commit{Type: "feat", Notes: breaking},
-			want:    BumpMajor,
+			want:    spec.BumpMajor,
 			matched: true,
 		},
 		{
@@ -150,7 +151,7 @@ func TestUpstreamAnalyzeCommit(t *testing.T) {
 			// matching rule has "release" set to "null"`: "false" stands for
 			// null in matchRules, and releaserc.Parse rejects release: null.
 			name:    `analyze-commit.test.js: Return "false" for release type if the matching rule has "release" set to "false"`,
-			rules:   []releaserc.Rule{{Type: "fix", Release: releaseFalse}},
+			rules:   []spec.Rule{{Type: "fix", Release: spec.BumpNoRelease}},
 			commit:  Commit{Type: "fix"},
 			matched: true,
 		},
@@ -173,13 +174,13 @@ func TestUpstreamAnalyzeCommits(t *testing.T) {
 	tests := []struct {
 		name     string
 		messages []string
-		rules    []releaserc.Rule
-		want     Bump
+		rules    []spec.Rule
+		want     spec.Bump
 	}{
 		{
 			name:     `integration.test.js: Parse with "conventional-changelog-angular" by default`,
 			messages: []string{"fix(scope1): First fix", "feat(scope2): Second feature"},
-			want:     BumpMinor,
+			want:     spec.BumpMinor,
 		},
 		{
 			name: "integration.test.js: Exclude commits if they have a matching revert commits",
@@ -188,19 +189,19 @@ func TestUpstreamAnalyzeCommits(t *testing.T) {
 				"revert: feat(scope): First feature\n\nThis reverts commit " + fakeHash("3") + ".\n",
 				"feat(scope): First feature",
 			},
-			want: BumpPatch,
+			want: spec.BumpPatch,
 		},
 		{
 			// Adapted: the module's rules are inline.
 			name:     `integration.test.js: Accept a "releaseRules" option that reference a requirable module`,
 			messages: []string{"fix(scope1): First fix", "feat(scope2): Second feature"},
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Breaking: true, Release: "major"},
 				{Type: "feat", Release: "minor"},
 				{Type: "fix", Release: "patch"},
 				{Type: "perf", Release: "patch"},
 			},
-			want: BumpMinor,
+			want: spec.BumpMinor,
 		},
 		{
 			// Adapted: the eslint messages are parsed with conventionalcommits.
@@ -209,43 +210,43 @@ func TestUpstreamAnalyzeCommits(t *testing.T) {
 				"Fix: First fix (fixes #123)",
 				"Update: Second feature (fixes #456) \n\n BREAKING CHANGE: break something",
 			},
-			want: BumpMajor,
+			want: spec.BumpMajor,
 		},
 		{
 			name:     `integration.test.js: Return "major" if there is a "conventionalcommits" breaking change, using default releaseRules`,
 			messages: []string{"fix: First fix", "feat!: Breaking change feature"},
-			want:     BumpMajor,
+			want:     spec.BumpMajor,
 		},
 		{
 			name:     `integration.test.js: Return "patch" if there is only types set to "patch", using default releaseRules`,
 			messages: []string{"fix: First fix (fixes #123)", "perf: perf improvement"},
-			want:     BumpPatch,
+			want:     spec.BumpPatch,
 		},
 		{
 			// Adapted: the tag rule is a type rule and the message glob is
 			// a subject glob.
 			name:     `integration.test.js: Allow to use glob in "releaseRules" configuration`,
 			messages: []string{"chore: First chore (fixes #123)", "docs: update README (fixes #456)"},
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Type: "chore", Release: "patch"},
 				{Subject: "*README*", Release: "minor"},
 			},
-			want: BumpMinor,
+			want: spec.BumpMinor,
 		},
 		{
 			name:     `integration.test.js: Return "null" if no rule match`,
 			messages: []string{"doc: doc update", "chore: Chore"},
-			want:     BumpNone,
+			want:     spec.BumpNone,
 		},
 		{
 			// Adapted: the tag rules are type rules.
 			name:     "integration.test.js: Process rules in order and apply highest match",
 			messages: []string{"chore: First chore (fixes #123)", "docs: update README (fixes #456)"},
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Type: "chore", Release: "minor"},
 				{Type: "chore", Release: "patch"},
 			},
-			want: BumpMinor,
+			want: spec.BumpMinor,
 		},
 		{
 			// Adapted: the tag rule is a type rule.
@@ -254,44 +255,44 @@ func TestUpstreamAnalyzeCommits(t *testing.T) {
 				"chore: First chore (fixes #123)",
 				"docs: update README (fixes #456) \n\n BREAKING CHANGE: break something",
 			},
-			rules: []releaserc.Rule{
+			rules: []spec.Rule{
 				{Type: "chore", Release: "patch"},
 				{Breaking: true, Release: "minor"},
 			},
-			want: BumpMinor,
+			want: spec.BumpMinor,
 		},
 		{
 			name:     `integration.test.js: Allow to overwrite default "releaseRules" with "false"`,
 			messages: []string{"chore: First chore", "feat: new feature"},
-			rules:    []releaserc.Rule{{Type: "feat", Release: releaseFalse}},
-			want:     BumpNone,
+			rules:    []spec.Rule{{Type: "feat", Release: spec.BumpNoRelease}},
+			want:     spec.BumpNone,
 		},
 		{
 			name:     `integration.test.js: Commits with an associated custom release type have higher priority than commits with release "false"`,
 			messages: []string{"feat: Feature to skip", "docs: update README"},
-			rules: []releaserc.Rule{
-				{Type: "feat", Release: releaseFalse},
+			rules: []spec.Rule{
+				{Type: "feat", Release: spec.BumpNoRelease},
 				{Type: "docs", Release: "patch"},
 			},
-			want: BumpPatch,
+			want: spec.BumpPatch,
 		},
 		{
 			name:     `integration.test.js: Commits with an associated default release type have higher priority than commits with release "false"`,
 			messages: []string{"feat: new feature", "fix: new Fix"},
-			rules:    []releaserc.Rule{{Type: "feat", Release: releaseFalse}},
-			want:     BumpPatch,
+			rules:    []spec.Rule{{Type: "feat", Release: spec.BumpNoRelease}},
+			want:     spec.BumpPatch,
 		},
 		{
 			// Adapted: the eslint messages and tag rule are conventionalcommits.
 			name:     `integration.test.js: Use default "releaseRules" if none of provided match`,
 			messages: []string{"chore: First chore", "feat: new feature"},
-			rules:    []releaserc.Rule{{Type: "chore", Release: "patch"}},
-			want:     BumpMinor,
+			rules:    []spec.Rule{{Type: "chore", Release: "patch"}},
+			want:     spec.BumpMinor,
 		},
 		{
 			name:     "integration.test.js: Filter out empty commits",
 			messages: []string{"", "fix(scope1): First fix"},
-			want:     BumpPatch,
+			want:     spec.BumpPatch,
 		},
 	}
 	for _, tt := range tests {
@@ -305,7 +306,7 @@ func TestUpstreamAnalyzeCommits(t *testing.T) {
 	}
 }
 
-// TestUpstreamGlobParity checks releaserc.MatchGlob against micromatch 4.0.8
+// TestUpstreamGlobParity checks spec.MatchGlob against micromatch 4.0.8
 // isMatch, which lib/analyze-commit.js calls for string rule fields. The
 // first case is the glob case of analyze-commit.test.js; the others are
 // micromatch results for patterns that path.Match could read in another
@@ -339,7 +340,7 @@ func TestUpstreamGlobParity(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.pattern+" "+tt.value, func(t *testing.T) {
-			assert.Equal(t, releaserc.MatchGlob(tt.pattern, tt.value), tt.want)
+			assert.Equal(t, spec.MatchGlob(tt.pattern, tt.value), tt.want)
 		})
 	}
 
@@ -347,7 +348,7 @@ func TestUpstreamGlobParity(t *testing.T) {
 	// upstream, so the default rules give a minor release.
 	t.Run("scope glob on a commit without a scope", func(t *testing.T) {
 		commits := ParseCommits([]RawCommit{{Hash: "h", Message: "feat: x"}})
-		assert.Equal(t, Analyze(commits, []releaserc.Rule{{Scope: "*", Release: "major"}}), BumpMinor)
+		assert.Equal(t, Analyze(commits, []spec.Rule{{Scope: "*", Release: "major"}}), spec.BumpMinor)
 	})
 }
 
@@ -398,85 +399,85 @@ func upstreamLast(t *testing.T, version string, channels ...string) *Tag {
 // test/get-next-version.test.js. The branch channel is the
 // nextRelease.channel of the case, and the tags are branch.tags.
 func TestUpstreamNextVersion(t *testing.T) {
-	master := releaserc.Branch{Name: "master"}
-	beta := releaserc.Branch{Name: "beta", Prerelease: "beta", Channel: "beta"}
-	alpha := releaserc.Branch{Name: "alpha", Prerelease: "alpha", Channel: "alpha"}
+	master := spec.Branch{Name: "master"}
+	beta := spec.Branch{Name: "beta", Prerelease: "beta", Channel: "beta"}
+	alpha := spec.Branch{Name: "alpha", Prerelease: "alpha", Channel: "alpha"}
 	// betaNoChannel is the beta branch of the cases without a
 	// nextRelease.channel.
-	betaNoChannel := releaserc.Branch{Name: "beta", Prerelease: "beta"}
+	betaNoChannel := spec.Branch{Name: "beta", Prerelease: "beta"}
 	v100 := upstreamTag(t, "1.0.0", "")
 	tests := []struct {
 		name   string
-		branch releaserc.Branch
+		branch spec.Branch
 		tags   []Tag
 		last   *Tag
-		bump   Bump
+		bump   spec.Bump
 		want   string
 	}{
-		{"Increase version for patch release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), BumpPatch, "1.0.1"},
-		{"Increase version for minor release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), BumpMinor, "1.1.0"},
-		{"Increase version for major release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), BumpMajor, "2.0.0"},
-		{"Return 1.0.0 if there is no previous release", master, nil, nil, BumpMinor, "1.0.0"},
+		{"Increase version for patch release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), spec.BumpPatch, "1.0.1"},
+		{"Increase version for minor release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), spec.BumpMinor, "1.1.0"},
+		{"Increase version for major release", master, []Tag{v100}, upstreamLast(t, "1.0.0", ""), spec.BumpMajor, "2.0.0"},
+		{"Return 1.0.0 if there is no previous release", master, nil, nil, spec.BumpMinor, "1.0.0"},
 		{
 			"Increase version for patch release on prerelease branch (1)", beta,
 			[]Tag{v100},
-			upstreamLast(t, "1.0.0", ""), BumpPatch, "1.0.1-beta.1",
+			upstreamLast(t, "1.0.0", ""), spec.BumpPatch, "1.0.1-beta.1",
 		},
 		{
 			"Increase version for patch release on prerelease branch (2)", beta,
 			[]Tag{v100, upstreamTag(t, "1.0.1-beta.1", "beta")},
-			upstreamLast(t, "1.0.1-beta.1", "beta"), BumpPatch, "1.0.1-beta.2",
+			upstreamLast(t, "1.0.1-beta.1", "beta"), spec.BumpPatch, "1.0.1-beta.2",
 		},
 		{
 			"Increase version for patch release on prerelease branch (3)", alpha,
 			[]Tag{upstreamTag(t, "1.0.1-beta.1", "beta")},
-			upstreamLast(t, "1.0.1-beta.1", "beta"), BumpPatch, "1.0.2-alpha.1",
+			upstreamLast(t, "1.0.1-beta.1", "beta"), spec.BumpPatch, "1.0.2-alpha.1",
 		},
 		{
 			"Increase version for minor release on prerelease branch (1)", beta,
 			[]Tag{v100},
-			upstreamLast(t, "1.0.0", ""), BumpMinor, "1.1.0-beta.1",
+			upstreamLast(t, "1.0.0", ""), spec.BumpMinor, "1.1.0-beta.1",
 		},
 		{
 			"Increase version for minor release on prerelease branch (2)", beta,
 			[]Tag{v100, upstreamTag(t, "1.1.0-beta.1", "beta")},
-			upstreamLast(t, "1.1.0-beta.1", "beta"), BumpMinor, "1.1.0-beta.2",
+			upstreamLast(t, "1.1.0-beta.1", "beta"), spec.BumpMinor, "1.1.0-beta.2",
 		},
 		{
 			"Increase version for minor release on prerelease branch (3)", alpha,
 			[]Tag{upstreamTag(t, "1.1.0-beta.1", "beta")},
-			upstreamLast(t, "1.1.0-beta.1", "beta"), BumpMinor, "1.2.0-alpha.1",
+			upstreamLast(t, "1.1.0-beta.1", "beta"), spec.BumpMinor, "1.2.0-alpha.1",
 		},
 		{
 			"Increase version for major release on prerelease branch (1)", beta,
 			[]Tag{v100},
-			upstreamLast(t, "1.0.0", ""), BumpMajor, "2.0.0-beta.1",
+			upstreamLast(t, "1.0.0", ""), spec.BumpMajor, "2.0.0-beta.1",
 		},
 		{
 			"Increase version for major release on prerelease branch (2)", beta,
 			[]Tag{v100, upstreamTag(t, "2.0.0-beta.1", "beta")},
-			upstreamLast(t, "2.0.0-beta.1", "beta"), BumpMajor, "2.0.0-beta.2",
+			upstreamLast(t, "2.0.0-beta.1", "beta"), spec.BumpMajor, "2.0.0-beta.2",
 		},
 		{
 			"Increase version for major release on prerelease branch (3)", alpha,
 			[]Tag{upstreamTag(t, "2.0.0-beta.1", "beta")},
-			upstreamLast(t, "2.0.0-beta.1", "beta"), BumpMajor, "3.0.0-alpha.1",
+			upstreamLast(t, "2.0.0-beta.1", "beta"), spec.BumpMajor, "3.0.0-alpha.1",
 		},
-		{"Return 1.0.0 if there is no previous release on prerelease branch", betaNoChannel, nil, nil, BumpMinor, "1.0.0-beta.1"},
+		{"Return 1.0.0 if there is no previous release on prerelease branch", betaNoChannel, nil, nil, spec.BumpMinor, "1.0.0-beta.1"},
 		{
 			"Increase version for release on prerelease branch after previous commits were merged to release branch", betaNoChannel,
 			[]Tag{v100, upstreamTag(t, "1.1.0", ""), upstreamTag(t, "1.1.0-beta.1", "", "beta")},
-			upstreamLast(t, "1.1.0", ""), BumpMinor, "1.2.0-beta.1",
+			upstreamLast(t, "1.1.0", ""), spec.BumpMinor, "1.2.0-beta.1",
 		},
 		{
 			"Increase version for release on prerelease branch based on highest commit type since last regular release", betaNoChannel,
 			[]Tag{v100, upstreamTag(t, "1.1.0-beta.1", "", "beta")},
-			upstreamLast(t, "v1.1.0-beta.1", ""), BumpMajor, "2.0.0-beta.1",
+			upstreamLast(t, "v1.1.0-beta.1", ""), spec.BumpMajor, "2.0.0-beta.1",
 		},
 		{
 			"Increase version for release on prerelease branch when there is no regular releases on other branches", beta,
 			[]Tag{upstreamTag(t, "1.0.0-beta.1", "beta")},
-			upstreamLast(t, "v1.0.0-beta.1", "beta"), BumpMinor, "1.0.0-beta.2",
+			upstreamLast(t, "v1.0.0-beta.1", "beta"), spec.BumpMinor, "1.0.0-beta.2",
 		},
 		{
 			"Increase patch when previous version shares HEAD with other releases", alpha,
@@ -485,7 +486,7 @@ func TestUpstreamNextVersion(t *testing.T) {
 				upstreamTag(t, "1.0.0-beta.2", "alpha", "beta"),
 				upstreamTag(t, "1.0.0-alpha.1", "alpha", "beta"),
 			},
-			upstreamLast(t, "v1.0.0-alpha.1", "alpha", "beta"), BumpPatch, "1.0.0-alpha.2",
+			upstreamLast(t, "v1.0.0-alpha.1", "alpha", "beta"), spec.BumpPatch, "1.0.0-alpha.2",
 		},
 	}
 	for _, tt := range tests {
@@ -500,7 +501,7 @@ func TestUpstreamNextVersion(t *testing.T) {
 // test/utils.test.js without prereleases, which LastRelease does on a
 // release branch. want is the tag name, or empty for no release.
 func TestUpstreamLastRelease(t *testing.T) {
-	master := releaserc.Branch{Name: "master"}
+	master := spec.Branch{Name: "master"}
 	latest := []Tag{
 		upstreamTag(t, "1.2.3-alpha.3", ""),
 		upstreamTag(t, "1.2.0", ""),
@@ -509,7 +510,7 @@ func TestUpstreamLastRelease(t *testing.T) {
 	}
 	tests := []struct {
 		name         string
-		branch       releaserc.Branch
+		branch       spec.Branch
 		tags         []Tag
 		want         string
 		wantChannels []string
@@ -522,7 +523,7 @@ func TestUpstreamLastRelease(t *testing.T) {
 		},
 		{
 			name:   "get-last-release.test.js: Get the highest prerelease valid tag, ignoring other tags from other prerelease channels",
-			branch: releaserc.Branch{Name: "beta", Prerelease: "beta", Channel: "beta"},
+			branch: spec.Branch{Name: "beta", Prerelease: "beta", Channel: "beta"},
 			tags: []Tag{
 				upstreamTag(t, "1.0.0-beta.1", "beta"),
 				upstreamTag(t, "1.0.0-beta.2", "beta"),
@@ -536,7 +537,7 @@ func TestUpstreamLastRelease(t *testing.T) {
 			// prerelease: true. releaserc.Parse turns prerelease: true into
 			// the branch name, so that test gives the same branch.
 			name:   "get-last-release.test.js: Get the correct prerelease tag, when other prereleases share the same git HEAD",
-			branch: releaserc.Branch{Name: "alpha", Prerelease: "alpha", Channel: "alpha"},
+			branch: spec.Branch{Name: "alpha", Prerelease: "alpha", Channel: "alpha"},
 			tags: []Tag{
 				upstreamTag(t, "1.0.0-beta.1", "beta"),
 				upstreamTag(t, "1.0.0-beta.2", "alpha", "beta"),
@@ -805,10 +806,10 @@ func TestUpstreamGetCommits(t *testing.T) {
 func TestUpstreamNormalizeBranches(t *testing.T) {
 	t.Run("normalize.test.js: Prerelease branches", func(t *testing.T) {
 		// Parse needs a release branch, so master is added.
-		cfg, err := releaserc.Parse([]byte("preset: conventionalcommits\n" +
+		cfg, _, err := releaserc.Parse([]byte("preset: conventionalcommits\n" +
 			"branches: [master, {name: beta, prerelease: true}, {name: alpha, prerelease: preview}]\n"))
 		assert.NilError(t, err)
-		assert.DeepEqual(t, cfg.Branches, []releaserc.Branch{
+		assert.DeepEqual(t, cfg.Branches, []spec.Branch{
 			{Name: "master"},
 			{Name: "beta", Prerelease: "beta", Channel: "beta"},
 			{Name: "alpha", Prerelease: "preview", Channel: "alpha"},

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -36,17 +37,17 @@ func TestBumpVersion(t *testing.T) {
 	// The expected values follow node-semver inc().
 	tests := []struct {
 		in   string
-		t    Bump
+		t    spec.Bump
 		want string
 	}{
-		{"1.2.3", BumpPatch, "1.2.4"},
-		{"1.2.3", BumpMinor, "1.3.0"},
-		{"1.2.3", BumpMajor, "2.0.0"},
-		{"1.1.0-rc.2", BumpMinor, "1.1.0"},
-		{"1.1.0-rc.2", BumpMajor, "2.0.0"},
-		{"1.1.0-rc.2", BumpPatch, "1.1.0"},
-		{"1.1.1-rc.1", BumpMinor, "1.2.0"},
-		{"2.0.0-rc.1", BumpMajor, "2.0.0"},
+		{"1.2.3", spec.BumpPatch, "1.2.4"},
+		{"1.2.3", spec.BumpMinor, "1.3.0"},
+		{"1.2.3", spec.BumpMajor, "2.0.0"},
+		{"1.1.0-rc.2", spec.BumpMinor, "1.1.0"},
+		{"1.1.0-rc.2", spec.BumpMajor, "2.0.0"},
+		{"1.1.0-rc.2", spec.BumpPatch, "1.1.0"},
+		{"1.1.1-rc.1", spec.BumpMinor, "1.2.0"},
+		{"2.0.0-rc.1", spec.BumpMajor, "2.0.0"},
 	}
 	for _, tt := range tests {
 		assert.Equal(t, bumpVersion(mustVersion(t, tt.in), tt.t).String(), tt.want, "%s %s", tt.in, tt.t)

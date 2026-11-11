@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -32,7 +33,7 @@ func grTargets(t *testing.T, matrix string) ([]string, error) {
 		return nil, err
 	}
 	var out []string
-	for _, target := range cfg.Targets() {
+	for _, target := range cfg.Targets {
 		out = append(out, target.OS+"_"+target.Arch)
 	}
 	return out, nil
@@ -44,30 +45,29 @@ func TestGoReleaserUpstreamConfig(t *testing.T) {
 	t.Run("config_archive_files_test.go TestArchiveFiles_justString", func(t *testing.T) {
 		cfg, err := Parse([]byte(grBase + "archives:\n  - files:\n      - ./script.sh\n"))
 		assert.NilError(t, err)
-		assert.DeepEqual(t, cfg.ArchiveFiles(), []ArchiveFile{{Src: "./script.sh"}})
+		assert.DeepEqual(t, cfg.Files, []spec.ArchiveFile{{Src: "./script.sh"}})
 	})
 
 	t.Run("config_archive_files_test.go TestArchiveFiles_stringFiles", func(t *testing.T) {
 		cfg, err := Parse([]byte(grBase +
 			"archives:\n  - files:\n      - ./script.sh\n      - src: ./foo\n        dst: ./bar\n"))
 		assert.NilError(t, err)
-		assert.DeepEqual(t, cfg.ArchiveFiles(), []ArchiveFile{{Src: "./script.sh"}, {Src: "./foo", Dst: "./bar"}})
+		assert.DeepEqual(t, cfg.Files, []spec.ArchiveFile{{Src: "./script.sh"}, {Src: "./foo", Dst: "./bar"}})
 	})
 
 	t.Run("config_archive_files_test.go TestArchiveFiles_complex (mode)", func(t *testing.T) {
 		cfg, err := Parse([]byte(grBase + "archives:\n  - files:\n      - src: ./foobar\n        dst: ./barzaz\n" +
 			"        info:\n          mode: 0644\n"))
 		assert.NilError(t, err)
-		want := ArchiveFile{Src: "./foobar", Dst: "./barzaz"}
-		want.Info.Mode = 0o644
-		assert.DeepEqual(t, cfg.ArchiveFiles(), []ArchiveFile{want})
+		want := spec.ArchiveFile{Src: "./foobar", Dst: "./barzaz", Mode: 0o644}
+		assert.DeepEqual(t, cfg.Files, []spec.ArchiveFile{want})
 	})
 
 	t.Run("config_archive_files_test.go TestArchiveFiles_complex (owner)", func(t *testing.T) {
 		// GoReleaser accepts info.owner; the port supports only info.mode.
 		_, err := Parse([]byte(grBase +
 			"archives:\n  - files:\n      - src: ./foo\n        info:\n          owner: carlos\n"))
-		assert.ErrorIs(t, err, ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, "field owner not found")
 	})
 
@@ -75,12 +75,12 @@ func TestGoReleaserUpstreamConfig(t *testing.T) {
 		// GoReleaser loads an empty file and adds a default build named
 		// after the project, which the port does not know.
 		_, err := Parse(nil)
-		assert.ErrorIs(t, err, ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 	})
 
 	t.Run("config_test.go TestInvalidFields", func(t *testing.T) {
 		_, err := Parse([]byte(grBase + "    invalid_yaml: 1\n"))
-		assert.ErrorIs(t, err, ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, "field invalid_yaml not found")
 	})
 
@@ -99,19 +99,19 @@ func TestGoReleaserUpstreamConfig(t *testing.T) {
 
 	for _, tc := range []struct {
 		name, yaml string
-		want       StringList
+		want       []string
 		wantErr    string
 	}{
 		// GoReleaser uses its default ldflags, which need .Commit and .Date.
 		{name: "empty list", yaml: "[]", wantErr: "no ldflags"},
-		{name: "list", yaml: "[one two, three]", want: StringList{"one two", "three"}},
-		{name: "string", yaml: "one two", want: StringList{"one two"}},
+		{name: "list", yaml: "[one two, three]", want: []string{"one two", "three"}},
+		{name: "string", yaml: "one two", want: []string{"one two"}},
 		{name: "map", yaml: "{key: val}", wantErr: "cannot unmarshal"},
 	} {
 		t.Run("config_array_test.go TestStringArray (ldflags)/"+tc.name, func(t *testing.T) {
 			cfg, err := Parse([]byte(strings.Replace(grBase, "[-s -w]", tc.yaml, 1)))
 			if tc.wantErr != "" {
-				assert.ErrorIs(t, err, ErrUnsupported)
+				assert.ErrorIs(t, err, spec.ErrUnsupported)
 				assert.ErrorContains(t, err, tc.wantErr)
 				return
 			}
@@ -164,7 +164,7 @@ func TestGoReleaserUpstreamTargets(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := grTargets(t, "    goos: ["+tc.goos+"]\n    goarch: ["+tc.goarch+"]\n")
-			assert.ErrorIs(t, err, ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
@@ -272,7 +272,7 @@ func TestGoReleaserUpstreamDefaults(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Parse([]byte(tc.config))
-			assert.ErrorIs(t, err, ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
@@ -359,7 +359,7 @@ func TestGoReleaserUpstreamUnsupported(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Parse([]byte(tc.config))
-			assert.ErrorIs(t, err, ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}

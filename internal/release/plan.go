@@ -1,29 +1,22 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Loads a repository's release configuration and computes
-// a release plan: the next version, the release notes and the assets,
-// once, for the jobs after it.
+// Description: Computes a release plan from the release model: the next
+// version, the release notes and the assets, once, for the jobs after it.
 
 package release
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
-	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
 // PlanSchema is the version of the plan file format.
@@ -38,57 +31,6 @@ var (
 	// the plan was made.
 	ErrPlanConfig = errors.New("release configuration changed after planning")
 )
-
-// Repo is a repository with its parsed release configuration.
-type Repo struct {
-	Git *Git
-
-	ReleaseRC *releaserc.Config
-
-	// GoReleaser is nil when the repo has no .goreleaser.yml.
-	GoReleaser *goreleaser.Config
-
-	// Digest is the sha256 of the configuration files as parsed.
-	Digest string
-}
-
-// LoadRepo reads and parses the release configuration of the repository
-// in dir. Each file is read once, and the digest uses the same bytes.
-func LoadRepo(dir string) (*Repo, error) {
-	r := &Repo{Git: &Git{Dir: dir}}
-	h := sha256.New()
-	b, err := readConfig(dir, releaserc.File, h)
-	if err != nil {
-		return nil, err
-	}
-	if r.ReleaseRC, err = releaserc.Parse(b); err != nil {
-		return nil, err
-	}
-	b, err = readConfig(dir, goreleaser.File, h)
-	if errors.Is(err, fs.ErrNotExist) {
-		r.Digest = "sha256:" + hex.EncodeToString(h.Sum(nil))
-		return r, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if r.GoReleaser, err = goreleaser.Parse(b); err != nil {
-		return nil, err
-	}
-	r.Digest = "sha256:" + hex.EncodeToString(h.Sum(nil))
-	return r, nil
-}
-
-// readConfig reads a config file and adds its name and contents to h.
-func readConfig(dir, name string, h hash.Hash) ([]byte, error) {
-	b, err := os.ReadFile(filepath.Join(dir, name))
-	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", name, err)
-	}
-	h.Write([]byte(name))
-	h.Write(b)
-	return b, nil
-}
 
 // Plan is the result of planning a release. It is written to a file so
 // that build and publish jobs use the same version.
@@ -105,10 +47,10 @@ type Plan struct {
 	// ProjectName is the archive name prefix: the repository name.
 	ProjectName string `json:"projectName"`
 
-	Branch      releaserc.Branch `json:"branch"`
-	LastRelease *PlanRelease     `json:"lastRelease,omitempty"`
-	NextRelease *PlanRelease     `json:"nextRelease,omitempty"`
-	Notes       string           `json:"notes,omitempty"`
+	Branch      spec.Branch  `json:"branch"`
+	LastRelease *PlanRelease `json:"lastRelease,omitempty"`
+	NextRelease *PlanRelease `json:"nextRelease,omitempty"`
+	Notes       string       `json:"notes,omitempty"`
 
 	// Targets are the build targets as "os/arch".
 	Targets []string `json:"targets,omitempty"`
@@ -122,10 +64,10 @@ type Plan struct {
 
 // PlanRelease describes one release in a plan.
 type PlanRelease struct {
-	Type    Bump   `json:"type,omitempty"`
-	Version string `json:"version"`
-	GitTag  string `json:"gitTag"`
-	Channel string `json:"channel,omitempty"`
+	Type    spec.Bump `json:"type,omitempty"`
+	Version string    `json:"version"`
+	GitTag  string    `json:"gitTag"`
+	Channel string    `json:"channel,omitempty"`
 }
 
 // PlanOptions are the inputs of MakePlan.
@@ -148,7 +90,7 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 	branchName := plan.Branch.Name
-	branch := r.ReleaseRC.Branch(branchName)
+	branch := r.Config.Branch(branchName)
 	if branch == nil {
 		plan.Reason = fmt.Sprintf("branch %q is not a release branch", branchName)
 		return plan, nil
@@ -171,14 +113,14 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 	commits := ParseCommits(raws)
-	t := Analyze(DropSkipped(commits), r.ReleaseRC.ReleaseRules)
-	if t == BumpNone {
+	t := Analyze(DropSkipped(commits), r.Config.Rules)
+	if t == spec.BumpNone {
 		plan.Reason = "no relevant changes"
 		return plan, nil
 	}
 
 	next := NextVersion(branch, last, tags, t)
-	if r.ReleaseRC.MajorCheck {
+	if r.Config.MajorCheck {
 		if err := CheckMajor(last, next); err != nil {
 			return nil, err
 		}
@@ -194,12 +136,12 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		Version: next.String(), Tag: plan.NextRelease.GitTag, PreviousTag: from,
 		Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
 	})
-	if r.GoReleaser != nil {
-		for _, target := range r.GoReleaser.Targets() {
+	if a := r.Config.Artifacts; a != nil {
+		for _, target := range a.Targets {
 			plan.Targets = append(plan.Targets, target.String())
 			plan.Assets = append(plan.Assets, ArchiveName(plan.ProjectName, next.String(), &target))
 		}
-		plan.Assets = append(plan.Assets, ChecksumsFile)
+		plan.Assets = append(plan.Assets, a.Checksums)
 	}
 	return plan, nil
 }
@@ -227,7 +169,7 @@ func (r *Repo) newPlan(ctx context.Context, branch string) (*Plan, string, error
 	}
 	return &Plan{
 		Schema: PlanSchema, Commit: head, CommitTime: commitTime, ProjectName: path.Base(repoURL),
-		ConfigDigest: r.Digest, Branch: releaserc.Branch{Name: branch},
+		ConfigDigest: r.Digest, Branch: spec.Branch{Name: branch},
 	}, repoURL, nil
 }
 

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -60,22 +60,19 @@ var (
 //nolint:gochecknoglobals // Why: read-only list.
 var referenceActions = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
 
-// releaseFalse is the release value of a rule that stops a release.
-const releaseFalse = "false"
-
 // defaultRules are the commit-analyzer default rules that can match a
 // conventionalcommits commit. The rules for the emoji, tag and component
 // fields of other presets never match, so they are left out.
 //
 //nolint:gochecknoglobals // Why: read-only list.
-var defaultRules = []releaserc.Rule{
-	{Breaking: true, Release: string(BumpMajor)},
-	{Revert: true, Release: string(BumpPatch)},
-	{Type: "feat", Release: string(BumpMinor)},
-	{Type: "fix", Release: string(BumpPatch)},
-	{Type: "perf", Release: string(BumpPatch)},
-	{Type: "FEAT", Release: string(BumpMinor)},
-	{Type: "FIX", Release: string(BumpPatch)},
+var defaultRules = []spec.Rule{
+	{Breaking: true, Release: spec.BumpMajor},
+	{Revert: true, Release: spec.BumpPatch},
+	{Type: "feat", Release: spec.BumpMinor},
+	{Type: "fix", Release: spec.BumpPatch},
+	{Type: "perf", Release: spec.BumpPatch},
+	{Type: "FEAT", Release: spec.BumpMinor},
+	{Type: "FIX", Release: spec.BumpPatch},
 }
 
 // Commit is a parsed conventional commit. Empty strings stand for the
@@ -564,17 +561,17 @@ func DropSkipped(commits []Commit) []Commit {
 // as commit-analyzer does: reverted commits are left out, then custom
 // rules are checked first; a commit that matches no custom rule uses the
 // default rules.
-func Analyze(commits []Commit, rules []releaserc.Rule) Bump {
+func Analyze(commits []Commit, rules []spec.Rule) spec.Bump {
 	commits = filterReverted(commits)
-	result := BumpNone
+	result := spec.BumpNone
 	for i := range commits {
 		c := &commits[i]
 		t, matched := matchRules(c, rules)
 		if !matched {
 			t, _ = matchRules(c, defaultRules)
 		}
-		result = maxBump(result, t)
-		if result == BumpMajor {
+		result = spec.MaxBump(result, t)
+		if result == spec.BumpMajor {
 			break
 		}
 	}
@@ -586,34 +583,34 @@ func Analyze(commits []Commit, rules []releaserc.Rule) Bump {
 // are checked in order: a rule wins when no type is set yet, when the
 // current type is "false", or when its type is higher. A "false" rule
 // always wins, so a later "false" rule cancels an earlier type.
-func matchRules(c *Commit, rules []releaserc.Rule) (Bump, bool) {
-	result, matched := "", false
+func matchRules(c *Commit, rules []spec.Rule) (spec.Bump, bool) {
+	result, matched := spec.BumpNone, false
 	for _, r := range rules {
 		if (r.Breaking && len(c.Notes) == 0) || (r.Revert && c.Revert == nil) {
 			continue
 		}
-		if !releaserc.MatchGlob(r.Type, c.Type) || !releaserc.MatchGlob(r.Scope, c.Scope) ||
-			!releaserc.MatchGlob(r.Subject, c.Subject) {
+		if !spec.MatchGlob(r.Type, c.Type) || !spec.MatchGlob(r.Scope, c.Scope) ||
+			!spec.MatchGlob(r.Subject, c.Subject) {
 			continue
 		}
 		if !matched || outranks(r.Release, result) {
 			result = r.Release
 		}
 		matched = true
-		if result == string(BumpMajor) {
+		if result == spec.BumpMajor {
 			break
 		}
 	}
-	if result == releaseFalse {
-		return BumpNone, matched
+	if result == spec.BumpNoRelease {
+		return spec.BumpNone, matched
 	}
-	return Bump(result), matched
+	return result, matched
 }
 
 // outranks reports whether release type next replaces current, as
-// commit-analyzer's compareReleaseTypes does. "false" stands for the
-// false and null release values: it is replaced by anything, and it
+// commit-analyzer's compareReleaseTypes does. BumpNoRelease stands for
+// the false and null release values: it is replaced by anything, and it
 // replaces anything, because its index in the release type list is -1.
-func outranks(next, current string) bool {
-	return current == releaseFalse || next == releaseFalse || Bump(next).rank() > Bump(current).rank()
+func outranks(next, current spec.Bump) bool {
+	return current == spec.BumpNoRelease || next == spec.BumpNoRelease || next.Rank() > current.Rank()
 }

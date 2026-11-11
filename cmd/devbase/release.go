@@ -107,7 +107,7 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	for _, w := range repo.ReleaseRC.Warnings {
+	for _, w := range repo.Warnings {
 		logrus.Warn(w)
 	}
 	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{
@@ -142,10 +142,10 @@ func releaseBuild(ctx context.Context, c *cli.Command) error {
 	if err != nil || plan == nil {
 		return err
 	}
-	if repo.GoReleaser == nil {
+	if repo.Config.Artifacts == nil {
 		return errNoGoReleaser
 	}
-	archives, err := release.Build(ctx, repo.GoReleaser, plan, &release.BuildOptions{
+	archives, err := release.Build(ctx, repo.Config.Artifacts, plan, &release.BuildOptions{
 		Dir:       repo.Git.Dir,
 		Dist:      c.String("dist"),
 		Targets:   c.StringSlice("target"),
@@ -164,14 +164,19 @@ func releaseBuild(ctx context.Context, c *cli.Command) error {
 // releaseChecksums is the Action for "release checksums". It runs once
 // after all build jobs, and fails if an archive from the plan is missing.
 func releaseChecksums(_ context.Context, c *cli.Command) error {
-	_, plan, err := loadPlan(c)
+	repo, plan, err := loadPlan(c)
 	if err != nil || plan == nil {
 		return err
 	}
+	// Without .goreleaser.yml, the plan has no archives to sum.
+	if repo.Config.Artifacts == nil {
+		return nil
+	}
+	checksums := repo.Config.Artifacts.Checksums
 	dist := c.String("dist")
 	var archives []string
 	for _, asset := range plan.Assets {
-		if asset == release.ChecksumsFile {
+		if asset == checksums {
 			continue
 		}
 		matches, err := filepath.Glob(filepath.Join(dist, "*", asset))
@@ -183,7 +188,7 @@ func releaseChecksums(_ context.Context, c *cli.Command) error {
 		}
 		archives = append(archives, matches[0])
 	}
-	out := filepath.Join(dist, release.ChecksumsFile)
+	out := filepath.Join(dist, checksums)
 	if err := release.WriteChecksums(out, archives); err != nil {
 		return err
 	}

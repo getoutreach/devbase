@@ -14,47 +14,11 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
 // ErrInvalidVersion is returned when a string is not a valid semantic version.
 var ErrInvalidVersion = errors.New("invalid semantic version")
-
-// Bump is the size of a version bump: the release type.
-type Bump string
-
-// These are the bumps, in increasing order of size.
-const (
-	// BumpNone means that no release is needed.
-	BumpNone Bump = ""
-
-	// BumpPatch is a patch release.
-	BumpPatch Bump = "patch"
-
-	// BumpMinor is a minor release.
-	BumpMinor Bump = "minor"
-
-	// BumpMajor is a major release.
-	BumpMajor Bump = "major"
-)
-
-// bumpOrder lists the bumps from smallest to largest.
-//
-//nolint:gochecknoglobals // Why: read-only lookup table.
-var bumpOrder = []Bump{BumpNone, BumpPatch, BumpMinor, BumpMajor}
-
-// rank orders bumps so that the larger one can be chosen. An unknown
-// bump has rank -1.
-func (r Bump) rank() int {
-	return slices.Index(bumpOrder, r)
-}
-
-// maxBump returns the larger of two bumps.
-func maxBump(a, b Bump) Bump {
-	if b.rank() > a.rank() {
-		return b
-	}
-	return a
-}
 
 // ParseVersion parses a strict semantic version with an optional "v"
 // prefix, as node-semver's parse does without the loose option.
@@ -77,25 +41,25 @@ func isCleanVersion(s string) bool {
 // bumpVersion returns v bumped by t, with node-semver rules: a
 // prerelease of the target version is promoted instead of bumped again
 // (for example, a minor bump of 1.1.0-rc.2 is 1.1.0).
-func bumpVersion(v *semver.Version, t Bump) *semver.Version {
+func bumpVersion(v *semver.Version, t spec.Bump) *semver.Version {
 	major, minor, patch := v.Major(), v.Minor(), v.Patch()
 	pre := v.Prerelease() != ""
 	switch t {
-	case BumpMajor:
+	case spec.BumpMajor:
 		if !pre || minor != 0 || patch != 0 {
 			major++
 		}
 		minor, patch = 0, 0
-	case BumpMinor:
+	case spec.BumpMinor:
 		if !pre || patch != 0 {
 			minor++
 		}
 		patch = 0
-	case BumpPatch:
+	case spec.BumpPatch:
 		if !pre {
 			patch++
 		}
-	case BumpNone:
+	case spec.BumpNone, spec.BumpNoRelease:
 		return v
 	}
 	return semver.New(major, minor, patch, "", "")

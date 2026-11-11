@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -42,19 +43,30 @@ plugins:
 `
 
 func TestParse(t *testing.T) {
-	cfg, err := Parse([]byte(prereleaseConfig))
+	cfg, warnings, err := Parse([]byte(prereleaseConfig))
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, cfg.Branches, []Branch{
-		{Name: "main", Prerelease: "rc", Channel: "main"},
-		{Name: "release", Channel: ""},
+	assert.DeepEqual(t, cfg, &spec.Config{
+		Branches: []spec.Branch{
+			{Name: "main", Prerelease: "rc", Channel: "main"},
+			{Name: "release", Channel: ""},
+		},
+		Rules: []spec.Rule{
+			{Breaking: true, Release: "minor"},
+			{Type: "revert", Release: "patch"},
+		},
+		MajorCheck: true, // major-release-checker.js becomes the built-in check.
+		// The plugins keep their order. The checker hook has no other
+		// command, so its exec plugin is left out.
+		Plugins: []spec.Plugin{
+			{Exec: &spec.ExecHooks{GenerateNotes: "make release APP_VERSION=${nextRelease.version}"}},
+			{Notes: &spec.NotesPlugin{}},
+			{Forge: &spec.ForgePlugin{Provider: spec.ForgeGitHub, Assets: []string{"dist/*.tar.gz", "dist/checksums.txt"}}},
+			{Orb: &spec.OrbPlugin{Name: "getoutreach/shared", Path: "orb.yml"}},
+		},
 	})
-	assert.DeepEqual(t, cfg.ReleaseRules, []Rule{
-		{Breaking: true, Release: "minor"},
-		{Type: "revert", Release: "patch"},
-	})
-	assert.Assert(t, cfg.MajorCheck, "major-release-checker.js becomes the built-in check")
-	assert.Equal(t, len(cfg.Warnings), 0)
+	assert.Equal(t, len(warnings), 0)
+	assert.Equal(t, cfg.Forge().Provider, spec.ForgeGitHub)
 }
 
 // analyzerConfig returns a config with one commit-analyzer plugin whose
@@ -174,28 +186,28 @@ plugins: [["@semantic-release/exec", {publishCmd: "echo <%= nextRelease.version 
 	}
 	for name, cfg := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(cfg))
-			assert.ErrorIs(t, err, ErrUnsupported)
+			_, _, err := Parse([]byte(cfg))
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 		})
 	}
 }
 
 func TestParseWarnsAboutLowercaseDryRun(t *testing.T) {
-	cfg, err := Parse([]byte(`
+	_, warnings, err := Parse([]byte(`
 preset: conventionalcommits
 branches: [main]
 plugins: [["@semantic-release/exec", {publishCmd: "DRYRUN=${options.dryrun} ./publish.sh"}]]`))
 	assert.NilError(t, err)
-	assert.Equal(t, len(cfg.Warnings), 1)
+	assert.Equal(t, len(warnings), 1)
 }
 
 func TestParseKeepsOtherCommandsOfTheCheckerHook(t *testing.T) {
-	_, err := Parse([]byte(`
+	_, _, err := Parse([]byte(`
 preset: conventionalcommits
 branches: [main]
 plugins:
   - - "@semantic-release/exec"
     - generateNotesCmd: ./scripts/shell-wrapper.sh major-release-checker.js ${lastRelease.version} ${nextRelease.version}
       publishCmd: echo ${nextRelease.notes}`))
-	assert.ErrorIs(t, err, ErrUnsupported)
+	assert.ErrorIs(t, err, spec.ErrUnsupported)
 }

@@ -7,14 +7,14 @@ package release
 import (
 	"testing"
 
-	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
 // customRules are the release rules that stencil-base renders when
 // major versions are blocked.
-func customRules() []releaserc.Rule {
-	return []releaserc.Rule{
+func customRules() []spec.Rule {
+	return []spec.Rule{
 		{Breaking: true, Release: "minor"},
 		{Type: "revert", Release: "patch"},
 		{Type: "perf", Release: "patch"},
@@ -131,22 +131,22 @@ func TestAnalyze(t *testing.T) {
 	tests := []struct {
 		name    string
 		message string
-		rules   []releaserc.Rule
-		want    Bump
+		rules   []spec.Rule
+		want    spec.Bump
 	}{
-		{"feat", "feat: x", nil, BumpMinor},
-		{"fix", "fix: x", nil, BumpPatch},
-		{"chore", "chore: x", nil, BumpNone},
-		{"breaking default", "feat!: x", nil, BumpMajor},
-		{"breaking footer default", "fix: x\n\nBREAKING CHANGE: y", nil, BumpMajor},
-		{"breaking custom", "feat!: x", customRules(), BumpMinor},
-		{"skip release", "feat: x [skip release]", nil, BumpNone},
-		{"release false", "feat: x", []releaserc.Rule{{Type: "feat", Release: "false"}}, BumpNone},
-		{"later false wins", "fix(db): x", []releaserc.Rule{{Type: "fix", Release: "patch"}, {Scope: "db", Release: "false"}}, BumpNone},
-		{"false then minor", "fix(db): x", []releaserc.Rule{{Scope: "db", Release: "false"}, {Type: "fix", Release: "minor"}}, BumpMinor},
-		{"jshint type", "FIX: x", nil, BumpPatch},
-		{"scope glob", "fix(core-db): x", []releaserc.Rule{{Scope: "core-*", Release: "minor"}}, BumpMinor},
-		{"revert default", "Revert \"feat: x\"\n\nThis reverts commit abc.", nil, BumpPatch},
+		{"feat", "feat: x", nil, spec.BumpMinor},
+		{"fix", "fix: x", nil, spec.BumpPatch},
+		{"chore", "chore: x", nil, spec.BumpNone},
+		{"breaking default", "feat!: x", nil, spec.BumpMajor},
+		{"breaking footer default", "fix: x\n\nBREAKING CHANGE: y", nil, spec.BumpMajor},
+		{"breaking custom", "feat!: x", customRules(), spec.BumpMinor},
+		{"skip release", "feat: x [skip release]", nil, spec.BumpNone},
+		{"release false", "feat: x", []spec.Rule{{Type: "feat", Release: "false"}}, spec.BumpNone},
+		{"later false wins", "fix(db): x", []spec.Rule{{Type: "fix", Release: "patch"}, {Scope: "db", Release: "false"}}, spec.BumpNone},
+		{"false then minor", "fix(db): x", []spec.Rule{{Scope: "db", Release: "false"}, {Type: "fix", Release: "minor"}}, spec.BumpMinor},
+		{"jshint type", "FIX: x", nil, spec.BumpPatch},
+		{"scope glob", "fix(core-db): x", []spec.Rule{{Scope: "core-*", Release: "minor"}}, spec.BumpMinor},
+		{"revert default", "Revert \"feat: x\"\n\nThis reverts commit abc.", nil, spec.BumpPatch},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestAnalyze(t *testing.T) {
 	// A custom rule match skips the default rules, so the breaking note
 	// does not make this a major release.
 	perf := ParseCommits([]RawCommit{{Hash: "h", Message: "perf: x\n\nBREAKING CHANGE: y"}})
-	assert.Equal(t, Analyze(perf, []releaserc.Rule{{Type: "perf", Release: "patch"}}), BumpPatch)
+	assert.Equal(t, Analyze(perf, []spec.Rule{{Type: "perf", Release: "patch"}}), spec.BumpPatch)
 
 	// A skipped revert is removed before the revert filter, so the commit
 	// that it reverts still counts.
@@ -166,5 +166,5 @@ func TestAnalyze(t *testing.T) {
 		{Hash: "r", Message: "Revert \"feat: x\"\n\nThis reverts commit h. [skip release]"},
 		{Hash: "h", Message: "feat: x"},
 	})
-	assert.Equal(t, Analyze(DropSkipped(reverted), nil), BumpMinor)
+	assert.Equal(t, Analyze(DropSkipped(reverted), nil), spec.BumpMinor)
 }

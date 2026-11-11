@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -37,15 +38,20 @@ release:
 func TestParse(t *testing.T) {
 	cfg, err := Parse([]byte(fixture))
 	assert.NilError(t, err)
-	assert.DeepEqual(t, cfg.Targets(), []Target{NewTarget("linux", "amd64"), NewTarget("linux", "arm64"), NewTarget("darwin", "arm64")})
-	assert.DeepEqual(t, cfg.ArchiveFiles(), defaultArchiveFiles)
+	assert.DeepEqual(t, cfg.Targets, []spec.Target{
+		spec.NewTarget("linux", "amd64"), spec.NewTarget("linux", "arm64"), spec.NewTarget("darwin", "arm64"),
+	})
+	assert.Equal(t, len(cfg.Files), len(defaultArchiveFiles))
+	for i, f := range defaultArchiveFiles {
+		assert.Equal(t, cfg.Files[i].Src, f.Src)
+	}
 }
 
 func TestParseRejectsBadEnv(t *testing.T) {
 	cfg := strings.Replace(fixture, "      - CGO_ENABLED=0\n",
 		"      - CGO_ENABLED=0\n      - '-X \"main.secret={{ .Env.SECRET }}\"'\n", 1)
 	_, err := Parse([]byte(cfg))
-	assert.ErrorIs(t, err, ErrUnsupported)
+	assert.ErrorIs(t, err, spec.ErrUnsupported)
 }
 
 func TestParseRejectsUnsupported(t *testing.T) {
@@ -54,7 +60,7 @@ func TestParseRejectsUnsupported(t *testing.T) {
 		"checksum template": strings.Replace(fixture, `"checksums.txt"`, `"{{ .ProjectName }}_checksums.txt"`, 1),
 	} {
 		_, err := Parse([]byte(cfg))
-		assert.ErrorIs(t, err, ErrUnsupported, name)
+		assert.ErrorIs(t, err, spec.ErrUnsupported, name)
 	}
 }
 
@@ -96,7 +102,7 @@ func TestParseRejectsTemplates(t *testing.T) {
 		for field, config := range templateFields {
 			t.Run(field+" "+tc.tmpl, func(t *testing.T) {
 				_, err := Parse([]byte(config(tc.tmpl)))
-				assert.ErrorIs(t, err, ErrUnsupported)
+				assert.ErrorIs(t, err, spec.ErrUnsupported)
 				assert.ErrorContains(t, err, tc.wantErr)
 			})
 		}
@@ -104,7 +110,7 @@ func TestParseRejectsTemplates(t *testing.T) {
 }
 
 func TestTemplateAllowed(t *testing.T) {
-	tmpl := &Template{Version: "1.2.3", Tag: "v1.2.3"}
+	tmpl := &spec.Template{Version: "1.2.3", Tag: "v1.2.3"}
 	env := []string{"A=a", "B=b"}
 	for _, tc := range []struct{ tmpl, want string }{
 		{"{{ .Version }}", "1.2.3"},
@@ -130,62 +136,13 @@ func TestTemplateAllowed(t *testing.T) {
 	}
 }
 
-func TestNewTarget(t *testing.T) {
-	for _, tc := range []struct {
-		arch        string
-		want        Target
-		env         []string
-		archiveArch string
-	}{
-		{
-			"arm",
-			Target{OS: "linux", Arch: "arm", Goarm: "6"},
-			[]string{"GOARM=6", "GOMIPS=", "GOMIPS64=", "GOAMD64="},
-			"armv6",
-		},
-		{
-			"mips",
-			Target{OS: "linux", Arch: "mips", Gomips: "hardfloat"},
-			[]string{"GOARM=", "GOMIPS=hardfloat", "GOMIPS64=hardfloat", "GOAMD64="},
-			"mips_hardfloat",
-		},
-		{
-			"mips64le",
-			Target{OS: "linux", Arch: "mips64le", Gomips: "hardfloat"},
-			[]string{"GOARM=", "GOMIPS=hardfloat", "GOMIPS64=hardfloat", "GOAMD64="},
-			"mips64le_hardfloat",
-		},
-		{
-			"amd64",
-			Target{OS: "linux", Arch: "amd64", Goamd64: "v1"},
-			[]string{"GOARM=", "GOMIPS=", "GOMIPS64=", "GOAMD64=v1"},
-			"amd64",
-		},
-		{"arm64", Target{OS: "linux", Arch: "arm64"}, []string{"GOARM=", "GOMIPS=", "GOMIPS64=", "GOAMD64="}, "arm64"},
-		{"386", Target{OS: "linux", Arch: "386"}, []string{"GOARM=", "GOMIPS=", "GOMIPS64=", "GOAMD64="}, "386"},
-	} {
-		t.Run(tc.arch, func(t *testing.T) {
-			got := NewTarget("linux", tc.arch)
-			assert.DeepEqual(t, got, tc.want)
-			assert.DeepEqual(t, got.Env(), append([]string{"GOOS=linux", "GOARCH=" + tc.arch}, tc.env...))
-			assert.Equal(t, got.ArchiveArch(), tc.archiveArch)
-			assert.Equal(t, got.String(), "linux/"+tc.arch)
-		})
-	}
-
-	t.Run("ArchiveArch with goamd64 v3", func(t *testing.T) {
-		// The default name template adds goamd64 unless it is v1.
-		assert.Equal(t, (&Target{OS: "linux", Arch: "amd64", Goamd64: "v3"}).ArchiveArch(), "amd64v3")
-	})
-}
-
 func TestArchiveFileGlob(t *testing.T) {
-	tmpl := &Template{Version: "1.2.3"}
+	tmpl := &spec.Template{Version: "1.2.3"}
 	for _, src := range []string{"a", "./a/b", "a/b/", "a/*.txt", "testdata/a.txt"} {
 		t.Run("accepted "+src, func(t *testing.T) {
 			_, err := Parse([]byte(templateFields["archive src"](src)))
 			assert.NilError(t, err)
-			f := ArchiveFile{Src: "{{ .Env.X }}"}
+			f := spec.ArchiveFile{Src: "{{ .Env.X }}"}
 			got, err := f.Glob(tmpl, []string{"X=" + src})
 			assert.NilError(t, err)
 			assert.Equal(t, got, src)
@@ -217,18 +174,18 @@ func TestArchiveFileGlob(t *testing.T) {
 	} {
 		t.Run("rejected "+src, func(t *testing.T) {
 			_, err := Parse([]byte(templateFields["archive src"](src)))
-			assert.ErrorIs(t, err, ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, wantErr)
-			f := ArchiveFile{Src: "{{ .Env.X }}"}
+			f := spec.ArchiveFile{Src: "{{ .Env.X }}"}
 			got, err := f.Glob(tmpl, []string{"X=" + src})
-			assert.ErrorIs(t, err, ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, wantErr)
 			assert.Equal(t, got, "")
 		})
 	}
 
 	t.Run("template error", func(t *testing.T) {
-		f := ArchiveFile{Src: "{{ .Env.X }}"}
+		f := spec.ArchiveFile{Src: "{{ .Env.X }}"}
 		_, err := f.Glob(tmpl, nil)
 		assert.ErrorContains(t, err, `map has no entry for key "X"`)
 	})

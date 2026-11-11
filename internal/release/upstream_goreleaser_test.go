@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -115,7 +116,7 @@ func grArchiveFiles(t *testing.T, dir, files string, env ...string) ([]*tar.Head
 	if err != nil {
 		return nil, err
 	}
-	extras, err := archiveExtras(cfg, &goreleaser.Template{Version: "1.2.3", Tag: "v1.2.3"}, env, dir)
+	extras, err := archiveExtras(cfg, &spec.Template{Version: "1.2.3", Tag: "v1.2.3"}, env, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ func grBuild(t *testing.T, dir, config string, env ...string) ([]string, error) 
 		return nil, err
 	}
 	plan := &Plan{ProjectName: "foobar", CommitTime: 1_700_000_000, NextRelease: &PlanRelease{Version: "0.0.1"}}
-	for _, target := range cfg.Targets() {
+	for _, target := range cfg.Targets {
 		plan.Targets = append(plan.Targets, target.String())
 	}
 	return Build(context.Background(), cfg, plan, &BuildOptions{
@@ -165,8 +166,7 @@ func grFakeBinary(t *testing.T, path string) (args []string, env map[string]stri
 // grHooks runs only the before hooks of a config through Build.
 func grHooks(t *testing.T, dir string, hooks []string, skip bool, env ...string) error {
 	t.Helper()
-	cfg := &goreleaser.Config{}
-	cfg.Before.Hooks = hooks
+	cfg := &spec.Artifacts{Hooks: hooks}
 	plan := &Plan{ProjectName: "foobar", NextRelease: &PlanRelease{Version: "0.0.1"}}
 	_, err := Build(context.Background(), cfg, plan, &BuildOptions{
 		Dir: dir, Env: append(os.Environ(), env...), SkipHooks: skip,
@@ -178,9 +178,9 @@ func grHooks(t *testing.T, dir string, hooks []string, skip bool, env ...string)
 // version 1.2.3, as buildTarget does: the templates see the process
 // environment, the builds[].env items and the target variables.
 func grLDFlags(ldflags, items, env []string) (string, error) {
-	b := &goreleaser.Build{ID: "foo", LDFlags: ldflags, Env: items}
-	tmpl := &goreleaser.Template{Version: "1.2.3", Tag: "v1.2.3"}
-	t := goreleaser.NewTarget("linux", "amd64")
+	b := &spec.Build{ID: "foo", LDFlags: ldflags, Env: items}
+	tmpl := &spec.Template{Version: "1.2.3", Tag: "v1.2.3"}
+	t := spec.NewTarget("linux", "amd64")
 	fullEnv, err := buildEnv(b, &t, tmpl, env)
 	if err != nil {
 		return "", err
@@ -211,7 +211,7 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 		{
 			// GoReleaser fails while it globs.
 			name:  "archivefiles_test.go TestEval/invalid glob",
-			files: "      - src: ../testdata/**/nope.txt\n        dst: var/foobar/d.txt\n", wantErr: goreleaser.ErrUnsupported,
+			files: "      - src: ../testdata/**/nope.txt\n        dst: var/foobar/d.txt\n", wantErr: spec.ErrUnsupported,
 		},
 		{
 			name:  "archivefiles_test.go TestEval/templated src (glob)",
@@ -227,12 +227,12 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 		{
 			// GoReleaser gives var/foobar/d.txt.
 			name:  "archivefiles_test.go TestEval/single file",
-			files: "      - src: ./testdata/**/d.txt\n        dst: var/foobar\n", wantErr: goreleaser.ErrUnsupported,
+			files: "      - src: ./testdata/**/d.txt\n        dst: var/foobar\n", wantErr: spec.ErrUnsupported,
 		},
 		{
 			// GoReleaser gives foo/bar/a.txt and foo/bar/c/d.txt.
 			name:  "archivefiles_test.go TestEval/rlcp",
-			files: "      - src: ./testdata/a/**/*\n        dst: foo/bar\n", wantErr: goreleaser.ErrUnsupported,
+			files: "      - src: ./testdata/a/**/*\n        dst: foo/bar\n", wantErr: spec.ErrUnsupported,
 		},
 		{
 			// goreleaser v1.20.0 gives the same result for this glob without "**".
@@ -269,12 +269,12 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 		{
 			// GoReleaser gives all three files.
 			name:  "archive_test.go TestArchive_globbing/glob src",
-			files: "      - src: testdata/**/*.txt\n", wantErr: goreleaser.ErrUnsupported,
+			files: "      - src: testdata/**/*.txt\n", wantErr: spec.ErrUnsupported,
 		},
 		{
 			// GoReleaser gives var/yada/a.txt, var/yada/b/a.txt and var/yada/b/c/d.txt.
 			name:  "archive_test.go TestArchive_globbing/glob src with dst",
-			files: "      - src: testdata/**/*.txt\n        dst: var/yada\n", wantErr: goreleaser.ErrUnsupported,
+			files: "      - src: testdata/**/*.txt\n        dst: var/yada\n", wantErr: spec.ErrUnsupported,
 		},
 		{
 			name:  "archive_test.go TestRunPipeInvalidGlob",
@@ -316,7 +316,7 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 		cfg, err := goreleaser.Parse([]byte(grBase +
 			"archives:\n  - files:\n      - {src: testdata/a/a.txt, dst: x}\n      - {src: README.md, dst: x}\n"))
 		assert.NilError(t, err)
-		extras, err := archiveExtras(cfg, &goreleaser.Template{}, nil, dir)
+		extras, err := archiveExtras(cfg, &spec.Template{}, nil, dir)
 		assert.NilError(t, err)
 		assert.Equal(t, len(extras), 1)
 		assert.Equal(t, extras[0].src, filepath.Join(dir, "testdata", "a", "a.txt"))
@@ -332,14 +332,14 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 	for name, value := range map[string]string{"outside the repository": "../secret.txt", "globstar": "testdata/**"} {
 		t.Run("templated src "+name, func(t *testing.T) {
 			_, err := grArchiveFiles(t, newTree(t), "      - src: '{{ .Env.X }}'\n", "X="+value)
-			assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 		})
 	}
 
 	t.Run("archive_test.go TestRunPipeInvalidFilesNameTemplate", func(t *testing.T) {
 		// GoReleaser fails while it archives; the port fails at Parse.
 		_, err := grArchiveFiles(t, newTree(t), "      - src: '{{.asdsd}'\n")
-		assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, "template: ")
 	})
 
@@ -383,21 +383,21 @@ func TestGoReleaserUpstreamArchiveFiles(t *testing.T) {
 func TestGoReleaserUpstreamArchiveName(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
-		target goreleaser.Target
+		target spec.Target
 		want   string
 	}{
-		{"archive_test.go TestRunPipe/darwin amd64 v1", goreleaser.NewTarget("darwin", "amd64"), "darwin_amd64"},
-		{"archive_test.go TestRunPipe/linux 386", goreleaser.NewTarget("linux", "386"), "linux_386"},
-		{"archive_test.go TestBinaryOverride/darwin arm64", goreleaser.NewTarget("darwin", "arm64"), "darwin_arm64"},
-		{"archive_test.go TestRunPipe/linux arm (goarm 6)", goreleaser.NewTarget("linux", "arm"), "linux_armv6"},
+		{"archive_test.go TestRunPipe/darwin amd64 v1", spec.NewTarget("darwin", "amd64"), "darwin_amd64"},
+		{"archive_test.go TestRunPipe/linux 386", spec.NewTarget("linux", "386"), "linux_386"},
+		{"archive_test.go TestBinaryOverride/darwin arm64", spec.NewTarget("darwin", "arm64"), "darwin_arm64"},
+		{"archive_test.go TestRunPipe/linux arm (goarm 6)", spec.NewTarget("linux", "arm"), "linux_armv6"},
 		{
 			"build_test.go TestWithDefaults/custom targets no mips (gomips hardfloat)",
-			goreleaser.NewTarget("linux", "mips"),
+			spec.NewTarget("linux", "mips"),
 			"linux_mips_hardfloat",
 		},
 		{
 			"build_test.go TestWithDefaults/custom targets no mips64le (gomips hardfloat)",
-			goreleaser.NewTarget("linux", "mips64le"),
+			spec.NewTarget("linux", "mips64le"),
 			"linux_mips64le_hardfloat",
 		},
 	} {
@@ -419,7 +419,7 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 			files = append(files, filepath.Join(dir, name))
 			writeFile(t, dir, name, "some string")
 		}
-		out := filepath.Join(dir, ChecksumsFile)
+		out := filepath.Join(dir, "checksums.txt")
 		assert.NilError(t, WriteChecksums(out, files))
 		b, err := os.ReadFile(out)
 		assert.NilError(t, err)
@@ -431,7 +431,7 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "a.tar.gz", "a")
 		writeFile(t, dir, "b.tar.gz", "b")
-		out := filepath.Join(dir, ChecksumsFile)
+		out := filepath.Join(dir, "checksums.txt")
 		assert.NilError(t, WriteChecksums(out, []string{filepath.Join(dir, "a.tar.gz"), filepath.Join(dir, "b.tar.gz")}))
 		b, err := os.ReadFile(out)
 		assert.NilError(t, err)
@@ -443,7 +443,7 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 	t.Run("checksums.go refresh (file mode 0644)", func(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "a.tar.gz", "a")
-		out := filepath.Join(dir, ChecksumsFile)
+		out := filepath.Join(dir, "checksums.txt")
 		assert.NilError(t, WriteChecksums(out, []string{filepath.Join(dir, "a.tar.gz")}))
 		info, err := os.Stat(out)
 		assert.NilError(t, err)
@@ -454,7 +454,7 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 		dir := t.TempDir()
 		file := filepath.Join(dir, "binary")
 		writeFile(t, dir, "binary", "some string")
-		out := filepath.Join(dir, ChecksumsFile)
+		out := filepath.Join(dir, "checksums.txt")
 		assert.NilError(t, WriteChecksums(out, []string{file}))
 		previous, err := os.ReadFile(out)
 		assert.NilError(t, err)
@@ -466,7 +466,7 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 	})
 
 	t.Run("checksums_test.go TestPipeFileNotExist", func(t *testing.T) {
-		err := WriteChecksums(filepath.Join(t.TempDir(), ChecksumsFile), []string{"/nope"})
+		err := WriteChecksums(filepath.Join(t.TempDir(), "checksums.txt"), []string{"/nope"})
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
@@ -476,14 +476,14 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 		}
 		dir := t.TempDir()
 		writeFile(t, dir, "bin", "fake artifact")
-		out := filepath.Join(dir, ChecksumsFile)
+		out := filepath.Join(dir, "checksums.txt")
 		assert.NilError(t, os.WriteFile(out, []byte("some string"), 0o000))
 		err := WriteChecksums(out, []string{filepath.Join(dir, "bin")})
 		assert.ErrorIs(t, err, os.ErrPermission)
 	})
 
 	t.Run("checksums_test.go TestPipeWhenNoArtifacts", func(t *testing.T) {
-		out := filepath.Join(t.TempDir(), ChecksumsFile)
+		out := filepath.Join(t.TempDir(), "checksums.txt")
 		assert.NilError(t, WriteChecksums(out, nil))
 		_, err := os.Stat(out)
 		assert.ErrorIs(t, err, os.ErrNotExist)
@@ -555,10 +555,10 @@ func TestGoReleaserUpstreamBeforeHooks(t *testing.T) {
 	t.Run("before_test.go TestInvalidTemplate", func(t *testing.T) {
 		// GoReleaser fails while it runs the hooks; the port fails at Parse.
 		_, err := goreleaser.Parse([]byte(grBase + "before:\n  hooks: ['touch {{ .fasdsd }']\n"))
-		assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, `unexpected "}" in operand`)
 		err = grHooks(t, t.TempDir(), []string{"touch {{ .fasdsd }"}, false)
-		assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, `unexpected "}" in operand`)
 	})
 
@@ -697,7 +697,7 @@ func TestGoReleaserUpstreamTemplates(t *testing.T) {
 				assert.NilError(t, err)
 				return
 			}
-			assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
 			assert.ErrorContains(t, err, tc.wantErr)
 		})
 	}
@@ -752,7 +752,7 @@ func TestGoReleaserUpstreamTemplates(t *testing.T) {
 
 // grApply applies one template with version 1.2.3 and env.
 func grApply(s string, env []string) (string, error) {
-	return (&goreleaser.Template{Version: "1.2.3", Tag: "v1.2.3"}).Apply(s, env)
+	return (&spec.Template{Version: "1.2.3", Tag: "v1.2.3"}).Apply(s, env)
 }
 
 // TestGoReleaserUpstreamBuild ports the go build cases of
@@ -862,7 +862,7 @@ func TestGoReleaserUpstreamBuild(t *testing.T) {
 		// GoReleaser fails while it builds: map has no entry for key "Nope".
 		// The port fails at Parse, as .Nope is not a field it supports.
 		_, err := grBuild(t, newDir(t), strings.Replace(goreleaserFixture, "CGO_ENABLED=0", "GO111MODULE={{ .Nope }}", 1))
-		assert.ErrorIs(t, err, goreleaser.ErrUnsupported)
+		assert.ErrorIs(t, err, spec.ErrUnsupported)
 		assert.ErrorContains(t, err, "field .Nope")
 	})
 

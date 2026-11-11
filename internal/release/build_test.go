@@ -123,7 +123,7 @@ func TestBuild(t *testing.T) {
 	assert.Assert(t, strings.Contains(string(out), `-X \"main.version=v1.2.3\" -X \"main.key=k\"`), string(out))
 
 	// TestGoReleaserUpstreamChecksums checks the line format and order.
-	sums := filepath.Join(dir, "dist", ChecksumsFile)
+	sums := filepath.Join(dir, "dist", "checksums.txt")
 	assert.NilError(t, WriteChecksums(sums, archives))
 	b, err := os.ReadFile(sums)
 	assert.NilError(t, err)

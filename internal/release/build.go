@@ -23,14 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
-// ChecksumsFile is the name of the checksum file.
-const ChecksumsFile = "checksums.txt"
-
 // ArchiveName returns the GoReleaser default archive name.
-func ArchiveName(project, version string, t *goreleaser.Target) string {
+func ArchiveName(project, version string, t *spec.Target) string {
 	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", project, version, t.OS, t.ArchiveArch())
 }
 
@@ -59,25 +56,25 @@ type BuildOptions struct {
 // Build runs the before hooks, then builds and archives the targets of
 // a plan in parallel. Each target writes to <dist>/<os>_<arch>/, so
 // parallel CI jobs never write the same file.
-func Build(ctx context.Context, cfg *goreleaser.Config, plan *Plan, opts *BuildOptions) ([]string, error) {
-	targets, err := selectTargets(cfg, plan, opts.Targets)
+func Build(ctx context.Context, arts *spec.Artifacts, plan *Plan, opts *BuildOptions) ([]string, error) {
+	targets, err := selectTargets(arts, plan, opts.Targets)
 	if err != nil {
 		return nil, err
 	}
-	tmpl := &goreleaser.Template{Version: plan.NextRelease.Version, Tag: "v" + plan.NextRelease.Version}
+	tmpl := &spec.Template{Version: plan.NextRelease.Version, Tag: "v" + plan.NextRelease.Version}
 	if !opts.SkipHooks {
-		for _, hook := range cfg.Before.Hooks {
+		for _, hook := range arts.Hooks {
 			if err := runHook(ctx, hook, tmpl, opts); err != nil {
 				return nil, fmt.Errorf("before hook %q: %w", hook, err)
 			}
 		}
 	}
-	extras, err := archiveExtras(cfg, tmpl, opts.Env, opts.Dir)
+	extras, err := archiveExtras(arts, tmpl, opts.Env, opts.Dir)
 	if err != nil {
 		return nil, err
 	}
 	bd := &builder{
-		cfg: cfg, opts: opts, tmpl: tmpl, extras: extras, project: plan.ProjectName, modTime: time.Unix(plan.CommitTime, 0),
+		arts: arts, opts: opts, tmpl: tmpl, extras: extras, project: plan.ProjectName, modTime: time.Unix(plan.CommitTime, 0),
 	}
 
 	archives := make([]string, len(targets))
@@ -100,7 +97,7 @@ func Build(ctx context.Context, cfg *goreleaser.Config, plan *Plan, opts *BuildO
 
 // runHook runs one before hook. The hook is a template, split into
 // arguments as GoReleaser does, and run without a shell.
-func runHook(ctx context.Context, hook string, tmpl *goreleaser.Template, opts *BuildOptions) error {
+func runHook(ctx context.Context, hook string, tmpl *spec.Template, opts *BuildOptions) error {
 	s, err := tmpl.Apply(hook, opts.Env)
 	if err != nil {
 		return err
@@ -122,9 +119,9 @@ var errEmptyHook = errors.New("empty command")
 
 // builder holds what every target of one Build call shares.
 type builder struct {
-	cfg     *goreleaser.Config
+	arts    *spec.Artifacts
 	opts    *BuildOptions
-	tmpl    *goreleaser.Template
+	tmpl    *spec.Template
 	extras  []archiveEntry
 	project string
 	modTime time.Time
@@ -132,17 +129,17 @@ type builder struct {
 
 // buildTarget builds every build for one target and writes its archive.
 // It checks the archive names of the binaries before it builds them.
-func (bd *builder) buildTarget(ctx context.Context, t *goreleaser.Target) (string, error) {
-	for j := range bd.cfg.Builds {
-		name := bd.cfg.Builds[j].Binary + t.BinaryExt()
+func (bd *builder) buildTarget(ctx context.Context, t *spec.Target) (string, error) {
+	for j := range bd.arts.Builds {
+		name := bd.arts.Builds[j].Binary + t.BinaryExt()
 		if slices.ContainsFunc(bd.extras, func(e archiveEntry) bool { return e.dst == name }) {
 			return "", fmt.Errorf("archive %s: %s: %w", t, name, fs.ErrExist)
 		}
 	}
 	outDir := filepath.Join(bd.opts.Dir, bd.opts.Dist, t.OS+"_"+t.Arch)
 	entries := slices.Clone(bd.extras)
-	for j := range bd.cfg.Builds {
-		b := &bd.cfg.Builds[j]
+	for j := range bd.arts.Builds {
+		b := &bd.arts.Builds[j]
 		env, err := buildEnv(b, t, bd.tmpl, bd.opts.Env)
 		if err != nil {
 			return "", fmt.Errorf("build %q for %s: %w", b.ID, t, err)
@@ -164,7 +161,7 @@ func (bd *builder) buildTarget(ctx context.Context, t *goreleaser.Target) (strin
 
 // renderLDFlags renders the ldflags of a build with .Env from env, and
 // joins them with spaces.
-func renderLDFlags(b *goreleaser.Build, tmpl *goreleaser.Template, env []string) (string, error) {
+func renderLDFlags(b *spec.Build, tmpl *spec.Template, env []string) (string, error) {
 	flags := make([]string, len(b.LDFlags))
 	for i, f := range b.LDFlags {
 		var err error
@@ -180,8 +177,8 @@ func renderLDFlags(b *goreleaser.Build, tmpl *goreleaser.Template, env []string)
 // item with $VAR expanded from the process environment and applied as a
 // template (an item that renders empty is left out), then the target
 // variables.
-func buildEnv(b *goreleaser.Build, t *goreleaser.Target, tmpl *goreleaser.Template, processEnv []string) ([]string, error) {
-	vars := goreleaser.EnvMap(processEnv)
+func buildEnv(b *spec.Build, t *spec.Target, tmpl *spec.Template, processEnv []string) ([]string, error) {
+	vars := spec.EnvMap(processEnv)
 	env := slices.Clone(processEnv)
 	for _, e := range b.Env {
 		e = os.Expand(e, func(k string) string { return vars[k] })
@@ -220,14 +217,14 @@ func WriteChecksums(file string, archives []string) error {
 }
 
 // selectTargets returns the requested targets, or all plan targets.
-func selectTargets(cfg *goreleaser.Config, plan *Plan, requested []string) ([]goreleaser.Target, error) {
+func selectTargets(arts *spec.Artifacts, plan *Plan, requested []string) ([]spec.Target, error) {
 	for _, r := range requested {
 		if !slices.Contains(plan.Targets, r) {
 			return nil, fmt.Errorf("%w: %s", ErrUnknownTarget, r)
 		}
 	}
-	var out []goreleaser.Target
-	for _, t := range cfg.Targets() {
+	var out []spec.Target
+	for _, t := range arts.Targets {
 		if slices.Contains(plan.Targets, t.String()) && (len(requested) == 0 || slices.Contains(requested, t.String())) {
 			out = append(out, t)
 		}
@@ -246,9 +243,9 @@ type archiveEntry struct {
 // folder adds every file in it; with a dst, a file keeps its path below
 // the common folder of the matches. The result is sorted by destination,
 // and the first file wins when two have one destination.
-func archiveExtras(cfg *goreleaser.Config, tmpl *goreleaser.Template, env []string, dir string) ([]archiveEntry, error) {
+func archiveExtras(arts *spec.Artifacts, tmpl *spec.Template, env []string, dir string) ([]archiveEntry, error) {
 	var out []archiveEntry
-	for _, f := range cfg.ArchiveFiles() {
+	for _, f := range arts.Files {
 		glob, err := f.Glob(tmpl, env)
 		if err != nil {
 			return nil, err
@@ -279,7 +276,7 @@ func archiveExtras(cfg *goreleaser.Config, tmpl *goreleaser.Template, env []stri
 				}
 				dst = filepath.Join(f.Dst, rel)
 			}
-			out = append(out, archiveEntry{src: filepath.Join(dir, file), dst: filepath.ToSlash(dst), mode: f.Info.Mode})
+			out = append(out, archiveEntry{src: filepath.Join(dir, file), dst: filepath.ToSlash(dst), mode: f.Mode})
 		}
 	}
 	slices.SortStableFunc(out, func(a, b archiveEntry) int { return strings.Compare(a.dst, b.dst) })

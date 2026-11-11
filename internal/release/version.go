@@ -11,7 +11,7 @@ import (
 	"slices"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
 // ErrMajorVersion is returned when the next version is a new major
@@ -22,7 +22,7 @@ var ErrMajorVersion = errors.New("major version bump is not allowed")
 // branch b, or nil. On a release branch, prerelease tags never count.
 // On a prerelease branch, a prerelease tag counts only when it is on
 // the branch channel and has the branch prerelease identifier.
-func LastRelease(b *releaserc.Branch, tags []Tag) *Tag {
+func LastRelease(b *spec.Branch, tags []Tag) *Tag {
 	var best *Tag
 	for i := range tags {
 		t := &tags[i]
@@ -39,7 +39,7 @@ func LastRelease(b *releaserc.Branch, tags []Tag) *Tag {
 
 // NextVersion returns the version for a release of type t on branch b.
 // tags are all release tags merged into the branch.
-func NextVersion(b *releaserc.Branch, last *Tag, tags []Tag, t Bump) *semver.Version {
+func NextVersion(b *spec.Branch, last *Tag, tags []Tag, t spec.Bump) *semver.Version {
 	if !b.IsPrerelease() {
 		if last == nil {
 			return semver.New(1, 0, 0, "", "")
