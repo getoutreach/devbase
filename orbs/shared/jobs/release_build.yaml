@@ -1,0 +1,32 @@
+description: Builds one target of a planned release with 'devbase release build'. Run it as a matrix over the targets.
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the job
+    type: string
+    default: "large.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+  target:
+    description: The target to build, as os/arch
+    type: string
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - attach_workspace:
+      at: .
+  - devbase_release:
+      step_name: Build << parameters.target >>
+      args: build --plan dist/plan.json --target << parameters.target >>
+  # Each target writes to its own dist/<os>_<arch> folder, so that the
+  # matrix jobs do not persist the same file.
+  - persist_to_workspace:
+      root: .
+      paths: [dist/*_*]

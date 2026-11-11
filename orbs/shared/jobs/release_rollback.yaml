@@ -1,0 +1,25 @@
+description: Removes the tag, git note and GitHub release of a partial release with 'devbase release rollback'. Run it after an approval job.
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the job
+    type: string
+    default: "small.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+  tag:
+    description: The release tag to remove, such as v1.5.0
+    type: string
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - devbase_release:
+      step_name: Roll back << parameters.tag >>
+      args: rollback --tag << parameters.tag >>

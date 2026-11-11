@@ -1,0 +1,28 @@
+description: Moves the release branch to the latest release candidate with 'devbase release promote'. Run it after an approval job.
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the job
+    type: string
+    default: "small.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+  tag:
+    description: The release candidate tag to promote. Empty means the latest one.
+    type: string
+    default: ""
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - run:
+      name: Promote release candidate
+      environment:
+        PROMOTE_TAG: << parameters.tag >>
+      command: ./scripts/shell-wrapper.sh ci/release/devbase-release.sh promote ${PROMOTE_TAG:+--tag "$PROMOTE_TAG"}

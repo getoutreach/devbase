@@ -1,0 +1,30 @@
+description: Publishes a planned release with 'devbase release publish', after the release_build jobs
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the job
+    type: string
+    default: "medium.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+  release_failure_slack_channel:
+    description: The slack channel to notify if the release fails
+    type: string
+    default: ""
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - attach_workspace:
+      at: .
+  - run:
+      name: Publish release
+      environment:
+        RELEASE_FAILURE_SLACK_CHANNEL: << parameters.release_failure_slack_channel >>
+      command: ./scripts/shell-wrapper.sh ci/release/devbase-release.sh publish --plan dist/plan.json

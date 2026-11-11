@@ -1,0 +1,25 @@
+description: Plans a release with 'devbase release plan', for the release_build and release_publish jobs
+parameters:
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the job
+    type: string
+    default: "medium.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+  - devbase_release:
+      step_name: Plan release
+      args: plan --out dist/plan.json
+  - persist_to_workspace:
+      root: .
+      paths: [dist/plan.json]

@@ -1,0 +1,12 @@
+description: Runs a `devbase release` subcommand with ci/release/devbase-release.sh
+parameters:
+  step_name:
+    description: The name of the step
+    type: string
+  args:
+    description: The subcommand and its arguments
+    type: string
+steps:
+  - run:
+      name: << parameters.step_name >>
+      command: ./scripts/shell-wrapper.sh ci/release/devbase-release.sh << parameters.args >>
