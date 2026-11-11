@@ -140,6 +140,14 @@ func TestRenderNotesFirstRelease(t *testing.T) {
 	assert.Equal(t, strings.SplitN(got, "\n", 2)[0], "## 1.0.0 (2026-11-11)")
 }
 
+func TestReleaseAsRegex(t *testing.T) {
+	// The "i" flag does not fold "ſ" or the Kelvin sign, and \s has the
+	// no-break space.
+	assert.Assert(t, !releaseAsRegex.MatchString("Release-A\u017F: 2.0.0"))
+	assert.Assert(t, !releaseAsRegex.MatchString("release-as: 1.2.\u212A"))
+	assert.Assert(t, releaseAsRegex.MatchString("RELEASE-AS:\u00a01.2.X"))
+}
+
 func TestShortHash(t *testing.T) {
 	// JavaScript's substring counts UTF-16 code units, not bytes.
 	assert.Equal(t, shortHash(fakeHash("a")), "aaaaaaa")

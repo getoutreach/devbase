@@ -77,6 +77,43 @@ func TestParseCommitDedupesReferences(t *testing.T) {
 	})
 }
 
+// TestParseCommitJavaScriptRules checks inputs where Go's \s, "." or
+// (?i) differ from JavaScript, against what conventional-commits-parser
+// returned.
+func TestParseCommitJavaScriptRules(t *testing.T) {
+	// "." does not match a line terminator, so these headers do not parse.
+	assert.Equal(t, ParseCommit(RawCommit{Message: "feat: a\rb"}).Type, "")
+	assert.Equal(t, ParseCommit(RawCommit{Message: "feat: a\u2028b"}).Type, "")
+
+	// \s has the vertical tab and the no-break space.
+	c := ParseCommit(RawCommit{Message: "fix: x\n\n\vBREAKING CHANGE: vt"})
+	assert.DeepEqual(t, c.Notes, []Note{{Title: "BREAKING CHANGE", Text: "vt"}})
+	c = ParseCommit(RawCommit{Message: "fix: x\n\u00a0gpg: sig\nbody"})
+	assert.Equal(t, c.Body, "body")
+	c = ParseCommit(RawCommit{Message: "fix: x\n\nfix\u00a0#1"})
+	assert.DeepEqual(t, c.References, []Reference{{Action: "fix", Prefix: "#", Issue: "1", Raw: "#1"}})
+
+	// The "i" flag does not fold the Kelvin sign or "ſ".
+	c = ParseCommit(RawCommit{Message: "fix: x\n\nBREA\u212AING CHANGE: k"})
+	assert.Equal(t, len(c.Notes), 0)
+	c = ParseCommit(RawCommit{Message: "Revert \"feat: a\"\n\nThi\u017F reverts commit abc."})
+	assert.Assert(t, c.Revert == nil)
+
+	// A sentence cannot cross a line terminator, so this line has no
+	// keyword sentence and is split at the terminators.
+	c = ParseCommit(RawCommit{Message: "fix: x\n\na\r b fixes #2 c\u2028#3"})
+	assert.DeepEqual(t, c.References, []Reference{
+		{Prefix: "#", Issue: "2", Raw: " b fixes #2"},
+		{Prefix: "#", Issue: "3", Raw: "#3"},
+	})
+
+	// trim removes U+FEFF and keeps U+0085.
+	assert.Equal(t, len(ParseCommits([]RawCommit{{Message: "\ufeff "}, {Message: "\u0085"}})), 1)
+
+	assert.Assert(t, !skipReleaseRegex.MatchString("[\u017Fkip release]"))
+	assert.Assert(t, skipReleaseRegex.MatchString("[skip\u00a0release]"))
+}
+
 func TestFilterReverted(t *testing.T) {
 	commits := filterReverted(ParseCommits([]RawCommit{
 		{Hash: "b2", Message: "Revert \"feat: old\"\n\nThis reverts commit abc123."},

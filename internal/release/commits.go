@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 	"golang.org/x/text/cases"
@@ -18,32 +19,37 @@ import (
 )
 
 // These patterns come from conventional-commits-parser and
-// conventional-changelog-conventionalcommits.
+// conventional-changelog-conventionalcommits. They use the jsregexp.go
+// fragments where Go's \s, "." or (?i) differ from JavaScript.
 var (
 	// headerRegex matches a commit header.
-	headerRegex = regexp.MustCompile(`^(\w*)(?:\((.*)\))?!?: (.*)$`)
+	headerRegex = regexp.MustCompile(`^(\w*)(?:\((` + jsDot + `*)\))?!?: (` + jsDot + `*)$`)
 
 	// breakingHeaderRegex matches a commit header with a "!".
-	breakingHeaderRegex = regexp.MustCompile(`^(\w*)(?:\((.*)\))?!: (.*)$`)
+	breakingHeaderRegex = regexp.MustCompile(`^(\w*)(?:\((` + jsDot + `*)\))?!: (` + jsDot + `*)$`)
 
 	// noteRegex matches a breaking change note line.
-	noteRegex = regexp.MustCompile(`(?i)^[\s|*]*(BREAKING CHANGE|BREAKING-CHANGE)[:\s]+(.*)`)
+	noteRegex = regexp.MustCompile(`^[` + jsSpaceChars + `|*]*(` + foldASCII("BREAKING CHANGE") + `|` +
+		foldASCII("BREAKING-CHANGE") + `)[:` + jsSpaceChars + `]+(` + jsDot + `*)`)
 
 	// fieldRegex matches a "-field-" meta line.
-	fieldRegex = regexp.MustCompile(`^-(.*?)-$`)
+	fieldRegex = regexp.MustCompile(`^-(` + jsDot + `*?)-$`)
 
 	// revertRegex matches a revert commit and captures the reverted
 	// header and hash.
-	revertRegex = regexp.MustCompile(`(?i)^(?:Revert|revert:)\s"?([\s\S]+?)"?\s*This reverts commit (\w*)\.`)
+	revertRegex = regexp.MustCompile(`^(?:` + foldASCII("Revert") + `|` + foldASCII("revert:") + `)` + jsSpace +
+		`"?([\s\S]+?)"?` + jsSpace + `*` + foldASCII("This reverts commit ") + `(\w*)\.`)
 
 	// gpgRegex matches a GPG signature line, which the parser drops.
-	gpgRegex = regexp.MustCompile(`^\s*gpg:`)
+	gpgRegex = regexp.MustCompile(`^` + jsSpace + `*gpg:`)
 
 	// urlRegex matches a URL; a sentence with a URL has no references.
 	urlRegex = regexp.MustCompile(`\b(?:https?)://(?:www\.)?([-a-zA-Z0-9@:%_+.~#?&/=])+\b`)
 
-	// skipReleaseRegex matches a commit that opts out of the release analysis.
-	skipReleaseRegex = regexp.MustCompile(`(?i)\[skip\s+release]|\[release\s+skip]`)
+	// skipReleaseRegex matches a commit that opts out of the release
+	// analysis, as semantic-release's /\[skip\s+release]|\[release\s+skip]/i.
+	skipReleaseRegex = regexp.MustCompile(`\[` + foldASCII("skip") + jsSpace + `+` + foldASCII("release") + `]|\[` +
+		foldASCII("release") + jsSpace + `+` + foldASCII("skip") + `]`)
 )
 
 // referenceActions are the reference keywords that
@@ -343,7 +349,9 @@ type sentence struct {
 }
 
 // referenceSentences splits a line as the parser's references regex
-// /(close|closes|...)(?:\s+(.*?))(?=(?:close|closes|...)|$)/gi does.
+// /(close|closes|...)(?:\s+(.*?))(?=(?:close|closes|...)|$)/gi does. When
+// that regex does not match, the parser uses /()(.+)/g, which makes each
+// run of characters between line terminators a sentence with no action.
 func referenceSentences(line string) []sentence {
 	lower := asciiLower(line)
 	var out []sentence
@@ -352,22 +360,20 @@ func referenceSentences(line string) []sentence {
 		if start < 0 {
 			break
 		}
-		textStart := kwEnd
-		for textStart < len(line) && isSpace(line[textStart]) {
-			textStart++
-		}
-		end := len(line)
-		for i := textStart; i < len(line); i++ {
-			if startsWithKeyword(lower[i:]) {
-				end = i
-				break
-			}
+		textStart := skipSpace(line, kwEnd)
+		end, ok := sentenceEnd(line, lower, textStart)
+		if !ok {
+			// The regex fails at this keyword and tries the next position.
+			pos = start + 1
+			continue
 		}
 		out = append(out, sentence{action: line[start:kwEnd], text: line[textStart:end]})
 		pos = end
 	}
-	if out == nil && line != "" {
-		out = []sentence{{text: line}}
+	if out == nil {
+		for _, text := range strings.FieldsFunc(line, isLineTerminator) {
+			out = append(out, sentence{text: text})
+		}
 	}
 	return out
 }
@@ -377,7 +383,7 @@ func referenceSentences(line string) []sentence {
 func keywordWithSpace(line, lower string, pos int) (start, end int) {
 	for i := pos; i < len(line); i++ {
 		for _, kw := range referenceActions {
-			if strings.HasPrefix(lower[i:], kw) && i+len(kw) < len(line) && isSpace(line[i+len(kw)]) {
+			if strings.HasPrefix(lower[i:], kw) && spaceAt(line, i+len(kw)) > 0 {
 				return i, i + len(kw)
 			}
 		}
@@ -385,18 +391,21 @@ func keywordWithSpace(line, lower string, pos int) (start, end int) {
 	return -1, -1
 }
 
-// asciiLower lowercases the ASCII letters of s and keeps its length, so
-// that byte offsets into s stay valid. A JavaScript regular expression
-// with the "i" flag and no "u" flag never matches a non-ASCII character
-// to an ASCII one, so the ASCII keywords need no other folding.
-func asciiLower(s string) string {
-	b := []byte(s)
-	for i, c := range b {
-		if c >= 'A' && c <= 'Z' {
-			b[i] = c + 'a' - 'A'
+// sentenceEnd returns where the lazy (.*?) of a sentence stops: at the
+// next keyword or at the end of the line. It returns false when a line
+// terminator comes first, because "." does not match it.
+func sentenceEnd(line, lower string, i int) (int, bool) {
+	for i < len(line) {
+		if startsWithKeyword(lower[i:]) {
+			return i, true
 		}
+		r, n := utf8.DecodeRuneInString(line[i:])
+		if isLineTerminator(r) {
+			return 0, false
+		}
+		i += n
 	}
-	return string(b)
+	return i, true
 }
 
 // startsWithKeyword reports whether s starts with a reference keyword.
@@ -414,11 +423,11 @@ func startsWithKeyword(s string) bool {
 // /(?:.*?)??\s*([\w-\.\/]*?)??(#)([\w-]+)(?=\s|$|[,;)\]])/gi does. It
 // returns the reference and the end of the match.
 func nextReference(s string, pos int) (Reference, int, bool) {
-	for skip := pos; skip < len(s); skip++ {
-		p := skip
-		for p < len(s) && isSpace(s[p]) {
-			p++
-		}
+	// start is where the match starts. The lazy (.*?) prefix cannot
+	// cross a line terminator, so after one the match starts again.
+	start := pos
+	for skip := pos; skip < len(s); {
+		p := skipSpace(s, skip)
 		// The repository group is optional and lazy: try no repository
 		// first, then longer and longer repository names.
 		for repoLen := 0; p+repoLen < len(s); repoLen++ {
@@ -433,7 +442,7 @@ func nextReference(s string, pos int) (Reference, int, bool) {
 			if !ok {
 				continue
 			}
-			r := Reference{Prefix: "#", Issue: issue, Raw: s[pos : hashAt+1+len(issue)]}
+			r := Reference{Prefix: "#", Issue: issue, Raw: s[start : hashAt+1+len(issue)]}
 			if repo := s[p:hashAt]; repo != "" {
 				if owner, name, found := strings.Cut(repo, "/"); found {
 					r.Owner, repo = owner, name
@@ -441,6 +450,11 @@ func nextReference(s string, pos int) (Reference, int, bool) {
 				r.Repository = repo
 			}
 			return r, hashAt + 1 + len(issue), true
+		}
+		r, n := utf8.DecodeRuneInString(s[skip:])
+		skip += n
+		if isLineTerminator(r) {
+			start = skip
 		}
 	}
 	return Reference{}, 0, false
@@ -454,16 +468,11 @@ func matchIssue(s string, start int) (string, bool) {
 		end++
 	}
 	for ; end > start; end-- {
-		if end == len(s) || isSpace(s[end]) || strings.IndexByte(",;)]", s[end]) >= 0 {
+		if end == len(s) || spaceAt(s, end) > 0 || strings.IndexByte(",;)]", s[end]) >= 0 {
 			return s[start:end], true
 		}
 	}
 	return "", false
-}
-
-// isSpace reports whether c is an ASCII whitespace character.
-func isSpace(c byte) bool {
-	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
 }
 
 // isWordChar reports whether c matches \w.
@@ -498,7 +507,7 @@ func appendLine(src, line string) string {
 func ParseCommits(raws []RawCommit) []Commit {
 	commits := make([]Commit, 0, len(raws))
 	for _, r := range raws {
-		if strings.TrimSpace(r.Message) != "" {
+		if jsTrim(r.Message) != "" {
 			commits = append(commits, ParseCommit(r))
 		}
 	}
@@ -514,8 +523,8 @@ func filterReverted(commits []Commit) []Commit {
 	for i := range commits {
 		for k, j := range held {
 			rv := commits[j].Revert
-			if strings.TrimSpace(commits[i].Header) == strings.TrimSpace(rv.Header) &&
-				strings.TrimSpace(commits[i].Hash) == strings.TrimSpace(rv.Hash) {
+			if jsTrim(commits[i].Header) == jsTrim(rv.Header) &&
+				jsTrim(commits[i].Hash) == jsTrim(rv.Hash) {
 				drop[i], drop[j] = true, true
 				held = slices.Delete(held, k, k+1)
 				break

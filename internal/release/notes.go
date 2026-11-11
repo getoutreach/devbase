@@ -22,7 +22,8 @@ import (
 var (
 	// releaseAsRegex matches a Release-As footer, which keeps a commit
 	// in the notes even when its type is hidden.
-	releaseAsRegex = regexp.MustCompile(`(?i)release-as:\s*\w*@?([0-9]+\.[0-9]+\.[0-9a-z]+(-[0-9a-z.]+)?)\s*`)
+	releaseAsRegex = regexp.MustCompile(foldASCII("release-as:") + jsSpace +
+		`*\w*@?([0-9]+\.[0-9]+\.[0-9a-zA-Z]+(-[0-9a-zA-Z.]+)?)` + jsSpace + `*`)
 
 	// subjectIssueRegex matches an issue in a subject. It is case
 	// sensitive, as in the preset.
@@ -152,7 +153,7 @@ func RenderNotes(in *NotesInput) string {
 			b.WriteString(renderCommit(&g.commits[i], in.Links) + "\n")
 		}
 	}
-	return strings.TrimSpace(b.String()) + "\n"
+	return jsTrim(b.String()) + "\n"
 }
 
 // transformCommit applies the preset's transform step. It returns false
