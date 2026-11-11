@@ -29,6 +29,10 @@ type Config struct {
 	// MajorCheck is true when major versions are blocked.
 	MajorCheck bool
 
+	// Build is true when the release builds Artifacts. The build command
+	// does it, before the publish step.
+	Build bool
+
 	// Plugins are the release capabilities, in config order. The order
 	// sets the order of hooks in each step.
 	Plugins []Plugin

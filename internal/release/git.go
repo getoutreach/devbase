@@ -88,6 +88,11 @@ func (g *Git) FetchNotes(ctx context.Context, url string) {
 	g.fetch(ctx, "--", url, "+refs/notes/*:refs/notes/*")
 }
 
+// noteRef is the git notes ref that holds the channels of a release tag.
+func noteRef(tag string) string {
+	return "refs/notes/semantic-release-" + tag
+}
+
 // CurrentBranch returns the checked-out branch, or "HEAD" when HEAD is
 // detached.
 func (g *Git) CurrentBranch(ctx context.Context) (string, error) {

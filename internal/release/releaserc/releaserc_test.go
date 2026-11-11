@@ -6,6 +6,7 @@ package releaserc
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
@@ -56,10 +57,10 @@ func TestParse(t *testing.T) {
 			{Type: "revert", Release: "patch"},
 		},
 		MajorCheck: true, // major-release-checker.js becomes the built-in check.
-		// The plugins keep their order. The checker hook has no other
-		// command, so its exec plugin is left out.
+		Build:      true, // The make release hook becomes the build command.
+		// The plugins keep their order. The checker and build hooks have
+		// no other command, so their exec plugins are left out.
 		Plugins: []spec.Plugin{
-			{Exec: &spec.ExecHooks{GenerateNotes: "make release APP_VERSION=${nextRelease.version}"}},
 			{Notes: &spec.NotesPlugin{}},
 			{Forge: &spec.ForgePlugin{Provider: spec.ForgeGitHub, Assets: []string{"dist/*.tar.gz", "dist/checksums.txt"}}},
 			{Orb: &spec.OrbPlugin{Name: "getoutreach/shared", Path: "orb.yml"}},
@@ -67,6 +68,20 @@ func TestParse(t *testing.T) {
 	})
 	assert.Equal(t, len(warnings), 0)
 	assert.Equal(t, cfg.Forge().Provider, spec.ForgeGitHub)
+
+	// The hook that runs the release:build mise task is the build too.
+	task := strings.Replace(prereleaseConfig, `"make release APP_VERSION=${nextRelease.version}"`,
+		`"APP_VERSION=${nextRelease.version} mise run --quiet release:build 1>&2"`, 1)
+	assert.Assert(t, task != prereleaseConfig)
+	got, _, err := Parse([]byte(task))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, got, cfg)
+
+	// Another form of the build hook fails closed.
+	other := strings.Replace(prereleaseConfig, `"make release APP_VERSION=${nextRelease.version}"`,
+		`"make release APP_VERSION=${nextRelease.version} 1>&2"`, 1)
+	_, _, err = Parse([]byte(other))
+	assert.ErrorIs(t, err, spec.ErrUnsupported)
 }
 
 // analyzerConfig returns a config with one commit-analyzer plugin whose

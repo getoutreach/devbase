@@ -8,10 +8,8 @@ package release
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"hash"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -35,8 +33,8 @@ type Repo struct {
 }
 
 // LoadRepo reads the release configuration of the repository in dir:
-// .releaserc.yaml, and .goreleaser.yml when it exists. Each file is read
-// once, and the digest uses the same bytes.
+// .releaserc.yaml, and .goreleaser.yml when .releaserc.yaml has the build
+// hook. Each file is read once, and the digest uses the same bytes.
 func LoadRepo(dir string) (*Repo, error) {
 	r := &Repo{Git: &Git{Dir: dir}}
 	h := sha256.New()
@@ -47,12 +45,12 @@ func LoadRepo(dir string) (*Repo, error) {
 	if r.Config, r.Warnings, err = releaserc.Parse(b); err != nil {
 		return nil, err
 	}
-	b, err = readConfig(dir, goreleaser.File, h)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-	case err != nil:
-		return nil, err
-	default:
+	// Only a config that builds reads .goreleaser.yml, as semantic-release
+	// runs GoReleaser only from the build hook.
+	if r.Config.Build {
+		if b, err = readConfig(dir, goreleaser.File, h); err != nil {
+			return nil, err
+		}
 		if r.Config.Artifacts, err = goreleaser.Parse(b); err != nil {
 			return nil, err
 		}

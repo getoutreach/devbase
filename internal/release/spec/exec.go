@@ -47,3 +47,32 @@ func CheckExecCommand(cmd string) (warnings []string, err error) {
 	}
 	return warnings, nil
 }
+
+// ExecFields are the values of the ${...} lookups of exec commands.
+type ExecFields struct {
+	NextVersion, NextTag, NextChannel string
+	LastVersion, LastTag              string
+	Branch                            string
+}
+
+// RenderExecCommand replaces the ${...} lookups of a command that
+// CheckExecCommand accepted. A missing value, such as the channel of the
+// default channel, renders as an empty string, as lodash renders null.
+// The hooks run only when it is not a dry run, so ${options.dryRun} and
+// ${options.dryrun} render "false"; semantic-release renders an empty
+// string for the lowercase form.
+func RenderExecCommand(cmd string, f *ExecFields) string {
+	values := map[string]string{
+		"nextRelease.version": f.NextVersion,
+		"nextRelease.gitTag":  f.NextTag,
+		"nextRelease.channel": f.NextChannel,
+		"lastRelease.version": f.LastVersion,
+		"lastRelease.gitTag":  f.LastTag,
+		"branch.name":         f.Branch,
+		"options.dryRun":      "false",
+		"options.dryrun":      "false",
+	}
+	return execExprRegex.ReplaceAllStringFunc(cmd, func(m string) string {
+		return values[strings.TrimSpace(execExprRegex.FindStringSubmatch(m)[1])]
+	})
+}

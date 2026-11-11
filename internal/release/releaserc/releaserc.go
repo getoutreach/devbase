@@ -19,6 +19,16 @@ import (
 // File is the semantic-release config file name.
 const File = ".releaserc.yaml"
 
+// These are the exec hooks that stencil-golang renders to build the
+// GoReleaser archives. The build command replaces them.
+const (
+	// buildCmd is the hook before the release:build mise task.
+	buildCmd = "make release APP_VERSION=${nextRelease.version}"
+
+	// buildTaskCmd is the hook that runs the release:build mise task.
+	buildTaskCmd = "APP_VERSION=${nextRelease.version} mise run --quiet release:build 1>&2"
+)
+
 // majorReleaseCheckerCmd is the exec hook that stencil-base renders
 // when major versions are not allowed. The release command replaces it
 // with a built-in check.
@@ -163,16 +173,27 @@ func addPlugin(cfg *spec.Config, n *yaml.Node) error {
 }
 
 // addExec adds an exec plugin. The major-release-checker.js hook becomes
-// the built-in major version check, and an exec plugin with no other
-// command is left out.
+// the built-in major version check, the build hook becomes the build
+// command, and an exec plugin with no other command is left out.
 func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 	var h execHook
 	if err := decodeNode(opts, &h, name); err != nil {
 		return err
 	}
-	if strings.TrimSpace(h.GenerateNotes) == majorReleaseCheckerCmd {
+	switch strings.TrimSpace(h.GenerateNotes) {
+	case majorReleaseCheckerCmd:
 		cfg.MajorCheck = true
 		h.GenerateNotes = ""
+	case buildCmd, buildTaskCmd:
+		cfg.Build = true
+		h.GenerateNotes = ""
+	}
+	// Another form of the build hook would run as a plain hook and skip
+	// the build command, so it fails closed.
+	for _, cmd := range []string{h.GenerateNotes, h.Prepare, h.Publish, h.Success} {
+		if strings.Contains(cmd, "make release") || strings.Contains(cmd, "release:build") {
+			return fmt.Errorf("%w: build hook %q; use %q", spec.ErrUnsupported, cmd, buildTaskCmd)
+		}
 	}
 	if hooks := spec.ExecHooks(h); hooks != (spec.ExecHooks{}) {
 		cfg.Plugins = append(cfg.Plugins, spec.Plugin{Exec: &hooks})

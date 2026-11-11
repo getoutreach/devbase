@@ -75,6 +75,8 @@ func TestValidateFailsClosed(t *testing.T) {
 		},
 		"plugin with two capabilities": func(c *spec.Config) { c.Plugins[0].NPM = &spec.NPMPlugin{} },
 		"unknown forge":                func(c *spec.Config) { c.Plugins[1].Forge.Provider = "gitlab" },
+		"forge asset globstar":         func(c *spec.Config) { c.Plugins[1].Forge.Assets = []string{"dist/**"} },
+		"commit file negation":         func(c *spec.Config) { c.Plugins[2].Commit.Files = []string{"!a"} },
 		"orb without a name":           func(c *spec.Config) { c.Plugins[4].Orb.Name = "" },
 		"exec command field":           func(c *spec.Config) { c.Plugins[5].Exec.Publish = "x ${nextRelease.notes}" },
 		"exec lodash template":         func(c *spec.Config) { c.Plugins[5].Exec.Publish = "x <%= a %>" },

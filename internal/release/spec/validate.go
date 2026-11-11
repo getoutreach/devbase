@@ -150,6 +150,19 @@ func (r *Rule) validate() error {
 	return nil
 }
 
+// validateFileGlobs checks the file globs of a forge release or a release
+// commit. The publish step matches them with filepath.Glob, so the globby
+// and micromatch syntax that it reads in another way is rejected: "**",
+// braces, and a leading "!".
+func validateFileGlobs(globs []string) error {
+	for _, g := range globs {
+		if g == "" || strings.Contains(g, "**") || strings.ContainsAny(g, "{}") || strings.HasPrefix(g, "!") {
+			return fmt.Errorf("%w: file glob %q", ErrUnsupported, g)
+		}
+	}
+	return nil
+}
+
 // validate checks that exactly one capability is set, with valid options.
 func (p *Plugin) validate() (warnings []string, err error) {
 	set := 0
@@ -165,6 +178,10 @@ func (p *Plugin) validate() (warnings []string, err error) {
 		return nil, fmt.Errorf("%w: forge %q", ErrUnsupported, p.Forge.Provider)
 	case p.Orb != nil && p.Orb.Name == "":
 		return nil, fmt.Errorf("%w: orb plugin without a name", ErrUnsupported)
+	case p.Forge != nil:
+		return nil, validateFileGlobs(p.Forge.Assets)
+	case p.Commit != nil:
+		return nil, validateFileGlobs(p.Commit.Files)
 	case p.Exec != nil:
 		for _, cmd := range []string{p.Exec.GenerateNotes, p.Exec.Prepare, p.Exec.Publish, p.Exec.Success} {
 			w, err := CheckExecCommand(cmd)
