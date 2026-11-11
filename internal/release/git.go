@@ -53,15 +53,53 @@ func (g *Git) Run(ctx context.Context, args ...string) (string, error) {
 	return run(ctx, g.Dir, nil, "git", args...)
 }
 
-// RepoURL returns the https URL of the origin remote. It reads the
-// configured URL, not the one after url.<base>.insteadOf rewrites, as
-// semantic-release does.
+// RemoteURL returns the configured URL of the origin remote, not the one
+// after url.<base>.insteadOf rewrites, as semantic-release reads it.
+func (g *Git) RemoteURL(ctx context.Context) (string, error) {
+	return g.Run(ctx, "config", "--get", "remote.origin.url")
+}
+
+// RepoURL returns the https URL of the origin remote.
 func (g *Git) RepoURL(ctx context.Context) (string, error) {
-	remote, err := g.Run(ctx, "config", "--get", "remote.origin.url")
+	remote, err := g.RemoteURL(ctx)
 	if err != nil {
 		return "", err
 	}
 	return RepoURLFromRemote(remote)
+}
+
+// Fetch fetches all tags and the branch from the remote at url, as
+// semantic-release does before it plans. current is the checked-out
+// branch, or "HEAD" when HEAD is detached; when it is not branch, the
+// fetch updates refs/heads/<branch> with an explicit refspec.
+func (g *Git) Fetch(ctx context.Context, url, branch, current string) error {
+	args := []string{"--tags", "--", url}
+	if current != branch {
+		args = []string{"--tags", "--update-head-ok", "--", url, "+refs/heads/" + branch + ":refs/heads/" + branch}
+	}
+	return g.fetch(ctx, args...)
+}
+
+// FetchNotes fetches every git notes ref from the remote at url, which
+// hold the channels of the release tags. As in semantic-release, a
+// failure is ignored: a remote without notes has no refs to fetch.
+func (g *Git) FetchNotes(ctx context.Context, url string) {
+	//nolint:errcheck // Why: semantic-release ignores this failure too.
+	g.fetch(ctx, "--", url, "+refs/notes/*:refs/notes/*")
+}
+
+// RemoteHead returns the commit of the branch on the remote at url, or
+// "" when the remote has no such branch.
+func (g *Git) RemoteHead(ctx context.Context, url, branch string) (string, error) {
+	out, err := g.Run(ctx, "ls-remote", "--heads", "--", url, branch)
+	head, _, _ := strings.Cut(out, "\t")
+	return head, err
+}
+
+// IsAncestor reports whether commit a is an ancestor of commit b, or b.
+func (g *Git) IsAncestor(ctx context.Context, a, b string) bool {
+	_, err := g.Run(ctx, "merge-base", "--is-ancestor", a, b)
+	return err == nil
 }
 
 // Tags returns the release tags (v<semver>) that are merged into ref,
@@ -117,6 +155,16 @@ func (g *Git) Commits(ctx context.Context, from, to string) ([]RawCommit, error)
 		}
 	}
 	return commits, nil
+}
+
+// fetch runs git fetch with --unshallow, and again without it when that
+// fails, as it does on a complete repository.
+func (g *Git) fetch(ctx context.Context, args ...string) error {
+	if _, err := g.Run(ctx, append([]string{"fetch", "--unshallow"}, args...)...); err == nil {
+		return nil
+	}
+	_, err := g.Run(ctx, append([]string{"fetch"}, args...)...)
+	return err
 }
 
 // tagChannels reads the channels of every tag from the semantic-release

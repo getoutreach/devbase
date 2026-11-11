@@ -81,11 +81,16 @@ type PlanOptions struct {
 
 	// Now is the release date. Zero means the current time.
 	Now time.Time
+
+	// Remote is the URL to fetch tags, the branch and notes from, and to
+	// compare the branch with. Empty means that the plan uses only local
+	// refs. A forge can give a URL with credentials.
+	Remote string
 }
 
 // MakePlan computes the release plan for a repository.
 func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
-	plan, repoURL, err := r.newPlan(ctx, opts.Branch)
+	plan, repoURL, current, err := r.newPlan(ctx, opts.Branch)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +101,17 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return plan, nil
 	}
 	plan.Branch = *branch
+
+	if opts.Remote != "" {
+		canPush, err := r.syncRemote(ctx, opts.Remote, branchName, current, plan.Commit)
+		if err != nil {
+			return nil, err
+		}
+		if !canPush {
+			plan.Reason = fmt.Sprintf("the local branch %q is behind the remote one", branchName)
+			return plan, nil
+		}
+	}
 
 	tags, err := r.Git.Tags(ctx, "HEAD")
 	if err != nil {
@@ -146,31 +162,51 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 	return plan, nil
 }
 
+// syncRemote fetches the tags, the branch and the notes from the remote
+// at url, as semantic-release does before it plans, and reports whether
+// a push of HEAD to the branch would be a fast-forward. semantic-release
+// checks that with git push --dry-run, which needs credentials, and does
+// not release when the push fails because the local branch is behind.
+// The plan runs without credentials, so it checks the same condition
+// with the fetched refs.
+func (r *Repo) syncRemote(ctx context.Context, url, branch, current, head string) (bool, error) {
+	if err := r.Git.Fetch(ctx, url, branch, current); err != nil {
+		return false, fmt.Errorf("fetch %s: %w", branch, err)
+	}
+	r.Git.FetchNotes(ctx, url)
+	remote, err := r.Git.RemoteHead(ctx, url, branch)
+	if err != nil {
+		return false, err
+	}
+	return remote == "" || remote == head || r.Git.IsAncestor(ctx, remote, head), nil
+}
+
 // newPlan returns a plan with the HEAD commit, the project name and the
-// branch filled in, and the repository URL.
-func (r *Repo) newPlan(ctx context.Context, branch string) (*Plan, string, error) {
+// branch filled in, the repository URL, and the checked-out branch, which
+// is "HEAD" when HEAD is detached.
+func (r *Repo) newPlan(ctx context.Context, branch string) (plan *Plan, repoURL, current string, err error) {
 	out, err := r.Git.Run(ctx, "log", "-1", "--format=%H %ct", "HEAD")
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	head, ct, _ := strings.Cut(out, " ")
 	commitTime, err := strconv.ParseInt(ct, 10, 64)
 	if err != nil {
-		return nil, "", fmt.Errorf("parse commit time %q: %w", ct, err)
+		return nil, "", "", fmt.Errorf("parse commit time %q: %w", ct, err)
 	}
-	repoURL, err := r.Git.RepoURL(ctx)
-	if err != nil {
-		return nil, "", err
+	if repoURL, err = r.Git.RepoURL(ctx); err != nil {
+		return nil, "", "", err
+	}
+	if current, err = r.Git.Run(ctx, "rev-parse", "--abbrev-ref", "HEAD"); err != nil {
+		return nil, "", "", err
 	}
 	if branch == "" {
-		if branch, err = r.Git.Run(ctx, "rev-parse", "--abbrev-ref", "HEAD"); err != nil {
-			return nil, "", err
-		}
+		branch = current
 	}
 	return &Plan{
 		Schema: PlanSchema, Commit: head, CommitTime: commitTime, ProjectName: path.Base(repoURL),
 		ConfigDigest: r.Digest, Branch: spec.Branch{Name: branch},
-	}, repoURL, nil
+	}, repoURL, current, nil
 }
 
 // WritePlan writes a plan as JSON.

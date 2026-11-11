@@ -110,9 +110,14 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 	for _, w := range repo.Warnings {
 		logrus.Warn(w)
 	}
+	remote, err := repo.Git.RemoteURL(ctx)
+	if err != nil {
+		return fmt.Errorf("read the origin URL: %w", err)
+	}
 	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{
 		Branch:   c.String("branch"),
 		NewLinks: func(repoURL string) release.NoteLinks { return release.NewGitHubLinks(repoURL) },
+		Remote:   remote,
 	})
 	if err != nil {
 		return fmt.Errorf("plan release: %w", err)

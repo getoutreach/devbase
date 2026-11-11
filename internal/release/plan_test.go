@@ -38,6 +38,10 @@ plugins:
 type fixture struct {
 	t   *testing.T
 	git *Git
+
+	// remote is the URL that plans fetch from, or empty to plan with
+	// local refs only. withRemote sets it.
+	remote string
 }
 
 // newRepo creates an empty repository on branch, without the global and
@@ -49,10 +53,16 @@ func newRepo(t *testing.T, branch string) *fixture {
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	f := &fixture{t: t, git: &Git{Dir: t.TempDir()}}
 	f.run("init", "-q", "-b", branch)
+	f.configure()
+	return f
+}
+
+// configure sets the commit identity of the fixture repository.
+func (f *fixture) configure() {
+	f.t.Helper()
 	f.run("config", "user.email", "test@example.com")
 	f.run("config", "user.name", "Test")
 	f.run("config", "commit.gpgsign", "false")
-	return f
 }
 
 // newFixture creates a repository on branch main with fixtureConfig.
@@ -99,11 +109,19 @@ func (f *fixture) release(branch, want string) {
 // plan loads the fixture repository and plans a release.
 func (f *fixture) plan() (*Plan, error) {
 	f.t.Helper()
+	return f.planBranch("")
+}
+
+// planBranch plans a release for branch, or for the current branch.
+func (f *fixture) planBranch(branch string) (*Plan, error) {
+	f.t.Helper()
 	repo, err := LoadRepo(f.git.Dir)
 	assert.NilError(f.t, err)
 	return MakePlan(context.Background(), repo, &PlanOptions{
+		Branch:   branch,
 		Now:      time.Unix(0, 0),
 		NewLinks: func(repoURL string) NoteLinks { return NewGitHubLinks(repoURL) },
+		Remote:   f.remote,
 	})
 }
 
@@ -207,4 +225,99 @@ func TestMakePlanMajorCheck(t *testing.T) {
 	f.commit("feat!: breaking")
 	_, err := f.plan()
 	assert.ErrorIs(t, err, ErrMajorVersion)
+}
+
+// withRemote makes a bare repository the origin remote and pushes every
+// branch and tag to it. The origin URL stays on github.com, as in CI, and
+// url.<bare>.insteadOf sends git to the bare repository.
+func (f *fixture) withRemote() string {
+	f.t.Helper()
+	bare := filepath.Join(f.t.TempDir(), "origin.git")
+	f.run("init", "-q", "--bare", "-b", "main", bare)
+	f.run("config", "url."+bare+".insteadOf", "https://github.com/acme/widgets.git")
+	f.run("push", "-q", "origin", "--all")
+	f.run("push", "-q", "origin", "--tags")
+	f.remote = "https://github.com/acme/widgets.git"
+	return bare
+}
+
+// TestMakePlanFetchesTagsAndNotes checks that the plan sees a release that
+// another job tagged and pushed, with its channel note, as
+// semantic-release does after its fetch.
+func TestMakePlanFetchesTagsAndNotes(t *testing.T) {
+	f := newFixture(t)
+	f.run("branch", "release")
+	bare := f.withRemote()
+
+	// Another clone releases 1.0.0 on the release branch.
+	other := &fixture{t: t, git: &Git{Dir: t.TempDir()}}
+	f.run("clone", "-q", bare, other.git.Dir)
+	other.configure()
+	other.run("checkout", "-q", "release")
+	other.addTag("v1.0.0", "")
+	other.run("push", "-q", "origin", "v1.0.0", "refs/notes/*")
+
+	f.run("checkout", "-q", "release")
+	f.commit("fix: a")
+	f.run("push", "-q", "origin", "release")
+	plan, err := f.plan()
+	assert.NilError(t, err)
+	assert.Equal(t, plan.LastRelease.GitTag, "v1.0.0")
+	assert.Equal(t, plan.NextRelease.Version, "1.0.1")
+	assert.Equal(t, f.run("notes", "--ref", "semantic-release-v1.0.0", "show", "v1.0.0"), `{"channels":[null]}`)
+}
+
+// TestMakePlanStopsWhenBehind checks the branch state in which
+// semantic-release does not release: git push --dry-run of HEAD to the
+// branch fails because the push is not a fast-forward.
+func TestMakePlanStopsWhenBehind(t *testing.T) {
+	f := newFixture(t)
+	f.run("branch", "release")
+	bare := f.withRemote()
+	f.run("checkout", "-q", "release")
+
+	// A local commit that is not on the remote is ahead: the push works.
+	f.commit("fix: local only")
+	plan, err := f.plan()
+	assert.NilError(t, err)
+	assert.Assert(t, plan.Release, plan.Reason)
+
+	// Another clone pushes first, so the branches diverge.
+	other := &fixture{t: t, git: &Git{Dir: t.TempDir()}}
+	f.run("clone", "-q", "-b", "release", bare, other.git.Dir)
+	other.configure()
+	other.commit("fix: remote only")
+	other.run("push", "-q", "origin", "release")
+	plan, err = f.plan()
+	assert.NilError(t, err)
+	assert.Assert(t, !plan.Release)
+	assert.Assert(t, strings.Contains(plan.Reason, "behind the remote"), plan.Reason)
+
+	// Behind: the local branch is an older commit of the remote one.
+	f.run("reset", "-q", "--hard", "HEAD~1")
+	plan, err = f.plan()
+	assert.NilError(t, err)
+	assert.Assert(t, !plan.Release)
+
+	// A branch that is not on the remote yet: the push would create it.
+	f.run("checkout", "-q", "-b", "next")
+	assert.NilError(t, os.WriteFile(filepath.Join(f.git.Dir, ".releaserc.yaml"),
+		[]byte(strings.Replace(fixtureConfig, "  - name: release\n", "  - name: next\n", 1)), 0o600))
+	f.run("commit", "-q", "-am", "chore: next")
+	plan, err = f.plan()
+	assert.NilError(t, err)
+	assert.Assert(t, plan.Release, plan.Reason)
+}
+
+// TestMakePlanDetachedHead checks the fetch with an explicit refspec,
+// which a CI checkout of a commit needs.
+func TestMakePlanDetachedHead(t *testing.T) {
+	f := newFixture(t)
+	f.run("branch", "release")
+	f.withRemote()
+	f.run("checkout", "-q", "--detach", "release")
+	plan, err := f.planBranch("release")
+	assert.NilError(t, err)
+	assert.Assert(t, plan.Release, plan.Reason)
+	assert.Equal(t, plan.NextRelease.Version, "1.0.0")
 }
