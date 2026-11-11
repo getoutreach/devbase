@@ -1,0 +1,154 @@
+// Copyright 2026 Outreach Corporation. All Rights Reserved.
+
+// Description: Reads tags, git notes and commits with the git CLI.
+
+package release
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os/exec"
+	"strings"
+)
+
+// These are the separators in the git log format that Commits uses.
+const (
+	fieldSep  = "\x1f"
+	recordSep = "\x1e"
+)
+
+// Git runs git commands in a repository.
+type Git struct {
+	// Dir is the repository directory.
+	Dir string
+}
+
+// Tag is a release tag with the channels from its git note.
+type Tag struct {
+	Name     string
+	Version  Version
+	Channels []string
+}
+
+// RawCommit is a commit as git log reports it.
+type RawCommit struct {
+	Hash    string
+	Message string
+}
+
+// Run runs git with args and returns its trimmed stdout.
+func (g *Git) Run(ctx context.Context, args ...string) (string, error) {
+	return run(ctx, g.Dir, nil, "git", args...)
+}
+
+// RepoURL returns the https URL of the origin remote. It reads the
+// configured URL, not the one after url.<base>.insteadOf rewrites, as
+// semantic-release does.
+func (g *Git) RepoURL(ctx context.Context) (string, error) {
+	remote, err := g.Run(ctx, "config", "--get", "remote.origin.url")
+	if err != nil {
+		return "", err
+	}
+	return RepoURLFromRemote(remote)
+}
+
+// Tags returns the release tags (v<semver>) that are merged into ref,
+// with their channels. A tag without a git note is on the default
+// channel, which is the empty string.
+func (g *Git) Tags(ctx context.Context, ref string) ([]Tag, error) {
+	out, err := g.Run(ctx, "tag", "--merged", ref, "--list", "v*")
+	if err != nil || out == "" {
+		return nil, err
+	}
+	channels, err := g.tagChannels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var tags []Tag
+	for name := range strings.FieldsSeq(out) {
+		v, err := ParseVersion(name)
+		if err != nil {
+			continue // Not a release tag.
+		}
+		ch, ok := channels[name]
+		if !ok {
+			ch = []string{""}
+		}
+		tags = append(tags, Tag{Name: name, Version: v, Channels: ch})
+	}
+	return tags, nil
+}
+
+// Commits returns the commits in from..to, newest first. An empty from
+// means all commits reachable from to.
+func (g *Git) Commits(ctx context.Context, from, to string) ([]RawCommit, error) {
+	rng := to
+	if from != "" {
+		rng = from + ".." + to
+	}
+	out, err := g.Run(ctx, "log", "--format=%H"+fieldSep+"%B"+recordSep, rng)
+	if err != nil {
+		return nil, err
+	}
+	var commits []RawCommit
+	for rec := range strings.SplitSeq(out, recordSep) {
+		hash, msg, ok := strings.Cut(strings.TrimSpace(rec), fieldSep)
+		if ok {
+			commits = append(commits, RawCommit{Hash: hash, Message: strings.TrimSpace(msg)})
+		}
+	}
+	return commits, nil
+}
+
+// tagChannels reads the channels of every tag from the semantic-release
+// git notes, with the same git log call that semantic-release uses. When
+// two tags share a commit, both get the first note, as in
+// semantic-release.
+func (g *Git) tagChannels(ctx context.Context) (map[string][]string, error) {
+	out, err := g.Run(ctx, "log", "--tags=*", "--decorate-refs=refs/tags/*", "--no-walk",
+		"--format=%d%x09%N", "--notes=refs/notes/semantic-release*")
+	if err != nil {
+		return nil, err
+	}
+	channels := map[string][]string{}
+	for line := range strings.SplitSeq(out, "\n") {
+		deco, note, ok := strings.Cut(line, "\t")
+		if !ok {
+			continue
+		}
+		var n struct {
+			Channels []*string `json:"channels"`
+		}
+		if json.Unmarshal([]byte(strings.TrimSpace(note)), &n) != nil {
+			continue
+		}
+		chs := make([]string, len(n.Channels))
+		for i, c := range n.Channels {
+			if c != nil {
+				chs[i] = *c
+			}
+		}
+		for d := range strings.SplitSeq(strings.Trim(strings.TrimSpace(deco), "()"), ",") {
+			if name, ok := strings.CutPrefix(strings.TrimSpace(d), "tag: "); ok {
+				channels[name] = chs
+			}
+		}
+	}
+	return channels, nil
+}
+
+// run runs a command in dir and returns its trimmed stdout. A nil env
+// means the current environment. On failure, the error has stderr.
+func run(ctx context.Context, dir string, env []string, name string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir, cmd.Env = dir, env
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("%s %s: %w: %s", name, strings.Join(args, " "), err,
+			strings.TrimSpace(stderr.String()+"\n"+stdout.String()))
+	}
+	return strings.TrimSpace(stdout.String()), nil
+}

@@ -71,6 +71,7 @@ func main() {
 		newYqCommand(),
 		newTomlqCommand(),
 		newVaultCommand(),
+		newReleaseCommand(),
 		// <</Stencil::Block>>
 	}
 
