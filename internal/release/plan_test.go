@@ -93,7 +93,7 @@ func (f *fixture) plan() (*Plan, error) {
 	assert.NilError(f.t, err)
 	return MakePlan(context.Background(), repo, &PlanOptions{
 		Now:      time.Unix(0, 0),
-		NewLinks: func(repoURL string) NoteLinks { return GitHubLinks{RepoURL: repoURL} },
+		NewLinks: func(repoURL string) NoteLinks { return NewGitHubLinks(repoURL) },
 	})
 }
 

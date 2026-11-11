@@ -171,7 +171,7 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 	commits := ParseCommits(raws)
-	t := Analyze(commits, r.ReleaseRC.ReleaseRules)
+	t := Analyze(DropSkipped(commits), r.ReleaseRC.ReleaseRules)
 	if t == BumpNone {
 		plan.Reason = "no relevant changes"
 		return plan, nil
@@ -191,7 +191,8 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 	plan.Release = true
 	plan.NextRelease = &PlanRelease{Type: t, Version: next.String(), GitTag: "v" + next.String(), Channel: branch.Channel}
 	plan.Notes = RenderNotes(&NotesInput{
-		Version: next.String(), PreviousTag: from, Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
+		Version: next.String(), Tag: plan.NextRelease.GitTag, PreviousTag: from,
+		Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
 	})
 	if r.GoReleaser != nil {
 		for _, target := range r.GoReleaser.Targets() {

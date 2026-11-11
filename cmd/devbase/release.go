@@ -112,7 +112,7 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 	}
 	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{
 		Branch:   c.String("branch"),
-		NewLinks: func(repoURL string) release.NoteLinks { return release.GitHubLinks{RepoURL: repoURL} },
+		NewLinks: func(repoURL string) release.NoteLinks { return release.NewGitHubLinks(repoURL) },
 	})
 	if err != nil {
 		return fmt.Errorf("plan release: %w", err)

@@ -34,10 +34,11 @@ func TestRenderNotesMatchesConventionalCommits(t *testing.T) {
 	})
 	got := RenderNotes(&NotesInput{
 		Version:     "1.3.0",
+		Tag:         "v1.3.0",
 		PreviousTag: "v1.2.0",
 		Date:        time.Date(2026, 11, 11, 23, 0, 0, 0, time.UTC),
 		Commits:     commits,
-		Links:       GitHubLinks{RepoURL: "https://github.com/acme/widgets"},
+		Links:       NewGitHubLinks("https://github.com/acme/widgets"),
 	})
 
 	//nolint:lll // Why: the expected output has long lines.
@@ -69,12 +70,72 @@ func TestRenderNotesMatchesConventionalCommits(t *testing.T) {
 	assert.Equal(t, got, want)
 }
 
+// TestRenderNotesEdgeCases checks the output against what
+// @semantic-release/release-notes-generator 14.1 printed for commits
+// with unknown and missing types, a Release-As footer, cross-repository
+// references, user mentions and non-ASCII sorting.
+func TestRenderNotesEdgeCases(t *testing.T) {
+	commits := ParseCommits([]RawCommit{
+		{Hash: fakeHash("1"), Message: "feat(*): add `@x` helper for @octo-cat and @org/team"},
+		{Hash: fakeHash("2"), Message: "fix(api): Handle #12 and #ABC\n\nfixes #12, closes acme/other#3 and other#4"},
+		{Hash: fakeHash("3"), Message: "chore: bump\n\nRelease-As: 2.0.0"},
+		{Hash: fakeHash("4"), Message: "wip: try\n\nBREAKING CHANGE: the config\nformat changed\nCloses #5"},
+		{Hash: fakeHash("5"), Message: "no conventional header\n\nBREAKING-CHANGE: untyped"},
+		{Hash: fakeHash("6"), Message: "feat: Zebra"},
+		{Hash: fakeHash("7"), Message: "feat: _underscore"},
+		{Hash: fakeHash("8"), Message: "feat: ébauche"},
+		{Hash: fakeHash("9"), Message: "Feat: apple"},
+	})
+	got := RenderNotes(&NotesInput{
+		Version:     "1.3.0",
+		Tag:         "v1.3.0",
+		PreviousTag: "v1.2.0",
+		Date:        time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC),
+		Commits:     commits,
+		Links:       NewGitHubLinks("https://github.com/acme/widgets"),
+	})
+
+	//nolint:lll // Why: the expected output has long lines.
+	want := `## [1.3.0](https://github.com/acme/widgets/compare/v1.2.0...v1.3.0) (2026-11-11)
+
+### ⚠ BREAKING CHANGES
+
+* the config
+format changed
+* untyped
+
+### wip
+
+* try ([4444444](https://github.com/acme/widgets/commit/4444444444444444444444444444444444444444)), closes [#5](https://github.com/acme/widgets/issues/5)
+
+* no conventional header ([5555555](https://github.com/acme/widgets/commit/5555555555555555555555555555555555555555))
+
+### Features
+
+* _underscore ([7777777](https://github.com/acme/widgets/commit/7777777777777777777777777777777777777777))
+* add ` + "`@x`" + ` helper for [@octo-cat](https://github.com/octo-cat) and @org/team ([1111111](https://github.com/acme/widgets/commit/1111111111111111111111111111111111111111))
+* apple ([9999999](https://github.com/acme/widgets/commit/9999999999999999999999999999999999999999))
+* ébauche ([8888888](https://github.com/acme/widgets/commit/8888888888888888888888888888888888888888))
+* Zebra ([6666666](https://github.com/acme/widgets/commit/6666666666666666666666666666666666666666))
+
+### Bug Fixes
+
+* **api:** Handle [#12](https://github.com/acme/widgets/issues/12) and #ABC ([2222222](https://github.com/acme/widgets/commit/2222222222222222222222222222222222222222)), closes [#ABC](https://github.com/acme/widgets/issues/ABC) [acme/other#3](https://github.com/acme/other/issues/3) [other#4](https://github.com/acme/other/issues/4)
+
+### Miscellaneous Chores
+
+* bump ([3333333](https://github.com/acme/widgets/commit/3333333333333333333333333333333333333333))
+`
+	assert.Equal(t, got, want)
+}
+
 func TestRenderNotesFirstRelease(t *testing.T) {
 	got := RenderNotes(&NotesInput{
 		Version: "1.0.0",
+		Tag:     "v1.0.0",
 		Date:    time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC),
 		Commits: ParseCommits([]RawCommit{{Hash: fakeHash("a"), Message: "feat: init"}}),
-		Links:   GitHubLinks{RepoURL: "https://github.com/acme/widgets"},
+		Links:   NewGitHubLinks("https://github.com/acme/widgets"),
 	})
 	assert.Equal(t, strings.SplitN(got, "\n", 2)[0], "## 1.0.0 (2026-11-11)")
 }

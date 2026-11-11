@@ -26,26 +26,34 @@ func TestParseCommit(t *testing.T) {
 	assert.Equal(t, c.Type, "feat")
 	assert.Equal(t, c.Scope, "api")
 	assert.Equal(t, c.Subject, "new api")
-	assert.DeepEqual(t, c.Notes, []string{"new api"})
-	assert.DeepEqual(t, c.Closes, []string{"12"})
+	assert.DeepEqual(t, c.Notes, []Note{{Title: "BREAKING CHANGE", Text: "new api"}})
+	assert.DeepEqual(t, c.References, []Reference{{Action: "Closes", Prefix: "#", Issue: "12", Raw: "#12"}})
 
 	c = ParseCommit(RawCommit{Hash: "a2", Message: "fix: x\n\nBREAKING-CHANGE: the api moved\nto v2\n\nRefs: y"})
-	assert.DeepEqual(t, c.Notes, []string{"the api moved\nto v2"})
+	assert.DeepEqual(t, c.Notes, []Note{{Title: "BREAKING-CHANGE", Text: "the api moved\nto v2\n\nRefs: y"}})
 
 	c = ParseCommit(RawCommit{Hash: "a3", Message: "Revert \"feat: old\"\n\nThis reverts commit abc123."})
 	assert.Equal(t, c.Type, "")
 	assert.DeepEqual(t, c.Revert, &Revert{Header: "feat: old", Hash: "abc123"})
 }
 
-func TestParseCommitsDropsRevertedPairs(t *testing.T) {
-	commits := ParseCommits([]RawCommit{
+func TestParseReferencesNonASCII(t *testing.T) {
+	// "İ" lowercases to a shorter string, which must not shift offsets.
+	refs := parseReferences("İİİİ fixes #1")
+	assert.DeepEqual(t, refs, []Reference{{Action: "fixes", Prefix: "#", Issue: "1", Raw: "#1"}})
+}
+
+func TestFilterReverted(t *testing.T) {
+	commits := filterReverted(ParseCommits([]RawCommit{
 		{Hash: "b2", Message: "Revert \"feat: old\"\n\nThis reverts commit abc123."},
-		{Hash: "abc123ffff", Message: "feat: old"},
+		{Hash: "abc123ffff", Message: "feat: old"}, // a hash prefix does not match
+		{Hash: "abc123", Message: "feat: old"},
 		{Hash: "c3", Message: "fix: kept"},
 		{Hash: "d4", Message: ""},
-	})
-	assert.Equal(t, len(commits), 1)
-	assert.Equal(t, commits[0].Hash, "c3")
+	}))
+	assert.Equal(t, len(commits), 2)
+	assert.Equal(t, commits[0].Hash, "abc123ffff")
+	assert.Equal(t, commits[1].Hash, "c3")
 }
 
 func TestAnalyze(t *testing.T) {
@@ -63,13 +71,16 @@ func TestAnalyze(t *testing.T) {
 		{"breaking custom", "feat!: x", customRules(), BumpMinor},
 		{"skip release", "feat: x [skip release]", nil, BumpNone},
 		{"release false", "feat: x", []releaserc.Rule{{Type: "feat", Release: "false"}}, BumpNone},
+		{"later false wins", "fix(db): x", []releaserc.Rule{{Type: "fix", Release: "patch"}, {Scope: "db", Release: "false"}}, BumpNone},
+		{"false then minor", "fix(db): x", []releaserc.Rule{{Scope: "db", Release: "false"}, {Type: "fix", Release: "minor"}}, BumpMinor},
+		{"jshint type", "FIX: x", nil, BumpPatch},
 		{"scope glob", "fix(core-db): x", []releaserc.Rule{{Scope: "core-*", Release: "minor"}}, BumpMinor},
 		{"revert default", "Revert \"feat: x\"\n\nThis reverts commit abc.", nil, BumpPatch},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			commits := ParseCommits([]RawCommit{{Hash: "h", Message: tt.message}})
-			assert.Equal(t, Analyze(commits, tt.rules), tt.want)
+			assert.Equal(t, Analyze(DropSkipped(commits), tt.rules), tt.want)
 		})
 	}
 
@@ -77,4 +88,12 @@ func TestAnalyze(t *testing.T) {
 	// does not make this a major release.
 	perf := ParseCommits([]RawCommit{{Hash: "h", Message: "perf: x\n\nBREAKING CHANGE: y"}})
 	assert.Equal(t, Analyze(perf, []releaserc.Rule{{Type: "perf", Release: "patch"}}), BumpPatch)
+
+	// A skipped revert is removed before the revert filter, so the commit
+	// that it reverts still counts.
+	reverted := ParseCommits([]RawCommit{
+		{Hash: "r", Message: "Revert \"feat: x\"\n\nThis reverts commit h. [skip release]"},
+		{Hash: "h", Message: "feat: x"},
+	})
+	assert.Equal(t, Analyze(DropSkipped(reverted), nil), BumpMinor)
 }
