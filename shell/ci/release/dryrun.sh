@@ -58,6 +58,9 @@ run_release_preview() {
   "$DIR/pre-release.sh" --dry-run
 }
 
+# devbase release preview skips a pull request from a fork itself.
+release_exec_engine preview
+
 if circleci_pr_is_fork; then
   warn "Skipping pre-release (dry run) check, does not run in CircleCI for PR forks"
   exit 0

@@ -12,6 +12,10 @@ source "$DIR/../../lib/yaml.sh"
 source "$DIR/../../lib/bootstrap.sh"
 # shellcheck source=./../../lib/github.sh
 source "$DIR/../../lib/github.sh"
+# shellcheck source=./../../lib/release.sh
+source "$DIR/../../lib/release.sh"
+
+release_exec_engine unstable "$@"
 
 # CIRCLE_BRANCH is the current branch we're on. If we're unable to
 # determine the current branch (e.g., not running in CI) we fallback to

@@ -1,6 +1,54 @@
 #!/usr/bin/env bash
 # Helpers for the CI release flow.
 
+_DEVBASE_LIB_RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# release_engine echoes the release engine that releaseOptions.engine in
+# service.yaml selects: "devbase", or "semantic-release" by default.
+# Requires bootstrap.sh to be sourced (for stencil_arg).
+release_engine() {
+  local engine
+  engine="$(stencil_arg "releaseOptions.engine")" || return 1
+  case "$engine" in
+  "" | null) echo "semantic-release" ;;
+  semantic-release | devbase) echo "$engine" ;;
+  *)
+    echo "release_engine: invalid releaseOptions.engine: $engine" >&2
+    return 1
+    ;;
+  esac
+}
+
+# release_exec_engine <subcommand> [args...]
+#
+# Replaces the shell with `devbase release <subcommand> [args...]`, through
+# ci/release/devbase-release.sh, when releaseOptions.engine is "devbase".
+# Otherwise it returns, and the caller runs semantic-release. Call it
+# before any other setup. Requires bootstrap.sh to be sourced.
+release_exec_engine() {
+  local engine
+  engine="$(release_engine)" || exit 1
+  if [[ $engine == "devbase" ]]; then
+    exec "$_DEVBASE_LIB_RELEASE_DIR/../ci/release/devbase-release.sh" "$@"
+  fi
+}
+
+# release_failure_notification
+#
+# Sends the release failure to RELEASE_FAILURE_SLACK_CHANNEL through
+# RELEASE_FAILURE_WEBHOOK, and exits 1. Without a channel, it fails with
+# a fatal log. Requires logging.sh to be sourced.
+release_failure_notification() {
+  if [[ -z ${RELEASE_FAILURE_SLACK_CHANNEL:-} ]]; then
+    fatal "Failed to release"
+  fi
+
+  curl -X POST "$RELEASE_FAILURE_WEBHOOK" \
+    -H 'Content-Type: application/json' \
+    -d '{"slackChannel": "'"$RELEASE_FAILURE_SLACK_CHANNEL"'", "buildURL": "'"$CIRCLE_BUILD_URL"'", "repoName": "'"$CIRCLE_PROJECT_REPONAME"'"}'
+  exit 1
+}
+
 # resolve_release_base_branch <repo_dir> <current_branch> <default_branch>
 #
 # Echoes the branch a release dry-run should be previewed against.

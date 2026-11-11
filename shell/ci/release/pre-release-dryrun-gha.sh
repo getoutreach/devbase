@@ -19,6 +19,15 @@ source "${LIB_DIR}/version.sh"
 # shellcheck source=../../lib/release.sh
 source "${LIB_DIR}/release.sh"
 
+# Assert the GitHub Actions ref env vars are set before any git operation, so a
+# missing trigger context fails with a clear config error rather than mid-run.
+: "${GITHUB_REF:?GITHUB_REF must be set (GitHub Actions ref context)}"
+: "${GITHUB_BASE_REF:?GITHUB_BASE_REF must be set (GitHub Actions base ref context)}"
+
+pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
+
+release_exec_engine preview --base "$GITHUB_BASE_REF" --head "$pull_ref"
+
 # Setup git user name / email only in CI
 if in_ci_environment; then
   git config --global user.name "Devbase CI"
@@ -27,17 +36,10 @@ if in_ci_environment; then
   yarn install --frozen-lockfile
 fi
 
-# Assert the GitHub Actions ref env vars are set before any git operation, so a
-# missing trigger context fails with a clear config error rather than mid-run.
-: "${GITHUB_REF:?GITHUB_REF must be set (GitHub Actions ref context)}"
-: "${GITHUB_BASE_REF:?GITHUB_BASE_REF must be set (GitHub Actions base ref context)}"
-
 # This assumes a full clone (the release-dryrun workflow checks out with
 # fetch-depth: 0), so the merge-base with the PR head is present and no
 # unshallow step is needed (unlike the CircleCI dryrun.sh path).
 git pull origin "$GITHUB_BASE_REF"
-
-pull_ref=refs/remotes/$(echo "$GITHUB_REF" | cut -d/ -f2-)
 
 git checkout "$GITHUB_BASE_REF"
 

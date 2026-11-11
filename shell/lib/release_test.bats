@@ -76,6 +76,30 @@ diverging_conflict() {
   git -C "$REPO" commit --quiet --all --message "main change"
 }
 
+@test "release_engine defaults to semantic-release" {
+  prereleases_on
+  cd "$REPO"
+  run release_engine
+  assert_success
+  assert_output "semantic-release"
+}
+
+@test "release_engine reads releaseOptions.engine" {
+  printf 'arguments:\n  releaseOptions:\n    engine: devbase\n' >"$REPO/service.yaml"
+  cd "$REPO"
+  run release_engine
+  assert_success
+  assert_output "devbase"
+}
+
+@test "release_engine rejects an unknown engine" {
+  printf 'arguments:\n  releaseOptions:\n    engine: other\n' >"$REPO/service.yaml"
+  cd "$REPO"
+  run --separate-stderr release_engine
+  assert_failure
+  [[ $stderr == *"invalid releaseOptions.engine: other"* ]]
+}
+
 @test "feature branch ahead of main resolves to default branch" {
   prereleases_on
   git -C "$REPO" checkout --quiet -b feature
