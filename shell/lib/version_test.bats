@@ -93,6 +93,44 @@ load version.sh
   assert_failure
 }
 
+@test "is_semver accepts a release and a pre-release version" {
+  run is_semver "1.68.0"
+  assert_success
+  run is_semver "1.69.0-rc.1"
+  assert_success
+}
+
+@test "is_semver rejects partial, prefixed and non-version values" {
+  run is_semver "1.68"
+  assert_failure
+  run is_semver "v1.68.0"
+  assert_failure
+  run is_semver "latest"
+  assert_failure
+  run is_semver ""
+  assert_failure
+}
+
+@test "normalize_semver trims whitespace and strips a leading v or V" {
+  run normalize_semver "  V1.68.0 "
+  assert_output "1.68.0"
+  run normalize_semver "v1.69.0-rc.1"
+  assert_output "1.69.0-rc.1"
+}
+
+@test "normalize_semver leaves a tag without a v before a digit unchanged" {
+  run normalize_semver "unstable"
+  assert_output "unstable"
+}
+
+@test "normalize_semver prints values that echo treats as options" {
+  # The `--` keeps assert_output from reading `-e` as its --regexp option.
+  run normalize_semver "-n"
+  assert_output -- "-n"
+  run normalize_semver "-e"
+  assert_output -- "-e"
+}
+
 @test "is_prerelease_version succeeds for a release candidate" {
   run is_prerelease_version "v1.2.3-rc.1"
   assert_success
