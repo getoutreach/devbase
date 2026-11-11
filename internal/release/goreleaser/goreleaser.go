@@ -11,9 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/internal/strictyaml"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
@@ -29,9 +27,6 @@ const checksumsFile = "checksums.txt"
 // archiveFormat is the only archive format that the loader accepts. It
 // is the GoReleaser default.
 const archiveFormat = "tar.gz"
-
-// envItemRegex matches a NAME=value build environment item.
-var envItemRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 
 // These are the GoReleaser 1.20 defaults and valid values, from
 // internal/builders/golang/build.go and internal/builders/buildtarget.
@@ -167,7 +162,11 @@ func Parse(b []byte) (*spec.Artifacts, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("%s: %w", File, err)
 	}
-	return cfg.artifacts(), nil
+	a := cfg.artifacts()
+	if err := a.Validate(); err != nil {
+		return nil, fmt.Errorf("%s: %w", File, err)
+	}
+	return a, nil
 }
 
 // artifacts maps a validated config into the release model.
@@ -196,7 +195,11 @@ func (c *config) archiveFiles() []archiveFile {
 	return defaultArchiveFiles
 }
 
-// validate checks the config and applies the build defaults.
+// validate checks the parts of the format that the model cannot see: one
+// tar.gz archive, the checksum name, the GoReleaser goos and goarch
+// values, and the same targets for every build, because the model has
+// one target list. It also applies the build defaults. The model checks
+// the rest.
 func (c *config) validate() error {
 	if len(c.Archives) > 1 {
 		return fmt.Errorf("%w: more than one archive", spec.ErrUnsupported)
@@ -206,47 +209,18 @@ func (c *config) validate() error {
 			return fmt.Errorf("%w: archive format %q", spec.ErrUnsupported, f)
 		}
 	}
-	for _, f := range c.archiveFiles() {
-		if err := spec.CheckTemplate(f.Src); err != nil {
-			return fmt.Errorf("archive file %q: %w", f.Src, err)
-		}
-		// The builder checks a template src after it renders it.
-		if !strings.Contains(f.Src, "{{") {
-			if err := spec.ValidateArchiveSrc(f.Src); err != nil {
-				return err
-			}
-		}
-	}
-	for _, hook := range c.Before.Hooks {
-		if err := spec.CheckTemplate(hook); err != nil {
-			return fmt.Errorf("before hook %q: %w", hook, err)
-		}
-	}
 	if n := c.Checksum.NameTemplate; n != checksumsFile {
 		return fmt.Errorf("%w: checksum name_template %q (only %q)", spec.ErrUnsupported, n, checksumsFile)
 	}
 	if len(c.Builds) == 0 {
 		return fmt.Errorf("%w: no builds (the GoReleaser default build needs the project name)", spec.ErrUnsupported)
 	}
-	ids := map[string]bool{}
-	binaries := map[string]bool{}
 	for i := range c.Builds {
 		b := &c.Builds[i]
 		b.applyDefaults()
 		if err := b.validate(); err != nil {
 			return fmt.Errorf("build %q: %w", b.ID, err)
 		}
-		if ids[b.ID] {
-			return fmt.Errorf("%w: two builds with id %q", spec.ErrUnsupported, b.ID)
-		}
-		ids[b.ID] = true
-		// GoReleaser puts every binary in one archive, and fails when
-		// two have the same name.
-		if binaries[b.Binary] {
-			return fmt.Errorf("%w: two builds with binary %q", spec.ErrUnsupported, b.Binary)
-		}
-		binaries[b.Binary] = true
-		// Each archive holds every build for one target.
 		if i > 0 && !slices.Equal(b.targets(), c.Builds[0].targets()) {
 			return fmt.Errorf("%w: build %q has other targets than build %q", spec.ErrUnsupported, b.ID, c.Builds[0].ID)
 		}
@@ -255,7 +229,9 @@ func (c *config) validate() error {
 }
 
 // applyDefaults applies the GoReleaser defaults of a build that the
-// release command supports.
+// release command supports. The defaults of id, binary and ldflags need
+// the project name, the commit or the build date, so they stay empty and
+// the model rejects them.
 func (b *build) applyDefaults() {
 	if b.Main == "" {
 		b.Main = "."
@@ -268,18 +244,8 @@ func (b *build) applyDefaults() {
 	}
 }
 
-// validate checks one build after applyDefaults.
+// validate checks the goos and goarch values of a build.
 func (b *build) validate() error {
-	switch {
-	case b.ID == "":
-		return fmt.Errorf("%w: no id (the default is the project name)", spec.ErrUnsupported)
-	case b.Binary == "":
-		return fmt.Errorf("%w: no binary (the default is the project name)", spec.ErrUnsupported)
-	case strings.Contains(b.Binary, "{{"):
-		return fmt.Errorf("%w: binary is a template", spec.ErrUnsupported)
-	case len(b.LDFlags) == 0:
-		return fmt.Errorf("%w: no ldflags (the default needs the commit and the build date)", spec.ErrUnsupported)
-	}
 	for _, goos := range b.GOOS {
 		if !slices.Contains(validGOOS, goos) {
 			return fmt.Errorf("%w: invalid goos: %s", spec.ErrUnsupported, goos)
@@ -288,19 +254,6 @@ func (b *build) validate() error {
 	for _, arch := range b.GOARCH {
 		if !slices.Contains(validGOARCH, arch) {
 			return fmt.Errorf("%w: invalid goarch: %s", spec.ErrUnsupported, arch)
-		}
-	}
-	for _, f := range b.LDFlags {
-		if err := spec.CheckTemplate(f); err != nil {
-			return fmt.Errorf("ldflags %q: %w", f, err)
-		}
-	}
-	for _, e := range b.Env {
-		if !envItemRegex.MatchString(e) {
-			return fmt.Errorf("%w: env item %q is not NAME=value", spec.ErrUnsupported, e)
-		}
-		if err := spec.CheckTemplate(e); err != nil {
-			return fmt.Errorf("env item %q: %w", e, err)
 		}
 	}
 	return nil

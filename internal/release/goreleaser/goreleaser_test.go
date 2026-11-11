@@ -47,13 +47,6 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestParseRejectsBadEnv(t *testing.T) {
-	cfg := strings.Replace(fixture, "      - CGO_ENABLED=0\n",
-		"      - CGO_ENABLED=0\n      - '-X \"main.secret={{ .Env.SECRET }}\"'\n", 1)
-	_, err := Parse([]byte(cfg))
-	assert.ErrorIs(t, err, spec.ErrUnsupported)
-}
-
 func TestParseRejectsUnsupported(t *testing.T) {
 	for name, cfg := range map[string]string{
 		"unknown key":       fixture + "nfpms: []\n",

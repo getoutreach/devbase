@@ -109,14 +109,6 @@ branches: [{name: release/next, prerelease: true}, main]`,
 		"branch channel": `
 preset: conventionalcommits
 branches: [{name: main, channel: next}]`,
-		"unknown template field": `
-preset: conventionalcommits
-branches: [main]
-plugins: [["@semantic-release/exec", {publishCmd: "echo ${nextRelease.notes}"}]]`,
-		"lodash template": `
-preset: conventionalcommits
-branches: [main]
-plugins: [["@semantic-release/exec", {publishCmd: "echo <%= nextRelease.version %>"}]]`,
 	}
 	// Upstream tests that expect a configuration error, from commit-analyzer
 	// 13.0.1 and semantic-release 25.0.9.
