@@ -40,15 +40,25 @@ type fixture struct {
 	git *Git
 }
 
-// newFixture creates a repository on branch main with fixtureConfig.
-func newFixture(t *testing.T) *fixture {
+// newRepo creates an empty repository on branch, without the global and
+// system git configuration. The upstream tests use master, as the gitRepo
+// helper of semantic-release does.
+func newRepo(t *testing.T, branch string) *fixture {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	f := &fixture{t: t, git: &Git{Dir: t.TempDir()}}
-	f.run("init", "-q", "-b", "main")
+	f.run("init", "-q", "-b", branch)
 	f.run("config", "user.email", "test@example.com")
 	f.run("config", "user.name", "Test")
+	f.run("config", "commit.gpgsign", "false")
+	return f
+}
+
+// newFixture creates a repository on branch main with fixtureConfig.
+func newFixture(t *testing.T) *fixture {
+	t.Helper()
+	f := newRepo(t, "main")
 	f.run("remote", "add", "origin", "https://github.com/acme/widgets.git")
 	assert.NilError(t, os.WriteFile(filepath.Join(f.git.Dir, ".releaserc.yaml"), []byte(fixtureConfig), 0o600))
 	f.run("add", ".")
@@ -106,6 +116,12 @@ func (f *fixture) addTag(tag, channel string) {
 		note = `{"channels":["` + channel + `"]}`
 	}
 	f.run("tag", tag)
+	f.addNote(tag, note)
+}
+
+// addNote adds the git note of tag, as semantic-release does.
+func (f *fixture) addNote(tag, note string) {
+	f.t.Helper()
 	f.run("notes", "--ref", "semantic-release-"+tag, "add", "-f", "-m", note, tag)
 }
 

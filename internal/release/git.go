@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -29,6 +30,10 @@ type Git struct {
 	// Dir is the repository directory.
 	Dir string
 }
+
+// ErrUnsupportedTag is returned for a tag that semantic-release accepts as
+// a release tag but cannot compare, such as "v=1.0.0".
+var ErrUnsupportedTag = errors.New("unsupported release tag")
 
 // Tag is a release tag with the channels from its git note.
 type Tag struct {
@@ -73,8 +78,15 @@ func (g *Git) Tags(ctx context.Context, ref string) ([]Tag, error) {
 	}
 	var tags []Tag
 	for name := range strings.FieldsSeq(out) {
-		v, err := ParseVersion(name)
+		// The tag format is v${version}, so the version follows the "v".
+		version := strings.TrimPrefix(name, "v")
+		v, err := ParseVersion(version)
 		if err != nil {
+			if isCleanVersion(version) {
+				// semantic-release keeps this tag, then fails when it
+				// compares the version.
+				return nil, fmt.Errorf("%w: %q", ErrUnsupportedTag, name)
+			}
 			continue // Not a release tag.
 		}
 		ch, ok := channels[name]
@@ -101,7 +113,7 @@ func (g *Git) Commits(ctx context.Context, from, to string) ([]RawCommit, error)
 	for rec := range strings.SplitSeq(out, recordSep) {
 		hash, msg, ok := strings.Cut(strings.TrimSpace(rec), fieldSep)
 		if ok {
-			commits = append(commits, RawCommit{Hash: hash, Message: strings.TrimSpace(msg)})
+			commits = append(commits, RawCommit{Hash: hash, Message: jsTrim(msg)})
 		}
 	}
 	return commits, nil

@@ -7,7 +7,6 @@
 package release
 
 import (
-	"path"
 	"regexp"
 	"slices"
 	"strings"
@@ -330,17 +329,26 @@ func parseReferences(line string) []Reference {
 		if urlRegex.MatchString(s.text) {
 			continue
 		}
-		for pos := 0; ; {
-			r, end, ok := nextReference(s.text, pos)
-			if !ok {
-				break
-			}
+		for _, r := range referencesIn(s.text) {
 			r.Action = s.action
 			refs = append(refs, r)
-			pos = end
 		}
 	}
 	return refs
+}
+
+// referencesIn returns every reference in a sentence, as the parser's
+// repeated referenceParts match does.
+func referencesIn(text string) []Reference {
+	var refs []Reference
+	for pos := 0; ; {
+		r, end, ok := nextReference(text, pos)
+		if !ok {
+			return refs
+		}
+		refs = append(refs, r)
+		pos = end
+	}
 }
 
 // sentence is a part of a line that follows one reference keyword.
@@ -584,7 +592,8 @@ func matchRules(c *Commit, rules []releaserc.Rule) (Bump, bool) {
 		if (r.Breaking && len(c.Notes) == 0) || (r.Revert && c.Revert == nil) {
 			continue
 		}
-		if !globMatch(r.Type, c.Type) || !globMatch(r.Scope, c.Scope) || !globMatch(r.Subject, c.Subject) {
+		if !releaserc.MatchGlob(r.Type, c.Type) || !releaserc.MatchGlob(r.Scope, c.Scope) ||
+			!releaserc.MatchGlob(r.Subject, c.Subject) {
 			continue
 		}
 		if !matched || outranks(r.Release, result) {
@@ -607,14 +616,4 @@ func matchRules(c *Commit, rules []releaserc.Rule) (Bump, bool) {
 // replaces anything, because its index in the release type list is -1.
 func outranks(next, current string) bool {
 	return current == releaseFalse || next == releaseFalse || Bump(next).rank() > Bump(current).rank()
-}
-
-// globMatch reports whether value matches pattern. An empty pattern
-// matches anything.
-func globMatch(pattern, value string) bool {
-	if pattern == "" {
-		return true
-	}
-	ok, err := path.Match(pattern, value)
-	return err == nil && ok
 }

@@ -10,6 +10,7 @@ package releaserc
 import (
 	"errors"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 
@@ -168,17 +169,18 @@ func (c *Config) addPlugin(n *yaml.Node) error {
 	switch name {
 	case "@semantic-release/commit-analyzer":
 		var o struct {
-			ReleaseRules []Rule `yaml:"releaseRules"`
+			ReleaseRules []yaml.Node `yaml:"releaseRules"`
 		}
 		if err := decodeNode(opts, &o, name); err != nil {
 			return err
 		}
-		for _, r := range o.ReleaseRules {
-			if !releaseValues[r.Release] {
-				return fmt.Errorf("%w: release rule with release %q", ErrUnsupported, r.Release)
+		for i := range o.ReleaseRules {
+			r, err := parseRule(&o.ReleaseRules[i])
+			if err != nil {
+				return err
 			}
+			c.ReleaseRules = append(c.ReleaseRules, r)
 		}
-		c.ReleaseRules = o.ReleaseRules
 		return nil
 	case "@semantic-release/release-notes-generator":
 		return decodeNode(opts, &struct{}{}, name)
@@ -242,52 +244,237 @@ func (c *Config) validateTemplate(cmd string) error {
 	return nil
 }
 
-// parseBranches validates the branches list. Maintenance branches are
-// not supported; the first release branch gets the default channel and
-// every other branch is its own channel, as in semantic-release.
+// maintenanceRangeRegex matches a maintenance branch name such as
+// "1.x" or "1.2.x", as semantic-release's isMaintenanceRange does.
+var maintenanceRangeRegex = regexp.MustCompile(`(?i)^\d+(?:\.(?:\d+|x))?\.x$`)
+
+// parseBranches validates the branches list as semantic-release does.
+// The release command supports one release branch and any number of
+// prerelease branches; maintenance branches and more release branches
+// need range logic that it does not have. The release branch gets the
+// default channel and every prerelease branch is its own channel.
 func parseBranches(nodes []yaml.Node) ([]Branch, error) {
-	if len(nodes) == 0 {
-		return nil, fmt.Errorf("%w: no branches", ErrUnsupported)
-	}
 	out := make([]Branch, 0, len(nodes))
+	names, prereleases := map[string]bool{}, map[string]bool{}
 	releaseBranches := 0
 	for i := range nodes {
-		var rb rawBranch
-		n := &nodes[i]
-		if n.Kind == yaml.ScalarNode {
-			rb.Name = n.Value
-		} else if err := decodeNode(n, &rb, "branches"); err != nil {
+		b, err := parseBranch(&nodes[i])
+		if err != nil {
 			return nil, err
 		}
-		if rb.Name == "" {
-			return nil, fmt.Errorf("%w: branch with an empty name", ErrUnsupported)
+		if names[b.Name] {
+			return nil, fmt.Errorf("%w: duplicate branch %q", ErrUnsupported, b.Name)
 		}
-		b := Branch{Name: rb.Name, Channel: rb.Name}
-		switch {
-		case rb.Prerelease.Kind == 0:
-		case rb.Prerelease.Tag == "!!bool" && rb.Prerelease.Value == "true":
-			b.Prerelease = rb.Name
-		case rb.Prerelease.Tag == "!!str":
-			b.Prerelease = rb.Prerelease.Value
-		default:
-			return nil, fmt.Errorf("%w: branch %q prerelease %q", ErrUnsupported, rb.Name, rb.Prerelease.Value)
-		}
-		// As semantic-release does, check that 1.0.0-<id>.1 is valid.
-		if _, err := semver.StrictNewVersion("1.0.0-" + b.Prerelease + ".1"); b.IsPrerelease() && err != nil {
-			return nil, fmt.Errorf("%w: branch %q prerelease identifier %q", ErrUnsupported, rb.Name, b.Prerelease)
-		}
-		if !b.IsPrerelease() {
-			if releaseBranches == 0 {
-				b.Channel = ""
+		names[b.Name] = true
+		if b.IsPrerelease() {
+			if prereleases[b.Prerelease] {
+				return nil, fmt.Errorf("%w: two branches with prerelease %q", ErrUnsupported, b.Prerelease)
 			}
+			prereleases[b.Prerelease] = true
+		} else {
 			releaseBranches++
 		}
 		out = append(out, b)
 	}
-	if releaseBranches == 0 {
-		return nil, fmt.Errorf("%w: no release branch", ErrUnsupported)
+	if releaseBranches != 1 {
+		return nil, fmt.Errorf("%w: %d release branches (exactly one is supported)", ErrUnsupported, releaseBranches)
 	}
 	return out, nil
+}
+
+// parseBranch validates one branches entry, which is a name or an object.
+func parseBranch(n *yaml.Node) (Branch, error) {
+	var rb rawBranch
+	if n.Kind == yaml.ScalarNode {
+		rb.Name = n.Value
+	} else if err := decodeNode(n, &rb, "branches"); err != nil {
+		return Branch{}, err
+	}
+	if !validBranchName(rb.Name) {
+		return Branch{}, fmt.Errorf("%w: invalid branch name %q", ErrUnsupported, rb.Name)
+	}
+	if maintenanceRangeRegex.MatchString(rb.Name) {
+		return Branch{}, fmt.Errorf("%w: maintenance branch %q", ErrUnsupported, rb.Name)
+	}
+	b := Branch{Name: rb.Name}
+	p := &rb.Prerelease
+	switch {
+	case p.Kind == 0 || p.Tag == "!!null" || (p.Tag == "!!bool" && p.Value == "false"):
+		return b, nil
+	case p.Tag == "!!bool" && p.Value == "true":
+		b.Prerelease = rb.Name
+	case p.Tag == "!!str":
+		b.Prerelease = p.Value
+	default:
+		return Branch{}, fmt.Errorf("%w: branch %q prerelease %q", ErrUnsupported, rb.Name, p.Value)
+	}
+	// As semantic-release does, check that 1.0.0-<id>.1 is valid. This
+	// also rejects an empty identifier.
+	if _, err := semver.StrictNewVersion("1.0.0-" + b.Prerelease + ".1"); err != nil {
+		return Branch{}, fmt.Errorf("%w: branch %q prerelease identifier %q", ErrUnsupported, rb.Name, b.Prerelease)
+	}
+	// semantic-release compares the id with each part of a version's
+	// prerelease, and node-semver stores a numeric part as a number, so
+	// it never finds the last release of a branch with a numeric or
+	// dotted id.
+	if strings.Contains(b.Prerelease, ".") || strings.Trim(b.Prerelease, "0123456789") == "" {
+		return Branch{}, fmt.Errorf("%w: branch %q prerelease identifier %q never matches its tags",
+			ErrUnsupported, rb.Name, b.Prerelease)
+	}
+	b.Channel = rb.Name
+	return b, nil
+}
+
+// validBranchName reports whether "refs/heads/<name>" passes
+// git check-ref-format, which semantic-release runs on each branch.
+func validBranchName(name string) bool {
+	if name == "" || name == "@" || strings.HasSuffix(name, "/") || strings.HasSuffix(name, ".") ||
+		strings.Contains(name, "..") || strings.Contains(name, "@{") || strings.Contains(name, "//") {
+		return false
+	}
+	for _, c := range name {
+		if c < 0x20 || c == 0x7f || strings.ContainsRune(" ~^:?*[\\", c) {
+			return false
+		}
+	}
+	for comp := range strings.SplitSeq(name, "/") {
+		if comp == "" || strings.HasPrefix(comp, ".") || strings.HasSuffix(comp, ".lock") {
+			return false
+		}
+	}
+	return true
+}
+
+// parseRule validates one release rule. A null rule, a rule without a
+// valid release, and a glob that is empty or uses micromatch syntax that
+// the release command does not match the same way are errors.
+func parseRule(n *yaml.Node) (Rule, error) {
+	var r Rule
+	if n.Kind != yaml.MappingNode {
+		return r, fmt.Errorf("%w: release rule at line %d is not an object", ErrUnsupported, n.Line)
+	}
+	if err := decodeNode(n, &r, "releaseRules"); err != nil {
+		return r, err
+	}
+	if !releaseValues[r.Release] {
+		return r, fmt.Errorf("%w: release rule with release %q", ErrUnsupported, r.Release)
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		key, value := n.Content[i].Value, n.Content[i+1].Value
+		if key == "type" || key == "scope" || key == "subject" {
+			if err := validateGlob(value); err != nil {
+				return r, fmt.Errorf("%w: release rule %s %q: %w", ErrUnsupported, key, value, err)
+			}
+		}
+	}
+	return r, nil
+}
+
+// errEmptyGlob is returned for an empty rule glob, which makes micromatch
+// throw.
+var errEmptyGlob = errors.New("empty pattern")
+
+// errUnsupportedGlob is returned for glob syntax outside the allowlist of
+// validateGlob.
+var errUnsupportedGlob = errors.New("unsupported glob syntax")
+
+// validateGlob checks that a rule glob uses only syntax that path.Match
+// and micromatch read the same way: literal characters, "*", "?", a
+// "[...]" or "[^...]" class of letters, digits, ranges, "_" and ".", and
+// "\" before punctuation. Everything else fails closed, because
+// micromatch has more syntax (negation, braces, extglobs, globstars,
+// POSIX classes) that path.Match reads in another way.
+func validateGlob(p string) error {
+	if p == "" {
+		return errEmptyGlob
+	}
+	if strings.HasPrefix(p, "./") {
+		return errUnsupportedGlob // micromatch removes a leading "./".
+	}
+	for i := 0; i < len(p); i++ {
+		c := p[i]
+		switch {
+		case c == '*' && strings.HasPrefix(p[i+1:], "*"):
+			return errUnsupportedGlob // a globstar
+		case c == '*' || c == '?':
+		case c == '\\':
+			i++
+			if i == len(p) || isGlobAlnum(p[i]) || p[i] < '!' || p[i] > '~' {
+				return errUnsupportedGlob
+			}
+		case c == '[':
+			end := globClassEnd(p, i)
+			if end < 0 {
+				return errUnsupportedGlob
+			}
+			i = end
+		case isGlobAlnum(c) || c >= 0x80 || strings.IndexByte(" -_.,:;/#'%&=~$^<>+@", c) >= 0:
+		default:
+			return errUnsupportedGlob
+		}
+	}
+	return nil
+}
+
+// MatchGlob reports whether value matches a rule glob as micromatch.isMatch
+// does, for the patterns that validateGlob accepts. An empty pattern means
+// that the rule has no such key, and it matches anything. micromatch
+// never matches an empty or missing value, and a path segment pattern
+// that starts with "*" or "?" does not match a segment that starts with
+// a dot.
+func MatchGlob(pattern, value string) bool {
+	if pattern == "" {
+		return true
+	}
+	if value == "" {
+		return false
+	}
+	if ok, err := path.Match(pattern, value); err != nil || !ok {
+		return false
+	}
+	// path.Match matched, so both have the same number of segments.
+	for value != "" {
+		var seg, p string
+		seg, value, _ = strings.Cut(value, "/")
+		p, pattern, _ = strings.Cut(pattern, "/")
+		if strings.HasPrefix(seg, ".") && (strings.HasPrefix(p, "*") || strings.HasPrefix(p, "?")) {
+			return false
+		}
+	}
+	return true
+}
+
+// globClassEnd returns the index of the "]" that closes the class that
+// starts at p[start], or -1 if the class is not in the allowlist of
+// validateGlob.
+func globClassEnd(p string, start int) int {
+	i := start + 1
+	if i < len(p) && p[i] == '^' {
+		i++
+	}
+	first := i
+	for ; i < len(p) && p[i] != ']'; i++ {
+		c := p[i]
+		switch {
+		case isGlobAlnum(c) && i+2 < len(p) && p[i+1] == '-' && p[i+2] != ']':
+			if !isGlobAlnum(p[i+2]) || p[i+2] < c {
+				return -1
+			}
+			i += 2
+		case isGlobAlnum(c) || c == '_' || c == '.':
+		default:
+			return -1
+		}
+	}
+	if i == len(p) || i == first {
+		return -1
+	}
+	return i
+}
+
+// isGlobAlnum reports whether c is an ASCII letter or digit.
+func isGlobAlnum(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
 // splitPlugin returns the identifier and options node of a plugins

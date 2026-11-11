@@ -57,13 +57,21 @@ func maxBump(a, b Bump) Bump {
 }
 
 // ParseVersion parses a strict semantic version with an optional "v"
-// prefix, as semantic-release does with semver.clean.
+// prefix, as node-semver's parse does without the loose option.
 func ParseVersion(s string) (*semver.Version, error) {
 	v, err := semver.StrictNewVersion(strings.TrimPrefix(s, "v"))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %q: %w", ErrInvalidVersion, s, err)
 	}
 	return v, nil
+}
+
+// isCleanVersion reports whether node-semver's semver.valid(semver.clean(s))
+// accepts s: clean trims whitespace and any leading "=" and "v"
+// characters before it parses.
+func isCleanVersion(s string) bool {
+	_, err := semver.StrictNewVersion(strings.TrimLeft(jsTrim(s), "=v"))
+	return err == nil
 }
 
 // bumpVersion returns v bumped by t, with node-semver rules: a
@@ -113,7 +121,9 @@ func withPrerelease(v *semver.Version, pre string) *semver.Version {
 }
 
 // hasPrereleaseID reports whether one of the prerelease identifiers of
-// v is id.
+// v is id. releaserc rejects a numeric id, which node-semver would store
+// as a number that the string comparison in semantic-release never
+// matches.
 func hasPrereleaseID(v *semver.Version, id string) bool {
 	return slices.Contains(prereleaseIDs(v), id)
 }
