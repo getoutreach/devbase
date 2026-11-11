@@ -83,10 +83,10 @@ pre-docs-publish::
 pre-stencil::
 post-stencil::
 
-## release:         tag a new release with goreleaser
+## release:         [DEPRECATED] build the release archives with goreleaser
 .PHONY: release
 release:: pre-release
-	@./scripts/shell-wrapper.sh release.sh
+	@./scripts/shell-wrapper.sh deprecated-task.sh release release:build
 
 ## help             show this help
 .PHONY: help

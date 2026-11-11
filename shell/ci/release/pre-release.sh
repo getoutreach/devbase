@@ -112,7 +112,7 @@ fi
 app_version="v0.0.0-unstable+$(git rev-parse HEAD)"
 echo "Creating unstable release ($app_version)"
 
-make release APP_VERSION="$app_version"
+APP_VERSION="$app_version" mise run --quiet release:build
 # delete unstable release and unstable tag if it exists
 run_gh release delete unstable -y || true
 git tag --delete unstable || true

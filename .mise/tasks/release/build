@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Builds the release archives with GoReleaser for APP_VERSION, or the current version."
+#MISE depends=["devbase:sync"]
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+exec "$DIR/../../../shell/release.sh"
