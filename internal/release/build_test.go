@@ -5,12 +5,11 @@
 package release
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -18,7 +17,8 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// goreleaserFixture is a stencil-golang style .goreleaser.yml.
+// goreleaserFixture is a stencil-golang style .goreleaser.yml. Its
+// ldflags need HELLO_KEY in the environment.
 const goreleaserFixture = `# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 before:
   hooks:
@@ -50,6 +50,14 @@ release:
   disable: true
 `
 
+// requireGo skips the test when the go command is not in PATH.
+func requireGo(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go is not in PATH")
+	}
+}
+
 // writeFile writes a file under dir, creating parent directories.
 func writeFile(t *testing.T, dir, name, content string) {
 	t.Helper()
@@ -61,27 +69,16 @@ func writeFile(t *testing.T, dir, name, content string) {
 // tarEntries returns "mode name" for each entry of a tar.gz.
 func tarEntries(t *testing.T, path string) []string {
 	t.Helper()
-	f, err := os.Open(path)
-	assert.NilError(t, err)
-	defer f.Close()
-	gz, err := gzip.NewReader(f)
-	assert.NilError(t, err)
-	tr := tar.NewReader(gz)
-	var out []string
-	for {
-		hdr, err := tr.Next()
-		if err != nil {
-			break
-		}
-		out = append(out, os.FileMode(hdr.Mode).String()+" "+hdr.Name)
+	hdrs := grTarHeaders(t, path)
+	out := make([]string, 0, len(hdrs))
+	for _, h := range hdrs {
+		out = append(out, os.FileMode(h.Mode).String()+" "+h.Name)
 	}
 	return out
 }
 
 func TestBuild(t *testing.T) {
-	if _, err := exec.LookPath("go"); err != nil {
-		t.Skip("go is not in PATH")
-	}
+	requireGo(t)
 	dir := t.TempDir()
 	writeFile(t, dir, ".goreleaser.yml", goreleaserFixture)
 	writeFile(t, dir, "go.mod", "module example.com/hello\n\ngo 1.25\n")
@@ -125,12 +122,16 @@ func TestBuild(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, strings.Contains(string(out), `-X \"main.version=v1.2.3\" -X \"main.key=k\"`), string(out))
 
+	// TestGoReleaserUpstreamChecksums checks the line format and order.
 	sums := filepath.Join(dir, "dist", ChecksumsFile)
 	assert.NilError(t, WriteChecksums(sums, archives))
 	b, err := os.ReadFile(sums)
 	assert.NilError(t, err)
-	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-	assert.Equal(t, len(lines), 2)
-	assert.Assert(t, strings.HasSuffix(lines[0], "  hello_1.2.3_darwin_arm64.tar.gz"), lines[0])
-	assert.Assert(t, strings.HasSuffix(lines[1], "  hello_1.2.3_linux_amd64.tar.gz"), lines[1])
+	names := make([]string, 0, len(archives))
+	for line := range strings.Lines(string(b)) {
+		_, name, _ := strings.Cut(strings.TrimSuffix(line, "\n"), "  ")
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	assert.DeepEqual(t, names, []string{"hello_1.2.3_darwin_arm64.tar.gz", "hello_1.2.3_linux_amd64.tar.gz"})
 }

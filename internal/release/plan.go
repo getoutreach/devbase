@@ -197,7 +197,7 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 	if r.GoReleaser != nil {
 		for _, target := range r.GoReleaser.Targets() {
 			plan.Targets = append(plan.Targets, target.String())
-			plan.Assets = append(plan.Assets, ArchiveName(plan.ProjectName, next.String(), target))
+			plan.Assets = append(plan.Assets, ArchiveName(plan.ProjectName, next.String(), &target))
 		}
 		plan.Assets = append(plan.Assets, ChecksumsFile)
 	}

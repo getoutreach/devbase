@@ -7,7 +7,6 @@ package release
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
@@ -15,13 +14,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
@@ -30,10 +29,9 @@ import (
 // ChecksumsFile is the name of the checksum file.
 const ChecksumsFile = "checksums.txt"
 
-// ArchiveName returns the GoReleaser default archive name. GoReleaser
-// leaves out the default amd64 level (v1) and arm64 has no suffix.
-func ArchiveName(project, version string, t goreleaser.Target) string {
-	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", project, version, t.OS, t.Arch)
+// ArchiveName returns the GoReleaser default archive name.
+func ArchiveName(project, version string, t *goreleaser.Target) string {
+	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", project, version, t.OS, t.ArchiveArch())
 }
 
 // ErrUnknownTarget is returned for a target that the plan does not have.
@@ -66,47 +64,31 @@ func Build(ctx context.Context, cfg *goreleaser.Config, plan *Plan, opts *BuildO
 	if err != nil {
 		return nil, err
 	}
+	tmpl := &goreleaser.Template{Version: plan.NextRelease.Version, Tag: "v" + plan.NextRelease.Version}
 	if !opts.SkipHooks {
 		for _, hook := range cfg.Before.Hooks {
-			args := strings.Fields(hook)
-			if _, err := run(ctx, opts.Dir, opts.Env, args[0], args[1:]...); err != nil {
+			if err := runHook(ctx, hook, tmpl, opts); err != nil {
 				return nil, fmt.Errorf("before hook %q: %w", hook, err)
 			}
 		}
 	}
-
-	ldflags, err := renderLDFlags(cfg, plan.NextRelease.Version, opts.Env)
+	extras, err := archiveExtras(cfg, tmpl, opts.Env, opts.Dir)
 	if err != nil {
 		return nil, err
 	}
-	extras, err := archiveExtras(cfg, opts.Dir)
-	if err != nil {
-		return nil, err
+	bd := &builder{
+		cfg: cfg, opts: opts, tmpl: tmpl, extras: extras, project: plan.ProjectName, modTime: time.Unix(plan.CommitTime, 0),
 	}
-	modTime := time.Unix(plan.CommitTime, 0)
 
 	archives := make([]string, len(targets))
 	errs := make([]error, len(targets))
 	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
 	var wg sync.WaitGroup
-	for i, t := range targets {
+	for i := range targets {
 		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			outDir := filepath.Join(opts.Dir, opts.Dist, t.OS+"_"+t.Arch)
-			entries := slices.Clone(extras)
-			for j := range cfg.Builds {
-				b := &cfg.Builds[j]
-				bin := filepath.Join(outDir, b.ID, b.Binary)
-				env := slices.Concat(opts.Env, b.Env, []string{"GOOS=" + t.OS, "GOARCH=" + t.Arch})
-				if _, err := run(ctx, opts.Dir, env, "go", "build", "-ldflags="+ldflags[j], "-o", bin, b.Main); err != nil {
-					errs[i] = fmt.Errorf("build %q for %s: %w", b.ID, t, err)
-					return
-				}
-				entries = append(entries, archiveEntry{src: bin, dst: b.Binary, mode: 0o755})
-			}
-			archives[i] = filepath.Join(outDir, ArchiveName(plan.ProjectName, plan.NextRelease.Version, t))
-			errs[i] = writeArchive(archives[i], entries, modTime)
+			archives[i], errs[i] = bd.buildTarget(ctx, &targets[i])
 		})
 	}
 	wg.Wait()
@@ -116,20 +98,122 @@ func Build(ctx context.Context, cfg *goreleaser.Config, plan *Plan, opts *BuildO
 	return archives, nil
 }
 
-// WriteChecksums writes checksums.txt for the archives, sorted by file
-// name, with GoReleaser's "<sha256>  <name>" line format.
+// runHook runs one before hook. The hook is a template, split into
+// arguments as GoReleaser does, and run without a shell.
+func runHook(ctx context.Context, hook string, tmpl *goreleaser.Template, opts *BuildOptions) error {
+	s, err := tmpl.Apply(hook, opts.Env)
+	if err != nil {
+		return err
+	}
+	args, err := splitShellWords(s)
+	if err != nil {
+		return err
+	}
+	if len(args) == 0 {
+		return errEmptyHook
+	}
+	_, err = run(ctx, opts.Dir, opts.Env, args[0], args[1:]...)
+	return err
+}
+
+// errEmptyHook is returned for a before hook with no command. GoReleaser
+// 1.20 panics on it.
+var errEmptyHook = errors.New("empty command")
+
+// builder holds what every target of one Build call shares.
+type builder struct {
+	cfg     *goreleaser.Config
+	opts    *BuildOptions
+	tmpl    *goreleaser.Template
+	extras  []archiveEntry
+	project string
+	modTime time.Time
+}
+
+// buildTarget builds every build for one target and writes its archive.
+// It checks the archive names of the binaries before it builds them.
+func (bd *builder) buildTarget(ctx context.Context, t *goreleaser.Target) (string, error) {
+	for j := range bd.cfg.Builds {
+		name := bd.cfg.Builds[j].Binary + t.BinaryExt()
+		if slices.ContainsFunc(bd.extras, func(e archiveEntry) bool { return e.dst == name }) {
+			return "", fmt.Errorf("archive %s: %s: %w", t, name, fs.ErrExist)
+		}
+	}
+	outDir := filepath.Join(bd.opts.Dir, bd.opts.Dist, t.OS+"_"+t.Arch)
+	entries := slices.Clone(bd.extras)
+	for j := range bd.cfg.Builds {
+		b := &bd.cfg.Builds[j]
+		env, err := buildEnv(b, t, bd.tmpl, bd.opts.Env)
+		if err != nil {
+			return "", fmt.Errorf("build %q for %s: %w", b.ID, t, err)
+		}
+		ldflags, err := renderLDFlags(b, bd.tmpl, env)
+		if err != nil {
+			return "", err
+		}
+		name := b.Binary + t.BinaryExt()
+		bin := filepath.Join(outDir, b.ID, name)
+		if _, err := run(ctx, bd.opts.Dir, env, "go", "build", "-ldflags="+ldflags, "-o", bin, b.Main); err != nil {
+			return "", fmt.Errorf("build %q for %s: %w", b.ID, t, err)
+		}
+		entries = append(entries, archiveEntry{src: bin, dst: name, mode: 0o755})
+	}
+	archive := filepath.Join(outDir, ArchiveName(bd.project, bd.tmpl.Version, t))
+	return archive, writeArchive(archive, entries, bd.modTime)
+}
+
+// renderLDFlags renders the ldflags of a build with .Env from env, and
+// joins them with spaces.
+func renderLDFlags(b *goreleaser.Build, tmpl *goreleaser.Template, env []string) (string, error) {
+	flags := make([]string, len(b.LDFlags))
+	for i, f := range b.LDFlags {
+		var err error
+		if flags[i], err = tmpl.Apply(f, env); err != nil {
+			return "", fmt.Errorf("build %q ldflags %q: %w", b.ID, f, err)
+		}
+	}
+	return strings.Join(flags, " "), nil
+}
+
+// buildEnv returns the environment of one build for one target, as
+// GoReleaser makes it: the process environment, then each builds[].env
+// item with $VAR expanded from the process environment and applied as a
+// template (an item that renders empty is left out), then the target
+// variables.
+func buildEnv(b *goreleaser.Build, t *goreleaser.Target, tmpl *goreleaser.Template, processEnv []string) ([]string, error) {
+	vars := goreleaser.EnvMap(processEnv)
+	env := slices.Clone(processEnv)
+	for _, e := range b.Env {
+		e = os.Expand(e, func(k string) string { return vars[k] })
+		s, err := tmpl.Apply(e, env)
+		if err != nil {
+			return nil, fmt.Errorf("env %q: %w", e, err)
+		}
+		if s != "" {
+			env = append(env, s)
+		}
+	}
+	return append(env, t.Env()...), nil
+}
+
+// WriteChecksums writes checksums.txt for the archives with GoReleaser's
+// "<sha256>  <name>" line format. GoReleaser sorts the lines, so the
+// order is by checksum, and writes no file when there are no archives.
 func WriteChecksums(file string, archives []string) error {
-	sorted := slices.Clone(archives)
-	slices.SortFunc(sorted, func(a, b string) int { return strings.Compare(filepath.Base(a), filepath.Base(b)) })
-	var buf bytes.Buffer
-	for _, a := range sorted {
+	if len(archives) == 0 {
+		return nil
+	}
+	lines := make([]string, len(archives))
+	for i, a := range archives {
 		sum, err := sha256File(a)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(&buf, "%s  %s\n", sum, filepath.Base(a))
+		lines[i] = sum + "  " + filepath.Base(a)
 	}
-	if err := os.WriteFile(file, buf.Bytes(), 0o600); err != nil {
+	slices.Sort(lines)
+	//nolint:gosec // Why: GoReleaser writes checksums.txt with mode 0644.
+	if err := os.WriteFile(file, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", file, err)
 	}
 	return nil
@@ -151,67 +235,92 @@ func selectTargets(cfg *goreleaser.Config, plan *Plan, requested []string) ([]go
 	return out, nil
 }
 
-// renderLDFlags renders the ldflags of each build once. They do not
-// depend on the target.
-func renderLDFlags(cfg *goreleaser.Config, version string, env []string) ([]string, error) {
-	envMap := map[string]string{}
-	for _, e := range env {
-		if k, v, ok := strings.Cut(e, "="); ok {
-			envMap[k] = v
-		}
-	}
-	data := map[string]any{"Version": version, "Tag": "v" + version, "Env": envMap}
-	out := make([]string, len(cfg.Builds))
-	for i := range cfg.Builds {
-		flags := make([]string, len(cfg.Builds[i].LDFlags))
-		for j, f := range cfg.Builds[i].LDFlags {
-			t, err := template.New("").Option("missingkey=error").Parse(f)
-			if err != nil {
-				return nil, fmt.Errorf("build %q ldflags %q: %w", cfg.Builds[i].ID, f, err)
-			}
-			var buf bytes.Buffer
-			if err := t.Execute(&buf, data); err != nil {
-				return nil, fmt.Errorf("build %q ldflags %q: %w", cfg.Builds[i].ID, f, err)
-			}
-			flags[j] = buf.String()
-		}
-		out[i] = strings.Join(flags, " ")
-	}
-	return out, nil
-}
-
 // archiveEntry is one file in an archive.
 type archiveEntry struct {
 	src, dst string
 	mode     os.FileMode
 }
 
-// archiveExtras resolves the extra archive files once, sorted by
-// destination. An exact src with a dst uses dst as the name; a glob
-// with a dst puts the matches in that folder.
-func archiveExtras(cfg *goreleaser.Config, dir string) ([]archiveEntry, error) {
+// archiveExtras resolves the extra archive files once, as GoReleaser's
+// archivefiles.Eval does: each src is a template and a glob; a matched
+// folder adds every file in it; with a dst, a file keeps its path below
+// the common folder of the matches. The result is sorted by destination,
+// and the first file wins when two have one destination.
+func archiveExtras(cfg *goreleaser.Config, tmpl *goreleaser.Template, env []string, dir string) ([]archiveEntry, error) {
 	var out []archiveEntry
 	for _, f := range cfg.ArchiveFiles() {
-		matches, err := filepath.Glob(filepath.Join(dir, f.Src))
+		glob, err := f.Glob(tmpl, env)
 		if err != nil {
-			return nil, fmt.Errorf("archive file %q: %w", f.Src, err)
+			return nil, err
 		}
-		for _, m := range matches {
-			dst, err := filepath.Rel(dir, m)
-			if err != nil {
-				return nil, fmt.Errorf("archive file %q: %w", m, err)
+		files, err := globFiles(dir, glob)
+		if err != nil {
+			return nil, fmt.Errorf("archive file %q: %w", glob, err)
+		}
+		_, statErr := os.Stat(filepath.Join(dir, glob))
+		hasMatchers := strings.ContainsAny(glob, "*?[")
+		if len(files) == 0 {
+			// fileglob.Glob fails for a file that does not exist.
+			if !hasMatchers && errors.Is(statErr, fs.ErrNotExist) {
+				return nil, fmt.Errorf("archive file %q: %w", glob, fs.ErrNotExist)
 			}
+			continue
+		}
+		prefix := glob
+		if statErr != nil || hasMatchers {
+			prefix = filepath.Dir(longestCommonPrefix(files))
+		}
+		for _, file := range files {
+			dst := file
 			if f.Dst != "" {
-				dst = f.Dst
-				if strings.ContainsAny(f.Src, "*?[") {
-					dst = filepath.Join(f.Dst, filepath.Base(m))
+				rel, err := filepath.Rel(prefix, file)
+				if err != nil {
+					return nil, fmt.Errorf("archive file %q: %w", file, err)
 				}
+				dst = filepath.Join(f.Dst, rel)
 			}
-			out = append(out, archiveEntry{src: m, dst: dst, mode: f.Info.Mode})
+			out = append(out, archiveEntry{src: filepath.Join(dir, file), dst: filepath.ToSlash(dst), mode: f.Info.Mode})
 		}
 	}
-	slices.SortFunc(out, func(a, b archiveEntry) int { return strings.Compare(a.dst, b.dst) })
-	return out, nil
+	slices.SortStableFunc(out, func(a, b archiveEntry) int { return strings.Compare(a.dst, b.dst) })
+	return slices.CompactFunc(out, func(a, b archiveEntry) bool { return a.dst == b.dst }), nil
+}
+
+// globFiles returns the files that match a glob, relative to dir. A
+// matched folder adds every file below it.
+func globFiles(dir, glob string) ([]string, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, glob))
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, m := range matches {
+		err := filepath.WalkDir(m, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			rel, err := filepath.Rel(dir, p)
+			files = append(files, rel)
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
+}
+
+// longestCommonPrefix returns the longest string prefix of strs.
+func longestCommonPrefix(strs []string) string {
+	lcp := strs[0]
+	for _, s := range strs[1:] {
+		n := 0
+		for n < len(lcp) && n < len(s) && lcp[n] == s[n] {
+			n++
+		}
+		lcp = lcp[:n]
+	}
+	return lcp
 }
 
 // writeArchive writes a tar.gz with the entries in order.
