@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 // ErrMajorVersion is returned when the next version is a new major
@@ -23,11 +25,11 @@ func LastRelease(b *Branch, tags []Tag) *Tag {
 	var best *Tag
 	for i := range tags {
 		t := &tags[i]
-		ok := !t.Version.IsPrerelease()
-		if b.IsPrerelease() && t.Version.IsPrerelease() {
-			ok = slices.Contains(t.Channels, b.Channel) && slices.Contains(t.Version.Prerelease, b.Prerelease)
+		ok := t.Version.Prerelease() == ""
+		if b.IsPrerelease() && !ok {
+			ok = slices.Contains(t.Channels, b.Channel) && hasPrereleaseID(t.Version, b.Prerelease)
 		}
-		if ok && (best == nil || t.Version.Compare(best.Version) > 0) {
+		if ok && (best == nil || t.Version.GreaterThan(best.Version)) {
 			best = t
 		}
 	}
@@ -36,38 +38,39 @@ func LastRelease(b *Branch, tags []Tag) *Tag {
 
 // NextVersion returns the version for a release of type t on branch b.
 // tags are all release tags merged into the branch.
-func NextVersion(b *Branch, last *Tag, tags []Tag, t Bump) Version {
-	first := Version{Major: 1}
-	if last == nil {
-		if b.IsPrerelease() {
-			return first.WithPrerelease(b.Prerelease, "1")
-		}
-		return first
-	}
+func NextVersion(b *Branch, last *Tag, tags []Tag, t Bump) *semver.Version {
 	if !b.IsPrerelease() {
-		return last.Version.Inc(t)
+		if last == nil {
+			return semver.New(1, 0, 0, "", "")
+		}
+		return bumpVersion(last.Version, t)
+	}
+	firstPre := b.Prerelease + ".1"
+	if last == nil {
+		return semver.New(1, 0, 0, firstPre, "")
 	}
 
-	if last.Version.IsPrerelease() && slices.Contains(last.Channels, b.Channel) {
-		next := last.Version.IncPrerelease()
+	if last.Version.Prerelease() != "" && slices.Contains(last.Channels, b.Channel) {
+		next := bumpPrerelease(last.Version)
 		highest := slices.MaxFunc(tags, func(x, y Tag) int { return x.Version.Compare(y.Version) }).Version
-		if bumped := highest.Inc(t).WithPrerelease(b.Prerelease, "1"); bumped.Compare(next) > 0 {
+		if bumped := withPrerelease(bumpVersion(highest, t), firstPre); bumped.GreaterThan(next) {
 			return bumped
 		}
 		return next
 	}
-	return last.Version.core().Inc(t).WithPrerelease(b.Prerelease, "1")
+	core := withPrerelease(last.Version, "")
+	return withPrerelease(bumpVersion(core, t), firstPre)
 }
 
 // CheckMajor returns ErrMajorVersion when next has a higher major
 // version than last. It replaces major-release-checker.js.
-func CheckMajor(last *Tag, next Version) error {
+func CheckMajor(last *Tag, next *semver.Version) error {
 	lastMajor := uint64(1)
 	if last != nil {
-		lastMajor = last.Version.Major
+		lastMajor = last.Version.Major()
 	}
-	if next.Major != lastMajor {
-		return fmt.Errorf("%w: %d to %d", ErrMajorVersion, lastMajor, next.Major)
+	if next.Major() != lastMajor {
+		return fmt.Errorf("%w: %d to %d", ErrMajorVersion, lastMajor, next.Major())
 	}
 	return nil
 }

@@ -1,16 +1,17 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Tests for semantic version handling.
+// Description: Tests for version bumps.
 
 package release
 
 import (
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"gotest.tools/v3/assert"
 )
 
-func mustVersion(t *testing.T, s string) Version {
+func mustVersion(t *testing.T, s string) *semver.Version {
 	t.Helper()
 	v, err := ParseVersion(s)
 	assert.NilError(t, err)
@@ -27,20 +28,11 @@ func TestParseVersionRejectsInvalid(t *testing.T) {
 func TestParseVersionKeepsBuildMetadata(t *testing.T) {
 	v := mustVersion(t, "v0.0.0-unstable+abc1234")
 	assert.Equal(t, v.String(), "0.0.0-unstable+abc1234")
-	assert.DeepEqual(t, v.Prerelease, []string{"unstable"})
+	assert.Equal(t, v.Prerelease(), "unstable")
+	assert.Equal(t, v.Metadata(), "abc1234")
 }
 
-func TestCompare(t *testing.T) {
-	ordered := []string{"1.0.0-rc.1", "1.0.0-rc.2", "1.0.0-rc.10", "1.0.0-rc.a", "1.0.0", "1.0.1", "1.1.0-rc.1", "1.1.0", "2.0.0"}
-	for i := 0; i+1 < len(ordered); i++ {
-		a, b := mustVersion(t, ordered[i]), mustVersion(t, ordered[i+1])
-		assert.Equal(t, a.Compare(b), -1, "%s < %s", ordered[i], ordered[i+1])
-		assert.Equal(t, b.Compare(a), 1, "%s > %s", ordered[i+1], ordered[i])
-		assert.Equal(t, a.Compare(mustVersion(t, ordered[i])), 0)
-	}
-}
-
-func TestInc(t *testing.T) {
+func TestBumpVersion(t *testing.T) {
 	// The expected values follow node-semver inc().
 	tests := []struct {
 		in   string
@@ -57,11 +49,19 @@ func TestInc(t *testing.T) {
 		{"2.0.0-rc.1", BumpMajor, "2.0.0"},
 	}
 	for _, tt := range tests {
-		assert.Equal(t, mustVersion(t, tt.in).Inc(tt.t).String(), tt.want, "%s %s", tt.in, tt.t)
+		assert.Equal(t, bumpVersion(mustVersion(t, tt.in), tt.t).String(), tt.want, "%s %s", tt.in, tt.t)
 	}
 }
 
-func TestIncPrerelease(t *testing.T) {
-	assert.Equal(t, mustVersion(t, "1.1.0-rc.2").IncPrerelease().String(), "1.1.0-rc.3")
-	assert.Equal(t, mustVersion(t, "1.1.0-rc").IncPrerelease().String(), "1.1.0-rc.0")
+func TestBumpPrerelease(t *testing.T) {
+	assert.Equal(t, bumpPrerelease(mustVersion(t, "1.1.0-rc.2")).String(), "1.1.0-rc.3")
+	assert.Equal(t, bumpPrerelease(mustVersion(t, "1.1.0-rc.9")).String(), "1.1.0-rc.10")
+	assert.Equal(t, bumpPrerelease(mustVersion(t, "1.1.0-rc")).String(), "1.1.0-rc.0")
+	assert.Equal(t, bumpPrerelease(mustVersion(t, "1.1.0")).String(), "1.1.0-0")
+}
+
+func TestHasPrereleaseID(t *testing.T) {
+	assert.Assert(t, hasPrereleaseID(mustVersion(t, "1.0.0-rc.1"), "rc"))
+	assert.Assert(t, !hasPrereleaseID(mustVersion(t, "1.0.0-rc2.1"), "rc"))
+	assert.Assert(t, !hasPrereleaseID(mustVersion(t, "1.0.0"), "rc"))
 }

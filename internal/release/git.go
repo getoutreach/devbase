@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 // These are the separators in the git log format that Commits uses.
@@ -28,7 +30,7 @@ type Git struct {
 // Tag is a release tag with the channels from its git note.
 type Tag struct {
 	Name     string
-	Version  Version
+	Version  *semver.Version
 	Channels []string
 }
 

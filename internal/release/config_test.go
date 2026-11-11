@@ -76,6 +76,9 @@ branches: [main]`,
 		"empty branch name": `
 preset: conventionalcommits
 branches: [{name: }]`,
+		"invalid prerelease identifier": `
+preset: conventionalcommits
+branches: [{name: release/next, prerelease: true}, main]`,
 		"branch channel": `
 preset: conventionalcommits
 branches: [{name: main, channel: next}]`,

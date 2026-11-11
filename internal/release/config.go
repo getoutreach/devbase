@@ -261,6 +261,10 @@ func parseBranches(nodes []yaml.Node) ([]Branch, error) {
 		default:
 			return nil, fmt.Errorf("%w: branch %q prerelease %q", ErrUnsupportedConfig, rb.Name, rb.Prerelease.Value)
 		}
+		// As semantic-release does, check that 1.0.0-<id>.1 is valid.
+		if _, err := ParseVersion("1.0.0-" + b.Prerelease + ".1"); b.IsPrerelease() && err != nil {
+			return nil, fmt.Errorf("%w: branch %q prerelease identifier %q", ErrUnsupportedConfig, rb.Name, b.Prerelease)
+		}
 		if !b.IsPrerelease() {
 			if releaseBranches == 0 {
 				b.Channel = ""
