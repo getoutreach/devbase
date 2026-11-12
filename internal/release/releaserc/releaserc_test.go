@@ -331,3 +331,16 @@ func TestParseRubyHooksFailClosed(t *testing.T) {
 		})
 	}
 }
+
+// TestParseDryrunWarning checks the warning for a hook that uses
+// ${options.dryrun}, which semantic-release renders as an empty string.
+func TestParseDryrunWarning(t *testing.T) {
+	_, warnings, err := Parse([]byte(`preset: conventionalcommits
+branches: [main]
+plugins:
+  - - "@semantic-release/exec"
+    - publishCmd: DRYRUN=${options.dryrun} ./publish.sh
+`))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, warnings, []string{"use ${options.dryRun}: semantic-release renders ${options.dryrun} as an empty string"})
+}

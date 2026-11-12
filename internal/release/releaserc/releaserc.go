@@ -9,6 +9,8 @@ package releaserc
 
 import (
 	"fmt"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/internal/strictyaml"
@@ -39,6 +41,40 @@ const (
 	// rubyPublishCmd is the publishCmd that pushes the gem.
 	rubyPublishCmd = "DRYRUN=${options.dryrun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}"
 )
+
+// These are the exec hooks that the stencil Python client module renders
+// to publish the client. The Python plugin replaces them. The publish hook
+// tests ${options.dryrun}, which semantic-release renders as an empty
+// string, so it always publishes; the Python plugin uses the real dry-run
+// state instead.
+const (
+	// pythonVersionCmd is the generateNotesCmd that sets the version.
+	pythonVersionCmd = "cd api/clients/python && $(mise which poetry) version ${nextRelease.version}"
+
+	// pythonPublishCmd is the publishCmd that runs the publish:pyclient
+	// mise task.
+	pythonPublishCmd = `if [ "${options.dryrun}" = "true" ]; then
+  mise run publish:pyclient --environment=production --skip-publish=true
+else
+  mise run publish:pyclient --environment=production --skip-publish=false
+fi`
+)
+
+// These are the environment variables that name the CodeArtifact
+// repository of the stencil Python client hooks, which do not have it.
+const (
+	// CodeArtifactDomainEnv is the CodeArtifact domain.
+	CodeArtifactDomainEnv = "DEVBASE_RELEASE_CODEARTIFACT_DOMAIN"
+
+	// CodeArtifactRepositoryEnv is the CodeArtifact PyPI repository.
+	CodeArtifactRepositoryEnv = "DEVBASE_RELEASE_CODEARTIFACT_REPOSITORY"
+
+	// CodeArtifactRegionEnv is the AWS region of the domain.
+	CodeArtifactRegionEnv = "DEVBASE_RELEASE_CODEARTIFACT_REGION"
+)
+
+// pythonHookRe matches another form of the Python client hooks.
+var pythonHookRe = regexp.MustCompile(`(?s)poetry.*\bversion\b|publish:pyclient`)
 
 // majorReleaseCheckerCmd is the exec hook that stencil-base renders
 // when major versions are not allowed. The release command replaces it
@@ -186,12 +222,21 @@ func addPlugin(cfg *spec.Config, n *yaml.Node) error {
 
 // addExec adds an exec plugin. The major-release-checker.js hook becomes
 // the built-in major version check, the build hook becomes the build
-// command, the Ruby client hooks become the gem plugin, and an exec
-// plugin with no other command is left out.
+// command, the Ruby and Python client hooks become the gem and Python
+// plugins, and an exec plugin with no other command is left out.
 func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 	var h execHook
 	if err := decodeNode(opts, &h, name); err != nil {
 		return err
+	}
+	if strings.TrimSpace(h.GenerateNotes) == pythonVersionCmd && strings.TrimSpace(h.Publish) == pythonPublishCmd &&
+		h.Prepare == "" && h.Success == "" {
+		py, err := pythonFromEnv()
+		if err != nil {
+			return err
+		}
+		cfg.Plugins = append(cfg.Plugins, spec.Plugin{Python: py})
+		return nil
 	}
 	switch strings.TrimSpace(h.GenerateNotes) {
 	case majorReleaseCheckerCmd:
@@ -207,7 +252,7 @@ func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 		cfg.Plugins = append(cfg.Plugins, spec.Plugin{Gem: &spec.GemPlugin{Dir: spec.DefaultGemDir}})
 		h.GenerateNotes, h.Publish = "", ""
 	}
-	// Another form of the build or Ruby hooks would run as a plain hook
+	// Another form of the build or client hooks would run as a plain hook
 	// and skip the built-in step, so it fails closed.
 	for _, cmd := range []string{h.GenerateNotes, h.Prepare, h.Publish, h.Success} {
 		switch {
@@ -216,12 +261,31 @@ func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 		case strings.Contains(cmd, "ruby/build.sh") || strings.Contains(cmd, "ruby/publish.sh"):
 			return fmt.Errorf("%w: Ruby client hook %q; use generateNotesCmd %q with publishCmd %q",
 				spec.ErrUnsupported, cmd, rubyBuildCmd, rubyPublishCmd)
+		case pythonHookRe.MatchString(cmd):
+			return fmt.Errorf("%w: Python client hook %q; use the stencil Python client hooks", spec.ErrUnsupported, cmd)
 		}
 	}
 	if hooks := spec.ExecHooks(h); hooks != (spec.ExecHooks{}) {
 		cfg.Plugins = append(cfg.Plugins, spec.Plugin{Exec: &hooks})
 	}
 	return nil
+}
+
+// pythonFromEnv returns the Python plugin of the stencil Python client
+// hooks, with the CodeArtifact repository from the environment, because
+// the hooks do not name it.
+func pythonFromEnv() (*spec.PythonPlugin, error) {
+	py := &spec.PythonPlugin{
+		Dir:        spec.DefaultPythonDir,
+		Domain:     os.Getenv(CodeArtifactDomainEnv),
+		Repository: os.Getenv(CodeArtifactRepositoryEnv),
+		Region:     os.Getenv(CodeArtifactRegionEnv),
+	}
+	if py.Domain == "" || py.Repository == "" || py.Region == "" {
+		return nil, fmt.Errorf("%w: the Python client hooks do not name the CodeArtifact repository; set %s, %s and %s",
+			spec.ErrUnsupported, CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv)
+	}
+	return py, nil
 }
 
 // parseBranches maps the branches list. The release branch gets the

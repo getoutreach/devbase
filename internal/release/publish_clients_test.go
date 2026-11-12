@@ -1,8 +1,9 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Tests for Publish and Rollback with client publishers and
-// fake client tools: a service with npm and Ruby clients (scenario 10 of
-// the RFC), and the client version files of requirement 12.
+// fake client tools: npm and Python clients, a service with npm and Ruby
+// clients (scenario 10 of the RFC), and the client version files of
+// requirement 12.
 
 package release
 
@@ -15,16 +16,27 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/forge/forgetest"
+	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
 	"gotest.tools/v3/assert"
 )
 
-// clientsConfig adds the npm client and a release commit of its version
-// file.
+// clientsConfig adds the npm client, a release commit of the client
+// version files, and the stencil Python client hooks.
 const clientsConfig = `  - - "@semantic-release/npm"
     - pkgRoot: api/clients/node
   - - "@semantic-release/git"
     - assets:
         - api/clients/node/package.json
+        - api/clients/python/pyproject.toml
+  - - "@semantic-release/exec"
+    - generateNotesCmd: |-
+        cd api/clients/python && $(mise which poetry) version ${nextRelease.version}
+      publishCmd: |-
+        if [ "${options.dryrun}" = "true" ]; then
+          mise run publish:pyclient --environment=production --skip-publish=true
+        else
+          mise run publish:pyclient --environment=production --skip-publish=false
+        fi
 `
 
 // fakeNPM is an npm CLI for the publish of a new version: npm version
@@ -36,9 +48,41 @@ view) echo "npm error code E404" >&2; exit 1 ;;
 esac
 `
 
+// fakeMise finds the fake poetry.
+const fakeMise = `#!/bin/sh
+[ "$1 $2" = "which poetry" ] && echo "$(dirname "$0")/poetry"
+`
+
+// fakePoetry logs its calls, sets the version in pyproject.toml, and
+// marks the package as published.
+const fakePoetry = `#!/bin/sh
+d=$(dirname "$0")
+echo "poetry $*" >> "$d/calls.log"
+case "$1" in
+version) sed -i "s/^version = .*/version = \"$2\"/" pyproject.toml ;;
+publish) touch "$d/published" ;;
+esac
+`
+
+// fakeAWS logs its calls, and finds the package version after the fake
+// poetry publishes it.
+const fakeAWS = `#!/bin/sh
+d=$(dirname "$0")
+echo "aws $*" >> "$d/calls.log"
+case "$2" in
+describe-package-version)
+  [ -e "$d/published" ] && { echo Published; exit 0; }
+  echo "An error occurred (ResourceNotFoundException) when calling the DescribePackageVersion operation: x" >&2
+  exit 254 ;;
+get-repository-endpoint) echo https://pypi.test/acme-pypi/ ;;
+get-authorization-token) echo codeartifact-token-value ;;
+esac
+`
+
 // withFakeCLIs puts scripts with the given names and contents first on
-// PATH, and gives the test an empty HOME.
-func withFakeCLIs(t *testing.T, scripts map[string]string) {
+// PATH, and gives the test an empty HOME. It returns the folder of the
+// scripts.
+func withFakeCLIs(t *testing.T, scripts map[string]string) string {
 	t.Helper()
 	bin := t.TempDir()
 	for name, script := range scripts {
@@ -46,6 +90,33 @@ func withFakeCLIs(t *testing.T, scripts map[string]string) {
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("HOME", t.TempDir())
+	return bin
+}
+
+// withClientCLIs sets up the fake CLIs of the client publishers, the npm
+// token, the CodeArtifact repository and the box config, and returns the
+// folder of the scripts.
+func withClientCLIs(t *testing.T) string {
+	t.Helper()
+	bin := withFakeCLIs(t, map[string]string{"npm": fakeNPM, "mise": fakeMise, "poetry": fakePoetry, "aws": fakeAWS})
+	t.Setenv("NPM_TOKEN", "npm-token-value")
+	t.Setenv(releaserc.CodeArtifactDomainEnv, "acme")
+	t.Setenv(releaserc.CodeArtifactRepositoryEnv, "acme-pypi")
+	t.Setenv(releaserc.CodeArtifactRegionEnv, "eu-west-1")
+	writeFile(t, os.Getenv("HOME"), filepath.Join(".outreach", ".config", "box", "box.yaml"),
+		"config:\n  aws:\n    defaultAccountID: \"123456789012\"\n")
+	return bin
+}
+
+// fakeCalls returns the calls of the fake poetry and aws.
+func fakeCalls(t *testing.T, bin string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(bin, "calls.log"))
+	if os.IsNotExist(err) {
+		return ""
+	}
+	assert.NilError(t, err)
+	return string(b)
 }
 
 // clientsFixture makes a publish fixture with the client config and the
@@ -54,6 +125,7 @@ func clientsFixture(t *testing.T, extra string, files map[string]string) *publis
 	t.Helper()
 	p := newPublishFixture(t, clientsConfig+extra)
 	files["api/clients/node/package.json"] = `{"name": "@acme/widgets-client", "version": "0.0.0-development"}` + "\n"
+	files["api/clients/python/pyproject.toml"] = "[project]\nname = \"widgets_client\"\nversion = \"0.0.0\"\n"
 	for name, content := range files {
 		writeFile(t, p.git.Dir, name, content)
 	}
@@ -64,22 +136,62 @@ func clientsFixture(t *testing.T, extra string, files map[string]string) *publis
 }
 
 func TestPublishClientsMakeNoReleaseCommit(t *testing.T) {
-	withFakeCLIs(t, map[string]string{"npm": fakeNPM})
-	t.Setenv("NPM_TOKEN", "npm-token-value")
+	bin := withClientCLIs(t)
 	p := clientsFixture(t, "", map[string]string{})
 	repo, plan := p.planAndBuild()
-	assert.Equal(t, len(repo.Warnings), 1, strings.Join(repo.Warnings, "\n"))
+	assert.Equal(t, len(repo.Warnings), 2, strings.Join(repo.Warnings, "\n"))
 	assert.NilError(t, p.publish(repo, plan))
 
-	// The tag is on the plan commit, and the checkout has the version.
+	// The tag is on the plan commit, and the checkout has the versions.
 	assert.Equal(t, p.remoteRef("refs/tags/v1.0.0"), plan.Commit)
 	assert.Equal(t, p.remoteRef("refs/heads/release"), plan.Commit)
-	assert.Assert(t, strings.Contains(p.run("status", "--porcelain"), "api/clients/node/package.json"))
+	status := p.run("status", "--porcelain")
+	assert.Assert(t, strings.Contains(status, "api/clients/node/package.json"), status)
+	assert.Assert(t, strings.Contains(status, "api/clients/python/pyproject.toml"), status)
+
+	// The Python package is published with the account of the box config.
+	calls := fakeCalls(t, bin)
+	assert.Assert(t, strings.Contains(calls, "poetry version 1.0.0\n"), calls)
+	assert.Assert(t, strings.Contains(calls, "--domain-owner 123456789012"), calls)
+	assert.Assert(t, strings.Contains(calls, "poetry publish --repository codeartifact\n"), calls)
+
+	// A rerun skips the published package.
+	assert.NilError(t, p.publish(repo, plan))
+	assert.Equal(t, strings.Count(fakeCalls(t, bin), "poetry publish"), 1)
+}
+
+func TestPublishPythonClientDryRun(t *testing.T) {
+	bin := withClientCLIs(t)
+	p := clientsFixture(t, "", map[string]string{})
+	repo, plan := p.planAndBuild()
+	assert.NilError(t, Publish(context.Background(), repo, plan, &PublishOptions{
+		Dist: "dist", Remote: p.remote, Forge: p.forge, Env: os.Environ(), DryRun: true,
+	}))
+	assert.Equal(t, fakeCalls(t, bin), "")
+	assert.Equal(t, p.remoteRef("refs/tags/v1.0.0"), "")
+}
+
+func TestRollbackStopsForPythonPackage(t *testing.T) {
+	bin := withClientCLIs(t)
+	p := clientsFixture(t, "", map[string]string{})
+	p.partialRelease()
+
+	// A Python package for the version stops the rollback.
+	writeFile(t, bin, "published", "")
+	_, err := p.rollback(&RollbackOptions{Tag: "v1.0.0"})
+	assert.ErrorIs(t, err, ErrRollbackRefused)
+	assert.ErrorContains(t, err, "the CodeArtifact acme-pypi package for 1.0.0 exists")
+	assert.Assert(t, p.remoteRef("refs/tags/v1.0.0") != "")
+
+	// Without it, the rollback deletes the tag.
+	assert.NilError(t, os.Remove(filepath.Join(bin, "published")))
+	_, err = p.rollback(&RollbackOptions{Tag: "v1.0.0"})
+	assert.NilError(t, err)
+	assert.Equal(t, p.remoteRef("refs/tags/v1.0.0"), "")
 }
 
 func TestPublishReleaseCommitLeavesOutClientVersionFiles(t *testing.T) {
-	withFakeCLIs(t, map[string]string{"npm": fakeNPM})
-	t.Setenv("NPM_TOKEN", "npm-token-value")
+	withClientCLIs(t)
 	// The folder glob is not a client version file, so the plan keeps it,
 	// and the release commit leaves out the version files in it.
 	p := clientsFixture(t, `  - - "@semantic-release/exec"
@@ -164,13 +276,13 @@ func newServiceFixture(t *testing.T) *serviceFixture {
 	return newServiceFixtureWith(t, serviceReleaserc)
 }
 
-// newServiceFixtureWith makes a serviceFixture with the config releaserc.
-func newServiceFixtureWith(t *testing.T, releaserc string) *serviceFixture {
+// newServiceFixtureWith makes a serviceFixture with the config rc.
+func newServiceFixtureWith(t *testing.T, rc string) *serviceFixture {
 	t.Helper()
 	f := newRepo(t, "main")
 	f.run("remote", "add", "origin", "https://github.com/acme/widgets.git")
 	dir := f.git.Dir
-	writeFile(t, dir, ".releaserc.yaml", releaserc)
+	writeFile(t, dir, ".releaserc.yaml", rc)
 	writeFile(t, dir, "service.yaml", "name: widgets\n")
 	writeFile(t, dir, ".gitignore", "api/clients/ruby/pkg/\n")
 	writeFile(t, dir, "api/clients/node/package.json", `{"name": "@getoutreach/widgets-client", "version": "0.0.0-development"}`+"\n")

@@ -47,6 +47,13 @@ func LoadRepo(dir string) (*Repo, error) {
 	if r.Config, r.Warnings, err = releaserc.Parse(b); err != nil {
 		return nil, err
 	}
+	// The CodeArtifact repository of the Python client hooks comes from
+	// the environment, so a plan for another repository does not publish.
+	for _, pl := range r.Config.Plugins {
+		if pl.Python != nil {
+			fmt.Fprintf(h, "\x00python\x00%s\x00%s\x00%s", pl.Python.Domain, pl.Python.Repository, pl.Python.Region)
+		}
+	}
 	// Only a config that builds reads .goreleaser.yml, as semantic-release
 	// runs GoReleaser only from the build hook.
 	if r.Config.Build {
