@@ -324,19 +324,10 @@ func (p *publisher) tag(ctx context.Context) error {
 			return err
 		}
 	}
-	var channel any // A JSON null for the default channel.
-	if c := p.plan.NextRelease.Channel; c != "" {
-		channel = c
-	}
-	note, err := json.Marshal(map[string][]any{"channels": {channel}})
-	if err != nil {
-		return fmt.Errorf("encode the tag note: %w", err)
-	}
-	env := slices.Concat(commitIdentity, p.opts.Env)
-	ref := noteRef(tag)
-	if _, err := run(ctx, g.Dir, env, "git", "notes", "--ref", ref, "add", "-f", "-m", string(note), tag); err != nil {
+	if err := addTagNote(ctx, g, p.opts.Env, tag, p.plan.NextRelease.Channel); err != nil {
 		return err
 	}
+	ref := noteRef(tag)
 	if _, err := g.Run(ctx, "push", "--", p.opts.Remote, "refs/tags/"+tag); err != nil {
 		return fmt.Errorf("push the tag: %w", err)
 	}
@@ -344,6 +335,46 @@ func (p *publisher) tag(ctx context.Context) error {
 		return fmt.Errorf("push the tag note: %w", err)
 	}
 	fmt.Fprintf(p.log, "Tagged %s as %s\n", p.tagCommit, tag)
+	return nil
+}
+
+// addTagNote adds the git note of a release tag with its channel, as
+// semantic-release does: {"channels":[null]} for the default channel.
+func addTagNote(ctx context.Context, g *Git, env []string, tag, channel string) error {
+	var ch any // A JSON null for the default channel.
+	if channel != "" {
+		ch = channel
+	}
+	note, err := json.Marshal(map[string][]any{"channels": {ch}})
+	if err != nil {
+		return fmt.Errorf("encode the tag note: %w", err)
+	}
+	_, err = run(ctx, g.Dir, slices.Concat(commitIdentity, env), "git", "notes", "--ref", noteRef(tag), "add", "-f", "-m", string(note), tag)
+	return err
+}
+
+// tagAndPush tags commit with each of tags that does not exist yet, adds
+// the git notes with channel, and pushes the tags and notes to remote
+// in one atomic push, unless remote is empty.
+func tagAndPush(ctx context.Context, g *Git, env []string, remote, commit, channel string, tags []string) error {
+	refs := make([]string, 0, 2*len(tags)) //nolint:mnd // Why: a tag and a note per tag.
+	for _, tag := range tags {
+		if g.TagCommit(ctx, tag) == "" {
+			if _, err := g.Run(ctx, "tag", tag, commit); err != nil {
+				return err
+			}
+		}
+		if err := addTagNote(ctx, g, env, tag, channel); err != nil {
+			return err
+		}
+		refs = append(refs, "refs/tags/"+tag, noteRef(tag))
+	}
+	if remote == "" {
+		return nil
+	}
+	if _, err := g.Run(ctx, append([]string{"push", "--atomic", "--", remote}, refs...)...); err != nil {
+		return fmt.Errorf("push the tags %s: %w", strings.Join(tags, ", "), err)
+	}
 	return nil
 }
 

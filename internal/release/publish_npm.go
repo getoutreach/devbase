@@ -47,6 +47,9 @@ type npmPackage struct {
 	// Name is the package name.
 	Name string `json:"name"`
 
+	// Version is the package version.
+	Version string `json:"version"`
+
 	// Private is true only for the JSON value true.
 	Private any `json:"private"`
 

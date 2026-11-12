@@ -104,7 +104,7 @@ func unstableRelease(ctx context.Context, r *Repo, arts *spec.Artifacts, opts *U
 	}
 	version := "0.0.0-unstable+" + plan.Commit
 	plan.Release = true
-	plan.NextRelease = &PlanRelease{Version: version, GitTag: "v" + version}
+	plan.NextRelease = &PlanRelease{Version: version, GitTag: spec.RootTagFormat.Render(version)}
 	plan.Targets = planTargets(arts)
 	fmt.Fprintf(log, "Creating unstable release (v%s)\n", version)
 	archives, err := Build(ctx, arts, plan, &BuildOptions{Dir: r.Git.Dir, Dist: opts.Dist, Env: opts.Env})

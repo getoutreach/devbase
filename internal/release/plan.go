@@ -23,8 +23,14 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
-// PlanSchema is the version of the plan file format.
+// PlanSchema is the version of the plan file format of a repository
+// without release units.
 const PlanSchema = 1
+
+// PlanSchemaUnits is the version of the plan file format with release
+// units: the root fields of PlanSchema and a units list. A repository
+// without units keeps PlanSchema, so that its plan does not change.
+const PlanSchemaUnits = 2
 
 // These are the errors that ReadPlan returns.
 var (
@@ -39,7 +45,10 @@ var (
 // Plan is the result of planning a release. It is written to a file so
 // that build and publish jobs use the same version.
 type Plan struct {
-	Schema  int    `json:"schema"`
+	Schema int `json:"schema"`
+
+	// Release is true when the root or a unit releases. Reason says why
+	// the root does not release.
 	Release bool   `json:"release"`
 	Reason  string `json:"reason,omitempty"`
 
@@ -68,6 +77,9 @@ type Plan struct {
 
 	// ConfigDigest is Repo.Digest when the plan was made.
 	ConfigDigest string `json:"configDigest"`
+
+	// Units are the release units, in config order (PlanSchemaUnits).
+	Units []PlanUnit `json:"units,omitempty"`
 }
 
 // PlanRelease describes one release in a plan.
@@ -109,6 +121,10 @@ type PlanOptions struct {
 
 	// Log receives the stderr of the hooks.
 	Log io.Writer
+
+	// Units limits the plan to the root and these units. Empty means
+	// all units.
+	Units []string
 }
 
 // MakePlan computes the release plan for a repository.
@@ -139,9 +155,27 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (_ *Plan, err err
 		}
 	}
 
+	now := opts.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	links := opts.NewLinks(repoURL)
+	if err := r.planRoot(ctx, plan, branch, links, now, opts); err != nil {
+		return nil, err
+	}
+	if err := r.planUnits(ctx, plan, branch, links, now, opts); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// planRoot plans the root release, as semantic-release does.
+func (r *Repo) planRoot(
+	ctx context.Context, plan *Plan, branch *spec.Branch, links forge.NoteLinks, now time.Time, opts *PlanOptions,
+) error {
 	tags, err := r.Git.Tags(ctx, "HEAD")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	last := LastRelease(branch, tags)
 	from := ""
@@ -150,39 +184,35 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (_ *Plan, err err
 		from = last.Name
 	}
 
-	raws, err := r.Git.Commits(ctx, from, "HEAD")
+	raws, err := r.rootCommits(ctx, from, "HEAD")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	commits := ParseCommits(raws)
 	t := Analyze(DropSkipped(commits), r.Config.Rules)
 	if t == spec.BumpNone {
 		plan.Reason = "no relevant changes"
-		return plan, nil
+		return nil
 	}
 
 	next := NextVersion(branch, last, tags, t)
 	if r.Config.MajorCheck {
 		if err := CheckMajor(last, next); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	now := opts.Now
-	if now.IsZero() {
-		now = time.Now()
-	}
 	plan.Release = true
-	plan.NextRelease = &PlanRelease{Type: t, Version: next.String(), GitTag: "v" + next.String(), Channel: branch.Channel}
+	tag := spec.RootTagFormat.Render(next.String())
+	plan.NextRelease = &PlanRelease{Type: t, Version: next.String(), GitTag: tag, Channel: branch.Channel}
 	notes := RenderNotes(&NotesInput{
-		Version: next.String(), Tag: plan.NextRelease.GitTag, PreviousTag: from,
-		Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
+		Version: next.String(), Tag: tag, PreviousTag: from, Date: now, Commits: commits, Links: links,
 	})
 	if plan.Notes, err = r.generateNotes(ctx, plan, notes, opts); err != nil {
-		return nil, err
+		return err
 	}
 	plan.addArtifacts(r.Config.Artifacts)
-	return plan, nil
+	return nil
 }
 
 // addArtifacts adds the build targets and the release assets of a to the
@@ -298,8 +328,12 @@ func (r *Repo) newPlan(ctx context.Context, branch string) (plan *Plan, repoURL,
 	if branch == "" {
 		branch = current
 	}
+	schema := PlanSchema
+	if len(r.Config.Units) > 0 {
+		schema = PlanSchemaUnits
+	}
 	return &Plan{
-		Schema: PlanSchema, Commit: head, CommitTime: commitTime, ProjectName: path.Base(repoURL),
+		Schema: schema, Commit: head, CommitTime: commitTime, ProjectName: path.Base(repoURL),
 		ConfigDigest: r.Digest, Branch: spec.Branch{Name: branch},
 	}, repoURL, current, nil
 }
@@ -327,7 +361,7 @@ func ReadPlan(file string, r *Repo) (*Plan, error) {
 	if err := json.Unmarshal(b, &p); err != nil {
 		return nil, fmt.Errorf("decode plan: %w", err)
 	}
-	if p.Schema != PlanSchema {
+	if p.Schema != PlanSchema && p.Schema != PlanSchemaUnits {
 		return nil, fmt.Errorf("%w: %d", ErrPlanSchema, p.Schema)
 	}
 	if p.ConfigDigest != r.Digest {

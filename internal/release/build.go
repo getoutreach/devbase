@@ -63,7 +63,7 @@ func Build(ctx context.Context, arts *spec.Artifacts, plan *Plan, opts *BuildOpt
 	if err != nil {
 		return nil, err
 	}
-	tmpl := &spec.Template{Version: plan.NextRelease.Version, Tag: "v" + plan.NextRelease.Version}
+	tmpl := &spec.Template{Version: plan.NextRelease.Version, Tag: spec.RootTagFormat.Render(plan.NextRelease.Version)}
 	if !opts.SkipHooks {
 		for _, hook := range arts.Hooks {
 			if err := runHook(ctx, hook, tmpl, opts); err != nil {

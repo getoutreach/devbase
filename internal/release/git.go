@@ -13,6 +13,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
 // These are the separators in the git log format that Commits uses.
@@ -112,11 +113,19 @@ func (g *Git) IsAncestor(ctx context.Context, a, b string) bool {
 	return err == nil
 }
 
-// Tags returns the release tags (v<semver>) that are merged into ref, or
-// all of them when ref is "", with their channels. A tag without a git note is on the default
-// channel, which is the empty string.
+// Tags returns the root release tags (v<semver>) that are merged into
+// ref, or all of them when ref is "", with their channels. A tag without
+// a git note is on the default channel, which is the empty string.
 func (g *Git) Tags(ctx context.Context, ref string) ([]Tag, error) {
-	args := []string{"tag", "--list", "v*"}
+	return g.FormatTags(ctx, ref, spec.RootTagFormat)
+}
+
+// FormatTags returns the release tags of format that are merged into
+// ref, or all of them when ref is "", with their channels. A tag is a
+// release tag when the text in the place of ${version} is a semantic
+// version.
+func (g *Git) FormatTags(ctx context.Context, ref string, format spec.TagFormat) ([]Tag, error) {
+	args := []string{"tag", "--list", format.Prefix() + "*"}
 	if ref != "" {
 		args = append(args, "--merged", ref)
 	}
@@ -130,8 +139,10 @@ func (g *Git) Tags(ctx context.Context, ref string) ([]Tag, error) {
 	}
 	var tags []Tag
 	for name := range strings.FieldsSeq(out) {
-		// The tag format is v${version}, so the version follows the "v".
-		version := strings.TrimPrefix(name, "v")
+		version, ok := format.Version(name)
+		if !ok {
+			continue // Not a tag of the format.
+		}
 		v, err := ParseVersion(version)
 		if err != nil {
 			if isCleanVersion(version) {
@@ -167,6 +178,56 @@ func (g *Git) Commits(ctx context.Context, from, to string) ([]RawCommit, error)
 		if ok {
 			commits = append(commits, RawCommit{Hash: hash, Message: js.Trim(msg)})
 		}
+	}
+	return commits, nil
+}
+
+// TagCommit returns the commit of a local tag, or "" when there is no
+// such tag.
+func (g *Git) TagCommit(ctx context.Context, tag string) string {
+	commit, err := g.Run(ctx, "rev-parse", "--verify", "--quiet", "refs/tags/"+tag+"^{commit}")
+	if err != nil {
+		return ""
+	}
+	return commit
+}
+
+// FileCommit is a commit with the files that it changes.
+type FileCommit struct {
+	RawCommit
+
+	// Files are the changed files, relative to the repository. A rename
+	// changes the old and the new path. A merge commit has none.
+	Files []string
+}
+
+// CommitsWithFiles returns the commits in from..to, newest first, with
+// their changed files. An empty from means all commits reachable from
+// to.
+func (g *Git) CommitsWithFiles(ctx context.Context, from, to string) ([]FileCommit, error) {
+	rng := to
+	if from != "" {
+		rng = from + ".." + to
+	}
+	out, err := g.Run(ctx, "log", "--no-renames", "--name-only", "-z",
+		"--format="+recordSep+"%H"+fieldSep+"%B"+fieldSep, rng, "--")
+	if err != nil {
+		return nil, err
+	}
+	var commits []FileCommit
+	for rec := range strings.SplitSeq(out, recordSep) {
+		hash, rest, ok := strings.Cut(rec, fieldSep)
+		if !ok {
+			continue
+		}
+		msg, names, _ := strings.Cut(rest, fieldSep)
+		c := FileCommit{RawCommit: RawCommit{Hash: strings.TrimSpace(hash), Message: js.Trim(msg)}}
+		for name := range strings.SplitSeq(names, "\x00") {
+			if name = strings.TrimLeft(name, "\n"); name != "" {
+				c.Files = append(c.Files, name)
+			}
+		}
+		commits = append(commits, c)
 	}
 	return commits, nil
 }
