@@ -99,8 +99,17 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		return ErrNoForge
 	}
 	p := &publisher{r: r, plan: plan, opts: opts, log: logOr(opts.Log)}
-	steps := []func(context.Context) error{
-		p.assets, p.state, p.generateNotes, p.prepare, p.tag, p.publish, p.success,
+	steps := []struct {
+		name string
+		fn   func(context.Context) error
+	}{
+		{"assets", p.assets},
+		{"state", p.state},
+		{"generate_notes", p.generateNotes},
+		{"prepare", p.prepare},
+		{"tag", p.tag},
+		{"publish", p.publish},
+		{"success", p.success},
 	}
 	if opts.DryRun {
 		steps = steps[:2]
@@ -113,7 +122,7 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		}
 	}()
 	for _, step := range steps {
-		if err := step(ctx); err != nil {
+		if err := traceStep(ctx, "publish."+step.name, step.fn); err != nil {
 			return err
 		}
 	}

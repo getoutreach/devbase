@@ -72,7 +72,9 @@ type PreviewOptions struct {
 // temporary worktree, as "Devbase CI", and plans the release of the
 // result. The checkout does not change. The plan is nil when the pull
 // request adds no change.
-func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (*Plan, error) {
+func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (_ *Plan, err error) {
+	ctx, end := startStep(ctx, "preview")
+	defer end(&err)
 	log := logOr(opts.Log)
 	g, head := r.Git, opts.Head
 	if head == "" {

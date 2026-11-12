@@ -114,7 +114,9 @@ type PlanOptions struct {
 }
 
 // MakePlan computes the release plan for a repository.
-func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
+func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (_ *Plan, err error) {
+	ctx, end := startStep(ctx, "plan")
+	defer end(&err)
 	plan, repoURL, current, err := r.newPlan(ctx, opts.Branch)
 	if err != nil {
 		return nil, err

@@ -50,7 +50,9 @@ type RollbackOptions struct {
 // release commit, or when the forge release is published
 // and opts.Force is false. It returns what it deleted, or would delete
 // for a dry run.
-func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) ([]string, error) {
+func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, err error) {
+	ctx, end := startStep(ctx, "rollback")
+	defer end(&err)
 	log := logOr(opts.Log)
 	if opts.Tag == unstableTag {
 		return nil, fmt.Errorf("%w: the unstable release replaces the %q tag on every run", ErrRollbackRefused, unstableTag)

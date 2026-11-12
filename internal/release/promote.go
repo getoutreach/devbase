@@ -45,7 +45,9 @@ type PromoteOptions struct {
 // with a force push, as dt release promote does. The push starts the
 // stable release on the release branch. It uses --force-with-lease, so
 // it fails when the remote release branch moved while it ran.
-func Promote(ctx context.Context, r *Repo, opts *PromoteOptions) (*Tag, error) {
+func Promote(ctx context.Context, r *Repo, opts *PromoteOptions) (_ *Tag, err error) {
+	ctx, end := startStep(ctx, "promote")
+	defer end(&err)
 	log := logOr(opts.Log)
 	release, pre := releaseBranches(r.Config.Branches)
 	if release == nil || len(pre) != 1 {

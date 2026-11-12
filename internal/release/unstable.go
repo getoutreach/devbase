@@ -54,7 +54,9 @@ type UnstableOptions struct {
 // the forge release and the tag "unstable", and runs
 // scripts/unstable-release.include.sh. It does nothing when service.yaml
 // does not enable prereleases, or when CI is not on the prerelease branch.
-func Unstable(ctx context.Context, r *Repo, opts *UnstableOptions) error {
+func Unstable(ctx context.Context, r *Repo, opts *UnstableOptions) (err error) {
+	ctx, end := startStep(ctx, "unstable")
+	defer end(&err)
 	log := logOr(opts.Log)
 	if ok, err := r.UnstableEnabled(opts.Branch, opts.DryRun, log); !ok {
 		return err

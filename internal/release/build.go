@@ -56,7 +56,9 @@ type BuildOptions struct {
 // Build runs the before hooks, then builds and archives the targets of
 // a plan in parallel. Each target writes to <dist>/<os>_<arch>/, so
 // parallel CI jobs never write the same file.
-func Build(ctx context.Context, arts *spec.Artifacts, plan *Plan, opts *BuildOptions) ([]string, error) {
+func Build(ctx context.Context, arts *spec.Artifacts, plan *Plan, opts *BuildOptions) (_ []string, err error) {
+	ctx, end := startStep(ctx, "build")
+	defer end(&err)
 	targets, err := selectTargets(arts, plan, opts.Targets)
 	if err != nil {
 		return nil, err
