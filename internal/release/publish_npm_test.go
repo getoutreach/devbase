@@ -45,8 +45,8 @@ type fakeCall struct {
 }
 
 // fakeRunner records the commands and returns scripted results by the
-// command name and its first arguments, such as "npm view" or
-// "circleci orb info".
+// command name and its first arguments, such as "npm view",
+// "circleci orb info" or "aws codeartifact get-authorization-token".
 type fakeRunner struct {
 	calls   []fakeCall
 	replies map[string]fakeReply
@@ -64,7 +64,7 @@ func (f *fakeRunner) run(ctx context.Context, log io.Writer, c *command) (cmdRes
 	f.calls = append(f.calls, call)
 	io.WriteString(log, maskerFor(ctx, c.env).Mask("Run "+c.String()+"\n"))
 	key := c.name + " " + c.args[0]
-	if c.args[0] == "orb" {
+	if c.args[0] == "orb" || c.args[0] == "codeartifact" {
 		key += " " + c.args[1]
 	}
 	r := f.replies[key]

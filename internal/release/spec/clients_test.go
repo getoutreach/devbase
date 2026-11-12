@@ -19,11 +19,14 @@ func TestClientVersionFiles(t *testing.T) {
 		{Gem: &spec.GemPlugin{}},
 		{Gem: &spec.GemPlugin{Dir: "ruby", Name: "x_client"}},
 		{Gem: &spec.GemPlugin{Dir: "ruby2", VersionFile: "version.rb"}},
+		{Python: &spec.PythonPlugin{}},
+		{Python: &spec.PythonPlugin{Dir: "py"}},
 	}}
 	assert.DeepEqual(t, cfg.ClientVersionFiles(), []string{
 		"api/clients/node/package.json", "api/clients/node/package-lock.json", "api/clients/node/npm-shrinkwrap.json",
 		"package.json", "package-lock.json", "npm-shrinkwrap.json",
 		"api/clients/ruby/lib/*/version.rb", "ruby/lib/x_client/version.rb", "ruby2/version.rb",
+		"api/clients/python/pyproject.toml", "py/pyproject.toml",
 	})
 	for file, want := range map[string]bool{
 		"api/clients/node/package.json":              true,
@@ -34,6 +37,8 @@ func TestClientVersionFiles(t *testing.T) {
 		"go.mod":                                     false,
 		"./api/clients/ruby/lib/b_client/version.rb": true,
 		"ruby/lib/y_client/version.rb":               false,
+		"py/pyproject.toml":                          true,
+		"py/poetry.lock":                             false,
 	} {
 		assert.Equal(t, cfg.IsClientVersionFile(file), want, file)
 	}

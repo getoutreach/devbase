@@ -134,6 +134,7 @@ type Plugin struct {
 	NPM    *NPMPlugin
 	Orb    *OrbPlugin
 	Gem    *GemPlugin
+	Python *PythonPlugin
 	Exec   *ExecHooks
 }
 

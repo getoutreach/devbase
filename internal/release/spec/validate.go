@@ -44,6 +44,9 @@ func (c *Config) Validate() (warnings []string, err error) {
 		}
 		warnings = append(warnings, w...)
 	}
+	if err := c.validatePythonBranches(); err != nil {
+		return nil, err
+	}
 	if c.Artifacts != nil {
 		if err := c.Artifacts.Validate(); err != nil {
 			return nil, err
@@ -166,7 +169,10 @@ func validateFileGlobs(globs []string) error {
 // validate checks that exactly one capability is set, with valid options.
 func (p *Plugin) validate() (warnings []string, err error) {
 	set := 0
-	for _, isSet := range []bool{p.Notes != nil, p.Forge != nil, p.Commit != nil, p.NPM != nil, p.Orb != nil, p.Gem != nil, p.Exec != nil} {
+	for _, isSet := range []bool{
+		p.Notes != nil, p.Forge != nil, p.Commit != nil, p.NPM != nil, p.Orb != nil, p.Gem != nil, p.Python != nil,
+		p.Exec != nil,
+	} {
 		if isSet {
 			set++
 		}
@@ -180,6 +186,8 @@ func (p *Plugin) validate() (warnings []string, err error) {
 		return nil, fmt.Errorf("%w: orb plugin without a name", ErrUnsupported)
 	case p.Gem != nil:
 		return nil, p.Gem.validate()
+	case p.Python != nil:
+		return nil, p.Python.validate()
 	case p.Forge != nil:
 		return nil, validateFileGlobs(p.Forge.Assets)
 	case p.Commit != nil:
