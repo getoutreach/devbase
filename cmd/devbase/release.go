@@ -62,6 +62,8 @@ func newReleaseCommand() *cli.Command {
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "branch", Usage: "Branch to plan for (default: the current branch)"},
 					&cli.StringFlag{Name: "out", Usage: "Write the plan as JSON to this file"},
+					dryRunFlag("Plan a release that publish refuses; hooks see options.dryRun as true"),
+					&cli.BoolFlag{Name: "run-hooks", Usage: "Run the generateNotesCmd hooks and add their output to the notes"},
 				},
 				Action: releasePlan,
 			},
@@ -135,7 +137,9 @@ func loadPlan(c *cli.Command) (*release.Repo, *release.Plan, error) {
 
 // releasePlan is the Action for "release plan".
 func releasePlan(ctx context.Context, c *cli.Command) error {
-	_, plan, err := makePlan(ctx, c.String("branch"))
+	_, plan, err := makePlan(ctx, c.Root().ErrWriter, &release.PlanOptions{
+		Branch: c.String("branch"), DryRun: c.Bool("dry-run"), RunHooks: c.Bool("run-hooks"),
+	})
 	if err != nil {
 		return err
 	}

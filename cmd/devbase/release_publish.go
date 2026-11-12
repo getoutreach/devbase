@@ -9,6 +9,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/getoutreach/devbase/v2/internal/release"
@@ -35,7 +36,7 @@ func publishCommands() []*cli.Command {
 		{
 			Name:   "run",
 			Usage:  "Plan, build every target and publish in one job",
-			Flags:  []cli.Flag{distFlag(), dryRunFlag("Plan, build and check, and publish nothing")},
+			Flags:  []cli.Flag{distFlag(), dryRunFlag("Plan only, as plan --dry-run does")},
 			Action: releaseRun,
 		},
 		{
@@ -119,8 +120,10 @@ func openForge(ctx context.Context, c *cli.Command, repo *release.Repo, branch s
 }
 
 // makePlan loads the repository, logs its config warnings, and plans the
-// release of branch, or of the checked-out branch when it is empty.
-func makePlan(ctx context.Context, branch string) (*release.Repo, *release.Plan, error) {
+// release of opts.Branch, or of the checked-out branch when it is empty,
+// from the origin remote. The hooks get the process environment and log
+// to log.
+func makePlan(ctx context.Context, log io.Writer, opts *release.PlanOptions) (*release.Repo, *release.Plan, error) {
 	repo, err := loadRepo()
 	if err != nil {
 		return nil, nil, err
@@ -132,7 +135,11 @@ func makePlan(ctx context.Context, branch string) (*release.Repo, *release.Plan,
 	if err != nil {
 		return nil, nil, fmt.Errorf("read the origin URL: %w", err)
 	}
-	plan, err := release.MakePlan(ctx, repo, &release.PlanOptions{Branch: branch, NewLinks: github.NewLinks, Remote: remote})
+	opts.Remote = remote
+	opts.NewLinks = github.NewLinks
+	opts.Env = os.Environ()
+	opts.Log = log
+	plan, err := release.MakePlan(ctx, repo, opts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("plan release: %w", err)
 	}
@@ -176,11 +183,12 @@ func releaseRun(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	repo, plan, err := makePlan(ctx, branch)
+	dryRun := c.Bool("dry-run")
+	repo, plan, err := makePlan(ctx, c.Root().ErrWriter, &release.PlanOptions{Branch: branch, DryRun: dryRun})
 	if err != nil {
 		return err
 	}
-	if !plan.Release {
+	if !plan.Release || dryRun {
 		printPlan(c, plan)
 		return nil
 	}

@@ -8,6 +8,7 @@ package spec
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -53,14 +54,14 @@ type ExecFields struct {
 	NextVersion, NextTag, NextChannel string
 	LastVersion, LastTag              string
 	Branch                            string
+	DryRun                            bool
 }
 
 // RenderExecCommand replaces the ${...} lookups of a command that
 // CheckExecCommand accepted. A missing value, such as the channel of the
 // default channel, renders as an empty string, as lodash renders null.
-// The hooks run only when it is not a dry run, so ${options.dryRun} and
-// ${options.dryrun} render "false"; semantic-release renders an empty
-// string for the lowercase form.
+// ${options.dryRun} and ${options.dryrun} render the dry-run value;
+// semantic-release renders an empty string for the lowercase form.
 func RenderExecCommand(cmd string, f *ExecFields) string {
 	values := map[string]string{
 		"nextRelease.version": f.NextVersion,
@@ -69,8 +70,8 @@ func RenderExecCommand(cmd string, f *ExecFields) string {
 		"lastRelease.version": f.LastVersion,
 		"lastRelease.gitTag":  f.LastTag,
 		"branch.name":         f.Branch,
-		"options.dryRun":      "false",
-		"options.dryrun":      "false",
+		"options.dryRun":      strconv.FormatBool(f.DryRun),
+		"options.dryrun":      strconv.FormatBool(f.DryRun),
 	}
 	return execExprRegex.ReplaceAllStringFunc(cmd, func(m string) string {
 		return values[strings.TrimSpace(execExprRegex.FindStringSubmatch(m)[1])]

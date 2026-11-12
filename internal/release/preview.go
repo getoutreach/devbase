@@ -116,7 +116,7 @@ func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (*Plan, error) 
 	} else {
 		fmt.Fprintf(log, "The changes of %s are already in %s, previewing %s as it is\n", head, base, base)
 	}
-	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks})
+	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks, DryRun: true})
 }
 
 // previewBase returns the branch to preview head against, as

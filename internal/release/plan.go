@@ -10,13 +10,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
@@ -39,6 +44,10 @@ type Plan struct {
 	Schema  int    `json:"schema"`
 	Release bool   `json:"release"`
 	Reason  string `json:"reason,omitempty"`
+
+	// DryRun is true for a plan from plan --dry-run, which publish
+	// refuses.
+	DryRun bool `json:"dryRun,omitempty"`
 
 	// Commit is the planned commit, and CommitTime its committer time
 	// in Unix seconds, which archives use as file times.
@@ -87,6 +96,21 @@ type PlanOptions struct {
 	// compare the branch with. Empty means that the plan uses only local
 	// refs. A forge can give a URL with credentials.
 	Remote string
+
+	// DryRun marks the plan as a dry run, which publish refuses. The
+	// hooks see options.dryRun as true.
+	DryRun bool
+
+	// RunHooks runs the generateNotesCmd hooks, whose stdout joins the
+	// notes, as in semantic-release.
+	RunHooks bool
+
+	// Env is the environment of the hooks. Its secrets are masked in the
+	// notes.
+	Env []string
+
+	// Log receives the stderr of the hooks.
+	Log io.Writer
 }
 
 // MakePlan computes the release plan for a repository.
@@ -95,6 +119,7 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 	if err != nil {
 		return nil, err
 	}
+	plan.DryRun = opts.DryRun
 	branchName := plan.Branch.Name
 	branch := r.Config.Branch(branchName)
 	if branch == nil {
@@ -149,18 +174,83 @@ func MakePlan(ctx context.Context, r *Repo, opts *PlanOptions) (*Plan, error) {
 	}
 	plan.Release = true
 	plan.NextRelease = &PlanRelease{Type: t, Version: next.String(), GitTag: "v" + next.String(), Channel: branch.Channel}
-	plan.Notes = RenderNotes(&NotesInput{
+	notes := RenderNotes(&NotesInput{
 		Version: next.String(), Tag: plan.NextRelease.GitTag, PreviousTag: from,
 		Date: now, Commits: commits, Links: opts.NewLinks(repoURL),
 	})
-	if a := r.Config.Artifacts; a != nil {
-		plan.Targets = planTargets(a)
-		for _, target := range a.Targets {
-			plan.Assets = append(plan.Assets, ArchiveName(plan.ProjectName, next.String(), &target))
-		}
-		plan.Assets = append(plan.Assets, a.Checksums)
+	if plan.Notes, err = r.generateNotes(ctx, plan, notes, opts); err != nil {
+		return nil, err
 	}
+	plan.addArtifacts(r.Config.Artifacts)
 	return plan, nil
+}
+
+// addArtifacts adds the build targets and the release assets of a to the
+// plan of a release, or nothing when a is nil.
+func (p *Plan) addArtifacts(a *spec.Artifacts) {
+	if a == nil {
+		return
+	}
+	p.Targets = planTargets(a)
+	for _, target := range a.Targets {
+		p.Assets = append(p.Assets, ArchiveName(p.ProjectName, p.NextRelease.Version, &target))
+	}
+	p.Assets = append(p.Assets, a.Checksums)
+}
+
+// generateNotes runs the generateNotes step, as semantic-release does:
+// in plugin order, the notes plugin gives notes, and with
+// opts.RunHooks, each exec generateNotesCmd hook gives its stdout. The
+// outputs that are not empty are joined with a blank line, and the
+// secrets are masked with the Masker of ctx, or else of opts.Env.
+func (r *Repo) generateNotes(ctx context.Context, plan *Plan, notes string, opts *PlanOptions) (string, error) {
+	var parts []string
+	for _, pl := range r.Config.Plugins {
+		switch {
+		case pl.Notes != nil:
+			parts = append(parts, notes)
+		case opts.RunHooks && pl.Exec != nil && pl.Exec.GenerateNotes != "":
+			out, err := runExecHook(ctx, r.Git.Dir, opts.Env, logOr(opts.Log), pl.Exec.GenerateNotes, plan.execFields())
+			if err != nil {
+				return "", fmt.Errorf("generateNotes hook: %w", err)
+			}
+			parts = append(parts, out)
+		}
+	}
+	parts = slices.DeleteFunc(parts, func(s string) bool { return s == "" })
+	m := rlog.MaskerFrom(ctx)
+	if m == nil {
+		m = rlog.NewMasker(opts.Env)
+	}
+	return m.Mask(strings.Join(parts, "\n\n")), nil
+}
+
+// execFields returns the values of the ${...} lookups of exec commands
+// for the release of the plan.
+func (p *Plan) execFields() *spec.ExecFields {
+	f := &spec.ExecFields{
+		NextVersion: p.NextRelease.Version, NextTag: p.NextRelease.GitTag,
+		NextChannel: p.NextRelease.Channel, Branch: p.Branch.Name, DryRun: p.DryRun,
+	}
+	if last := p.LastRelease; last != nil {
+		f.LastVersion, f.LastTag = last.Version, last.GitTag
+	}
+	return f
+}
+
+// runExecHook runs an exec hook with /bin/sh in dir, as @semantic-release/exec
+// does, and returns its stdout without the surrounding whitespace. The
+// rendered command and the hook's stderr go to log.
+func runExecHook(ctx context.Context, dir string, env []string, log io.Writer, cmd string, fields *spec.ExecFields) (string, error) {
+	rendered := spec.RenderExecCommand(cmd, fields)
+	fmt.Fprintf(log, "Run %s\n", rendered)
+	c := exec.CommandContext(ctx, "/bin/sh", "-c", rendered)
+	c.Dir, c.Env, c.Stderr = dir, env, log
+	out, err := c.Output()
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", rendered, err)
+	}
+	return js.Trim(string(out)), nil
 }
 
 // planTargets returns the build targets of a, as os/arch strings.

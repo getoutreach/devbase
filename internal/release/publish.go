@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
@@ -35,6 +34,10 @@ var (
 	// ErrMissingAsset is returned when a build output from the plan is
 	// missing.
 	ErrMissingAsset = errors.New("a planned asset is missing")
+
+	// ErrDryRunPlan is returned for a plan from plan --dry-run, unless
+	// publish runs as a dry run too.
+	ErrDryRunPlan = errors.New("the plan is a dry run; run plan without --dry-run to publish")
 
 	// ErrNoForge is returned when the config has a forge plugin but
 	// Publish got no forge.
@@ -86,8 +89,11 @@ type PublishOptions struct {
 // step. A rerun after a failure continues the same release. When a step
 // fails, the forge opens or updates the failure issue.
 func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (err error) {
-	if !plan.Release {
+	switch {
+	case !plan.Release:
 		return nil
+	case plan.DryRun && !opts.DryRun:
+		return ErrDryRunPlan
 	}
 	if r.Config.Forge() != nil && opts.Forge == nil {
 		return ErrNoForge
@@ -553,24 +559,7 @@ func (p *publisher) commits(ctx context.Context) ([]forge.Commit, error) {
 	return out, nil
 }
 
-// hook renders and runs an exec command with /bin/sh in the repository,
-// as @semantic-release/exec does, and returns its stdout. Its stderr goes
-// to the log.
+// hook runs an exec command of the publish, and returns its stdout.
 func (p *publisher) hook(ctx context.Context, cmd string) (string, error) {
-	fields := &spec.ExecFields{
-		NextVersion: p.plan.NextRelease.Version, NextTag: p.plan.NextRelease.GitTag,
-		NextChannel: p.plan.NextRelease.Channel, Branch: p.plan.Branch.Name,
-	}
-	if last := p.plan.LastRelease; last != nil {
-		fields.LastVersion, fields.LastTag = last.Version, last.GitTag
-	}
-	rendered := spec.RenderExecCommand(cmd, fields)
-	fmt.Fprintf(p.log, "Run %s\n", rendered)
-	c := exec.CommandContext(ctx, "/bin/sh", "-c", rendered)
-	c.Dir, c.Env, c.Stderr = p.r.Git.Dir, p.opts.Env, p.log
-	out, err := c.Output()
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", rendered, err)
-	}
-	return strings.TrimSpace(string(out)), nil
+	return runExecHook(ctx, p.r.Git.Dir, p.opts.Env, p.log, cmd, p.plan.execFields())
 }
