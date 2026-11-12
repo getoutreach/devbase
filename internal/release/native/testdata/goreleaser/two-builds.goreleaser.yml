@@ -1,0 +1,40 @@
+# Two builds rendered before stencil-golang ignored darwin/amd64.
+before:
+  hooks:
+    - make dep
+builds:
+  - main: ./cmd/widgets
+    id: &name widgets
+    binary: *name
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - '-w -s -X "github.com/getoutreach/gobox/pkg/app.Version=v{{ .Version }}"'
+      - '-X "main.HoneycombTracingKey={{ .Env.HONEYCOMB_APIKEY }}"'
+      - '-X "main.TeleforkAPIKey={{ .Env.TELEFORK_APIKEY }}"'
+    env:
+      - CGO_ENABLED=0
+  - main: ./cmd/widgetctl
+    id: &name2 widgetctl
+    binary: *name2
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - '-w -s -X "github.com/getoutreach/gobox/pkg/app.Version=v{{ .Version }}"'
+      - '-X "main.HoneycombTracingKey={{ .Env.HONEYCOMB_APIKEY }}"'
+      - '-X "main.TeleforkAPIKey={{ .Env.TELEFORK_APIKEY }}"'
+    env:
+      - CGO_ENABLED=0
+archives: []
+checksum:
+  name_template: "checksums.txt"
+release:
+  disable: true

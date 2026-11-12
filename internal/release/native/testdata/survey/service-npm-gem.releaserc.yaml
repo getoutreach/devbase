@@ -1,0 +1,43 @@
+preset: conventionalcommits
+branches:
+  - name: main
+plugins:
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        - type: revert
+          release: patch
+        - type: perf
+          release: patch
+  # Block major version upgrades due to us not supporting them that well. This can
+  # be disabled by setting releaseOptions.allowMajorVersions, but be warned this
+  # is not well supported for services.
+  - - "@semantic-release/exec"
+    # We use generateNotesCmd instead of verifyConditionsCmd because it has access
+    # to last/nextRelease due to when the step runs.
+    - generateNotesCmd: |-
+        ./scripts/shell-wrapper.sh major-release-checker.js ${lastRelease.version} ${nextRelease.version}
+
+  # This creates fancy release notes in our Github release
+  - "@semantic-release/release-notes-generator"
+
+  # Bump npm package.json version, and release to npm/github packages.
+  # See devbase for the Github Packages part.
+  - - "@semantic-release/npm"
+    - pkgRoot: api/clients/node
+  # Release Ruby packages
+  - - "@semantic-release/exec"
+    # We use generateNotesCmd because prepareCmd is not ran on dry-run
+    - generateNotesCmd: |-
+        ./scripts/shell-wrapper.sh ruby/build.sh ${nextRelease.version} 1>&2
+      publishCmd: |-
+        DRYRUN=${options.dryrun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}
+  # Store the manifest version updates in git
+  - - "@semantic-release/git"
+    - assets:
+        - api/clients/node/package.json
+        - api/clients/ruby/lib/widgets_client/version.rb
+  - "@semantic-release/github"
+
+  ## <<Stencil::Block(customReleasePlugins)>>
+
+  ## <</Stencil::Block>>

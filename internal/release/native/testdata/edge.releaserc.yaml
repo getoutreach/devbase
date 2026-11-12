@@ -1,0 +1,34 @@
+# Values that the surveyed configs do not have: a prerelease: true
+# branch, rules with scope, subject and release false, an empty commit
+# file list, an npm package at the root, an orb with the default path, and
+# hooks for every step.
+preset: conventionalcommits
+branches:
+  - name: next
+    prerelease: true
+  - main
+plugins:
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        - type: docs
+          scope: README
+          release: patch
+        - subject: "*skip*"
+          release: false
+        - revert: true
+          release: patch
+  - - "@semantic-release/exec"
+    - generateNotesCmd: echo ${nextRelease.gitTag}
+  - "@semantic-release/release-notes-generator"
+  - "@semantic-release/npm"
+  - - "@semantic-release/git"
+    - assets: []
+  - - "@semantic-release/exec"
+    - prepareCmd: ./prepare.sh ${nextRelease.version}
+      publishCmd: ./publish.sh ${branch.name}
+      successCmd: ./success.sh ${lastRelease.gitTag}
+  - - "@getoutreach/semantic-release-circleci-orb"
+    - orbName: acme/orb
+  - - "@semantic-release/github"
+    - assets:
+        - "dist/*.zip"

@@ -80,12 +80,21 @@ func newReleaseCommand() *cli.Command {
 				},
 				Action: releaseBuild,
 			},
-		}, publishCommands()...),
+		}, append(publishCommands(), releaseConfigCommand())...),
 	}
-	for _, sub := range cmd.Commands {
-		sub.Action = maskErrors(&masker, sub.Action)
-	}
+	maskCommandErrors(&masker, cmd.Commands)
 	return cmd
+}
+
+// maskCommandErrors masks the errors of the actions of cmds and of their
+// subcommands with maskErrors.
+func maskCommandErrors(m **rlog.Masker, cmds []*cli.Command) {
+	for _, sub := range cmds {
+		if sub.Action != nil {
+			sub.Action = maskErrors(m, sub.Action)
+		}
+		maskCommandErrors(m, sub.Commands)
+	}
 }
 
 // maskErrors returns action with the secrets of *m masked in its error

@@ -1,0 +1,23 @@
+# Values that are not the defaults: no hooks, main ".", an id that is not
+# the binary, one ldflags string, no env, the GoReleaser default targets
+# with an ignore rule, and archive files with a template and a mode.
+builds:
+  - main: .
+    id: tool-build
+    binary: tool
+    goarch: [amd64, arm]
+    ignore:
+      - goos: windows
+    ldflags: -s -w -X main.version={{ .Version }}
+archives:
+  - format: tar.gz
+    files:
+      - LICENSE
+      - src: "docs/{{ .Env.DOCS_DIR }}/*.md"
+        dst: docs
+      - src: bin/helper
+        dst: helper
+        info:
+          mode: 0700
+checksum:
+  name_template: checksums.txt

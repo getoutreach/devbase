@@ -1,7 +1,7 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Tests for LoadRepo: which configuration it reads, and the
-// digest.
+// Description: Tests for LoadRepo: which configuration it reads, the
+// digest, and the conversion of the old files.
 
 package release
 
@@ -38,6 +38,18 @@ release:
       release: patch
   publishers:
     - notes
+`
+
+// fixtureGoReleaser is a .goreleaser.yml with one build.
+const fixtureGoReleaser = `builds:
+  - main: ./cmd/app
+    id: app
+    binary: app
+    goos: [linux]
+    goarch: [amd64]
+    ldflags: [-s -w]
+checksum:
+  name_template: checksums.txt
 `
 
 // writeFiles writes files, by path relative to dir, and fails the test on
@@ -139,4 +151,42 @@ func TestReadPlanChecksTheReleaseSection(t *testing.T) {
 	assert.NilError(t, err)
 	_, err = ReadPlan(file, repo)
 	assert.ErrorIs(t, err, ErrPlanConfig)
+}
+
+// TestConvertConfig converts the old files, replaces them with the
+// section, and checks that LoadRepo reads the same model.
+func TestConvertConfig(t *testing.T) {
+	cfg := strings.Replace(fixtureConfig, `  - "@semantic-release/release-notes-generator"`,
+		`  - - "@semantic-release/exec"
+    - generateNotesCmd: "make release APP_VERSION=${nextRelease.version}"
+  - "@semantic-release/release-notes-generator"
+  - - "@semantic-release/github"
+    - assets: [dist/*.tar.gz, dist/checksums.txt]`, 1)
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{releaserc.File: cfg, goreleaser.File: fixtureGoReleaser})
+	old, err := LoadRepo(dir)
+	assert.NilError(t, err)
+	assert.Assert(t, old.Config.Build)
+
+	section, notes, err := ConvertConfig(dir)
+	assert.NilError(t, err)
+	assert.Equal(t, len(notes), 0)
+	assert.NilError(t, os.Remove(filepath.Join(dir, releaserc.File)))
+	assert.NilError(t, os.Remove(filepath.Join(dir, goreleaser.File)))
+	writeFiles(t, dir, map[string]string{native.File: string(section)})
+	repo, err := LoadRepo(dir)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, repo.Config, old.Config)
+}
+
+// TestConvertConfigNotesUnstableOnlyBuild checks the note for a
+// .goreleaser.yml that only the unstable release reads.
+func TestConvertConfigNotesUnstableOnlyBuild(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{releaserc.File: fixtureConfig, goreleaser.File: fixtureGoReleaser})
+	section, notes, err := ConvertConfig(dir)
+	assert.NilError(t, err)
+	assert.Assert(t, !strings.Contains(string(section), "build:"))
+	assert.Equal(t, len(notes), 1)
+	assert.Assert(t, strings.Contains(notes[0], "unstable release builds nothing"), notes[0])
 }
