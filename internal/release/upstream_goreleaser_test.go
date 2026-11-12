@@ -1,8 +1,9 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Ports the GoReleaser v1.20.0 tests for builds, before
-// hooks, archives, checksums and templates that apply to the builder,
-// and the go-shellwords v1.0.12 tests that apply to before hooks.
+// hooks, archives and templates that apply to the builder, the
+// GoReleaser v2.20.2 tests for checksums, and the go-shellwords v1.0.12
+// tests that apply to before hooks.
 
 package release
 
@@ -408,7 +409,8 @@ func TestGoReleaserUpstreamArchiveName(t *testing.T) {
 }
 
 // TestGoReleaserUpstreamChecksums ports
-// internal/pipe/checksums/checksums_test.go for sha256 and checksums.txt.
+// internal/pipe/checksums/checksums_test.go of v2.20.2 for sha256 and
+// checksums.txt.
 func TestGoReleaserUpstreamChecksums(t *testing.T) {
 	const sum = "61d034473102d7dac305902770471fd50f4c5b26f6831a56dd90b5184b3c30fc  "
 
@@ -426,18 +428,27 @@ func TestGoReleaserUpstreamChecksums(t *testing.T) {
 		assert.Equal(t, string(b), sum+"binary\n"+sum+"binary.rpm\n"+sum+"binary.tar.gz\n")
 	})
 
-	t.Run("checksums.go refresh (sort.Strings of the lines)", func(t *testing.T) {
-		// The lines sort by checksum, not by file name.
+	t.Run("checksums_test.go TestPipeChecksumsSortByFilename", func(t *testing.T) {
+		// v2.20.2: the lines sort by file name, not by checksum.
 		dir := t.TempDir()
-		writeFile(t, dir, "a.tar.gz", "a")
-		writeFile(t, dir, "b.tar.gz", "b")
+		inputs := []struct{ name, content string }{
+			{"d.txt", "dddd"}, {"binary", "some string"}, {"b.txt", "bb"}, {"c.txt", "ccc"}, {"a.txt", "a"},
+		}
+		files := make([]string, 0, len(inputs))
+		for _, f := range inputs {
+			writeFile(t, dir, f.name, f.content)
+			files = append(files, filepath.Join(dir, f.name))
+		}
 		out := filepath.Join(dir, "checksums.txt")
-		assert.NilError(t, WriteChecksums(out, []string{filepath.Join(dir, "a.tar.gz"), filepath.Join(dir, "b.tar.gz")}))
+		assert.NilError(t, WriteChecksums(out, files))
 		b, err := os.ReadFile(out)
 		assert.NilError(t, err)
 		assert.Equal(t, string(b),
-			"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d  b.tar.gz\n"+
-				"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb  a.tar.gz\n")
+			"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb  a.txt\n"+
+				"3b64db95cb55c763391c707108489ae18b4112d783300de38e033b4c98c3deaf  b.txt\n"+
+				sum+"binary\n"+
+				"64daa44ad493ff28a96effab6e77f1732a3d97d83241581b37dbd70a7a4900fe  c.txt\n"+
+				"5bf8aa57fc5a6bc547decf1cc6db63f10deb55a3c6c5df497d631fb3d95e1abf  d.txt\n")
 	})
 
 	t.Run("checksums.go refresh (file mode 0644)", func(t *testing.T) {

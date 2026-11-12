@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -122,7 +121,8 @@ func TestBuild(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, strings.Contains(string(out), `-X \"main.version=v1.2.3\" -X \"main.key=k\"`), string(out))
 
-	// TestGoReleaserUpstreamChecksums checks the line format and order.
+	// TestGoReleaserUpstreamChecksums checks the line format and order:
+	// by file name.
 	sums := filepath.Join(dir, "dist", "checksums.txt")
 	assert.NilError(t, WriteChecksums(sums, archives))
 	b, err := os.ReadFile(sums)
@@ -132,6 +132,5 @@ func TestBuild(t *testing.T) {
 		_, name, _ := strings.Cut(strings.TrimSuffix(line, "\n"), "  ")
 		names = append(names, name)
 	}
-	slices.Sort(names)
 	assert.DeepEqual(t, names, []string{"hello_1.2.3_darwin_arm64.tar.gz", "hello_1.2.3_linux_amd64.tar.gz"})
 }

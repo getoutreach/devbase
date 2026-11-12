@@ -194,21 +194,26 @@ func buildEnv(b *spec.Build, t *spec.Target, tmpl *spec.Template, processEnv []s
 }
 
 // WriteChecksums writes checksums.txt for the archives with GoReleaser's
-// "<sha256>  <name>" line format. GoReleaser sorts the lines, so the
-// order is by checksum, and writes no file when there are no archives.
+// "<sha256>  <name>" line format, and writes no file when there are no
+// archives. The lines are sorted by file name, as in the latest
+// GoReleaser (v2.20.2); 1.20, which the builder follows otherwise, sorts
+// them by checksum.
 func WriteChecksums(file string, archives []string) error {
 	if len(archives) == 0 {
 		return nil
 	}
-	lines := make([]string, len(archives))
-	for i, a := range archives {
+	sorted := slices.Clone(archives)
+	slices.SortFunc(sorted, func(a, b string) int {
+		return strings.Compare(filepath.Base(a), filepath.Base(b))
+	})
+	lines := make([]string, len(sorted))
+	for i, a := range sorted {
 		sum, err := sha256File(a)
 		if err != nil {
 			return err
 		}
 		lines[i] = sum + "  " + filepath.Base(a)
 	}
-	slices.Sort(lines)
 	//nolint:gosec // Why: GoReleaser writes checksums.txt with mode 0644.
 	if err := os.WriteFile(file, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", file, err)
