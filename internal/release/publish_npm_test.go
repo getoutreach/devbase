@@ -52,9 +52,9 @@ type fakeRunner struct {
 	replies map[string]fakeReply
 }
 
-// run is the regRunner of the fake. It writes the masked command line to
-// log, as execRunner does.
-func (f *fakeRunner) run(_ context.Context, log io.Writer, c *regCommand) (regResult, error) {
+// run is the cmdRunner of the fake. It writes the masked command line to
+// log, as execCommand does.
+func (f *fakeRunner) run(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
 	call := fakeCall{dir: c.dir, env: c.env, argv: append([]string{c.name}, c.args...)}
 	if i := slices.Index(c.args, "--userconfig"); i >= 0 {
 		b, _ := os.ReadFile(c.args[i+1])
@@ -62,13 +62,13 @@ func (f *fakeRunner) run(_ context.Context, log io.Writer, c *regCommand) (regRe
 		call.argv[i+2] = "<npmrc>"
 	}
 	f.calls = append(f.calls, call)
-	io.WriteString(log, "Run "+c.String()+"\n")
+	io.WriteString(log, maskerFor(ctx, c.env).Mask("Run "+c.String()+"\n"))
 	key := c.name + " " + c.args[0]
 	if c.args[0] == "orb" {
 		key += " " + c.args[1]
 	}
 	r := f.replies[key]
-	return regResult{stdout: r.stdout, stderr: r.stderr}, r.err
+	return cmdResult{stdout: r.stdout, stderr: r.stderr}, r.err
 }
 
 // argvs returns the argv of each call.
@@ -317,7 +317,7 @@ func TestNPMPrepareRealNPM(t *testing.T) {
 		"PATH="+os.Getenv("PATH"))
 	writeFile(t, f.repo, "dist/package-lock.json",
 		`{"name": "@getoutreach/client", "version": "0.0.0-dev", "lockfileVersion": 3, "packages": {"": {"version": "0.0.0-dev"}}}`)
-	n := &npmRegistry{plugin: &spec.NPMPlugin{PkgRoot: "dist"}, run: execRunner}
+	n := &npmRegistry{plugin: &spec.NPMPlugin{PkgRoot: "dist"}, run: execCommand}
 	assert.NilError(t, n.prepare(context.Background(), f.publisher("1.0.0", "")))
 	for _, file := range []string{"package.json", "package-lock.json"} {
 		b, err := os.ReadFile(filepath.Join(f.repo, "dist", file))

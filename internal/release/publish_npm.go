@@ -68,12 +68,12 @@ type npmRegistry struct {
 	plugin *spec.NPMPlugin
 
 	// run runs the npm commands.
-	run regRunner
+	run cmdRunner
 }
 
 // newNPMRegistry returns the registry of an npm plugin.
 func newNPMRegistry(pl *spec.NPMPlugin) registry {
-	return &npmRegistry{plugin: pl, run: execRunner}
+	return &npmRegistry{plugin: pl, run: execCommand}
 }
 
 // name names the registry in messages.
@@ -93,7 +93,7 @@ func (n *npmRegistry) prepare(ctx context.Context, p *regTarget) error {
 	defer s.close()
 	version := p.version
 	fmt.Fprintf(p.log, "Write version %s to package.json in %s\n", version, s.dir)
-	_, err = n.run(ctx, p.log, &regCommand{
+	_, err = n.run(ctx, p.log, &command{
 		dir: s.dir, env: s.env, name: "npm",
 		args: []string{"version", version, "--userconfig", s.npmrc, "--no-git-tag-version", "--allow-same-version"},
 	})
@@ -130,7 +130,7 @@ func (n *npmRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 		return &info, nil
 	}
 	fmt.Fprintf(p.log, "Publishing version %s to npm registry on dist-tag %s\n", version, distTag)
-	_, err = n.run(ctx, p.log, &regCommand{
+	_, err = n.run(ctx, p.log, &command{
 		dir: p.dir, env: s.env, name: "npm",
 		args: []string{"publish", s.dir, "--userconfig", s.npmrc, "--tag", distTag, "--registry", s.registry},
 	})
@@ -161,7 +161,7 @@ func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 // older versions print nothing.
 func (n *npmRegistry) view(ctx context.Context, p *regTarget, s *npmSession) (bool, error) {
 	pkgVersion := s.pkg.Name + "@" + p.version
-	res, err := n.run(ctx, p.log, &regCommand{
+	res, err := n.run(ctx, p.log, &command{
 		dir: p.dir, env: s.env, name: "npm",
 		args: []string{"view", pkgVersion, "version", "--userconfig", s.npmrc, "--registry", s.registry},
 	})
@@ -208,7 +208,7 @@ func (s *npmSession) close() {
 // registry is the default registry.
 func (n *npmRegistry) open(ctx context.Context, p *regTarget, whoami bool) (*npmSession, error) {
 	cwd := p.dir
-	s := &npmSession{dir: cwd, env: registryEnv(p)}
+	s := &npmSession{dir: cwd, env: envOrProcess(p.env)}
 	if root := n.plugin.PkgRoot; root != "" {
 		s.dir = root
 		if !filepath.IsAbs(root) {
@@ -234,7 +234,7 @@ func (n *npmRegistry) open(ctx context.Context, p *regTarget, whoami bool) (*npm
 		return nil, err
 	}
 	if whoami && normalizeRegistryURL(s.registry) == normalizeRegistryURL(defaultNPMRegistry(s.env)) {
-		_, err := n.run(ctx, p.log, &regCommand{
+		_, err := n.run(ctx, p.log, &command{
 			dir: cwd, env: withoutEnv(s.env, "DEFAULT_NPM_REGISTRY"), name: "npm",
 			args: []string{"whoami", "--userconfig", s.npmrc, "--registry", s.registry},
 		})

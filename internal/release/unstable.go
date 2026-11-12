@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 
@@ -155,11 +154,8 @@ func runUnstableInclude(ctx context.Context, dir string, env []string, log io.Wr
 	if _, err := os.Stat(script); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	fmt.Fprintf(log, "Calling %s\n", filepath.Base(script))
-	c := exec.CommandContext(ctx, script)
-	c.Dir, c.Env, c.Stdout, c.Stderr = dir, append(slices.Clone(env), "DRYRUN=false"), log, log
-	if err := c.Run(); err != nil {
-		return fmt.Errorf("%s: %w", unstableInclude, err)
-	}
-	return nil
+	_, err := execCommand(ctx, log, &command{
+		dir: dir, env: slices.Concat(envOrProcess(env), []string{"DRYRUN=false"}), name: script, display: unstableInclude,
+	})
+	return err
 }

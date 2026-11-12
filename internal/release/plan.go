@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"slices"
 	"strconv"
@@ -21,7 +20,6 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
-	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
@@ -220,11 +218,7 @@ func (r *Repo) generateNotes(ctx context.Context, plan *Plan, notes string, opts
 		}
 	}
 	parts = slices.DeleteFunc(parts, func(s string) bool { return s == "" })
-	m := rlog.MaskerFrom(ctx)
-	if m == nil {
-		m = rlog.NewMasker(opts.Env)
-	}
-	return m.Mask(strings.Join(parts, "\n\n")), nil
+	return maskerFor(ctx, opts.Env).Mask(strings.Join(parts, "\n\n")), nil
 }
 
 // execFields returns the values of the ${...} lookups of exec commands
@@ -241,18 +235,17 @@ func (p *Plan) execFields() *spec.ExecFields {
 }
 
 // runExecHook runs an exec hook with /bin/sh in dir, as @semantic-release/exec
-// does, and returns its stdout without the surrounding whitespace. The
-// rendered command and the hook's stderr go to log.
+// does: the rendered command, stdout and stderr go to log, and it returns
+// stdout without the surrounding whitespace.
 func runExecHook(ctx context.Context, dir string, env []string, log io.Writer, cmd string, fields *spec.ExecFields) (string, error) {
 	rendered := spec.RenderExecCommand(cmd, fields)
-	fmt.Fprintf(log, "Run %s\n", rendered)
-	c := exec.CommandContext(ctx, "/bin/sh", "-c", rendered)
-	c.Dir, c.Env, c.Stderr = dir, env, log
-	out, err := c.Output()
+	res, err := execCommand(ctx, log, &command{
+		dir: dir, env: env, name: "/bin/sh", args: []string{"-c", rendered}, display: rendered,
+	})
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", rendered, err)
+		return "", err
 	}
-	return js.Trim(string(out)), nil
+	return js.Trim(res.stdout), nil
 }
 
 // planTargets returns the build targets of a, as os/arch strings.

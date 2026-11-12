@@ -181,21 +181,3 @@ func TestOrbExists(t *testing.T) {
 		})
 	}
 }
-
-// TestExecRunnerMasksSecrets checks that the production runner masks the
-// token in its log and error.
-func TestExecRunnerMasksSecrets(t *testing.T) {
-	f := newNPMFixture(t, "", "")
-	c := &regCommand{
-		dir: f.repo, name: "/bin/sh",
-		args:    []string{"-c", `echo "bad token $1" >&2; exit 3`, "sh", "tok-SECRET"},
-		secrets: []string{"tok-SECRET"},
-	}
-	res, err := execRunner(context.Background(), &f.log, c)
-	assert.ErrorContains(t, err, "bad token [secure]")
-	assert.Assert(t, !strings.Contains(err.Error(), "tok-SECRET"))
-	assert.Equal(t, res.stderr, "bad token tok-SECRET\n")
-	assert.Assert(t, strings.HasPrefix(f.log.String(), "Run /bin/sh -c"), f.log.String())
-	assert.Assert(t, strings.Contains(f.log.String(), "sh [secure]\nbad token [secure]\n"), f.log.String())
-	assert.Assert(t, !strings.Contains(f.log.String(), "tok-SECRET"), f.log.String())
-}

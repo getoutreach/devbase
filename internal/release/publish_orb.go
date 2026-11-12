@@ -50,12 +50,12 @@ type orbRegistry struct {
 	plugin *spec.OrbPlugin
 
 	// run runs the circleci commands.
-	run regRunner
+	run cmdRunner
 }
 
 // newOrbRegistry returns the registry of an orb plugin.
 func newOrbRegistry(pl *spec.OrbPlugin) registry {
-	return &orbRegistry{plugin: pl, run: execRunner}
+	return &orbRegistry{plugin: pl, run: execCommand}
 }
 
 // name names the registry in messages.
@@ -67,12 +67,12 @@ func (o *orbRegistry) name() string {
 // plugin has no prepare step: CIRCLECI_API_TOKEN, the circleci CLI and
 // the orbName option. It returns all the errors.
 func (o *orbRegistry) prepare(ctx context.Context, p *regTarget) error {
-	env := registryEnv(p)
+	env := envOrProcess(p.env)
 	var errs []error
 	if envValue(env, "CIRCLECI_API_TOKEN") == "" {
 		errs = append(errs, errOrbNoToken)
 	}
-	if _, err := o.run(ctx, p.log, &regCommand{dir: p.dir, env: env, name: orbCommand, args: []string{"version"}}); err != nil {
+	if _, err := o.run(ctx, p.log, &command{dir: p.dir, env: env, name: orbCommand, args: []string{"version"}}); err != nil {
 		errs = append(errs, fmt.Errorf("%w: %w", errOrbNoCLI, err))
 	}
 	if o.plugin.Name == "" {
@@ -104,7 +104,7 @@ func (o *orbRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 	if path == "" {
 		path = orbDefaultPath
 	}
-	if _, err := o.run(ctx, p.log, o.command(p, "orb", "publish", path, ref)); err != nil {
+	if _, err := o.run(ctx, p.log, o.cliCommand(p, "orb", "publish", path, ref)); err != nil {
 		return nil, fmt.Errorf("circleci orb publish: %w", err)
 	}
 	fmt.Fprintf(p.log, "Published %s\n", ref)
@@ -116,7 +116,7 @@ func (o *orbRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 // found" for a missing orb or version.
 func (o *orbRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 	ref := o.ref(p)
-	res, err := o.run(ctx, p.log, o.command(p, "orb", "info", ref))
+	res, err := o.run(ctx, p.log, o.cliCommand(p, "orb", "info", ref))
 	if err != nil {
 		if orbNotFoundRe.MatchString(res.stderr) {
 			return false, nil
@@ -140,13 +140,14 @@ func (o *orbRegistry) ref(p *regTarget) string {
 	return o.plugin.Name + "@" + version
 }
 
-// command returns a circleci command in the repository with the
-// CircleCI token, as the plugin passes it, which logs and errors mask.
-func (o *orbRegistry) command(p *regTarget, args ...string) *regCommand {
-	env := registryEnv(p)
+// cliCommand returns a circleci command in the repository with the
+// CircleCI token, as the plugin passes it. The token's variable name is
+// a secret name, so the logs and errors mask it.
+func (o *orbRegistry) cliCommand(p *regTarget, args ...string) *command {
+	env := envOrProcess(p.env)
 	token := envValue(env, "CIRCLECI_API_TOKEN")
-	return &regCommand{
+	return &command{
 		dir: p.dir, env: env, name: orbCommand,
-		args: append(args, "--token", token), secrets: []string{token},
+		args: append(args, "--token", token),
 	}
 }

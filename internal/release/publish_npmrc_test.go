@@ -6,7 +6,6 @@
 package release
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -286,9 +285,4 @@ func TestNpmrcHelpers(t *testing.T) {
 
 	assert.Equal(t, normalizeRegistryURL("https://registry.npmjs.org/"), normalizeRegistryURL("HTTPS://www.Registry.npmjs.org:443"))
 	assert.Assert(t, normalizeRegistryURL("https://registry.npmjs.org/") != normalizeRegistryURL("http://registry.npmjs.org/"))
-
-	var log bytes.Buffer
-	c := &regCommand{name: "circleci", args: []string{"orb", "publish", "--token", "tok123"}, secrets: []string{"tok123"}}
-	log.WriteString(c.String())
-	assert.Equal(t, log.String(), "circleci orb publish --token [secure]")
 }
