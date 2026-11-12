@@ -28,6 +28,8 @@ gofumpt() {
 
 linter() {
   for godir in $(go_mod_dirs); do
+    # Fast, and needs a repository-relative path, so run before pushd.
+    run_command "go directive" check_go_mod_go_version "$godir" || return 1
     pushd "$godir" >/dev/null || return 1
     if [[ $godir != "." ]]; then
       info "Linting module in $godir"

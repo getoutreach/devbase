@@ -43,3 +43,66 @@ golangci_lint_supports_go() {
   fi
   has_minimum_version "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0" "$builtWith"
 }
+
+# go_mod_go_version(go_mod_file)
+#
+# Prints the version in the go directive of go_mod_file, or nothing if it has
+# none.
+go_mod_go_version() {
+  awk '$1 == "go" { print $2; exit }' "$1"
+}
+
+# expected_go_mod_go_version
+#
+# Prints the Go version that Stencil provides, which is what the go directive of
+# a Stencil-managed go.mod must be: the go.stanza argument in service.yaml if
+# set, otherwise the golang version in .tool-versions. Prints nothing if neither
+# exists.
+#
+# Dependencies: bootstrap.sh and mise.sh, which the script that sources this
+# file has to source.
+expected_go_mod_go_version() {
+  local override
+  override="$(stencil_arg go.stanza 2>/dev/null || true)"
+  if [[ -n $override && $override != "null" ]]; then
+    echo "$override"
+    return
+  fi
+
+  version_from_toolversions "$(get_repo_directory)" golang 2>/dev/null || true
+}
+
+# check_go_mod_go_version(module_dir)
+#
+# Succeeds if the go directive of the go.mod in module_dir (relative to the
+# repository root) is the version from expected_go_mod_go_version, for example
+# after a dependency update raised it. Fails with 1 if it is not. Succeeds
+# without checking if Stencil does not manage the go.mod, or if the expected
+# version is not known.
+#
+# Dependencies: bootstrap.sh and logging.sh, which the script that sources this
+# file has to source.
+check_go_mod_go_version() {
+  local moduleDir="$1" goMod="go.mod"
+  if [[ $moduleDir != "." ]]; then
+    goMod="$moduleDir/go.mod"
+  fi
+
+  if ! managed_by_stencil "$goMod"; then
+    return 0
+  fi
+
+  local expected
+  expected="$(expected_go_mod_go_version)"
+  if [[ -z $expected ]]; then
+    warn "Not checking the go directive of $goMod: found no Go version in .tool-versions or go.stanza"
+    return 0
+  fi
+
+  local actual
+  actual="$(go_mod_go_version "$(get_repo_directory)/$goMod")"
+  if [[ $actual != "$expected" ]]; then
+    error "The go directive in $goMod is '${actual:-none}', but Stencil provides Go $expected. Set it back, or change the Go version in service.yaml and run stencil."
+    return 1
+  fi
+}

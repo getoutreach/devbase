@@ -11,6 +11,15 @@ There is currently no way to ignore files outside of the `.gitignore` file.
 There is currently a bash issue where the exit code is not getting detected when there is multiple commands being ran.
 The easy solution for now is to return the value 1 from the function indicating an error has occurred and terminating the `make test/lint` command that triggered it
 
+## Go directive check
+
+The Go linter fails if the `go` directive of a `go.mod` that Stencil manages (one
+listed in `stencil.lock`) is not the Go version that Stencil provides. That is the
+`go.stanza` argument in `service.yaml` if set, otherwise the `golang` version in
+`.tool-versions`. This catches changes that Stencil did not make, such as a
+dependency update. To use another Go version, change it in `service.yaml` or
+update `stencil-golang`, and run `stencil`.
+
 ## Project specific linters
 
 Projects can create additional linters to be run in addition to the built-in
