@@ -52,7 +52,12 @@ func (r *Repo) SetUnits(units []spec.Unit, root spec.RootPaths) error {
 	if err != nil {
 		return err
 	}
-	r.Warnings = append(r.Warnings, warnings...)
+	// The loader already has the warnings of the root config.
+	for _, w := range warnings {
+		if !slices.Contains(r.Warnings, w) {
+			r.Warnings = append(r.Warnings, w)
+		}
+	}
 	for i := range units {
 		if err := r.checkUnitFiles(&units[i]); err != nil {
 			return fmt.Errorf("unit %q: %w", units[i].Name, err)

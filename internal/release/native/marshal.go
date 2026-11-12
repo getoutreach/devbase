@@ -26,6 +26,8 @@ var ErrNotEquivalent = errors.New("the release section does not load as the same
 // loads the document again and returns an error when the result is not
 // cfg, so that the document is always equivalent to cfg. An empty list
 // is equivalent to no list, except for the files of a release commit.
+// The units of cfg are as Parse returns them, without the defaults and
+// the go.mod values that Repo.SetUnits adds.
 func Marshal(cfg *spec.Config) ([]byte, error) {
 	s, err := fromConfig(cfg)
 	if err != nil {
@@ -77,6 +79,7 @@ func fromConfig(cfg *spec.Config) (*section, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.Root, s.Units = fromUnits(cfg)
 	if !reflect.DeepEqual(normalize(cfg).Plugins, defaults) {
 		publishers := make([]publisher, 0, len(cfg.Plugins))
 		for i := range cfg.Plugins {
@@ -226,6 +229,12 @@ func normalize(cfg *spec.Config) *spec.Config {
 			pl.Python = &py
 		}
 		out.Plugins = append(out.Plugins, pl)
+	}
+	out.RootPaths = spec.RootPaths{Exclude: emptyToNil(cfg.RootPaths.Exclude), Shared: emptyToNil(cfg.RootPaths.Shared)}
+	out.Units = nil
+	for _, u := range cfg.Units {
+		u.Paths, u.Exclude = emptyToNil(u.Paths), emptyToNil(u.Exclude)
+		out.Units = append(out.Units, u)
 	}
 	if cfg.Artifacts != nil {
 		a := *cfg.Artifacts

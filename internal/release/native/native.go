@@ -82,10 +82,33 @@
 //	    - orb:
 //	        name: getoutreach/shared
 //	        path: orb.yml                 # Default: orb.yml.
+//	  # The path rules of the root release when there are units.
+//	  root:
+//	    exclude: [node/**]                # Changes that never count for the root.
+//	    shared: [.circleci/config.yml]    # Root changes only without a unit change.
+//	  # Extra release units, each with its own tags, in release order.
+//	  units:
+//	    - kind: npm                       # go-module, npm or generic.
+//	      dir: node/widgets-client
+//	      name: widgets-client            # Default: the base name of dir.
+//	      paths: [node/widgets-client]    # Default: dir.
+//	      exclude: [node/widgets-client/README.md]
+//	      tagFormat: nodejs-widgets-client-v${version}
+//	      strategy: independent           # Default; mirror is the Go default.
+//	      skipPrereleases: false          # Default.
+//	      allowMajorVersions: false       # Default.
+//	      forgeRelease: false             # Default.
+//	      npm:
+//	        packageRoot: node/widgets-client # Default: dir.
+//	        install: yarn install --frozen-lockfile
+//	    - kind: go-module
+//	      dir: api                        # Tags: api/v${version}.
+//	      go:
+//	        pinRoot: auto                 # Default; or never.
 //
 // The build and publishers keys describe the release of the repository
-// root. A later units key can add more release units, such as Go
-// submodules, with the same keys.
+// root. The loader of the repository fills in the unit defaults, with
+// the module path from the go.mod of a Go module unit.
 package native
 
 import (
@@ -158,6 +181,10 @@ var (
 //nolint:gochecknoglobals // Why: read-only list.
 var buildCommands = []string{"make release", "release:build", "major-release-checker.js"}
 
+// submodulesScript is the script that tags the Go submodules in the old
+// configuration. Go module units replace it.
+const submodulesScript = "release-submodules.sh"
+
 // clientHookRe matches a hook that runs the stencil Ruby or Python
 // client scripts, which the gem and python publishers replace.
 var clientHookRe = regexp.MustCompile(`(?s)ruby/(build|publish)\.sh|poetry.*\bversion\b|publish:pyclient`)
@@ -170,13 +197,15 @@ type file struct {
 }
 
 // section is the release section. Its build and publishers keys are the
-// release of the repository root; a later units key can add other units.
+// release of the repository root, and the units key adds other units.
 type section struct {
 	Branches           []branch     `yaml:"branches"`
 	AllowMajorVersions bool         `yaml:"allowMajorVersions,omitempty"`
 	Rules              *[]rule      `yaml:"rules,omitempty"`
 	Build              *build       `yaml:"build,omitempty"`
 	Publishers         *[]publisher `yaml:"publishers,omitempty"`
+	Root               *rootPaths   `yaml:"root,omitempty"`
+	Units              []unit       `yaml:"units,omitempty"`
 }
 
 // branch is a release branch, or a prerelease branch with an identifier.
@@ -273,6 +302,9 @@ func parse(b []byte) (*spec.Config, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	// The loader of the repository checks the units with their defaults,
+	// some of which come from the files, such as go.mod.
+	f.Release.setUnits(cfg)
 	return cfg, append(warnings, w...), nil
 }
 
@@ -463,9 +495,9 @@ func orDefault(list *[]string, def []string) []string {
 
 // checkHookCommand rejects a hook that runs the build or the major
 // version check of the old configuration, which the build key and
-// allowMajorVersions replace, or a client publish, which the gem and
-// python publishers replace. A client hook would publish without the
-// existence check.
+// allowMajorVersions replace, a client publish, which the gem and python
+// publishers replace, or the Go submodule tags, which units replace. A
+// client hook would publish without the existence check.
 func checkHookCommand(cmd string) error {
 	for _, c := range buildCommands {
 		if strings.Contains(cmd, c) {
@@ -474,6 +506,9 @@ func checkHookCommand(cmd string) error {
 	}
 	if clientHookRe.MatchString(cmd) {
 		return fmt.Errorf("%w: hook %q publishes a client; use the gem or python publisher", spec.ErrUnsupported, cmd)
+	}
+	if strings.Contains(cmd, submodulesScript) {
+		return fmt.Errorf("%w: hook %q runs %s; release the Go submodules as units", spec.ErrUnsupported, cmd, submodulesScript)
 	}
 	return nil
 }

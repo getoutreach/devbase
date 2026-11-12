@@ -270,6 +270,45 @@ func TestParseWarnings(t *testing.T) {
 	assert.Equal(t, len(warnings), 3, strings.Join(warnings, "\n"))
 }
 
+// TestParseUnits checks that the section gives the root path rules and
+// the units as it has them: the loader of the repository adds the
+// defaults.
+func TestParseUnits(t *testing.T) {
+	cfg := parse(t, minimal+`  root:
+    exclude: [node/**]
+    shared: []
+  units:
+    - kind: npm
+      dir: node/widgets-client
+      paths: []
+      exclude: [node/widgets-client/README.md]
+      tagFormat: nodejs-widgets-client-v${version}
+      skipPrereleases: true
+      forgeRelease: true
+      npm:
+        install: yarn install --frozen-lockfile
+    - name: api
+      kind: go-module
+      dir: api
+      strategy: independent
+      allowMajorVersions: true
+      go:
+        pinRoot: never
+`)
+	assert.DeepEqual(t, cfg.RootPaths, spec.RootPaths{Exclude: []string{"node/**"}})
+	assert.DeepEqual(t, cfg.Units, []spec.Unit{
+		{
+			Kind: spec.UnitNPM, Dir: "node/widgets-client", Exclude: []string{"node/widgets-client/README.md"},
+			TagFormat: "nodejs-widgets-client-v${version}", SkipPrereleases: true, ForgeRelease: true,
+			NPM: &spec.NPMPlugin{Install: "yarn install --frozen-lockfile"},
+		},
+		{
+			Name: "api", Kind: spec.UnitGoModule, Dir: "api", Strategy: spec.StrategyIndependent, AllowMajorVersions: true,
+			Go: &spec.GoUnit{PinRoot: spec.GoPinNever},
+		},
+	})
+}
+
 // TestParseClientPublishers checks the defaults of the gem and python
 // publishers, which are the folders that the stencil client hooks use.
 func TestParseClientPublishers(t *testing.T) {
@@ -291,7 +330,14 @@ func TestParseClientPublishers(t *testing.T) {
 func TestParseRejectsUnknownKeys(t *testing.T) {
 	build := minimal + "  build:\n    builds:\n      - binary: widgets\n"
 	for _, tc := range []struct{ name, section, wantErr string }{
-		{"section", minimal + "  units: []\n", "line 7: field units not found"},
+		{"section", minimal + "  modules: []\n", "line 7: field modules not found"},
+		{"root", minimal + "  root:\n    include: [a]\n", "line 8: field include not found"},
+		{"unit", minimal + "  units:\n    - kind: generic\n      dir: a\n      tag: x\n", "line 10: field tag not found"},
+		{"unit npm", minimal + "  units:\n    - kind: npm\n      dir: a\n      npm:\n        pkgRoot: a\n", "line 11: field pkgRoot not found"},
+		{
+			"unit go", minimal + "  units:\n    - kind: go-module\n      dir: a\n      go:\n        modulePath: x\n",
+			"line 11: field modulePath not found",
+		},
 		{"branch", minimal + "      channel: next\n", "line 7: field channel not found"},
 		{"rule", minimal + "  rules:\n    - type: feat\n      releas: minor\n", "line 9: field releas not found"},
 		{"build", build + "    format: zip\n", "line 10: field format not found"},
@@ -351,6 +397,7 @@ func TestParseFailsClosed(t *testing.T) {
 		{"hooks with Ruby publish", hooks + "publish: ./scripts/shell-wrapper.sh ruby/publish.sh 1.0.0\n", "use the gem or python publisher"},
 		{"hooks with poetry", hooks + "generateNotes: cd py && poetry version ${nextRelease.version}\n", "use the gem or python publisher"},
 		{"hooks with pyclient", hooks + "publish: mise run publish:pyclient\n", "use the gem or python publisher"},
+		{"hooks with submodules", hooks + "prepare: ./scripts/release-submodules.sh ${nextRelease.version}\n", "as units"},
 		{"gem name", minimal + "  publishers:\n    - gem:\n        name: bad name\n", `gem name "bad name"`},
 		{"gem dir", minimal + "  publishers:\n    - gem:\n        dir: ../ruby\n", "not a clean relative path"},
 		{"python region", minimal + "  publishers:\n    - python:\n        region: west\n" + acmePypi, `AWS region "west"`},

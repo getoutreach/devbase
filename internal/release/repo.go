@@ -59,6 +59,14 @@ func LoadRepo(dir string) (*Repo, error) {
 		}
 	}
 	r.Digest = "sha256:" + hex.EncodeToString(h.Sum(nil))
+	// Only the release section has units. SetUnits adds their defaults
+	// and checks them with the files of the repository.
+	if units, root := r.Config.Units, r.Config.RootPaths; len(units) > 0 || !root.IsZero() {
+		r.Config.Units, r.Config.RootPaths = nil, spec.RootPaths{}
+		if err := r.SetUnits(units, root); err != nil {
+			return nil, fmt.Errorf("%s: %w", native.File, err)
+		}
+	}
 	return r, nil
 }
 

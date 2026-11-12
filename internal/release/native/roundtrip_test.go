@@ -190,6 +190,73 @@ func TestMarshalClients(t *testing.T) {
 `), string(b))
 }
 
+// TestRoundTripUnits checks that the root path rules and the units
+// write back as the section has them: a Go library with npm packages,
+// and a CLI with a Go submodule.
+func TestRoundTripUnits(t *testing.T) {
+	for name, s := range map[string]string{
+		"npm units": `release:
+  branches:
+    - name: main
+      prerelease: rc
+    - name: release
+  allowMajorVersions: true
+  root:
+    exclude:
+      - node/**
+      - scripts/check-package.js
+    shared:
+      - .circleci/config.yml
+  units:
+    - kind: npm
+      dir: node/widgets-client
+      exclude:
+        - node/widgets-client/README.md
+      tagFormat: nodejs-widgets-client-v${version}
+      skipPrereleases: true
+      npm:
+        install: yarn install --frozen-lockfile
+    - name: utils
+      kind: npm
+      dir: node/widgets-utils
+      paths:
+        - node/widgets-utils
+        - node/shared
+      tagFormat: nodejs-widgets-utils-v${version}
+      allowMajorVersions: true
+      forgeRelease: true
+      npm:
+        packageRoot: node/widgets-utils/dist
+`,
+		"Go submodule": `release:
+  branches:
+    - name: main
+  build:
+    builds:
+      - binary: widgets
+  publishers:
+    - notes
+    - github
+    - commit:
+        files:
+          - go.mod
+          - go.sum
+  units:
+    - kind: go-module
+      dir: api
+    - kind: go-module
+      dir: tools/v2
+      strategy: independent
+      go:
+        pinRoot: never
+`,
+	} {
+		cfg, _, err := native.Parse([]byte(s))
+		assert.NilError(t, err, name)
+		assert.Equal(t, roundTrip(t, cfg), s, name)
+	}
+}
+
 func TestMarshalOmitsDefaults(t *testing.T) {
 	for _, s := range []string{
 		"release:\n  branches:\n    - name: main\n",

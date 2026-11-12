@@ -16,6 +16,7 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
 	"github.com/getoutreach/devbase/v2/internal/release/native"
 	"github.com/getoutreach/devbase/v2/internal/release/releaserc"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"gotest.tools/v3/assert"
 )
 
@@ -124,10 +125,68 @@ func TestLoadRepoRejectsTwoConfigurations(t *testing.T) {
 
 func TestLoadRepoReportsSectionErrors(t *testing.T) {
 	dir := t.TempDir()
-	writeFiles(t, dir, map[string]string{native.File: fixtureSection + "  units: []\n"})
+	writeFiles(t, dir, map[string]string{native.File: fixtureSection + "  modules: []\n"})
 	_, err := LoadRepo(dir)
 	assert.ErrorContains(t, err, "scripts/devbase.yaml: release: ")
-	assert.ErrorContains(t, err, "field units not found")
+	assert.ErrorContains(t, err, "field modules not found")
+}
+
+// unitsSection is a release section of a Go library with a Go submodule
+// and an npm package.
+const unitsSection = `release:
+  branches:
+    - name: main
+  publishers:
+    - notes
+    - github
+    - commit:
+        files: [go.mod, go.sum]
+  root:
+    exclude: [node/**]
+  units:
+    - kind: go-module
+      dir: api
+    - kind: npm
+      dir: node/widgets-client
+      tagFormat: nodejs-widgets-client-v${version}
+`
+
+// TestLoadRepoReadsUnits checks that LoadRepo gives the units of the
+// section their defaults, with the module path from go.mod, and checks
+// them with the files.
+func TestLoadRepoReadsUnits(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		native.File:                        unitsSection,
+		"go.mod":                           "module github.com/acme/widgets\n\nrequire github.com/acme/widgets/api v1.0.0\n",
+		"api/go.mod":                       "module github.com/acme/widgets/api\n",
+		"node/widgets-client/package.json": strings.Replace(clientPkg, "%s", "1.0.0", 1),
+	}
+	writeFiles(t, dir, files)
+	repo, err := LoadRepo(dir)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, repo.Config.RootPaths, spec.RootPaths{Exclude: []string{"node/**"}})
+	assert.DeepEqual(t, repo.Config.Units, []spec.Unit{
+		{
+			Name: "api", Kind: spec.UnitGoModule, Dir: "api", Paths: []string{"api"},
+			TagFormat: "api/v${version}", Strategy: spec.StrategyMirror,
+			Go: &spec.GoUnit{ModulePath: "github.com/acme/widgets/api", PinRoot: spec.GoPinAuto, RootRequires: true},
+		},
+		{
+			Name: "widgets-client", Kind: spec.UnitNPM, Dir: "node/widgets-client", Paths: []string{"node/widgets-client"},
+			TagFormat: "nodejs-widgets-client-v${version}", Strategy: spec.StrategyIndependent,
+			NPM: &spec.NPMPlugin{PkgRoot: "node/widgets-client"},
+		},
+	})
+	// The digest covers the file and the units with their defaults.
+	assert.Assert(t, repo.Digest != digest(native.File, unitsSection))
+
+	// A unit that the files do not support is an error that names the
+	// file of the section.
+	assert.NilError(t, os.Remove(filepath.Join(dir, "api", "go.mod")))
+	_, err = LoadRepo(dir)
+	assert.ErrorIs(t, err, ErrUnitConfig)
+	assert.ErrorContains(t, err, native.File+": ")
 }
 
 // TestReadPlanChecksTheReleaseSection checks that a change to the section
