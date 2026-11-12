@@ -15,6 +15,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -137,7 +138,7 @@ func RenderNotes(in *NotesInput) string {
 			b.WriteString(renderCommit(&g.commits[i], in.Links) + "\n")
 		}
 	}
-	return jsTrim(b.String()) + "\n"
+	return js.Trim(b.String()) + "\n"
 }
 
 // transformCommit applies the preset's transform step. It returns false

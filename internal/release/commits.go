@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -358,7 +359,7 @@ type sentence struct {
 // that regex does not match, the parser uses /()(.+)/g, which makes each
 // run of characters between line terminators a sentence with no action.
 func referenceSentences(line string) []sentence {
-	lower := asciiLower(line)
+	lower := js.ASCIILower(line)
 	var out []sentence
 	for pos := 0; pos < len(line); {
 		start, kwEnd := keywordWithSpace(line, lower, pos)
@@ -512,7 +513,7 @@ func appendLine(src, line string) string {
 func ParseCommits(raws []RawCommit) []Commit {
 	commits := make([]Commit, 0, len(raws))
 	for _, r := range raws {
-		if jsTrim(r.Message) != "" {
+		if js.Trim(r.Message) != "" {
 			commits = append(commits, ParseCommit(r))
 		}
 	}
@@ -528,8 +529,8 @@ func filterReverted(commits []Commit) []Commit {
 	for i := range commits {
 		for k, j := range held {
 			rv := commits[j].Revert
-			if jsTrim(commits[i].Header) == jsTrim(rv.Header) &&
-				jsTrim(commits[i].Hash) == jsTrim(rv.Hash) {
+			if js.Trim(commits[i].Header) == js.Trim(rv.Header) &&
+				js.Trim(commits[i].Hash) == js.Trim(rv.Hash) {
 				drop[i], drop[j] = true, true
 				held = slices.Delete(held, k, k+1)
 				break

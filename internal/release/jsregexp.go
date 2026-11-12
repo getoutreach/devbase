@@ -9,8 +9,9 @@ package release
 import (
 	"regexp"
 	"strings"
-	"unicode"
 	"unicode/utf8"
+
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 )
 
 // These are pattern fragments for the JavaScript character classes that
@@ -50,34 +51,6 @@ func foldASCII(s string) string {
 	return b.String()
 }
 
-// asciiLower lowercases the ASCII letters of s and keeps its length, so
-// that byte offsets into s stay valid. A JavaScript regular expression
-// with the "i" flag and no "u" flag never matches a non-ASCII character
-// to an ASCII one, so the ASCII keywords need no other folding.
-func asciiLower(s string) string {
-	b := []byte(s)
-	for i, c := range b {
-		if c >= 'A' && c <= 'Z' {
-			b[i] = c + 'a' - 'A'
-		}
-	}
-	return string(b)
-}
-
-// isJSSpace reports whether r matches JavaScript's \s. It is the same
-// set as jsSpaceChars: unicode.IsSpace has U+0085, which JavaScript
-// does not, and does not have U+FEFF, which JavaScript does.
-func isJSSpace(r rune) bool {
-	return r == 0xfeff || (r != 0x85 && unicode.IsSpace(r))
-}
-
-// jsTrim removes leading and trailing JavaScript whitespace, as
-// String.prototype.trim does. strings.TrimSpace differs: it removes
-// U+0085 and keeps U+FEFF.
-func jsTrim(s string) string {
-	return strings.TrimFunc(s, isJSSpace)
-}
-
 // isLineTerminator reports whether r is one of jsLineTerminators.
 func isLineTerminator(r rune) bool {
 	return r == '\n' || r == '\r' || r == 0x2028 || r == 0x2029
@@ -89,7 +62,7 @@ func spaceAt(s string, i int) int {
 	// At the end of s, DecodeRuneInString returns RuneError, which is
 	// not a space.
 	r, n := utf8.DecodeRuneInString(s[i:])
-	if isJSSpace(r) {
+	if js.IsSpace(r) {
 		return n
 	}
 	return 0
@@ -97,5 +70,5 @@ func spaceAt(s string, i int) int {
 
 // skipSpace returns the index after the JavaScript whitespace at s[i:].
 func skipSpace(s string, i int) int {
-	return len(s) - len(strings.TrimLeftFunc(s[i:], isJSSpace))
+	return len(s) - len(strings.TrimLeftFunc(s[i:], js.IsSpace))
 }

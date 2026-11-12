@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 )
 
 // GitCredentialsFromEnv returns the git credentials of the GitHub tokens
@@ -133,7 +135,7 @@ func isGitHubShorthand(s string) bool {
 	if i := strings.Index(s[firstSlash+1:], "/"); i >= 0 {
 		secondSlash = firstSlash + 1 + i
 	}
-	firstSpace := strings.IndexFunc(s, isJSSpace)
+	firstSpace := strings.IndexFunc(s, js.IsSpace)
 	afterHash := func(i int) bool { return i == -1 || (firstHash > -1 && i > firstHash) }
 	doesNotEndWithSlash := !strings.HasSuffix(s, "/")
 	if firstHash > -1 {
@@ -141,15 +143,6 @@ func isGitHubShorthand(s string) bool {
 	}
 	return afterHash(firstSpace) && firstSlash > 0 && doesNotEndWithSlash && !strings.HasPrefix(s, ".") &&
 		afterHash(strings.Index(s, "@")) && afterHash(strings.Index(s, ":")) && afterHash(secondSlash)
-}
-
-// isJSSpace reports whether r matches JavaScript's \s.
-func isJSSpace(r rune) bool {
-	switch r {
-	case '\t', '\n', '\v', '\f', '\r', ' ', 0xa0, 0x1680, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff:
-		return true
-	}
-	return r >= 0x2000 && r <= 0x200a
 }
 
 // scpRegexp matches an scp style URL, such as "git@host:owner/repo.git"
@@ -250,7 +243,7 @@ func (n *nodeURL) host() string {
 func (n *nodeURL) format(scheme, auth, host string) string {
 	s := scheme + "://"
 	if auth != "" {
-		s += percentEncode(auth, "-_.!~*'():") + "@"
+		s += js.PercentEncode(auth, js.URIAuthKeep) + "@"
 	}
 	return s + host + n.rest
 }
@@ -258,23 +251,5 @@ func (n *nodeURL) format(scheme, auth, host string) string {
 // encodeUnreserved percent-encodes s as Octokit's URL templates do: only
 // the RFC 3986 unreserved characters stay.
 func encodeUnreserved(s string) string {
-	return percentEncode(s, "-_.~")
-}
-
-// percentEncode percent-encodes the UTF-8 bytes of s, except ASCII
-// letters, digits and the bytes in keep.
-func percentEncode(s, keep string) string {
-	const hex = "0123456789ABCDEF"
-	var b strings.Builder
-	for i := range len(s) {
-		c := s[i]
-		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.IndexByte(keep, c) >= 0 {
-			b.WriteByte(c)
-			continue
-		}
-		b.WriteByte('%')
-		b.WriteByte(hex[c>>4])
-		b.WriteByte(hex[c&15])
-	}
-	return b.String()
+	return js.PercentEncode(s, "-_.~")
 }

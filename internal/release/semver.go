@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
@@ -34,7 +35,7 @@ func ParseVersion(s string) (*semver.Version, error) {
 // accepts s: clean trims whitespace and any leading "=" and "v"
 // characters before it parses.
 func isCleanVersion(s string) bool {
-	_, err := semver.StrictNewVersion(strings.TrimLeft(jsTrim(s), "=v"))
+	_, err := semver.StrictNewVersion(strings.TrimLeft(js.Trim(s), "=v"))
 	return err == nil
 }
 

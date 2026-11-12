@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
 )
 
 // These are the separators in the git log format that Commits uses.
@@ -166,7 +167,7 @@ func (g *Git) Commits(ctx context.Context, from, to string) ([]RawCommit, error)
 	for rec := range strings.SplitSeq(out, recordSep) {
 		hash, msg, ok := strings.Cut(strings.TrimSpace(rec), fieldSep)
 		if ok {
-			commits = append(commits, RawCommit{Hash: hash, Message: jsTrim(msg)})
+			commits = append(commits, RawCommit{Hash: hash, Message: js.Trim(msg)})
 		}
 	}
 	return commits, nil
