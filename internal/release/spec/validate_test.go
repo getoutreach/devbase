@@ -27,6 +27,7 @@ func validConfig() *spec.Config {
 			{NPM: &spec.NPMPlugin{}},
 			{Orb: &spec.OrbPlugin{Name: "acme/orb", Path: "orb.yml"}},
 			{Exec: &spec.ExecHooks{Publish: "./publish.sh ${nextRelease.version}"}},
+			{Gem: &spec.GemPlugin{}},
 		},
 		Artifacts: &spec.Artifacts{
 			Hooks:     []string{"make dep"},

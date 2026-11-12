@@ -16,18 +16,24 @@ func TestClientVersionFiles(t *testing.T) {
 		{NPM: &spec.NPMPlugin{PkgRoot: "./api/clients/node/"}},
 		{NPM: &spec.NPMPlugin{}},
 		{NPM: &spec.NPMPlugin{PkgRoot: "/abs"}},
+		{Gem: &spec.GemPlugin{}},
+		{Gem: &spec.GemPlugin{Dir: "ruby", Name: "x_client"}},
+		{Gem: &spec.GemPlugin{Dir: "ruby2", VersionFile: "version.rb"}},
 	}}
 	assert.DeepEqual(t, cfg.ClientVersionFiles(), []string{
 		"api/clients/node/package.json", "api/clients/node/package-lock.json", "api/clients/node/npm-shrinkwrap.json",
 		"package.json", "package-lock.json", "npm-shrinkwrap.json",
+		"api/clients/ruby/lib/*/version.rb", "ruby/lib/x_client/version.rb", "ruby2/version.rb",
 	})
 	for file, want := range map[string]bool{
-		"api/clients/node/package.json":          true,
-		"./api/clients/node/npm-shrinkwrap.json": true,
-		"package.json":                           true,
-		"api/clients/node/src/index.ts":          false,
-		"abs/package-lock.json":                  false,
-		"go.mod":                                 false,
+		"api/clients/node/package.json":              true,
+		"./api/clients/node/npm-shrinkwrap.json":     true,
+		"package.json":                               true,
+		"api/clients/node/src/index.ts":              false,
+		"abs/package-lock.json":                      false,
+		"go.mod":                                     false,
+		"./api/clients/ruby/lib/b_client/version.rb": true,
+		"ruby/lib/y_client/version.rb":               false,
 	} {
 		assert.Equal(t, cfg.IsClientVersionFile(file), want, file)
 	}
@@ -39,11 +45,13 @@ func TestDropClientVersionFiles(t *testing.T) {
 		"api/clients/node/package.json",
 		"./api/clients/node/package-lock.json",
 		"api/clients/*/npm-shrinkwrap.json",
+		"api/clients/ruby/lib/widgets_client/version.rb",
 		"api/clients",
 	}}
 	defaults := &spec.CommitPlugin{}
 	cfg := &spec.Config{Plugins: []spec.Plugin{
 		{NPM: &spec.NPMPlugin{PkgRoot: "./api/clients/node"}},
+		{Gem: &spec.GemPlugin{}},
 		{Commit: commit},
 		{Commit: defaults},
 	}}
@@ -54,6 +62,8 @@ func TestDropClientVersionFiles(t *testing.T) {
 		`the release does not commit the client version file "./api/clients/node/package-lock.json"; ` +
 			"remove it from the release commit files",
 		`the release does not commit the client version file "api/clients/*/npm-shrinkwrap.json"; ` +
+			"remove it from the release commit files",
+		`the release does not commit the client version file "api/clients/ruby/lib/widgets_client/version.rb"; ` +
 			"remove it from the release commit files",
 	})
 	// The folder glob stays: the release commit leaves out the client
@@ -66,7 +76,7 @@ func TestDropClientVersionFiles(t *testing.T) {
 	// Only client version files leave an empty list, which commits
 	// nothing.
 	only := &spec.CommitPlugin{Files: []string{"api/clients/node/package.json"}}
-	cfg.Plugins[1].Commit = only
+	cfg.Plugins[2].Commit = only
 	cfg.DropClientVersionFiles()
 	assert.Assert(t, only.Files != nil && len(only.Files) == 0)
 }

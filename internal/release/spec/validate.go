@@ -166,7 +166,7 @@ func validateFileGlobs(globs []string) error {
 // validate checks that exactly one capability is set, with valid options.
 func (p *Plugin) validate() (warnings []string, err error) {
 	set := 0
-	for _, isSet := range []bool{p.Notes != nil, p.Forge != nil, p.Commit != nil, p.NPM != nil, p.Orb != nil, p.Exec != nil} {
+	for _, isSet := range []bool{p.Notes != nil, p.Forge != nil, p.Commit != nil, p.NPM != nil, p.Orb != nil, p.Gem != nil, p.Exec != nil} {
 		if isSet {
 			set++
 		}
@@ -178,6 +178,8 @@ func (p *Plugin) validate() (warnings []string, err error) {
 		return nil, fmt.Errorf("%w: forge %q", ErrUnsupported, p.Forge.Provider)
 	case p.Orb != nil && p.Orb.Name == "":
 		return nil, fmt.Errorf("%w: orb plugin without a name", ErrUnsupported)
+	case p.Gem != nil:
+		return nil, p.Gem.validate()
 	case p.Forge != nil:
 		return nil, validateFileGlobs(p.Forge.Assets)
 	case p.Commit != nil:

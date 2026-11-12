@@ -19,14 +19,24 @@ var npmVersionFiles = []string{"package.json", "package-lock.json", "npm-shrinkw
 
 // ClientVersionFiles returns the path.Match patterns, relative to the
 // repository, of the client version files: the files that a client
-// publisher sets only in the release checkout (requirement 12).
+// publisher sets only in the release checkout (requirement 12). They are
+// the npm package.json and lock files, and the gem version file.
 func (c *Config) ClientVersionFiles() []string {
 	var files []string
 	for _, p := range c.Plugins {
-		if p.NPM != nil && !path.IsAbs(p.NPM.PkgRoot) {
+		switch {
+		case p.NPM != nil && !path.IsAbs(p.NPM.PkgRoot):
 			for _, f := range npmVersionFiles {
 				files = append(files, path.Join(p.NPM.PkgRoot, f))
 			}
+		case p.Gem != nil:
+			// The gem name comes from service.yaml when the plugin has
+			// none, so any name matches.
+			name := p.Gem.Name
+			if name == "" {
+				name = "*"
+			}
+			files = append(files, p.Gem.VersionPath(name))
 		}
 	}
 	return files

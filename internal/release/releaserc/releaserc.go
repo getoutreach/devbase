@@ -29,6 +29,17 @@ const (
 	buildTaskCmd = "APP_VERSION=${nextRelease.version} mise run --quiet release:build 1>&2"
 )
 
+// These are the exec hooks that stencil-golang renders for a Ruby gRPC
+// client. The gem plugin replaces them.
+const (
+	// rubyBuildCmd is the generateNotesCmd that writes the version into
+	// version.rb and builds the gem.
+	rubyBuildCmd = "./scripts/shell-wrapper.sh ruby/build.sh ${nextRelease.version} 1>&2"
+
+	// rubyPublishCmd is the publishCmd that pushes the gem.
+	rubyPublishCmd = "DRYRUN=${options.dryrun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}"
+)
+
 // majorReleaseCheckerCmd is the exec hook that stencil-base renders
 // when major versions are not allowed. The release command replaces it
 // with a built-in check.
@@ -175,7 +186,8 @@ func addPlugin(cfg *spec.Config, n *yaml.Node) error {
 
 // addExec adds an exec plugin. The major-release-checker.js hook becomes
 // the built-in major version check, the build hook becomes the build
-// command, and an exec plugin with no other command is left out.
+// command, the Ruby client hooks become the gem plugin, and an exec
+// plugin with no other command is left out.
 func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 	var h execHook
 	if err := decodeNode(opts, &h, name); err != nil {
@@ -189,11 +201,21 @@ func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 		cfg.Build = true
 		h.GenerateNotes = ""
 	}
-	// Another form of the build hook would run as a plain hook and skip
-	// the build command, so it fails closed.
+	// The gem plugin builds in the prepare step and pushes in the publish
+	// step, at the place of the exec plugin.
+	if strings.TrimSpace(h.GenerateNotes) == rubyBuildCmd && strings.TrimSpace(h.Publish) == rubyPublishCmd {
+		cfg.Plugins = append(cfg.Plugins, spec.Plugin{Gem: &spec.GemPlugin{Dir: spec.DefaultGemDir}})
+		h.GenerateNotes, h.Publish = "", ""
+	}
+	// Another form of the build or Ruby hooks would run as a plain hook
+	// and skip the built-in step, so it fails closed.
 	for _, cmd := range []string{h.GenerateNotes, h.Prepare, h.Publish, h.Success} {
-		if strings.Contains(cmd, "make release") || strings.Contains(cmd, "release:build") {
+		switch {
+		case strings.Contains(cmd, "make release") || strings.Contains(cmd, "release:build"):
 			return fmt.Errorf("%w: build hook %q; use %q", spec.ErrUnsupported, cmd, buildTaskCmd)
+		case strings.Contains(cmd, "ruby/build.sh") || strings.Contains(cmd, "ruby/publish.sh"):
+			return fmt.Errorf("%w: Ruby client hook %q; use generateNotesCmd %q with publishCmd %q",
+				spec.ErrUnsupported, cmd, rubyBuildCmd, rubyPublishCmd)
 		}
 	}
 	if hooks := spec.ExecHooks(h); hooks != (spec.ExecHooks{}) {

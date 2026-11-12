@@ -240,3 +240,94 @@ plugins:
 			"remove it from the release commit files",
 	})
 }
+
+// clientsConfig is the stencil-golang output for a service named widgets
+// with npm and Ruby gRPC clients.
+const clientsConfig = `preset: conventionalcommits
+branches:
+  - name: main
+plugins:
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        - type: revert
+          release: patch
+        - type: perf
+          release: patch
+  - - "@semantic-release/exec"
+    - generateNotesCmd: |-
+        ./scripts/shell-wrapper.sh major-release-checker.js ${lastRelease.version} ${nextRelease.version}
+
+  - "@semantic-release/release-notes-generator"
+  - - "@semantic-release/npm"
+    - pkgRoot: api/clients/node
+  # Release Ruby packages
+  - - "@semantic-release/exec"
+    # We use generateNotesCmd because prepareCmd is not ran on dry-run
+    - generateNotesCmd: |-
+        ./scripts/shell-wrapper.sh ruby/build.sh ${nextRelease.version} 1>&2
+      publishCmd: |-
+        DRYRUN=${options.dryrun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}
+  # Store the manifest version updates in git
+  - - "@semantic-release/git"
+    - assets:
+        - api/clients/node/package.json
+        - api/clients/ruby/lib/widgets_client/version.rb
+  - "@semantic-release/github"
+`
+
+// TestParseClients checks that the Ruby client hooks become the gem
+// plugin at their place, and that the client version files leave the
+// release commit with a warning each (requirement 12).
+func TestParseClients(t *testing.T) {
+	cfg, warnings, err := Parse([]byte(clientsConfig))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, cfg.Plugins, []spec.Plugin{
+		{Notes: &spec.NotesPlugin{}},
+		{NPM: &spec.NPMPlugin{PkgRoot: "api/clients/node"}},
+		{Gem: &spec.GemPlugin{Dir: "api/clients/ruby"}},
+		{Commit: &spec.CommitPlugin{Files: []string{}}},
+		{Forge: &spec.ForgePlugin{Provider: spec.ForgeGitHub}},
+	})
+	assert.Assert(t, cfg.MajorCheck)
+	assert.DeepEqual(t, warnings, []string{
+		`the release does not commit the client version file "api/clients/node/package.json"; ` +
+			"remove it from the release commit files",
+		`the release does not commit the client version file "api/clients/ruby/lib/widgets_client/version.rb"; ` +
+			"remove it from the release commit files",
+	})
+
+	// Other commands of the Ruby exec entry stay an exec plugin after the
+	// gem plugin.
+	withSuccess := strings.Replace(clientsConfig, "ruby/publish.sh ${nextRelease.version}\n",
+		"ruby/publish.sh ${nextRelease.version}\n      successCmd: echo done\n", 1)
+	assert.Assert(t, withSuccess != clientsConfig)
+	cfg, _, err = Parse([]byte(withSuccess))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, cfg.Plugins[2:4], []spec.Plugin{
+		{Gem: &spec.GemPlugin{Dir: "api/clients/ruby"}},
+		{Exec: &spec.ExecHooks{Success: "echo done"}},
+	})
+}
+
+// TestParseRubyHooksFailClosed checks that any other form of the Ruby
+// client hooks is an error, because it would run as a plain hook.
+func TestParseRubyHooksFailClosed(t *testing.T) {
+	const build = "./scripts/shell-wrapper.sh ruby/build.sh ${nextRelease.version} 1>&2"
+	const publish = "DRYRUN=${options.dryrun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}"
+	for name, replace := range map[string][2]string{
+		"build without 1>&2":    {build, "./scripts/shell-wrapper.sh ruby/build.sh ${nextRelease.version}"},
+		"publish with dryRun":   {publish, "DRYRUN=${options.dryRun} ./scripts/shell-wrapper.sh ruby/publish.sh ${nextRelease.version}"},
+		"publish without build": {"generateNotesCmd: |-\n        " + build, "generateNotesCmd: |-\n        echo"},
+		"build without publish": {"publishCmd: |-\n        " + publish, "successCmd: |-\n        echo"},
+		"build as prepareCmd":   {"generateNotesCmd: |-\n        " + build, "prepareCmd: |-\n        " + build},
+		"publish as successCmd": {"publishCmd: |-\n        " + publish, "successCmd: |-\n        " + publish},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := strings.Replace(clientsConfig, replace[0], replace[1], 1)
+			assert.Assert(t, cfg != clientsConfig)
+			_, _, err := Parse([]byte(cfg))
+			assert.ErrorIs(t, err, spec.ErrUnsupported)
+			assert.ErrorContains(t, err, "Ruby client hook")
+		})
+	}
+}

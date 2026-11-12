@@ -133,6 +133,7 @@ type Plugin struct {
 	Commit *CommitPlugin
 	NPM    *NPMPlugin
 	Orb    *OrbPlugin
+	Gem    *GemPlugin
 	Exec   *ExecHooks
 }
 
@@ -170,6 +171,31 @@ type OrbPlugin struct {
 
 	// Path is the orb file.
 	Path string
+}
+
+// DefaultGemDir is the gem folder of a GemPlugin without a Dir: the
+// Ruby client folder that stencil renders.
+const DefaultGemDir = "api/clients/ruby"
+
+// GemPlugin builds a Ruby gem and publishes it to the GitHub Packages
+// RubyGems registry, as the stencil Ruby client hooks
+// (shell/ruby/build.sh and shell/ruby/publish.sh) do.
+type GemPlugin struct {
+	// Dir is the gem folder, relative to the repository. Empty means
+	// DefaultGemDir.
+	Dir string
+
+	// Name is the gem name. Empty means "<name>_client", with the name
+	// in service.yaml.
+	Name string
+
+	// VersionFile is the Ruby file with the VERSION constant, relative
+	// to Dir. Empty means "lib/<gem name>/version.rb".
+	VersionFile string
+
+	// Owner is the GitHub organization of the registry. Empty means the
+	// owner of the origin remote.
+	Owner string
 }
 
 // ExecHooks are the shell commands of an exec plugin, one for each step.

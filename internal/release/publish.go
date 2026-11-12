@@ -419,15 +419,18 @@ func (p *publisher) target() *regTarget {
 	}
 }
 
-// isRegistry reports whether pl is an npm or orb plugin.
+// isRegistry reports whether pl is an npm, orb or gem plugin.
 func isRegistry(pl *spec.Plugin) bool {
-	return pl.NPM != nil || pl.Orb != nil
+	return pl.NPM != nil || pl.Orb != nil || pl.Gem != nil
 }
 
-// registryOf returns the registry of an npm or orb plugin.
+// registryOf returns the registry of an npm, orb or gem plugin.
 func registryOf(pl *spec.Plugin) registry {
-	if pl.NPM != nil {
+	switch {
+	case pl.NPM != nil:
 		return newNPMRegistry(pl.NPM)
+	case pl.Gem != nil:
+		return newGemRegistry(pl.Gem)
 	}
 	return newOrbRegistry(pl.Orb)
 }
