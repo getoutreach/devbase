@@ -99,17 +99,21 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		return ErrNoForge
 	}
 	p := &publisher{r: r, plan: plan, opts: opts, log: logOr(opts.Log)}
+	// The root steps run only when the root releases.
 	steps := []struct {
 		name string
 		fn   func(context.Context) error
+		root bool
 	}{
-		{"assets", p.assets},
-		{"state", p.state},
-		{"generate_notes", p.generateNotes},
-		{"prepare", p.prepare},
-		{"tag", p.tag},
-		{"publish", p.publish},
-		{"success", p.success},
+		{"assets", p.assets, true},
+		{"state", p.state, false},
+		{"generate_notes", p.generateNotes, true},
+		{"units", p.tagUnits, false},
+		{"unit_publish", p.publishUnits, false},
+		{"prepare", p.prepare, true},
+		{"tag", p.tag, true},
+		{"publish", p.publish, true},
+		{"success", p.success, false},
 	}
 	if opts.DryRun {
 		steps = steps[:2]
@@ -122,11 +126,15 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		}
 	}()
 	for _, step := range steps {
+		if step.root && !plan.RootRelease() {
+			continue
+		}
 		if err := traceStep(ctx, "publish."+step.name, step.fn); err != nil {
 			return err
 		}
 	}
-	return nil
+	// A unit that failed to publish did not stop the other releases.
+	return errors.Join(p.unitErrs...)
 }
 
 // publisher holds the state of one Publish call.
@@ -145,6 +153,12 @@ type publisher struct {
 
 	// releases are the places where the release is available.
 	releases []forge.Published
+
+	// units holds the publish state of the released units.
+	units []*unitPublish
+
+	// unitErrs are the errors of the units that failed to publish.
+	unitErrs []error
 }
 
 // assets checks that every planned asset exists, moves the archives of
@@ -185,10 +199,16 @@ func (p *publisher) state(ctx context.Context) error {
 		return fmt.Errorf("fetch: %w", err)
 	}
 	g.FetchNotes(ctx, p.opts.Remote)
+	if err := p.unitState(ctx); err != nil {
+		return err
+	}
+	if !p.plan.RootRelease() {
+		return nil
+	}
 	p.tagCommit = p.plan.Commit
-	tagged, err := g.Run(ctx, "rev-parse", "--verify", "--quiet", "refs/tags/"+p.plan.NextRelease.GitTag+"^{commit}")
-	if err != nil {
-		return nil //nolint:nilerr // Why: rev-parse fails when there is no such tag.
+	tagged := g.TagCommit(ctx, p.plan.NextRelease.GitTag)
+	if tagged == "" {
+		return nil
 	}
 	if tagged != p.plan.Commit && !p.isReleaseCommit(ctx, tagged) {
 		return fmt.Errorf("%w: %s at %s", ErrTagExists, p.plan.NextRelease.GitTag, tagged)
@@ -233,6 +253,11 @@ func (p *publisher) generateNotes(ctx context.Context) error {
 // npm version, and the release commit. An earlier run that tagged the
 // release already made its release commit.
 func (p *publisher) prepare(ctx context.Context) error {
+	if !p.resume {
+		if err := p.pinGoUnits(ctx); err != nil {
+			return err
+		}
+	}
 	for _, pl := range p.r.Config.Plugins {
 		switch {
 		case pl.Exec != nil && pl.Exec.Prepare != "":
@@ -308,12 +333,8 @@ func matchCommitGlob(glob, file string) bool {
 func (p *publisher) tag(ctx context.Context) error {
 	g, tag, branch := p.r.Git, p.plan.NextRelease.GitTag, p.plan.Branch.Name
 	if !p.resume {
-		head, err := g.RemoteHead(ctx, p.opts.Remote, branch)
-		if err != nil {
+		if err := p.checkStale(ctx); err != nil {
 			return err
-		}
-		if head != p.plan.Commit {
-			return fmt.Errorf("%w: %s is at %s, the plan is for %s", ErrStalePlan, branch, head, p.plan.Commit)
 		}
 		if p.tagCommit != p.plan.Commit {
 			if _, err := g.Run(ctx, "push", "--", p.opts.Remote, p.tagCommit+":refs/heads/"+branch); err != nil {
@@ -335,6 +356,20 @@ func (p *publisher) tag(ctx context.Context) error {
 		return fmt.Errorf("push the tag note: %w", err)
 	}
 	fmt.Fprintf(p.log, "Tagged %s as %s\n", p.tagCommit, tag)
+	return nil
+}
+
+// checkStale checks that the remote branch is the plan commit
+// (requirement 7).
+func (p *publisher) checkStale(ctx context.Context) error {
+	branch := p.plan.Branch.Name
+	head, err := p.r.Git.RemoteHead(ctx, p.opts.Remote, branch)
+	if err != nil {
+		return err
+	}
+	if head != p.plan.Commit {
+		return fmt.Errorf("%w: %s is at %s, the plan is for %s", ErrStalePlan, branch, head, p.plan.Commit)
+	}
 	return nil
 }
 
@@ -570,6 +605,17 @@ func finishRelease(ctx context.Context, f forge.Forge, rel *forge.Release, files
 // success runs the success step in plugin order: the forge comments and
 // labels, and the exec success hooks.
 func (p *publisher) success(ctx context.Context) error {
+	if err := p.rootSuccess(ctx); err != nil {
+		return err
+	}
+	return p.unitSuccess(ctx)
+}
+
+// rootSuccess runs the success step of the root release.
+func (p *publisher) rootSuccess(ctx context.Context) error {
+	if !p.plan.RootRelease() {
+		return nil
+	}
 	commits, err := p.commits(ctx)
 	if err != nil {
 		return err
@@ -592,14 +638,14 @@ func (p *publisher) success(ctx context.Context) error {
 	return nil
 }
 
-// commits returns the commits of the release, from the last release to
-// the plan commit.
+// commits returns the commits of the root release, from the last
+// release to the plan commit.
 func (p *publisher) commits(ctx context.Context) ([]forge.Commit, error) {
 	from := ""
 	if p.plan.LastRelease != nil {
 		from = p.plan.LastRelease.GitTag
 	}
-	raws, err := p.r.Git.Commits(ctx, from, p.plan.Commit)
+	raws, err := p.r.rootCommits(ctx, from, p.plan.Commit)
 	if err != nil {
 		return nil, err
 	}

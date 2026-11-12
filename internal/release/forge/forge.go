@@ -135,6 +135,10 @@ type Asset struct {
 
 // Success describes a release that is out, for Forge.Success.
 type Success struct {
+	// Unit names the released unit, such as an npm package name, or is
+	// empty for the root release. The comments name it.
+	Unit string
+
 	// Version is the released version, such as "1.2.3".
 	Version string
 

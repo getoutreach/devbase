@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
 // ErrRollbackRefused is returned when rollback stops before it deletes
@@ -54,15 +55,12 @@ func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, 
 	ctx, end := startStep(ctx, "rollback")
 	defer end(&err)
 	log := logOr(opts.Log)
-	if opts.Tag == unstableTag {
-		return nil, fmt.Errorf("%w: the unstable release replaces the %q tag on every run", ErrRollbackRefused, unstableTag)
+	unit, version, err := r.rollbackTarget(opts.Tag)
+	if err != nil {
+		return nil, err
 	}
-	v, err := ParseVersion(strings.TrimPrefix(opts.Tag, "v"))
-	if err != nil || !strings.HasPrefix(opts.Tag, "v") {
-		return nil, fmt.Errorf("%w: %q is not a release tag", ErrRollbackRefused, opts.Tag)
-	}
-	version := v.String()
-	if r.Config.Forge() != nil && opts.Forge == nil {
+	hasForge := r.Config.Forge() != nil && (unit == nil || unit.ForgeRelease)
+	if hasForge && opts.Forge == nil {
 		return nil, ErrNoForge
 	}
 
@@ -76,13 +74,12 @@ func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, 
 		return nil, err
 	}
 	var rel *forge.Release
-	if r.Config.Forge() != nil {
+	if hasForge {
 		if rel, err = opts.Forge.FindRelease(ctx, opts.Tag); err != nil {
 			return nil, err
 		}
 	}
-
-	reasons, err := rollbackRefusals(ctx, r, opts, rel, version, log)
+	reasons, err := rollbackRefusals(ctx, r, opts, &rollbackRelease{unit: unit, rel: rel, version: version}, log)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +96,9 @@ func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, 
 			deleted = append(deleted, "remote "+ref)
 			pushRefs = append(pushRefs, ":"+ref)
 		}
+	}
+	if unit == nil {
+		r.logKeptUnitTags(ctx, opts.Tag, version, log)
 	}
 	if len(deleted) == 0 {
 		fmt.Fprintf(log, "Nothing to roll back for %s\n", opts.Tag)
@@ -130,37 +130,122 @@ func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, 
 	return deleted, nil
 }
 
-// rollbackRefusals returns the reasons that stop a rollback of version.
+// rollbackRelease is the release that rollback removes.
+type rollbackRelease struct {
+	// unit is the release unit of the tag, or nil for the root release.
+	unit *spec.Unit
+
+	// rel is the forge release, or nil.
+	rel *forge.Release
+
+	// version is the version of the tag.
+	version string
+}
+
+// rollbackTarget returns the unit of a release tag, or nil for a root
+// tag, and the version of the tag.
+func (r *Repo) rollbackTarget(tag string) (*spec.Unit, string, error) {
+	if tag == unstableTag {
+		return nil, "", fmt.Errorf("%w: the unstable release replaces the %q tag on every run", ErrRollbackRefused, unstableTag)
+	}
+	formats := make([]spec.TagFormat, 0, 1+len(r.Config.Units))
+	formats = append(formats, spec.RootTagFormat)
+	for i := range r.Config.Units {
+		formats = append(formats, r.Config.Units[i].TagFormat)
+	}
+	for i, f := range formats {
+		v, ok := f.Version(tag)
+		if parsed, err := ParseVersion(v); ok && err == nil && v == parsed.Original() {
+			if i == 0 {
+				return nil, parsed.String(), nil
+			}
+			return &r.Config.Units[i-1], parsed.String(), nil
+		}
+	}
+	return nil, "", fmt.Errorf("%w: %q is not a release tag", ErrRollbackRefused, tag)
+}
+
+// logKeptUnitTags lists the unit tags on the commit of a root tag, or on
+// the plan commit of its release commit, which a root rollback keeps: a
+// rerun of publish from the same plan finds and keeps them.
+func (r *Repo) logKeptUnitTags(ctx context.Context, tag, version string, log io.Writer) {
+	if len(r.Config.Units) == 0 {
+		return
+	}
+	rev := "refs/tags/" + tag + "^{commit}"
+	if subject, err := r.Git.Run(ctx, "log", "-1", "--format=%s", rev, "--"); err == nil && subject == releaseCommitSubject(version) {
+		rev += "^"
+	}
+	out, err := r.Git.Run(ctx, "tag", "--points-at", rev)
+	if err != nil {
+		return
+	}
+	var kept []string
+	for name := range strings.FieldsSeq(out) {
+		if u, _, err := r.rollbackTarget(name); err == nil && u != nil {
+			kept = append(kept, name)
+		}
+	}
+	if len(kept) > 0 {
+		fmt.Fprintf(log, "The unit tags %s stay; roll them back with their own --tag\n", strings.Join(kept, ", "))
+	}
+}
+
+// rollbackRefusals returns the reasons that stop a rollback of the
+// release t.
 func rollbackRefusals(
-	ctx context.Context, r *Repo, opts *RollbackOptions, rel *forge.Release, version string, log io.Writer,
+	ctx context.Context, r *Repo, opts *RollbackOptions, t *rollbackRelease, log io.Writer,
 ) ([]string, error) {
 	var reasons []string
+	rel, version := t.rel, t.version
 	if rel != nil && !rel.Draft && !opts.Force {
 		reasons = append(reasons, fmt.Sprintf("the %s %s is published; users can have its assets (use --force)",
 			opts.Forge.ReleaseName(), rel.URL))
 	}
+	if t.unit != nil && t.unit.Go != nil && !opts.Force {
+		reasons = append(reasons, fmt.Sprintf("module %s %s can be in module proxies and go.sum files, "+
+			"and Go treats a version as fixed (use --force)", t.unit.Go.ModulePath, opts.Tag))
+	}
 
 	// A release commit is not removed: rollback does not rewrite history,
 	// and a rerun of publish finishes that release instead.
-	msg, err := r.Git.Run(ctx, "log", "-1", "--format=%H %s", "refs/tags/"+opts.Tag+"^{commit}", "--")
-	if hash, subject, _ := strings.Cut(msg, " "); err == nil && subject == releaseCommitSubject(version) {
-		reasons = append(reasons, fmt.Sprintf("the release made the release commit %s; rerun publish to finish the release", hash))
+	if t.unit == nil {
+		msg, err := r.Git.Run(ctx, "log", "-1", "--format=%H %s", "refs/tags/"+opts.Tag+"^{commit}", "--")
+		if hash, subject, _ := strings.Cut(msg, " "); err == nil && subject == releaseCommitSubject(version) {
+			reasons = append(reasons, fmt.Sprintf("the release made the release commit %s; rerun publish to finish the release", hash))
+		}
 	}
 
 	// A later run with the same version skips a registry that has it
 	// (requirement 8), so the old package would stay.
-	t := &regTarget{dir: r.Git.Dir, version: version, env: opts.Env, log: log}
-	for i := range r.Config.Plugins {
-		if pl := &r.Config.Plugins[i]; isRegistry(pl) {
-			reg := registryOf(pl)
-			found, err := reg.exists(ctx, t)
-			if err != nil {
-				return nil, err
-			}
-			if found {
-				reasons = append(reasons, fmt.Sprintf("the %s package for %s exists", reg.name(), version))
-			}
+	rt := &regTarget{dir: r.Git.Dir, version: version, env: opts.Env, log: log}
+	for _, pl := range rollbackPlugins(r, t.unit) {
+		reg := registryOf(&pl)
+		found, err := reg.exists(ctx, rt)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			reasons = append(reasons, fmt.Sprintf("the %s package for %s exists", reg.name(), version))
 		}
 	}
 	return reasons, nil
+}
+
+// rollbackPlugins returns the registry plugins of the root release, or
+// of a unit.
+func rollbackPlugins(r *Repo, u *spec.Unit) []spec.Plugin {
+	if u != nil {
+		if u.NPM != nil {
+			return []spec.Plugin{{NPM: u.NPM}}
+		}
+		return nil
+	}
+	var out []spec.Plugin
+	for _, pl := range r.Config.Plugins {
+		if isRegistry(&pl) {
+			out = append(out, pl)
+		}
+	}
+	return out
 }

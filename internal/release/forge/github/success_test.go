@@ -670,9 +670,18 @@ func TestSuccessComment(t *testing.T) {
 			if tc.pr {
 				i.Typename = "PullRequest"
 			}
-			assert.Equal(t, successComment(i, tc.releases, "1.0.0"), tc.want)
+			assert.Equal(t, successComment(i, tc.releases, "", "1.0.0"), tc.want)
 		})
 	}
+}
+
+// TestSuccessCommentUnit checks that the comment of a unit release
+// names the unit.
+func TestSuccessCommentUnit(t *testing.T) {
+	i := &issue{Number: 1, Typename: "PullRequest"}
+	got := successComment(i, nil, "@acme/widgets-client", "2.4.1")
+	want := ":tada: This PR is included in `@acme/widgets-client` version 2.4.1 :tada:"
+	assert.Assert(t, strings.HasPrefix(got, want+"\n\n"), got)
 }
 
 // TestQueries checks the GraphQL queries against the text of the

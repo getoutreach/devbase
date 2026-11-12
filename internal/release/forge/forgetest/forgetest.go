@@ -37,6 +37,10 @@ type Fake struct {
 	// Calls are the methods called, in order.
 	Calls []string
 
+	// Created are the arguments of the CreateRelease calls that made a
+	// release.
+	Created []forge.ReleaseSpec
+
 	// Successes are the arguments of the Success calls.
 	Successes []forge.Success
 
@@ -98,6 +102,7 @@ func (f *Fake) CreateRelease(_ context.Context, spec *forge.ReleaseSpec) (*forge
 		ID: strconv.Itoa(f.nextID), Tag: spec.Tag, URL: "https://forge.test/releases/" + spec.Tag, Draft: spec.Draft,
 	}
 	f.releases[spec.Tag] = r
+	f.Created = append(f.Created, *spec)
 	return clone(r), nil
 }
 

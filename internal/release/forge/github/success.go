@@ -173,7 +173,7 @@ func (c *Client) commentOnIssues(ctx context.Context, owner, repo string, s *for
 	}
 	var errs []error
 	for _, i := range uniqueIssues(append(prs, issues...)) {
-		if err := c.commentOnIssue(ctx, owner, repo, &i, successComment(&i, releaseInfos, s.Version), label); err != nil {
+		if err := c.commentOnIssue(ctx, owner, repo, &i, successComment(&i, releaseInfos, s.Unit, s.Version), label); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -368,14 +368,20 @@ func orderedValues(raw json.RawMessage) ([]json.RawMessage, error) {
 }
 
 // successComment returns the default success comment, as
-// get-success-comment.js does.
-func successComment(i *issue, releaseInfos []forge.Published, version string) string {
+// get-success-comment.js does. For a unit release, it names the unit
+// before the version.
+func successComment(i *issue, releaseInfos []forge.Published, unit, version string) string {
 	what := "issue has been resolved"
 	if i.pullRequest() {
 		what = "PR is included"
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, ":tada: This %s in version %s :tada:", what, version)
+	if unit != "" {
+		version = "`" + unit + "` version " + version
+	} else {
+		version = "version " + version
+	}
+	fmt.Fprintf(&b, ":tada: This %s in %s :tada:", what, version)
 	switch len(releaseInfos) {
 	case 0:
 	case 1:
