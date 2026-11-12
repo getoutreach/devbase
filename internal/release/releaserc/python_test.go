@@ -154,14 +154,17 @@ func TestParsePythonHooks(t *testing.T) {
 
 // TestParsePythonHooksNeedTheRepository checks that the hooks fail
 // closed without the CodeArtifact repository, and that the error names
-// the environment variables.
+// the environment variables and the release section.
 func TestParsePythonHooksNeedTheRepository(t *testing.T) {
 	for _, env := range []string{CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv} {
 		setCodeArtifactEnv(t)
 		t.Setenv(env, "")
 		_, _, err := Parse([]byte(pythonHooks(pythonVersionCmd, pythonPublishCmd)))
 		assert.ErrorIs(t, err, spec.ErrUnsupported, env)
-		for _, want := range []string{CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv} {
+		for _, want := range []string{
+			CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv,
+			"python publisher of the release section of scripts/devbase.yaml",
+		} {
 			assert.ErrorContains(t, err, want, env)
 		}
 	}

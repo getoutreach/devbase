@@ -282,8 +282,10 @@ func pythonFromEnv() (*spec.PythonPlugin, error) {
 		Region:     os.Getenv(CodeArtifactRegionEnv),
 	}
 	if py.Domain == "" || py.Repository == "" || py.Region == "" {
-		return nil, fmt.Errorf("%w: the Python client hooks do not name the CodeArtifact repository; set %s, %s and %s",
-			spec.ErrUnsupported, CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv)
+		return nil, fmt.Errorf("%w: the Python client hooks do not name the CodeArtifact repository; "+
+			"set %s, %s and %s, or use the python publisher of the release section of scripts/devbase.yaml "+
+			"with domain, repository and region", spec.ErrUnsupported,
+			CodeArtifactDomainEnv, CodeArtifactRepositoryEnv, CodeArtifactRegionEnv)
 	}
 	return py, nil
 }

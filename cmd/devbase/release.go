@@ -13,14 +13,16 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release"
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/native"
 	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/urfave/cli/v3"
 )
 
 // These are the errors that the release command returns.
 var (
-	// errNoGoReleaser is returned by build for a repo without .goreleaser.yml.
-	errNoGoReleaser = errors.New("the repository has no " + goreleaser.File)
+	// errNoBuild is returned by build for a release that builds nothing.
+	errNoBuild = errors.New("the release configuration has no build (" + goreleaser.File +
+		" or the build key of the " + native.Key + " section of " + native.File + ")")
 )
 
 // planFlag is the --plan flag of build and publish.
@@ -175,7 +177,7 @@ func releaseBuild(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 	if repo.Config.Artifacts == nil {
-		return errNoGoReleaser
+		return errNoBuild
 	}
 	archives, err := release.Build(ctx, repo.Config.Artifacts, plan, &release.BuildOptions{
 		Dir:       repo.Git.Dir,

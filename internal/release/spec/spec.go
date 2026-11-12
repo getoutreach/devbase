@@ -3,9 +3,10 @@
 // Description: The release model: branches, release rules, plugins and
 // artifacts, independent of the config file format and of the forge.
 
-// Package spec is the typed release model. The .releaserc.yaml and
-// .goreleaser.yml loaders map their file formats into it, and the version
-// engine, the notes renderer and the builder use only it.
+// Package spec is the typed release model. The loaders of the release
+// section of scripts/devbase.yaml, of .releaserc.yaml and of
+// .goreleaser.yml map their file formats into it, and the version engine,
+// the notes renderer and the builder use only it.
 package spec
 
 import (
