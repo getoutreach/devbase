@@ -5,11 +5,13 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"gotest.tools/v3/assert"
 )
 
@@ -49,4 +51,19 @@ func TestTokenTransport(t *testing.T) {
 		srv.Close()
 		assert.Equal(t, got, want, token)
 	}
+}
+
+// TestTokenTransportDebug checks that each request goes to the debug
+// log, without the token.
+func TestTokenTransportDebug(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer srv.Close()
+	var log bytes.Buffer
+	ctx := rlog.WithDebug(context.Background(), &log)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/repos/o/r", http.NoBody)
+	assert.NilError(t, err)
+	resp, err := (&http.Client{Transport: &tokenTransport{token: "ghp_abc"}}).Do(req)
+	assert.NilError(t, err)
+	assert.NilError(t, resp.Body.Close())
+	assert.Equal(t, log.String(), "debug: GET "+srv.URL+"/repos/o/r\n")
 }

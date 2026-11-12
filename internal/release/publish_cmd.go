@@ -13,11 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-)
 
-// secureMask replaces a secret in logs and errors, as semantic-release
-// masks secrets.
-const secureMask = "[secure]"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
+)
 
 // regCommand is a command of a registry CLI.
 type regCommand struct {
@@ -32,7 +30,7 @@ type regCommand struct {
 	args []string
 
 	// secrets are values in args that logs and errors show as
-	// secureMask.
+	// rlog.Secure.
 	secrets []string
 }
 
@@ -77,11 +75,11 @@ func execRunner(ctx context.Context, log io.Writer, c *regCommand) (regResult, e
 	return res, nil
 }
 
-// maskSecrets replaces each non-empty secret in s with secureMask.
+// maskSecrets replaces each non-empty secret in s with rlog.Secure.
 func maskSecrets(s string, secrets []string) string {
 	for _, secret := range secrets {
 		if secret != "" {
-			s = strings.ReplaceAll(s, secret, secureMask)
+			s = strings.ReplaceAll(s, secret, rlog.Secure)
 		}
 	}
 	return s

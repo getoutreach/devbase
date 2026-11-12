@@ -21,6 +21,7 @@ import (
 	gh "github.com/google/go-github/v84/github"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 )
 
 // errRepoURL is returned for a repository URL without an owner and a
@@ -248,6 +249,7 @@ var tokenPrefixRegexp = regexp.MustCompile(`^(?:[tT][oO][kK][eE][nN]|[bB][eE][aA
 // RoundTrip sends req with the Authorization header: "bearer" for a
 // token with three dot-separated parts (a JWT), else "token".
 func (t *tokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	rlog.Debugf(req.Context(), "%s %s", req.Method, req.URL)
 	base := http.DefaultTransport
 	if t.token == "" {
 		return base.RoundTrip(req)

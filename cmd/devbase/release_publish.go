@@ -99,7 +99,7 @@ func openRepo(ctx context.Context) (*release.Repo, string, error) {
 // push to, as semantic-release gets them: the token is GH_TOKEN, then
 // GITHUB_TOKEN, and the URL keeps no credentials when a push to branch
 // works without them.
-func openForge(ctx context.Context, repo *release.Repo, branch string) (url string, f forge.Forge, err error) {
+func openForge(ctx context.Context, c *cli.Command, repo *release.Repo, branch string) (url string, f forge.Forge, err error) {
 	remote, err := repo.Git.RemoteURL(ctx)
 	if err != nil {
 		return "", nil, fmt.Errorf("read the origin URL: %w", err)
@@ -112,7 +112,7 @@ func openForge(ctx context.Context, repo *release.Repo, branch string) (url stri
 			_, err := repo.Git.Run(ctx, "push", "--dry-run", "--no-verify", "--", url, "HEAD:"+branch)
 			return err
 		},
-		Log: logrus.Infof,
+		Log: func(format string, args ...any) { fmt.Fprintf(c.Root().ErrWriter, format+"\n", args...) },
 	})
 	url, err = client.GitURL(ctx)
 	return url, client, err
@@ -150,7 +150,7 @@ func releasePublish(ctx context.Context, c *cli.Command) error {
 
 // publishPlan publishes plan with the forge and the URL of repo.
 func publishPlan(ctx context.Context, c *cli.Command, repo *release.Repo, plan *release.Plan) error {
-	url, f, err := openForge(ctx, repo, plan.Branch.Name)
+	url, f, err := openForge(ctx, c, repo, plan.Branch.Name)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func releaseUnstable(ctx context.Context, c *cli.Command) error {
 	if ok, err := repo.UnstableEnabled(branch, c.Bool("dry-run"), w); !ok {
 		return err
 	}
-	url, f, err := openForge(ctx, repo, branch)
+	url, f, err := openForge(ctx, c, repo, branch)
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func releasePromote(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	url, _, err := openForge(ctx, repo, branch)
+	url, _, err := openForge(ctx, c, repo, branch)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func releaseRollback(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	url, f, err := openForge(ctx, repo, branch)
+	url, f, err := openForge(ctx, c, repo, branch)
 	if err != nil {
 		return err
 	}

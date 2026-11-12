@@ -13,6 +13,7 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release"
 	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/urfave/cli/v3"
 )
 
@@ -33,10 +34,27 @@ func distFlag() *cli.StringFlag {
 }
 
 // newReleaseCommand returns the "release" command and its subcommands.
+// The output and the errors of the subcommands have the secrets of the
+// environment masked, as semantic-release masks its output.
 func newReleaseCommand() *cli.Command {
-	return &cli.Command{
+	// Before sets masker, so that other devbase commands do not build it.
+	var masker *rlog.Masker
+	cmd := &cli.Command{
 		Name:  "release",
 		Usage: "Plan, build and publish releases (proof of concept)",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "debug", Usage: "Print each git and go command and each forge HTTP request"},
+		},
+		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
+			masker = rlog.NewMasker(os.Environ())
+			root := c.Root()
+			root.Writer, root.ErrWriter = masker.Writer(root.Writer), masker.Writer(root.ErrWriter)
+			ctx = rlog.WithMasker(ctx, masker)
+			if c.Bool("debug") {
+				ctx = rlog.WithDebug(ctx, root.ErrWriter)
+			}
+			return ctx, nil
+		},
 		Commands: append([]*cli.Command{
 			{
 				Name:  "plan",
@@ -60,7 +78,33 @@ func newReleaseCommand() *cli.Command {
 			},
 		}, publishCommands()...),
 	}
+	for _, sub := range cmd.Commands {
+		sub.Action = maskErrors(&masker, sub.Action)
+	}
+	return cmd
 }
+
+// maskErrors returns action with the secrets of *m masked in its error
+// message, because gobox prints the error. errors.Is and errors.As still
+// see the error.
+func maskErrors(m **rlog.Masker, action cli.ActionFunc) cli.ActionFunc {
+	return func(ctx context.Context, c *cli.Command) error {
+		if err := action(ctx, c); err != nil {
+			return &maskedError{msg: (*m).Mask(err.Error()), err: err}
+		}
+		return nil
+	}
+}
+
+// maskedError is an error with the secrets masked in its message.
+type maskedError struct {
+	msg string
+	err error
+}
+
+func (e *maskedError) Error() string { return e.msg }
+
+func (e *maskedError) Unwrap() error { return e.err }
 
 // loadRepo loads the repository in the working directory.
 func loadRepo() (*release.Repo, error) {

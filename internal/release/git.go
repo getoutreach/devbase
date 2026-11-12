@@ -15,6 +15,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/getoutreach/devbase/v2/internal/release/internal/js"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 )
 
 // These are the separators in the git log format that Commits uses.
@@ -221,8 +222,12 @@ func (g *Git) tagChannels(ctx context.Context) (map[string][]string, error) {
 }
 
 // run runs a command in dir and returns its trimmed stdout. A nil env
-// means the current environment. On failure, the error has stderr.
+// means the current environment. On failure, the error has stderr. The
+// command line goes to the debug log.
 func run(ctx context.Context, dir string, env []string, name string, args ...string) (string, error) {
+	if rlog.DebugEnabled(ctx) {
+		rlog.Debugf(ctx, "run %s %s", name, strings.Join(args, " "))
+	}
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir, cmd.Env = dir, env
 	var stdout, stderr bytes.Buffer
