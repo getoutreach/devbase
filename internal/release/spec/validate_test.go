@@ -100,6 +100,7 @@ func TestValidateFailsClosed(t *testing.T) {
 			c.Artifacts.Targets = append(c.Artifacts.Targets, spec.NewTarget("linux", "amd64"))
 		},
 		"target without variant": func(c *spec.Config) { c.Artifacts.Targets[0].Goamd64 = "" },
+		"unsupported target":     func(c *spec.Config) { c.Artifacts.Targets[0] = spec.NewTarget("windows", "mips") },
 		"hook field":             func(c *spec.Config) { c.Artifacts.Hooks = []string{"make {{ .Commit }}"} },
 		"archive src":            func(c *spec.Config) { c.Artifacts.Files[0].Src = "../x" },
 		"archive src field":      func(c *spec.Config) { c.Artifacts.Files[0].Src = "{{ .Os }}" },

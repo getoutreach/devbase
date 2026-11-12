@@ -205,9 +205,10 @@ func (p *Plugin) validate() (warnings []string, err error) {
 }
 
 // Validate checks the artifacts: every build has an id, a binary name
-// and ldflags; ids, binary names and targets are unique; targets have
-// their default variant; every template uses only the supported fields;
-// and the archive sources stay in the repository.
+// and ldflags; ids, binary names and targets are unique; GoReleaser
+// builds every target, with its default variant; every template uses
+// only the supported fields; and the archive sources stay in the
+// repository.
 func (a *Artifacts) Validate() error {
 	switch {
 	case len(a.Builds) == 0:
@@ -223,6 +224,8 @@ func (a *Artifacts) Validate() error {
 	targets := map[string]bool{}
 	for _, t := range a.Targets {
 		switch {
+		case !t.Supported():
+			return fmt.Errorf("%w: target %s that GoReleaser does not build", ErrUnsupported, &t)
 		case t != NewTarget(t.OS, t.Arch):
 			return fmt.Errorf("%w: target %s without its default variant", ErrUnsupported, &t)
 		case targets[t.String()]:

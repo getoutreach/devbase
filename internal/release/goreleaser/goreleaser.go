@@ -55,18 +55,6 @@ var (
 		"386", "amd64", "arm", "arm64", "mips", "mips64", "mips64le", "mipsle", "ppc64", "ppc64le", "s390x", "wasm",
 		"riscv64", "loong64",
 	}
-
-	// validTargets are the goos/goarch pairs that GoReleaser builds.
-	// It drops the other pairs of the matrix.
-	validTargets = []string{
-		"aix/ppc64", "android/386", "android/amd64", "android/arm", "android/arm64", "darwin/amd64", "darwin/arm64",
-		"dragonfly/amd64", "freebsd/386", "freebsd/amd64", "freebsd/arm", "freebsd/arm64", "illumos/amd64",
-		"ios/arm64", "js/wasm", "linux/386", "linux/amd64", "linux/arm", "linux/arm64", "linux/ppc64",
-		"linux/ppc64le", "linux/mips", "linux/mipsle", "linux/mips64", "linux/mips64le", "linux/s390x",
-		"linux/riscv64", "linux/loong64", "netbsd/386", "netbsd/amd64", "netbsd/arm", "openbsd/386",
-		"openbsd/amd64", "openbsd/arm", "openbsd/arm64", "plan9/386", "plan9/amd64", "plan9/arm", "solaris/amd64",
-		"windows/arm", "windows/arm64", "windows/386", "windows/amd64",
-	}
 )
 
 // config is the supported subset of .goreleaser.yml.
@@ -266,7 +254,7 @@ func (b *build) targets() []spec.Target {
 	for _, goos := range b.GOOS {
 		for _, arch := range b.GOARCH {
 			t := spec.NewTarget(goos, arch)
-			if slices.Contains(validTargets, t.String()) && !b.ignored(&t) {
+			if t.Supported() && !b.ignored(&t) {
 				out = append(out, t)
 			}
 		}

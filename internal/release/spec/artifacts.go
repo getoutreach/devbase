@@ -9,8 +9,24 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 )
+
+// supportedTargets are the goos/goarch pairs that GoReleaser 1.20 builds,
+// from allBuildTargets of internal/builders/buildtarget. It drops the
+// other pairs of a goos and goarch matrix.
+//
+//nolint:gochecknoglobals // Why: read-only list.
+var supportedTargets = []string{
+	"aix/ppc64", "android/386", "android/amd64", "android/arm", "android/arm64", "darwin/amd64", "darwin/arm64",
+	"dragonfly/amd64", "freebsd/386", "freebsd/amd64", "freebsd/arm", "freebsd/arm64", "illumos/amd64",
+	"ios/arm64", "js/wasm", "linux/386", "linux/amd64", "linux/arm", "linux/arm64", "linux/ppc64",
+	"linux/ppc64le", "linux/mips", "linux/mipsle", "linux/mips64", "linux/mips64le", "linux/s390x",
+	"linux/riscv64", "linux/loong64", "netbsd/386", "netbsd/amd64", "netbsd/arm", "openbsd/386",
+	"openbsd/amd64", "openbsd/arm", "openbsd/arm64", "plan9/386", "plan9/amd64", "plan9/arm", "solaris/amd64",
+	"windows/arm", "windows/arm64", "windows/386", "windows/amd64",
+}
 
 // Artifacts are the binaries and archives of a release. Every build is
 // built for every target, and each target has one tar.gz archive with
@@ -80,6 +96,12 @@ func NewTarget(goos, goarch string) Target {
 		t.Gomips = "hardfloat"
 	}
 	return t
+}
+
+// Supported reports whether GoReleaser builds the target's goos/goarch
+// pair.
+func (t *Target) Supported() bool {
+	return slices.Contains(supportedTargets, t.String())
 }
 
 // String returns the target as "os/arch".
