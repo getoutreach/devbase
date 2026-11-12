@@ -6,6 +6,7 @@
 package release
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -271,6 +272,15 @@ func TestBaselineChecks(t *testing.T) {
 	tags, err = u.baseline(&BaselineOptions{})
 	assert.NilError(t, err)
 	assert.DeepEqual(t, tags, []string{"nodejs-widgets-client-v1.1.0"})
+
+	// A unit with a tag is not tagged again, and the log says that its
+	// commits after the tag release in the next plan.
+	var log bytes.Buffer
+	tags, err = u.baseline(&BaselineOptions{Log: &log})
+	assert.NilError(t, err)
+	assert.Equal(t, len(tags), 0)
+	assert.Assert(t, strings.Contains(log.String(), "Skip widgets-client: it has a tag, such as "+
+		"nodejs-widgets-client-v1.1.0; the next plan releases its commits after its last tag"), log.String())
 }
 
 // baselined returns a unit fixture whose units have their baseline tags.
@@ -484,6 +494,9 @@ func TestSetUnitsChecksFiles(t *testing.T) {
 	assert.NilError(t, os.Remove(filepath.Join(u.git.Dir, "node", "widgets-client", ".releaserc.yaml")))
 	repo, err = LoadRepo(u.git.Dir)
 	assert.NilError(t, err)
+	bad := nodeUnit("widgets-client")
+	bad.NPM = &spec.NPMPlugin{Install: `yarn "install`}
+	assert.ErrorIs(t, repo.SetUnits([]spec.Unit{bad}, spec.RootPaths{}), ErrUnitConfig)
 	err = repo.SetUnits([]spec.Unit{nodeUnit("missing")}, spec.RootPaths{})
 	assert.ErrorIs(t, err, errNPMNoPkg)
 	err = repo.SetUnits([]spec.Unit{{Kind: spec.UnitGoModule, Dir: "nomod"}}, spec.RootPaths{})

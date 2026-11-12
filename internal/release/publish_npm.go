@@ -85,15 +85,19 @@ func (n *npmRegistry) name() string {
 }
 
 // prepare verifies the package and the npm authentication, as the
-// plugin's verifyConditions does, and then sets the version in
-// package.json with npm version, as prepare.js does. The version
-// changes only in the checkout (requirement 12).
+// plugin's verifyConditions does, runs the install command of the
+// plugin, and then sets the version in package.json with npm version, as
+// prepare.js does. The version changes only in the checkout
+// (requirement 12).
 func (n *npmRegistry) prepare(ctx context.Context, p *regTarget) error {
 	s, err := n.open(ctx, p, true)
 	if err != nil {
 		return err
 	}
 	defer s.close()
+	if err := n.install(ctx, p, s); err != nil {
+		return err
+	}
 	version := p.version
 	fmt.Fprintf(p.log, "Write version %s to package.json in %s\n", version, s.dir)
 	_, err = n.run(ctx, p.log, &command{
@@ -104,6 +108,34 @@ func (n *npmRegistry) prepare(ctx context.Context, p *regTarget) error {
 		return fmt.Errorf("npm version: %w", err)
 	}
 	return nil
+}
+
+// install runs the install command of the plugin in the package
+// folder, if it has one.
+func (n *npmRegistry) install(ctx context.Context, p *regTarget, s *npmSession) error {
+	if n.plugin.Install == "" {
+		return nil
+	}
+	args, err := npmInstallArgs(n.plugin.Install)
+	if err != nil {
+		return err
+	}
+	if _, err := n.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: args[0], args: args[1:]}); err != nil {
+		return fmt.Errorf("npm install command: %w", err)
+	}
+	return nil
+}
+
+// npmInstallArgs splits an install command into arguments.
+func npmInstallArgs(cmd string) ([]string, error) {
+	args, err := splitShellWords(cmd)
+	if err != nil {
+		return nil, fmt.Errorf("npm install command %q: %w", cmd, err)
+	}
+	if len(args) == 0 {
+		return nil, fmt.Errorf("npm install command %q: %w", cmd, errEmptyHook)
+	}
+	return args, nil
 }
 
 // publish publishes the package with npm publish on the dist-tag of the

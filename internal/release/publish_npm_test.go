@@ -280,6 +280,42 @@ func TestNPMNpmrcHasNoToken(t *testing.T) {
 	assert.Assert(t, !strings.Contains(f.log.String(), "s3cr3t-value"))
 }
 
+// TestNPMInstall checks that prepare runs the install command in the
+// package folder, after the npm config and before npm version, with the
+// secrets masked in the log.
+func TestNPMInstall(t *testing.T) {
+	pkg := `{"name": "@acme/widgets", "publishConfig": {"registry": "https://npm.pkg.github.com"}}`
+	f := newNPMFixture(t, "node/widgets", pkg, "NPM_TOKEN=s3cr3t-value")
+	n, p := f.registry("node/widgets"), f.publisher("1.0.0", "")
+	n.plugin.Install = `yarn install --frozen-lockfile --network-concurrency "1" --token s3cr3t-value`
+	assert.NilError(t, n.prepare(context.Background(), p))
+	assert.DeepEqual(t, f.run.argvs(), [][]string{
+		{"yarn", "install", "--frozen-lockfile", "--network-concurrency", "1", "--token", "s3cr3t-value"},
+		{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
+	})
+	dir := filepath.Join(f.repo, "node", "widgets")
+	assert.Equal(t, f.run.calls[0].dir, dir)
+	assert.DeepEqual(t, f.run.calls[0].env, f.env)
+	assert.Assert(t, strings.Contains(f.log.String(), "Run yarn install --frozen-lockfile"), f.log.String())
+	assert.Assert(t, !strings.Contains(f.log.String(), "s3cr3t-value"))
+
+	// A failed install stops prepare before npm version.
+	f.run = &fakeRunner{replies: map[string]fakeReply{"yarn install": {stderr: "error", err: errExit}}}
+	n.run = f.run.run
+	err := n.prepare(context.Background(), p)
+	assert.ErrorIs(t, err, errExit)
+	assert.ErrorContains(t, err, "npm install command")
+	assert.Equal(t, len(f.run.calls), 1)
+
+	// A command without a program, or with an open quote, is an error.
+	for _, bad := range []string{" ", `yarn "install`} {
+		n.plugin.Install = bad
+		assert.Assert(t, n.prepare(context.Background(), p) != nil, bad)
+	}
+	_, err = npmInstallArgs("; echo")
+	assert.ErrorIs(t, err, errEmptyHook)
+}
+
 func TestNPMExists(t *testing.T) {
 	tests := []struct {
 		name  string

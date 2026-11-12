@@ -112,6 +112,11 @@ func (r *Repo) checkUnitFiles(u *spec.Unit) error {
 		if _, err := readNPMPackage(filepath.Join(dir, filepath.FromSlash(u.NPM.PkgRoot))); err != nil {
 			return err
 		}
+		if u.NPM.Install != "" {
+			if _, err := npmInstallArgs(u.NPM.Install); err != nil {
+				return fmt.Errorf("%w: %w", ErrUnitConfig, err)
+			}
+		}
 	}
 	if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(u.Dir), releaserc.File)); err == nil {
 		return fmt.Errorf("%w: %s/%s also releases the unit; remove it", ErrUnitConfig, u.Dir, releaserc.File)

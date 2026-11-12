@@ -185,6 +185,8 @@ func (p *Plugin) validate() (warnings []string, err error) {
 		return nil, fmt.Errorf("%w: a plugin with %d capabilities", ErrUnsupported, set)
 	case p.Forge != nil && p.Forge.Provider != ForgeGitHub:
 		return nil, fmt.Errorf("%w: forge %q", ErrUnsupported, p.Forge.Provider)
+	case p.NPM != nil && p.NPM.Install != "":
+		return nil, fmt.Errorf("%w: an npm install command is for npm units only", ErrUnsupported)
 	case p.Orb != nil && p.Orb.Name == "":
 		return nil, fmt.Errorf("%w: orb plugin without a name", ErrUnsupported)
 	case p.Gem != nil:

@@ -33,12 +33,21 @@ publish)
 esac
 `
 
-// withFakeNPM puts fakeUnitNPM first in PATH and returns its folder.
+// fakeYarn is a yarn CLI that logs its folder and arguments to the log
+// of fakeUnitNPM.
+const fakeYarn = `#!/bin/sh
+echo "yarn in $PWD: $*" >> "$FAKE_NPM_DIR/log"
+`
+
+// withFakeNPM puts fakeUnitNPM and fakeYarn first in PATH and returns their
+// folder.
 func withFakeNPM(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	writeFile(t, dir, "npm", fakeUnitNPM)
+	writeFile(t, dir, "yarn", fakeYarn)
 	assert.NilError(t, os.Chmod(filepath.Join(dir, "npm"), 0o700))
+	assert.NilError(t, os.Chmod(filepath.Join(dir, "yarn"), 0o700))
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("FAKE_NPM_DIR", dir)
 	t.Setenv("NPM_TOKEN", "test-token")
@@ -105,6 +114,30 @@ func TestPublishUnits(t *testing.T) {
 
 	// The root success step has only the root commits.
 	assert.Equal(t, len(u.forge.Successes[0].Commits), 1)
+}
+
+func TestPublishUnitInstall(t *testing.T) {
+	npm := withFakeNPM(t)
+	u := baselined(t, unitsConfig)
+	u.units[0].NPM = &spec.NPMPlugin{Install: "yarn install --frozen-lockfile"}
+	u.change("fix: client", "node/widgets-client/index.js")
+	plan, err := u.planUnits()
+	assert.NilError(t, err)
+
+	// A dry run does not install.
+	err = Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
+		Remote: u.remote, Forge: u.forge, Env: os.Environ(), DryRun: true,
+	})
+	assert.NilError(t, err)
+	assert.Equal(t, npmLog(t, npm), "")
+
+	// The install runs in the unit folder before npm version.
+	assert.NilError(t, u.publishUnits(plan))
+	dir, err := filepath.EvalSymlinks(filepath.Join(u.git.Dir, "node", "widgets-client"))
+	assert.NilError(t, err)
+	lines := strings.Split(npmLog(t, npm), "\n")
+	assert.Equal(t, lines[0], "yarn in "+dir+": install --frozen-lockfile")
+	assert.Assert(t, strings.HasPrefix(lines[1], "version 1.1.1 "), lines[1])
 }
 
 func TestPublishUnitOnly(t *testing.T) {

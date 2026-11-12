@@ -182,6 +182,12 @@ type CommitPlugin struct {
 type NPMPlugin struct {
 	// PkgRoot is the package folder, or empty for the repository.
 	PkgRoot string
+
+	// Install is a command that installs the dependencies of the
+	// package, such as "yarn install --frozen-lockfile". It runs in
+	// PkgRoot before npm version, split into arguments as a shell does,
+	// without a shell. Empty means no install. Only npm units have it.
+	Install string
 }
 
 // OrbPlugin publishes a CircleCI orb.

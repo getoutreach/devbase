@@ -156,6 +156,7 @@ func TestValidateUnits(t *testing.T) {
 		"generic with npm":   func(c *Config) { c.Units[0].Kind = UnitGeneric },
 		"npm without root":   func(c *Config) { c.Units[0].NPM.PkgRoot = "" },
 		"root rules alone":   func(c *Config) { c.Units = nil },
+		"root npm install":   func(c *Config) { c.Plugins = append(c.Plugins, Plugin{NPM: &NPMPlugin{Install: "yarn"}}) },
 	}
 	for name, f := range bad {
 		_, err := unitConfig(f).Validate()

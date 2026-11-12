@@ -52,7 +52,9 @@ type BaselineOptions struct {
 // unit uses the version in its package.json, which must be a released
 // version; another kind uses opts.Version. A unit that has a tag, or
 // that mirrors the root version, is skipped. It publishes nothing, so
-// that the next plan releases a unit only for the commits after HEAD.
+// that the next plan releases a unit only for the commits after HEAD. A
+// unit that has a tag keeps it: the next plan releases its commits after
+// that tag, which can be commits before HEAD.
 // HEAD must be the remote branch head, so that the tags are on the
 // branch. It returns the tags that it made, or would make.
 func Baseline(ctx context.Context, r *Repo, opts *BaselineOptions) (_ []string, err error) {
@@ -130,7 +132,8 @@ func (r *Repo) baselineTag(ctx context.Context, u *spec.Unit, opts *BaselineOpti
 		return "", err
 	}
 	if len(existing) > 0 {
-		fmt.Fprintf(log, "Skip %s: it has the tag %s\n", u.Name, existing[0].Name)
+		fmt.Fprintf(log, "Skip %s: it has a tag, such as %s; the next plan releases its commits after its last tag\n",
+			u.Name, existing[0].Name)
 		return "", nil
 	}
 	version := opts.Version
