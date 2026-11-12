@@ -55,19 +55,21 @@ go_mod_go_version() {
 # expected_go_mod_go_version
 #
 # Prints the Go version that Stencil provides, which is what the go directive of
-# a Stencil-managed go.mod must be: the go.stanza argument in service.yaml if
-# set, otherwise the golang version in .tool-versions. Prints nothing if neither
-# exists.
+# a Stencil-managed go.mod must be: the go.stanza argument, then the versions.go
+# argument in service.yaml, then the golang version in .tool-versions. This is
+# the order that go.mod.tpl in stencil-golang uses. Prints nothing if none exist.
 #
 # Dependencies: bootstrap.sh and mise.sh, which the script that sources this
 # file has to source.
 expected_go_mod_go_version() {
-  local override
-  override="$(stencil_arg go.stanza 2>/dev/null || true)"
-  if [[ -n $override && $override != "null" ]]; then
-    echo "$override"
-    return
-  fi
+  local argName override
+  for argName in go.stanza versions.go; do
+    override="$(stencil_arg "$argName" 2>/dev/null || true)"
+    if [[ -n $override && $override != "null" ]]; then
+      echo "$override"
+      return
+    fi
+  done
 
   version_from_toolversions "$(get_repo_directory)" golang 2>/dev/null || true
 }
@@ -95,7 +97,7 @@ check_go_mod_go_version() {
   local expected
   expected="$(expected_go_mod_go_version)"
   if [[ -z $expected ]]; then
-    warn "Not checking the go directive of $goMod: found no Go version in .tool-versions or go.stanza"
+    warn "Not checking the go directive of $goMod: found no Go version in service.yaml or .tool-versions"
     return 0
   fi
 
