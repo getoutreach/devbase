@@ -30,6 +30,12 @@ func planFlag() *cli.StringFlag {
 	return &cli.StringFlag{Name: "plan", Usage: "Plan file from 'devbase release plan'", Value: "plan.json"}
 }
 
+// unitFlag is the --unit flag of the commands that work on release
+// units.
+func unitFlag(usage string) *cli.StringSliceFlag {
+	return &cli.StringSliceFlag{Name: "unit", Usage: usage}
+}
+
 // distFlag is the --dist flag of the commands that build or publish.
 func distFlag() *cli.StringFlag {
 	return &cli.StringFlag{Name: "dist", Usage: "Output directory", Value: "dist"}
@@ -66,6 +72,7 @@ func newReleaseCommand() *cli.Command {
 					&cli.StringFlag{Name: "out", Usage: "Write the plan as JSON to this file"},
 					dryRunFlag("Plan a release that publish refuses; hooks see options.dryRun as true"),
 					&cli.BoolFlag{Name: "run-hooks", Usage: "Run the generateNotesCmd hooks and add their output to the notes"},
+					unitFlag("Plan the root and this release unit only (repeatable; default: all units)"),
 				},
 				Action: releasePlan,
 			},
@@ -150,6 +157,7 @@ func loadPlan(c *cli.Command) (*release.Repo, *release.Plan, error) {
 func releasePlan(ctx context.Context, c *cli.Command) error {
 	_, plan, err := makePlan(ctx, c.Root().ErrWriter, &release.PlanOptions{
 		Branch: c.String("branch"), DryRun: c.Bool("dry-run"), RunHooks: c.Bool("run-hooks"),
+		Units: c.StringSlice("unit"),
 	})
 	if err != nil {
 		return err
@@ -165,18 +173,32 @@ func releasePlan(ctx context.Context, c *cli.Command) error {
 }
 
 // printPlan prints the next version and the release notes of a plan, or
-// why it has no release.
+// why it has no release, and then the same for each release unit.
 func printPlan(c *cli.Command, plan *release.Plan) {
 	w := c.Root().Writer
-	if !plan.Release {
+	if !plan.RootRelease() {
 		fmt.Fprintf(w, "No release: %s\n", plan.Reason)
-		return
+	} else {
+		fmt.Fprintf(w, "Last release: %s\nNext release: %s (%s)\n\n%s",
+			lastTag(plan.LastRelease), plan.NextRelease.GitTag, plan.NextRelease.Type, plan.Notes)
 	}
-	last := "none"
-	if plan.LastRelease != nil {
-		last = plan.LastRelease.GitTag
+	for i := range plan.Units {
+		u := &plan.Units[i]
+		if !u.Release {
+			fmt.Fprintf(w, "\nUnit %s: no release: %s\n", u.Name, u.Reason)
+			continue
+		}
+		fmt.Fprintf(w, "\nUnit %s (%s): %s -> %s (%s)\n\n%s", u.Name, u.Strategy,
+			lastTag(u.LastRelease), u.NextRelease.GitTag, u.NextRelease.Type, u.Notes)
 	}
-	fmt.Fprintf(w, "Last release: %s\nNext release: %s (%s)\n\n%s", last, plan.NextRelease.GitTag, plan.NextRelease.Type, plan.Notes)
+}
+
+// lastTag returns the tag of the last release, or "none".
+func lastTag(r *release.PlanRelease) string {
+	if r == nil {
+		return "none"
+	}
+	return r.GitTag
 }
 
 // releaseBuild is the Action for "release build".
@@ -184,6 +206,10 @@ func releaseBuild(ctx context.Context, c *cli.Command) error {
 	repo, plan, err := loadPlan(c)
 	if err != nil || plan == nil {
 		return err
+	}
+	if !plan.RootRelease() {
+		fmt.Fprintln(c.Root().Writer, "The plan has no root release; nothing to build")
+		return nil
 	}
 	if repo.Config.Artifacts == nil {
 		return errNoBuild

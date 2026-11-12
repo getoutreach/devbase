@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release"
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
@@ -67,10 +68,20 @@ func publishCommands() []*cli.Command {
 			Action: releasePreview,
 		},
 		{
+			Name:  "baseline",
+			Usage: "Tag the current version of the release units that have no tag, and publish nothing",
+			Flags: []cli.Flag{
+				unitFlag("Release unit to tag (repeatable; default: all units without a tag)"),
+				&cli.StringFlag{Name: "version", Usage: "Released version of a unit without package.json (needs one --unit)"},
+				dryRunFlag("Print the tags and make none"),
+			},
+			Action: releaseBaseline,
+		},
+		{
 			Name:  "rollback",
 			Usage: "Remove the tag, git note and forge release of a partial release",
 			Flags: []cli.Flag{
-				&cli.StringFlag{Name: "tag", Usage: "Release tag to remove", Required: true},
+				&cli.StringFlag{Name: "tag", Usage: "Release tag to remove, of the root or of a release unit", Required: true},
 				&cli.BoolFlag{Name: "force", Usage: "Also remove a published forge release"},
 				dryRunFlag("Print what would be deleted"),
 			},
@@ -165,10 +176,17 @@ func publishPlan(ctx context.Context, c *cli.Command, repo *release.Repo, plan *
 	if err != nil {
 		return fmt.Errorf("publish release: %w", err)
 	}
+	var tags []string
+	if plan.RootRelease() {
+		tags = append(tags, plan.NextRelease.GitTag)
+	}
+	for _, u := range plan.ReleasedUnits() {
+		tags = append(tags, u.NextRelease.GitTag)
+	}
 	if c.Bool("dry-run") {
-		fmt.Fprintf(w, "Dry run: %s is ready to publish\n", plan.NextRelease.GitTag)
+		fmt.Fprintf(w, "Dry run: %s is ready to publish\n", strings.Join(tags, ", "))
 	} else {
-		fmt.Fprintf(w, "Published %s\n", plan.NextRelease.GitTag)
+		fmt.Fprintf(w, "Published %s\n", strings.Join(tags, ", "))
 	}
 	return nil
 }
@@ -189,7 +207,7 @@ func releaseRun(ctx context.Context, c *cli.Command) error {
 		printPlan(c, plan)
 		return nil
 	}
-	if a := repo.Config.Artifacts; a != nil {
+	if a := repo.Config.Artifacts; a != nil && plan.RootRelease() {
 		_, err := release.Build(ctx, a, plan, &release.BuildOptions{
 			Dir: repo.Git.Dir, Dist: c.String("dist"), Env: os.Environ(),
 		})
@@ -266,6 +284,23 @@ func releasePreview(ctx context.Context, c *cli.Command) error {
 		printPlan(c, plan)
 	}
 	return nil
+}
+
+// releaseBaseline is the Action for "release baseline".
+func releaseBaseline(ctx context.Context, c *cli.Command) error {
+	repo, branch, err := openRepo(ctx)
+	if err != nil {
+		return err
+	}
+	url, _, err := openForge(ctx, c, repo, branch)
+	if err != nil {
+		return err
+	}
+	_, err = release.Baseline(ctx, repo, &release.BaselineOptions{
+		Branch: branch, Units: c.StringSlice("unit"), Version: c.String("version"), Remote: url,
+		Env: os.Environ(), DryRun: c.Bool("dry-run"), Log: c.Root().Writer,
+	})
+	return err
 }
 
 // releaseRollback is the Action for "release rollback".
