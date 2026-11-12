@@ -80,17 +80,14 @@ func publishCommands() []*cli.Command {
 }
 
 // openRepo loads the repository in the working directory and returns
-// it with the CI branch (CIRCLE_BRANCH, then the GitHub Actions
-// GITHUB_REF_NAME), or else the checked-out branch.
+// it with the CI branch (CIRCLE_BRANCH), or else the checked-out branch.
 func openRepo(ctx context.Context) (*release.Repo, string, error) {
 	repo, err := loadRepo()
 	if err != nil {
 		return nil, "", err
 	}
-	for _, env := range []string{"CIRCLE_BRANCH", "GITHUB_REF_NAME"} {
-		if b := os.Getenv(env); b != "" {
-			return repo, b, nil
-		}
+	if b := os.Getenv("CIRCLE_BRANCH"); b != "" {
+		return repo, b, nil
 	}
 	branch, err := repo.Git.CurrentBranch(ctx)
 	return repo, branch, err
