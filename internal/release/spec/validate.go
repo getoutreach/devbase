@@ -52,6 +52,9 @@ func (c *Config) Validate() (warnings []string, err error) {
 			return nil, err
 		}
 	}
+	if err := c.validateUnits(); err != nil {
+		return nil, err
+	}
 	return warnings, nil
 }
 

@@ -40,6 +40,24 @@ type Config struct {
 
 	// Artifacts are the binaries and archives to build, or nil.
 	Artifacts *Artifacts
+
+	// Units are the extra release units, in release order. The root
+	// release is not one of them.
+	Units []Unit
+
+	// RootPaths are the path rules of the root release when there are
+	// units.
+	RootPaths RootPaths
+}
+
+// Unit returns the unit with the given name, or nil.
+func (c *Config) Unit(name string) *Unit {
+	for i := range c.Units {
+		if c.Units[i].Name == name {
+			return &c.Units[i]
+		}
+	}
+	return nil
 }
 
 // Branch returns the configured branch with the given name, or nil.
