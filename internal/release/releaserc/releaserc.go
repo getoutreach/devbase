@@ -98,11 +98,12 @@ func parse(b []byte) (*spec.Config, []string, error) {
 			return nil, nil, err
 		}
 	}
-	warnings, err := cfg.Validate()
+	warnings := cfg.DropClientVersionFiles()
+	w, err := cfg.Validate()
 	if err != nil {
 		return nil, nil, err
 	}
-	return cfg, warnings, nil
+	return cfg, append(warnings, w...), nil
 }
 
 // addPlugin validates one plugins entry and adds it to the config.

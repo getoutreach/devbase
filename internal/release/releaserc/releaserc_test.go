@@ -218,3 +218,25 @@ plugins:
       publishCmd: echo ${nextRelease.notes}`))
 	assert.ErrorIs(t, err, spec.ErrUnsupported)
 }
+
+// TestParseDropsClientVersionFiles checks that the npm client version file
+// leaves the release commit with a warning (requirement 12), and that the
+// other assets stay.
+func TestParseDropsClientVersionFiles(t *testing.T) {
+	cfg, warnings, err := Parse([]byte(`preset: conventionalcommits
+branches: [main]
+plugins:
+  - - "@semantic-release/npm"
+    - pkgRoot: api/clients/node
+  - - "@semantic-release/git"
+    - assets:
+        - api/clients/node/package.json
+        - go.mod
+`))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, cfg.Plugins[1], spec.Plugin{Commit: &spec.CommitPlugin{Files: []string{"go.mod"}}})
+	assert.DeepEqual(t, warnings, []string{
+		`the release does not commit the client version file "api/clients/node/package.json"; ` +
+			"remove it from the release commit files",
+	})
+}

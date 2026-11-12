@@ -253,8 +253,9 @@ func (p *publisher) prepare(ctx context.Context) error {
 }
 
 // releaseCommit commits the changed files that match the commit plugin's
-// globs, as @semantic-release/git does. The tag then points to it. It
-// pushes the commit after the stale plan check.
+// globs, as @semantic-release/git does, except the client version files
+// (requirement 12). The tag then points to it. It pushes the commit
+// after the stale plan check.
 func (p *publisher) releaseCommit(ctx context.Context, c *spec.CommitPlugin) error {
 	globs := c.Files
 	if globs == nil {
@@ -266,9 +267,14 @@ func (p *publisher) releaseCommit(ctx context.Context, c *spec.CommitPlugin) err
 	}
 	var files []string
 	for f := range strings.FieldsSeq(out) {
-		if slices.ContainsFunc(globs, func(g string) bool { return matchCommitGlob(g, f) }) {
-			files = append(files, f)
+		if !slices.ContainsFunc(globs, func(g string) bool { return matchCommitGlob(g, f) }) {
+			continue
 		}
+		if p.r.Config.IsClientVersionFile(f) {
+			fmt.Fprintf(p.log, "Leave the client version file %s out of the release commit\n", f)
+			continue
+		}
+		files = append(files, f)
 	}
 	if len(files) == 0 {
 		return nil
