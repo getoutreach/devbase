@@ -112,3 +112,13 @@ func TestLoadFromIndexFailure(t *testing.T) {
 		assert.ErrorContains(t, err, "not a git repository")
 	})
 }
+
+func TestReadFromIndex(t *testing.T) {
+	repo := newStagedRepo(t, map[string]string{"docs/CODEOWNERS": "* @staged\n"})
+	writeFile(t, repo, "docs/CODEOWNERS", "* @unstaged\n")
+
+	path, content, err := codeowners.ReadFromIndex(t.Context(), repo, false)
+	assert.NilError(t, err)
+	assert.Equal(t, path, "docs/CODEOWNERS")
+	assert.Equal(t, string(content), "* @staged\n")
+}

@@ -6,9 +6,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +25,8 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/runner"
 	"github.com/getoutreach/devbase/v2/internal/giturl"
+	"github.com/getoutreach/devbase/v2/internal/graphql/gitdiff"
+	"github.com/getoutreach/gobox/pkg/cfg"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/urfave/cli/v3"
 )
@@ -57,6 +61,9 @@ var (
 	errInvalidOrigin = errors.New("the origin remote is not in the form owner/repository")
 )
 
+// tokenGetter returns a GitHub access token.
+type tokenGetter func() (cfg.SecretData, error)
+
 // codeownersCheckNames returns the names of all checks, sorted.
 func codeownersCheckNames() []string {
 	return []string{checkAvoidShadowing, checkDupPatterns, checkFiles, checkNotOwned, checkOwners, checkSyntax}
@@ -65,6 +72,12 @@ func codeownersCheckNames() []string {
 // newLintCodeownersCommand returns the "codeowners" subcommand of "lint",
 // which validates the CODEOWNERS file of a repository.
 func newLintCodeownersCommand() *cli.Command {
+	return newLintCodeownersCommandWith(githubauth.GetToken)
+}
+
+// newLintCodeownersCommandWith returns the "codeowners" subcommand of "lint", which gets a GitHub
+// access token from getToken when the owners check needs one.
+func newLintCodeownersCommandWith(getToken tokenGetter) *cli.Command {
 	return &cli.Command{
 		Name:  "codeowners",
 		Usage: "Validate the CODEOWNERS file of a repository",
@@ -115,6 +128,16 @@ func newLintCodeownersCommand() *cli.Command {
 				Usage: "Read CODEOWNERS and the files from the git index, and ignore changes that are not staged (for a pre-commit hook)",
 			},
 			&cli.BoolFlag{
+				Name: "owners-if-changed",
+				Usage: "Run the owners check only when CODEOWNERS changed since the merge base of HEAD and --base, " +
+					"or when the merge base cannot be read",
+			},
+			&cli.StringFlag{
+				Name:  "base",
+				Usage: "Ref to compute the merge base against; used with --owners-if-changed",
+				Value: "main",
+			},
+			&cli.BoolFlag{
 				Name:  "trust-workspace",
 				Usage: "Make git trust the repository directory, even when another user owns it",
 			},
@@ -147,15 +170,18 @@ func newLintCodeownersCommand() *cli.Command {
 				Sources: cli.EnvVars("GITHUB_APP_INSTALLATION_ID"),
 			},
 		},
-		Action: lintCodeowners,
+		Action: func(ctx context.Context, c *cli.Command) error {
+			return lintCodeowners(ctx, c, getToken)
+		},
 	}
 }
 
 // lintCodeowners is the Action for the "codeowners" subcommand. It loads the CODEOWNERS file of
 // the repository, runs the checks of --checks in parallel, and prints their results in the order
-// of --checks. It exits with 1 when a check returned an error, or found an issue that is at least
-// as serious as --check-failure-level.
-func lintCodeowners(ctx context.Context, c *cli.Command) error {
+// of --checks. With --owners-if-changed, it skips the owners check when CODEOWNERS did not change
+// since the merge base of HEAD and --base. It exits with 1 when a check returned an error that is
+// not a skip, or found an issue that is at least as serious as --check-failure-level.
+func lintCodeowners(ctx context.Context, c *cli.Command, getToken tokenGetter) error {
 	failureLevel, err := check.ParseSeverity(c.String("check-failure-level"))
 	if err != nil {
 		return fmt.Errorf("parse --check-failure-level: %w", err)
@@ -173,19 +199,35 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("resolve --repository-path: %w", err)
 	}
 
-	var entries []codeowners.Entry
+	var (
+		rel     string
+		content []byte
+	)
 	if staged {
-		entries, err = codeowners.LoadFromIndex(ctx, repoDir, trust)
+		rel, content, err = codeowners.ReadFromIndex(ctx, repoDir, trust)
 	} else {
-		entries, err = codeowners.Load(repoDir)
+		rel, content, err = codeowners.Read(repoDir)
 	}
 	if err != nil {
 		return fmt.Errorf("load CODEOWNERS: %w", err)
 	}
 
+	entries, err := codeowners.Parse(bytes.NewReader(content))
+	if err != nil {
+		return fmt.Errorf("load CODEOWNERS: parse %s: %w", rel, err)
+	}
+
 	checks := make([]check.Checker, 0, len(names))
 	for _, name := range names {
-		chk, err := newCodeownersCheck(ctx, c, repoDir, name)
+		if name == checkOwners && c.Bool("owners-if-changed") {
+			if reason := ownersSkipReason(c.ErrWriter, repoDir, c.String("base"), rel, content); reason != "" {
+				// Name does not use the fields of the check.
+				checks = append(checks, skippedCheck{name: new(check.ValidOwner).Name(), reason: reason})
+				continue
+			}
+		}
+
+		chk, err := newCodeownersCheck(ctx, c, repoDir, name, getToken)
 		if err != nil {
 			return err
 		}
@@ -204,6 +246,50 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 	}
 
 	return nil
+}
+
+// ownersSkipReason returns why the owners check does not need to run: the CODEOWNERS file at rel,
+// relative to repoDir, has the same content at the merge base of HEAD and base. It returns ""
+// when the file changed, when it did not exist at the merge base, or when the merge base cannot
+// be read. In the last case, it writes a warning line to w.
+func ownersSkipReason(w io.Writer, repoDir, base, rel string, content []byte) string {
+	mergeBase, err := gitdiff.MergeBaseFiles(repoDir, base, []string{rel})
+	if err != nil {
+		cause := err.Error()
+		if errors.Is(err, gitdiff.ErrShallowClone) {
+			// The message of ErrShallowClone names a flag of another command.
+			cause = "the repository is a shallow clone"
+		}
+		fmt.Fprintf(w, "warning: the owners check runs, because CODEOWNERS cannot be compared with the merge base of HEAD and %s: %s\n",
+			base, cause)
+
+		return ""
+	}
+
+	if old, ok := mergeBase[rel]; ok && old == string(content) {
+		return "CODEOWNERS did not change since the merge base with " + base
+	}
+
+	return ""
+}
+
+// skippedCheck is a check that does not run, and reports why.
+type skippedCheck struct {
+	// name is the name of the check.
+	name string
+
+	// reason is why the check does not run.
+	reason string
+}
+
+// Name returns the name of the check.
+func (s skippedCheck) Name() string {
+	return s.name
+}
+
+// Check returns an error that wraps check.ErrSkipped with the reason.
+func (s skippedCheck) Check(context.Context, check.Input) (check.Output, error) {
+	return check.Output{}, fmt.Errorf("%w: %s", check.ErrSkipped, s.reason)
 }
 
 // repositoryRoot returns the absolute path of the repository: path when it is not empty, or else
@@ -261,13 +347,14 @@ func parseCheckNames(names []string) ([]string, error) {
 	return unique, nil
 }
 
-// newCodeownersCheck returns the check with the name, configured with the flags of c.
-func newCodeownersCheck(ctx context.Context, c *cli.Command, repoDir, name string) (check.Checker, error) {
+// newCodeownersCheck returns the check with the name, configured with the flags of c. The owners
+// check gets a GitHub access token from getToken.
+func newCodeownersCheck(ctx context.Context, c *cli.Command, repoDir, name string, getToken tokenGetter) (check.Checker, error) {
 	switch name {
 	case checkFiles:
 		return check.NewFileExist(), nil
 	case checkOwners:
-		return newOwnersCheck(ctx, c, repoDir)
+		return newOwnersCheck(ctx, c, repoDir, getToken)
 	case checkDupPatterns:
 		return check.NewDuplicatedPattern(), nil
 	case checkSyntax:
@@ -285,7 +372,8 @@ func newCodeownersCheck(ctx context.Context, c *cli.Command, repoDir, name strin
 }
 
 // newOwnersCheck returns the owners check, after it made sure that its GitHub access is enough.
-func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string) (check.Checker, error) {
+// Without a GitHub App, it gets the access token from getToken.
+func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string, getToken tokenGetter) (check.Checker, error) {
 	repository := c.String("repository")
 	if repository == "" {
 		var err error
@@ -295,24 +383,24 @@ func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string) (check.
 		}
 	}
 
-	cfg := ghclient.Config{
+	clientCfg := ghclient.Config{
 		AppID:             c.Int64("github-app-id"),
 		AppInstallationID: c.Int64("github-app-installation-id"),
 		BaseURL:           c.String("github-base-url"),
 		UploadURL:         c.String("github-upload-url"),
 		Timeout:           c.Duration("github-timeout"),
 	}
-	if cfg.AppID == 0 {
-		token, err := githubauth.GetToken()
+	if clientCfg.AppID == 0 {
+		token, err := getToken()
 		if err != nil {
 			return nil, fmt.Errorf("get a GitHub access token for the owners check: %w", err)
 		}
-		cfg.AccessToken = string(token)
+		clientCfg.AccessToken = string(token)
 	} else {
-		cfg.AppPrivateKey = []byte(os.Getenv("GITHUB_APP_PRIVATE_KEY"))
+		clientCfg.AppPrivateKey = []byte(os.Getenv("GITHUB_APP_PRIVATE_KEY"))
 	}
 
-	gh, err := ghclient.New(cfg)
+	gh, err := ghclient.New(clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("create the GitHub client: %w", err)
 	}

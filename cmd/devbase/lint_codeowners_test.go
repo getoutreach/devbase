@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/urfave/cli/v3"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
@@ -363,20 +364,161 @@ func newFakeGitHubAPI(t *testing.T, remaining string) string {
 	return srv.URL
 }
 
+// fakeToken returns a GitHub token getter that counts its calls in calls.
+func fakeToken(calls *int) tokenGetter {
+	return func() (cfg.SecretData, error) {
+		*calls++
+		return "test-token", nil
+	}
+}
+
+// runLintCodeownersWithToken runs the lint codeowners subcommand with args, with a GitHub token
+// from getToken. It returns its output with the durations replaced, its standard error, and the
+// error that it returned.
+func runLintCodeownersWithToken(t *testing.T, getToken tokenGetter, args ...string) (stdout, stderr string, err error) {
+	t.Helper()
+
+	out, errOut, err := runSubcommand(t, newLintCodeownersCommandWith(getToken), "", args...)
+
+	return codeownersDurationRE.ReplaceAllString(out, "(<duration>)"), errOut, err
+}
+
 // TestLintCodeowners_RateLimitReserve checks that the owners check is skipped, and the command
 // does not fail, when fewer GitHub API requests remain than --github-rate-limit-reserve.
 func TestLintCodeowners_RateLimitReserve(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "test-token")
 	repo := newCodeownersRepo(t, "* @alice\n", "main.go")
 	args := []string{"--repository-path", repo, "--checks", "owners", "--repository", "o/r", "--github-base-url"}
+	var calls int
 
-	out, err := runLintCodeowners(t, append(args, newFakeGitHubAPI(t, "10"))...)
+	out, _, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(args, newFakeGitHubAPI(t, "10"))...)
 	assert.NilError(t, err, out)
 	assert.Assert(t, strings.Contains(out,
 		"    [Skipped] only 10 GitHub API requests remain before the rate limit resets, fewer than the reserve of 500\n"), out)
 	assert.Assert(t, strings.Contains(out, "1 check(s) executed, no failure(s)"), out)
 
-	out, err = runLintCodeowners(t, append(args, newFakeGitHubAPI(t, "10"), "--github-rate-limit-reserve", "10")...)
+	out, _, err = runLintCodeownersWithToken(t, fakeToken(&calls),
+		append(args, newFakeGitHubAPI(t, "10"), "--github-rate-limit-reserve", "10")...)
 	assert.NilError(t, err, out)
 	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+}
+
+// commitAll stages all the files in dir and commits them.
+func commitAll(t *testing.T, dir string) {
+	t.Helper()
+
+	runGit(t, dir, "add", "-A")
+	runGit(t, dir, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "--allow-empty", "-m", "test")
+}
+
+// newBranchedCodeownersRepo creates a git repository with the branches main and feature, and
+// feature checked out. The commit on main has .github/CODEOWNERS with the content base, or no
+// CODEOWNERS file when base is empty. The next commit, on feature, changes the content to head.
+func newBranchedCodeownersRepo(t *testing.T, base, head string) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	runGit(t, dir, "init", "-q", "-b", "main")
+	assert.NilError(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("x"), 0o600))
+	path := filepath.Join(dir, ".github", "CODEOWNERS")
+	assert.NilError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	if base != "" {
+		assert.NilError(t, os.WriteFile(path, []byte(base), 0o600))
+	}
+	commitAll(t, dir)
+
+	runGit(t, dir, "checkout", "-q", "-b", "feature")
+	assert.NilError(t, os.WriteFile(path, []byte(head), 0o600))
+	commitAll(t, dir)
+
+	return dir
+}
+
+// ownersIfChangedArgs returns the arguments that run only the owners check with
+// --owners-if-changed in repo, against a fake GitHub API where the user alice can push.
+func ownersIfChangedArgs(t *testing.T, repo string) []string {
+	t.Helper()
+
+	return []string{
+		"--repository-path", repo, "--checks", "owners", "--owners-if-changed",
+		"--repository", "o/r", "--github-base-url", newFakeGitHubAPI(t, "5000"),
+	}
+}
+
+// TestLintCodeowners_OwnersIfChanged checks that, with --owners-if-changed, the owners check runs
+// only when CODEOWNERS changed since the merge base of HEAD and --base, and that it gets no GitHub
+// token when it does not run.
+func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
+	const owners = "* @alice\n"
+
+	tests := map[string]struct {
+		base, head string
+		args       []string
+		skipped    bool
+		warning    string
+	}{
+		"unchanged":                 {base: owners, head: owners, skipped: true},
+		"changed":                   {base: "* @bob\n", head: owners},
+		"missing at the merge base": {base: "", head: owners},
+		"unknown base":              {base: owners, head: owners, args: []string{"--base", "nope"}, warning: `"nope"`},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			repo := newBranchedCodeownersRepo(t, tc.base, tc.head)
+			var calls int
+
+			out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), tc.args...)...)
+
+			assert.NilError(t, err, out)
+			if tc.skipped {
+				assert.Assert(t, strings.Contains(out,
+					"    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
+				assert.Equal(t, calls, 0, "no GitHub token is needed")
+			} else {
+				assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+				assert.Equal(t, calls, 1)
+			}
+			if tc.warning == "" {
+				assert.Equal(t, stderr, "")
+			} else {
+				assert.Assert(t, strings.HasPrefix(stderr, "warning: "), stderr)
+				assert.Assert(t, strings.Contains(stderr, tc.warning), stderr)
+				assert.Equal(t, strings.Count(stderr, "\n"), 1, stderr)
+			}
+		})
+	}
+}
+
+// TestLintCodeowners_OwnersIfChangedShallowClone checks that the owners check runs, with a
+// warning, in a shallow clone, which can be without the merge base.
+func TestLintCodeowners_OwnersIfChangedShallowClone(t *testing.T) {
+	src := newBranchedCodeownersRepo(t, "* @alice\n", "* @alice\n")
+	repo := filepath.Join(t.TempDir(), "clone")
+	runGit(t, src, "clone", "-q", "--depth", "1", "file://"+src, repo)
+	var calls int
+
+	out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), ownersIfChangedArgs(t, repo)...)
+
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+	assert.Equal(t, calls, 1)
+	assert.Equal(t, stderr,
+		"warning: the owners check runs, because CODEOWNERS cannot be compared with the merge base of HEAD and main: "+
+			"the repository is a shallow clone\n")
+}
+
+// TestLintCodeowners_OwnersIfChangedStaged checks that --owners-if-changed compares the CODEOWNERS
+// file that the command loaded: the file in the working tree, or in the git index with --staged.
+func TestLintCodeowners_OwnersIfChangedStaged(t *testing.T) {
+	repo := newBranchedCodeownersRepo(t, "* @alice\n", "* @alice\n")
+	assert.NilError(t, os.WriteFile(filepath.Join(repo, ".github", "CODEOWNERS"), []byte("# Not staged.\n* @alice\n"), 0o600))
+	var calls int
+
+	out, _, err := runLintCodeownersWithToken(t, fakeToken(&calls), ownersIfChangedArgs(t, repo)...)
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+
+	out, _, err = runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), "--staged")...)
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
+	assert.Equal(t, calls, 1, "only the run without --staged gets a token")
 }

@@ -8,6 +8,7 @@ package codeowners
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -65,25 +66,46 @@ func (e Entry) String() string {
 // root, docs/, and .github/ directories.
 // See: https://help.github.com/articles/about-code-owners/#codeowners-file-location
 func Load(repoDir string) ([]Entry, error) {
-	var found []string
-	for _, rel := range locations() {
-		_, err := os.Stat(filepath.Join(repoDir, rel))
-		switch {
-		case err == nil:
-			found = append(found, rel)
-		case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
-			// Not present at this location.
-		default:
-			return nil, fmt.Errorf("stat %s: %w", rel, err)
-		}
-	}
-
-	rel, err := selectFile(repoDir, found)
+	rel, content, err := Read(repoDir)
 	if err != nil {
 		return nil, err
 	}
 
-	return loadFile(filepath.Join(repoDir, rel))
+	entries, err := Parse(bytes.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf("parse %s: %w", filepath.Join(repoDir, rel), err)
+	}
+
+	return entries, nil
+}
+
+// Read returns rel, the path of the CODEOWNERS file in repoDir, relative to repoDir with "/" as
+// the separator, and the content of the file. It looks up the file like Load.
+func Read(repoDir string) (rel string, content []byte, err error) {
+	var found []string
+	for _, loc := range locations() {
+		_, err := os.Stat(filepath.Join(repoDir, loc))
+		switch {
+		case err == nil:
+			found = append(found, loc)
+		case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
+			// Not present at this location.
+		default:
+			return "", nil, fmt.Errorf("stat %s: %w", loc, err)
+		}
+	}
+
+	rel, err = selectFile(repoDir, found)
+	if err != nil {
+		return "", nil, err
+	}
+
+	content, err = os.ReadFile(filepath.Join(repoDir, rel))
+	if err != nil {
+		return "", nil, fmt.Errorf("read CODEOWNERS file: %w", err)
+	}
+
+	return rel, content, nil
 }
 
 // locations returns the paths where a CODEOWNERS file can be, relative to the root of the
@@ -115,21 +137,6 @@ func selectFile(repoDir string, found []string) (string, error) {
 			err: ErrMultipleFiles,
 		}
 	}
-}
-
-// loadFile parses the CODEOWNERS file at path.
-func loadFile(path string) ([]Entry, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open CODEOWNERS file: %w", err)
-	}
-	defer f.Close()
-
-	entries, err := Parse(f)
-	if err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
-	}
-	return entries, nil
 }
 
 // oxfordList joins at least two items as an English list with an Oxford comma,

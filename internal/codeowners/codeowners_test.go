@@ -179,3 +179,22 @@ func TestLoadIgnoresNonDirectoryLocation(t *testing.T) {
 	assert.NilError(t, err)
 	assert.DeepEqual(t, entries, []codeowners.Entry{{LineNo: 1, Pattern: "*", Owners: []string{"@a"}}})
 }
+
+func TestRead(t *testing.T) {
+	for _, rel := range []string{"CODEOWNERS", "docs/CODEOWNERS", ".github/CODEOWNERS"} {
+		t.Run(rel, func(t *testing.T) {
+			repo := t.TempDir()
+			writeFile(t, repo, rel, "* @a\n")
+
+			path, content, err := codeowners.Read(repo)
+			assert.NilError(t, err)
+			assert.Equal(t, path, rel)
+			assert.Equal(t, string(content), "* @a\n")
+		})
+	}
+
+	t.Run("no file", func(t *testing.T) {
+		_, _, err := codeowners.Read(t.TempDir())
+		assert.Assert(t, errors.Is(err, codeowners.ErrNotFound), "got %v", err)
+	})
+}

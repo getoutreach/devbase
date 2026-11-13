@@ -56,7 +56,7 @@ The `notowned` check always uses the files in the git index.
 
 The command exits with 1 when a check finds an issue at or above `--check-failure-level`, or when a check cannot complete, for example because a GitHub API call fails. It also exits with 1 when it cannot start, for example when a flag value is not valid, or when it finds no CODEOWNERS file or more than one. Otherwise, it exits with 0.
 
-A skipped check does not make the command fail. See [Rate limit](#rate-limit).
+A skipped check does not make the command fail. See [Only when CODEOWNERS changed](#only-when-codeowners-changed) and [Rate limit](#rate-limit).
 
 ## Checks
 
@@ -78,11 +78,21 @@ An owner is a user (`@username`), a team (`@org/team-name`), or an email address
 
 The check does not look up email addresses on GitHub. It compares user logins, organization names, team slugs, and ignored owners without regard to case. It reports an owner that is not valid only on the first line where the owner appears.
 
-| Flag                       | Default  | Description                                                                                     |
-| -------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `--ignored-owners`         | `@ghost` | Owners that the check does not validate.                                                        |
-| `--allow-unowned-patterns` | `true`   | Allow patterns without owners. Use `--allow-unowned-patterns=false` to report them as warnings. |
-| `--owners-must-be-teams`   | `false`  | Require every owner to be a team of the organization of the repository.                         |
+| Flag                       | Default  | Description                                                                                                    |
+| -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `--ignored-owners`         | `@ghost` | Owners that the check does not validate.                                                                       |
+| `--allow-unowned-patterns` | `true`   | Allow patterns without owners. Use `--allow-unowned-patterns=false` to report them as warnings.                |
+| `--owners-must-be-teams`   | `false`  | Require every owner to be a team of the organization of the repository.                                        |
+| `--owners-if-changed`      | `false`  | Run the check only when CODEOWNERS changed. See [Only when CODEOWNERS changed](#only-when-codeowners-changed). |
+| `--base`                   | `main`   | The ref for `--owners-if-changed`.                                                                             |
+
+#### Only when CODEOWNERS changed
+
+With `--owners-if-changed`, the command compares the CODEOWNERS file that it loaded with the file at the same path in the merge base of `HEAD` and `--base`. The loaded file is in the working tree, or in the git index with `--staged`. When the two files are the same, the command skips the `owners` check, and it does not look for GitHub credentials. The check runs when the files are different, or when the file does not exist in the merge base.
+
+When the command cannot find the merge base, for example in a shallow clone or when `--base` does not exist, the check runs, and the command prints a warning.
+
+An owner can become invalid without a change to CODEOWNERS, for example when a user leaves the organization. With `--owners-if-changed`, the check does not find this issue until the next change to CODEOWNERS.
 
 ### Flags for the `notowned` check
 
