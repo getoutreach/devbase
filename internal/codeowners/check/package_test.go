@@ -19,6 +19,7 @@ func TestRespectingCanceledContext(t *testing.T) {
 		NewFileExist(),
 		NewValidSyntax(),
 		NewAvoidShadowing(),
+		NewNotOwnedFile(NotOwnedFileConfig{}),
 	}
 
 	for _, checker := range checkers {
