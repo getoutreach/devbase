@@ -6,13 +6,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -23,6 +21,7 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/check"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/ghclient"
+	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/runner"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/urfave/cli/v3"
@@ -206,7 +205,7 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 // the root of the git work tree of the current directory, or else the current directory.
 func repositoryRoot(ctx context.Context, path string) (string, error) {
 	if path == "" {
-		out, err := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel").Output()
+		out, err := gitcmd.Run(ctx, ".", false, "rev-parse", "--show-toplevel")
 		if err == nil {
 			return strings.TrimSpace(string(out)), nil
 		}
@@ -312,22 +311,13 @@ func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string) (check.
 // repositoryFromOrigin returns the GitHub repository, in the form owner/repository, that the
 // origin remote of the git repository in repoDir points to.
 func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (string, error) {
-	args := []string{"-C", repoDir, "remote", "get-url", "origin"}
-	if trust {
-		args = append([]string{"-c", "safe.directory=" + repoDir}, args...)
-	}
-
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("get the URL of the origin remote of %s (or set --repository): %w: %s",
-			repoDir, err, strings.TrimSpace(stderr.String()))
+	out, err := gitcmd.Run(ctx, repoDir, trust, "remote", "get-url", "origin")
+	if err != nil {
+		return "", fmt.Errorf("get the URL of the origin remote (or set --repository): %w", err)
 	}
 
 	// The error does not wrap the parse error, which shows the full URL with its credentials.
-	origin := strings.TrimSpace(stdout.String())
+	origin := strings.TrimSpace(string(out))
 	path, err := pathFromGitURL(origin)
 	repository := strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".git")
 	if owner, repo, ok := strings.Cut(repository, "/"); err != nil || !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {

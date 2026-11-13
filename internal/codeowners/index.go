@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
 )
 
 // LoadFromIndex returns the entries of the CODEOWNERS file in the git index of the repository in
@@ -18,9 +19,9 @@ import (
 // locations as Load. With trust, git treats repoDir as a safe directory, even when another user
 // owns it.
 func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, error) {
-	listed, err := git(ctx, repoDir, trust, append([]string{"ls-files", "-z", "--cached", "--"}, locations()...)...)
+	listed, err := gitcmd.Run(ctx, repoDir, trust, append([]string{"ls-files", "-z", "--cached", "--"}, locations()...)...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list the CODEOWNERS files in the git index: %w", err)
 	}
 
 	// A pathspec also matches the files below a directory, so only exact paths count.
@@ -32,9 +33,9 @@ func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, er
 		return nil, err
 	}
 
-	content, err := git(ctx, repoDir, trust, "cat-file", "blob", ":"+rel)
+	content, err := gitcmd.Run(ctx, repoDir, trust, "cat-file", "blob", ":"+rel)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read %s from the git index: %w", rel, err)
 	}
 
 	entries, err := Parse(bytes.NewReader(content))
@@ -43,24 +44,4 @@ func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, er
 	}
 
 	return entries, nil
-}
-
-// git runs git with args in dir and returns its standard output. With trust, git treats dir as a
-// safe directory.
-func git(ctx context.Context, dir string, trust bool, args ...string) ([]byte, error) {
-	if trust {
-		args = append([]string{"-c", "safe.directory=" + dir}, args...)
-	}
-
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("git %s in %s: %w: %s", strings.Join(args, " "), dir, err, strings.TrimSpace(stderr.String()))
-	}
-
-	return stdout.Bytes(), nil
 }
