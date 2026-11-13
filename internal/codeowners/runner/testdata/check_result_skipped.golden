@@ -1,0 +1,3 @@
+==> Executing Foo Checker (1s)
+    [err] line 3: Found before the skip
+    [Skipped] the rate limit is low

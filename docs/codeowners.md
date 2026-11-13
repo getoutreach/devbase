@@ -56,6 +56,8 @@ The `notowned` check always uses the files in the git index.
 
 The command exits with 1 when a check finds an issue at or above `--check-failure-level`, or when a check cannot complete, for example because a GitHub API call fails. It also exits with 1 when it cannot start, for example when a flag value is not valid, or when it finds no CODEOWNERS file or more than one. Otherwise, it exits with 0.
 
+A skipped check does not make the command fail. See [Rate limit](#rate-limit).
+
 ## Checks
 
 | Name              | Default | Description                                                                                                                                                                                                                                                                         |
@@ -123,6 +125,14 @@ A scope that includes a listed scope also works. For example, `write:org` and `a
 
 When a call fails because of missing access, the error message names the access that the endpoint needs. For a classic token, it also names the missing scopes.
 
+### Rate limit
+
+The `owners` check uses the GitHub API rate limit of its credentials. Other clients of the same credentials, for example other tools in CI, use the same limit. To keep requests for them, the check does not validate the owners when fewer requests remain than `--github-rate-limit-reserve`. The default is 500. The value 0 disables the reserve. The command gets the number of remaining requests from the response of `GET /repos/{owner}/{repo}`.
+
+The check also does not validate the owners when `GET /repos/{owner}/{repo}` fails because of a rate limit. When a later call fails because of a rate limit, the check reports the issues that it found before the failure, and that it is incomplete.
+
+In these cases, the output shows `[Skipped]` and the reason. A skipped check is not a failure: the command exits with 0, unless another check fails, or the skipped check found an issue at or above `--check-failure-level` before the skip.
+
 ### GitHub App
 
 To authenticate as a GitHub App installation, set the App ID, the installation ID, and the private key of the App in PEM format:
@@ -149,3 +159,4 @@ Set `--github-base-url` to the API base URL of the server, and `--github-upload-
 - The command takes its settings from flags, except for some authentication settings (see [GitHub access](#github-access)). `--checks` selects both the default and the experimental checks. The upstream command uses environment variables, with `CHECKS` and `EXPERIMENTAL_CHECKS` for the checks.
 - `--trust-workspace` passes the repository directory as `safe.directory` to each git command. To find the root of the git work tree, it passes `*`, because the root is not known yet. The upstream command adds the directory to the global git configuration.
 - When a check fails, the command exits with 1. The upstream command exits with 3.
+- When the GitHub rate limit is low or reached, the `owners` check is skipped and does not make the command fail. The upstream command fails, or reports the rate limit as an issue.

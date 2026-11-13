@@ -126,6 +126,11 @@ func newLintCodeownersCommand() *cli.Command {
 				Name:  "github-upload-url",
 				Usage: "Upload URL of a GitHub Enterprise Server (default: the base URL)",
 			},
+			&cli.IntFlag{
+				Name:  "github-rate-limit-reserve",
+				Usage: "Skip the owners check when fewer GitHub API requests remain in the rate limit (0 disables it)",
+				Value: 500,
+			},
 			&cli.DurationFlag{
 				Name:  "github-timeout",
 				Usage: "Timeout of each GitHub API request",
@@ -317,6 +322,7 @@ func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string) (check.
 		IgnoredOwners:        c.StringSlice("ignored-owners"),
 		AllowUnownedPatterns: c.Bool("allow-unowned-patterns"),
 		OwnersMustBeTeams:    c.Bool("owners-must-be-teams"),
+		RateLimitReserve:     c.Int("github-rate-limit-reserve"),
 	}, gh)
 	if err != nil {
 		return nil, fmt.Errorf("create the owners check: %w", err)

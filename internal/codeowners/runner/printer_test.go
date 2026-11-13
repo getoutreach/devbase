@@ -7,6 +7,7 @@ package runner_test
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -50,6 +51,16 @@ func TestPrinterPrintCheckResult(t *testing.T) {
 		}, nil)
 
 		golden.Assert(t, buf.String(), "check_result_warning_only.golden")
+	})
+
+	t.Run("prints the reason of a skipped check after its issues", func(t *testing.T) {
+		var buf bytes.Buffer
+
+		runner.NewPrinter(&buf, true).PrintCheckResult("Foo Checker", time.Second, check.Output{
+			Issues: []check.Issue{{Severity: check.Error, LineNo: 3, Message: "Found before the skip"}},
+		}, fmt.Errorf("%w: the rate limit is low", check.ErrSkipped))
+
+		golden.Assert(t, buf.String(), "check_result_skipped.golden")
 	})
 
 	t.Run("prints an issue with an unknown severity", func(t *testing.T) {

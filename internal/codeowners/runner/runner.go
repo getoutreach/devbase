@@ -8,6 +8,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"sync"
 	"time"
@@ -28,8 +29,8 @@ type result struct {
 }
 
 // Run runs the checks in parallel, then prints the result of each check in the order of checks,
-// and a summary. The run failed when a check returned an error, or when a check found an issue
-// that is at least as serious as failureLevel.
+// and a summary. The run failed when a check returned an error that does not wrap
+// check.ErrSkipped, or when a check found an issue that is at least as serious as failureLevel.
 func Run(ctx context.Context, p *Printer, in check.Input, failureLevel check.Severity, checks ...check.Checker) (failed bool) {
 	results := make([]result, len(checks))
 
@@ -47,11 +48,12 @@ func Run(ctx context.Context, p *Printer, in check.Input, failureLevel check.Sev
 	for i, r := range results {
 		p.PrintCheckResult(checks[i].Name(), r.duration, r.out, r.err)
 
-		if len(r.out.Issues) > 0 || r.err != nil {
+		checkFailed := r.err != nil && !errors.Is(r.err, check.ErrSkipped)
+		if len(r.out.Issues) > 0 || checkFailed {
 			notPassed++
 		}
 
-		failed = failed || r.err != nil || hasIssueAtLeast(r.out, failureLevel)
+		failed = failed || checkFailed || hasIssueAtLeast(r.out, failureLevel)
 	}
 
 	p.PrintSummary(len(checks), notPassed)

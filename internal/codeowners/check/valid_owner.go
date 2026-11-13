@@ -42,6 +42,11 @@ type ValidOwnerConfig struct {
 
 	// OwnersMustBeTeams requires every owner to be a team of the organization that owns the repository.
 	OwnersMustBeTeams bool
+
+	// RateLimitReserve is the number of GitHub API requests that the check leaves to the other
+	// clients of the same rate limit. When CheckSatisfied finds fewer remaining requests, Check
+	// skips the validation. Zero disables the reserve.
+	RateLimitReserve int
 }
 
 // ValidOwner validates that each owner is a GitHub user or team that can review pull requests in
@@ -69,6 +74,14 @@ type ValidOwner struct {
 	// ownersMustBeTeams requires every owner to be a team.
 	ownersMustBeTeams bool
 
+	// rateLimitReserve is the number of requests that the check leaves to the other clients of the
+	// rate limit.
+	rateLimitReserve int
+
+	// skip is the error, which wraps ErrSkipped, that Check returns before any API call, because
+	// CheckSatisfied found a low rate limit. It is nil otherwise.
+	skip error
+
 	// scopes is the X-OAuth-Scopes header value that CheckSatisfied got. It is empty for a
 	// fine-grained token or a GitHub App.
 	scopes string
@@ -95,6 +108,7 @@ func NewValidOwner(cfg ValidOwnerConfig, gh *github.Client) (*ValidOwner, error)
 		ignoredOwners:        cfg.IgnoredOwners,
 		allowUnownedPatterns: cfg.AllowUnownedPatterns,
 		ownersMustBeTeams:    cfg.OwnersMustBeTeams,
+		rateLimitReserve:     cfg.RateLimitReserve,
 	}, nil
 }
 
@@ -106,18 +120,26 @@ func (*ValidOwner) Name() string {
 // CheckSatisfied checks that the repository can be read with the GitHub API client. It also
 // keeps the scopes of a classic token for the hints in API error messages. It does not require
 // any scope, because fine-grained tokens and GitHub Apps have none.
+//
+// When the call fails because of a rate limit, or when fewer requests remain than the reserve,
+// CheckSatisfied returns nil and Check skips the validation.
 func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 	_, resp, err := v.gh.Repositories.Get(ctx, v.org, v.repo)
 	if resp != nil {
 		v.scopes = resp.Header.Get("X-Oauth-Scopes")
 	}
 
-	if statusCode(err) == http.StatusNotFound {
+	switch {
+	case isRateLimit(err):
+		v.skip = fmt.Errorf("%w: GitHub rate limit reached: %w", ErrSkipped, err)
+	case statusCode(err) == http.StatusNotFound:
 		return fmt.Errorf("repository %s/%s not found, or it's private and token doesn't have enough permission: %w. %s",
 			v.org, v.repo, err, repositoryEndpoint.hint(v.scopes))
-	}
-	if err != nil {
+	case err != nil:
 		return v.apiError("get the repository "+v.fullName(), &repositoryEndpoint, err)
+	case resp.Header.Get(github.HeaderRateRemaining) != "" && resp.Rate.Remaining < v.rateLimitReserve:
+		v.skip = fmt.Errorf("%w: only %d GitHub API requests remain before the rate limit resets, fewer than the reserve of %d",
+			ErrSkipped, resp.Rate.Remaining, v.rateLimitReserve)
 	}
 
 	return nil
@@ -132,8 +154,13 @@ func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 // Source: https://help.github.com/articles/about-code-owners/#codeowners-syntax
 //
 // Each owner is validated once. When a GitHub API call fails, Check returns the issues found so
-// far and the error.
+// far and the error. The error wraps ErrSkipped when CheckSatisfied found a low rate limit, or
+// when a call fails because of a rate limit.
 func (v *ValidOwner) Check(ctx context.Context, in Input) (Output, error) {
+	if v.skip != nil {
+		return Output{}, v.skip
+	}
+
 	var out Output
 
 	// Owners compare case-insensitively, like GitHub logins, organization names, and team slugs.
@@ -268,12 +295,11 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 	return "", nil
 }
 
-// apiError returns the error for a failed call to ep. op describes the call.
+// apiError returns the error for a failed call to ep in Check. op describes the call. The error of
+// a rate limit wraps ErrSkipped.
 func (v *ValidOwner) apiError(op string, ep *endpoint, err error) error {
-	var rateErr *github.RateLimitError
-	var abuseErr *github.AbuseRateLimitError
-	if errors.As(err, &rateErr) || errors.As(err, &abuseErr) {
-		return fmt.Errorf("%s: GitHub rate limit reached: %w", op, err)
+	if isRateLimit(err) {
+		return fmt.Errorf("%w: the check is incomplete: %s: GitHub rate limit reached: %w", ErrSkipped, op, err)
 	}
 
 	switch statusCode(err) {
@@ -318,6 +344,14 @@ func collaboratorCanWrite(u *github.User) bool {
 	}
 
 	return slices.Contains([]string{"write", "maintain", "admin"}, strings.ToLower(u.GetRoleName()))
+}
+
+// isRateLimit reports whether err is the error of a primary or a secondary GitHub rate limit.
+func isRateLimit(err error) bool {
+	var rateErr *github.RateLimitError
+	var abuseErr *github.AbuseRateLimitError
+
+	return errors.As(err, &rateErr) || errors.As(err, &abuseErr)
 }
 
 // statusCode returns the HTTP status code of a GitHub API error, or 0 when err has none.

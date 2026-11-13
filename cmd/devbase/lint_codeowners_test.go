@@ -7,6 +7,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -335,4 +337,46 @@ func TestRepositoryFromOriginParseError(t *testing.T) {
 			assert.Assert(t, !strings.Contains(err.Error(), password), "got %v", err)
 		})
 	}
+}
+
+// newFakeGitHubAPI starts a fake GitHub REST API for the repository o/r, where the user alice can
+// push, and returns its URL. Its responses say that remaining requests of the rate limit remain.
+func newFakeGitHubAPI(t *testing.T, remaining string) string {
+	t.Helper()
+
+	reply := func(body string) http.HandlerFunc {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Ratelimit-Limit", "5000")
+			w.Header().Set("X-Ratelimit-Remaining", remaining)
+			_, _ = w.Write([]byte(body))
+		}
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v3/repos/o/r", reply(`{"name": "r"}`))
+	mux.HandleFunc("GET /api/v3/repos/o/r/collaborators", reply(`[{"login": "alice", "permissions": {"push": true}}]`))
+
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	return srv.URL
+}
+
+// TestLintCodeowners_RateLimitReserve checks that the owners check is skipped, and the command
+// does not fail, when fewer GitHub API requests remain than --github-rate-limit-reserve.
+func TestLintCodeowners_RateLimitReserve(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "test-token")
+	repo := newCodeownersRepo(t, "* @alice\n", "main.go")
+	args := []string{"--repository-path", repo, "--checks", "owners", "--repository", "o/r", "--github-base-url"}
+
+	out, err := runLintCodeowners(t, append(args, newFakeGitHubAPI(t, "10"))...)
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out,
+		"    [Skipped] only 10 GitHub API requests remain before the rate limit resets, fewer than the reserve of 500\n"), out)
+	assert.Assert(t, strings.Contains(out, "1 check(s) executed, no failure(s)"), out)
+
+	out, err = runLintCodeowners(t, append(args, newFakeGitHubAPI(t, "10"), "--github-rate-limit-reserve", "10")...)
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
 }

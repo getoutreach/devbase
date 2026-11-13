@@ -1,0 +1,9 @@
+==> Executing OK (<duration>)
+    Check OK
+==> Executing Skipped (<duration>)
+    [Skipped] the rate limit is low
+==> Executing Partial (<duration>)
+    [err] e
+    [Skipped] the rate limit is low
+
+3 check(s) executed, 1 failure(s)

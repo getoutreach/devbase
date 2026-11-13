@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"sync"
 	"testing"
@@ -28,6 +29,7 @@ var (
 	errBroke    = errors.New("it broke")
 	errBoom     = errors.New("boom")
 	errInternal = errors.New("some check internal error")
+	errSkipped  = fmt.Errorf("%w: the rate limit is low", check.ErrSkipped)
 )
 
 // fakeCheck is a Checker that returns a fixed result.
@@ -134,6 +136,8 @@ func TestRunFailed(t *testing.T) {
 		{name: "error at warning level", level: check.Warning, check: &fakeCheck{out: errorIssue}, failed: true},
 		{name: "error at error level", level: check.Error, check: &fakeCheck{out: errorIssue}, failed: true},
 		{name: "check error at error level", level: check.Error, check: &fakeCheck{err: errBoom}, failed: true},
+		{name: "skipped check", level: check.Warning, check: &fakeCheck{err: errSkipped}, failed: false},
+		{name: "skipped check with an error issue", level: check.Error, check: &fakeCheck{out: errorIssue, err: errSkipped}, failed: true},
 	}
 
 	for _, tt := range tests {
@@ -158,4 +162,17 @@ func TestRunSummaryCountsChecksWithIssues(t *testing.T) {
 
 	assert.Assert(t, failed)
 	golden.Assert(t, output, "run_summary.golden")
+}
+
+// TestRunSkippedIsNotAFailure checks that a skipped check is not a failure in the summary, unless
+// it found an issue before it was skipped.
+func TestRunSkippedIsNotAFailure(t *testing.T) {
+	failed, output := runChecks(t, check.Warning,
+		&fakeCheck{name: "OK"},
+		&fakeCheck{name: "Skipped", err: errSkipped},
+		&fakeCheck{name: "Partial", out: check.Output{Issues: []check.Issue{{Severity: check.Error, Message: "e"}}}, err: errSkipped},
+	)
+
+	assert.Assert(t, failed)
+	golden.Assert(t, output, "run_skipped.golden")
 }

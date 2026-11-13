@@ -15,8 +15,16 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
 )
 
-// ErrInvalidSeverity is wrapped by the error that ParseSeverity returns for an unknown severity.
-var ErrInvalidSeverity = errors.New("not a valid severity")
+// The errors that the checks wrap.
+var (
+	// ErrInvalidSeverity is wrapped by the error that ParseSeverity returns for an unknown severity.
+	ErrInvalidSeverity = errors.New("not a valid severity")
+
+	// ErrSkipped is wrapped by the error of a check that skipped all or part of its work for a
+	// reason that does not make the run fail, such as a low GitHub rate limit. Wrap it as
+	// fmt.Errorf("%w: <reason>", ErrSkipped), so that the runner can print the reason.
+	ErrSkipped = errors.New("skipped")
+)
 
 // Severity is how serious an issue is. A smaller value is more serious.
 type Severity int

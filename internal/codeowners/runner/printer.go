@@ -6,8 +6,10 @@
 package runner
 
 import (
+	"errors"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -29,7 +31,8 @@ func NewPrinter(w io.Writer, noColor bool) *Printer {
 	return &Printer{w: w, noColor: noColor}
 }
 
-// PrintCheckResult prints the name, duration, issues, and error of one check.
+// PrintCheckResult prints the name, duration, issues, and error of one check. For an error that
+// wraps check.ErrSkipped, it prints the reason of the skip.
 func (p *Printer) PrintCheckResult(name string, duration time.Duration, out check.Output, checkErr error) {
 	header := p.style(color.Bold).FprintfFunc()
 	issueBody := p.style(color.FgWhite).FprintfFunc()
@@ -46,6 +49,9 @@ func (p *Printer) PrintCheckResult(name string, duration time.Duration, out chec
 	}
 
 	switch {
+	case errors.Is(checkErr, check.ErrSkipped):
+		p.style(color.FgYellow).Fprint(p.w, "    [Skipped]")
+		issueBody(p.w, " %s\n", strings.TrimPrefix(checkErr.Error(), check.ErrSkipped.Error()+": "))
 	case checkErr != nil:
 		p.style(color.FgRed).Fprint(p.w, "    [Internal Error]")
 		issueBody(p.w, " %s\n", checkErr)

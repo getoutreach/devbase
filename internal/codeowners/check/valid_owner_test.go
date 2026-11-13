@@ -468,17 +468,25 @@ func TestValidOwnerCheckSatisfied(t *testing.T) {
 	})
 }
 
-func TestValidOwnerAPIErrors(t *testing.T) {
-	rateLimited := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Ratelimit-Remaining", "0")
-		reply(http.StatusForbidden, "", `{"message": "API rate limit exceeded"}`)(w, r)
-	}
+// rateLimitedReply responds with a primary rate limit error.
+func rateLimitedReply(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Ratelimit-Remaining", "0")
+	reply(http.StatusForbidden, "", `{"message": "API rate limit exceeded"}`)(w, r)
+}
 
+// secondaryRateLimitedReply responds with a secondary rate limit error.
+func secondaryRateLimitedReply(w http.ResponseWriter, r *http.Request) {
+	reply(http.StatusForbidden, "", `{"message": "You have exceeded a secondary rate limit.",
+		"documentation_url": "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api#about-secondary-rate-limits"}`)(w, r)
+}
+
+func TestValidOwnerAPIErrors(t *testing.T) {
 	tests := map[string]struct {
 		route   string
 		handler http.HandlerFunc
 		want    []string
 		notWant string
+		skipped bool
 	}{
 		"collaborators forbidden for a classic token without read:org": {
 			route:   routeCollaborators,
@@ -497,16 +505,17 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 		},
 		"collaborators rate limit": {
 			route:   routeCollaborators,
-			handler: rateLimited,
+			handler: rateLimitedReply,
 			want:    []string{"list the collaborators of org/repo: GitHub rate limit reached"},
 			notWant: "Access needed",
+			skipped: true,
 		},
 		"collaborators secondary rate limit": {
-			route: routeCollaborators,
-			handler: reply(http.StatusForbidden, "", `{"message": "You have exceeded a secondary rate limit.",
-				"documentation_url": "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api#about-secondary-rate-limits"}`),
+			route:   routeCollaborators,
+			handler: secondaryRateLimitedReply,
 			want:    []string{"list the collaborators of org/repo: GitHub rate limit reached"},
 			notWant: "Access needed",
+			skipped: true,
 		},
 		"collaborators server error": {
 			route:   routeCollaborators,
@@ -521,9 +530,10 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 		},
 		"teams rate limit": {
 			route:   routeTeams,
-			handler: rateLimited,
+			handler: rateLimitedReply,
 			want:    []string{"list the teams of org/repo: GitHub rate limit reached"},
 			notWant: "Access needed",
+			skipped: true,
 		},
 		"team repository forbidden": {
 			route:   routeTeamRepo,
@@ -548,6 +558,10 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 			}
 			if tc.notWant != "" {
 				assert.Assert(t, !strings.Contains(err.Error(), tc.notWant), "got %v", err)
+			}
+			assert.Equal(t, errors.Is(err, ErrSkipped), tc.skipped, "got %v", err)
+			if tc.skipped {
+				assert.ErrorContains(t, err, "the check is incomplete")
 			}
 
 			// The issues found before the failure are returned.
@@ -580,6 +594,67 @@ func TestValidOwnerTeamListForbidden(t *testing.T) {
 	})
 	assert.Equal(t, fake.count(routeTeams), 1, "the team list is requested once")
 	assert.Equal(t, fake.count(routeTeamRepo), 3, "each team is checked once")
+}
+
+// repositoryWithRate returns a handler for routeRepository that responds with the rate limit
+// headers of a token that has remaining requests.
+func repositoryWithRate(remaining string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Ratelimit-Limit", "5000")
+		w.Header().Set("X-Ratelimit-Remaining", remaining)
+		reply(http.StatusOK, "", `{"name": "repo"}`)(w, r)
+	}
+}
+
+// TestValidOwnerRateLimitReserve checks that Check skips the validation, without an API call, when
+// CheckSatisfied found fewer remaining requests than the reserve.
+func TestValidOwnerRateLimitReserve(t *testing.T) {
+	tests := map[string]struct {
+		repository http.HandlerFunc
+		skipped    bool
+	}{
+		"below the reserve":     {repository: repositoryWithRate("499"), skipped: true},
+		"at the reserve":        {repository: repositoryWithRate("500")},
+		"no rate limit headers": {repository: reply(http.StatusOK, "", `{"name": "repo"}`)},
+		"primary rate limit":    {repository: rateLimitedReply, skipped: true},
+		"secondary rate limit":  {repository: secondaryRateLimitedReply, skipped: true},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			routes := defaultRoutes()
+			routes[routeRepository] = tc.repository
+			gh, fake := newFakeGitHub(t, routes)
+			v, err := NewValidOwner(ValidOwnerConfig{Repository: "org/repo", RateLimitReserve: 500}, gh)
+			assert.NilError(t, err)
+
+			assert.NilError(t, v.CheckSatisfied(t.Context()))
+			out, err := v.Check(t.Context(), loadInput(t, "* @alice @org/writers @org/child"))
+
+			assert.Equal(t, len(out.Issues), 0)
+			calls := fake.count(routeCollaborators) + fake.count(routeTeams) + fake.count(routeTeamRepo)
+			if !tc.skipped {
+				assert.NilError(t, err)
+				assert.Equal(t, calls, 3)
+				return
+			}
+			assert.ErrorIs(t, err, ErrSkipped)
+			assert.Equal(t, calls, 0)
+		})
+	}
+}
+
+// TestValidOwnerRateLimitReserveMessage checks the reason of a skip because of the reserve.
+func TestValidOwnerRateLimitReserveMessage(t *testing.T) {
+	routes := defaultRoutes()
+	routes[routeRepository] = repositoryWithRate("12")
+	gh, _ := newFakeGitHub(t, routes)
+	v, err := NewValidOwner(ValidOwnerConfig{Repository: "org/repo", RateLimitReserve: 500}, gh)
+	assert.NilError(t, err)
+	assert.NilError(t, v.CheckSatisfied(t.Context()))
+
+	_, err = v.Check(t.Context(), loadInput(t, "* @alice"))
+
+	assert.Error(t, err, "skipped: only 12 GitHub API requests remain before the rate limit resets, fewer than the reserve of 500")
 }
 
 func TestValidOwnerCanceledContext(t *testing.T) {
