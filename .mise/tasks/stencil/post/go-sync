@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#MISE description="Syncs the Go version in Stencil-unmanaged child go.mod files and Dockerfiles, with the version specified in .tool-versions."
+#MISE description="Syncs the Go version of the root go.mod into Stencil-unmanaged child go.mod files, and the Go version of .tool-versions into Dockerfiles."
 
 set -euo pipefail
 
@@ -30,7 +30,7 @@ fi
 goVersion="$(grep "^golang " "$appDir"/.tool-versions | awk '{print $2}')"
 gomodGoVersion=""
 if [[ -f "$appDir/go.mod" ]]; then
-  gomodGoVersion="$(grep "^go " "$appDir/go.mod" | awk '{print $2}')"
+  gomodGoVersion="$(go_mod_go_version "$appDir/go.mod")"
 fi
 
 git ls-files Dockerfile '**/Dockerfile' | while read -r dockerfile; do
@@ -48,22 +48,9 @@ if [[ -z $gomodGoVersion ]]; then
   exit 0
 fi
 
-for godir in $(go_mod_dirs); do
+for godir in $(go_mod_unmanaged_child_dirs); do
   gomod="$godir/go.mod"
-  if managed_by_stencil "$gomod"; then
-    continue
-  fi
-  info "Syncing Go version/toolchain in $gomod to $gomodGoVersion/$goVersion"
+  info "Syncing Go version in $gomod to $gomodGoVersion"
 
-  sed_replace '^go .*$' "go $gomodGoVersion" "$appDir/$gomod"
-  sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$appDir/$gomod"
-  for module in ${GO_MODULES_TO_SYNC:-}; do
-    moduleVersion="$(grep "$module " "$appDir/go.mod" | awk '{print $2}')"
-    if [[ -z $moduleVersion ]]; then
-      warn "Module $module not found in $gomod, skipping"
-      continue
-    fi
-    info "Syncing $module version in $gomod to $moduleVersion"
-    sed_replace "\(\t$module\) .*" "\1 $moduleVersion" "$appDir/$gomod"
-  done
+  go_mod_sync_child "$appDir/$gomod" "$appDir/go.mod" "${GO_MODULES_TO_SYNC:-}"
 done
