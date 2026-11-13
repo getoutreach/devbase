@@ -33,7 +33,9 @@ func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, er
 		return nil, err
 	}
 
-	content, err := gitcmd.Run(ctx, repoDir, trust, "cat-file", "blob", ":"+rel)
+	// The listed paths are relative to repoDir. Without "./", git reads a path in the index
+	// relative to the root of the work tree.
+	content, err := gitcmd.Run(ctx, repoDir, trust, "cat-file", "blob", ":./"+rel)
 	if err != nil {
 		return nil, fmt.Errorf("read %s from the git index: %w", rel, err)
 	}

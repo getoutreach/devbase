@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
@@ -72,6 +73,14 @@ func TestLoadFromIndexLocations(t *testing.T) {
 		assert.NilError(t, err)
 		assert.DeepEqual(t, entries, []codeowners.Entry{{LineNo: 1, Pattern: "*", Owners: []string{"@a"}}})
 	})
+}
+
+func TestLoadFromIndexSubdirectory(t *testing.T) {
+	repo := newStagedRepo(t, map[string]string{"CODEOWNERS": "* @root\n", "svc/CODEOWNERS": "* @svc\n"})
+
+	entries, err := codeowners.LoadFromIndex(t.Context(), filepath.Join(repo, "svc"), false)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, entries, []codeowners.Entry{{LineNo: 1, Pattern: "*", Owners: []string{"@svc"}}})
 }
 
 func TestLoadFromIndexFailure(t *testing.T) {
