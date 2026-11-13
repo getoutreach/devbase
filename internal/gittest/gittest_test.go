@@ -19,6 +19,7 @@ func TestIsolateEnv(t *testing.T) {
 	}
 	t.Setenv("GIT_CONFIG_GLOBAL", "from-the-caller")
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "")
+	t.Setenv("GIT_CEILING_DIRECTORIES", "from-the-caller")
 
 	assert.NilError(t, gittest.IsolateEnv())
 
@@ -28,4 +29,5 @@ func TestIsolateEnv(t *testing.T) {
 	}
 	assert.Equal(t, os.Getenv("GIT_CONFIG_GLOBAL"), os.DevNull)
 	assert.Equal(t, os.Getenv("GIT_CONFIG_NOSYSTEM"), "1")
+	assert.Equal(t, os.Getenv("GIT_CEILING_DIRECTORIES"), os.TempDir())
 }
