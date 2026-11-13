@@ -7,8 +7,8 @@ package check
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -18,9 +18,7 @@ import (
 func gitOutput(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 
-	cmd := exec.CommandContext(t.Context(), "git", args...)
-	cmd.Dir = dir
-	out, err := cmd.Output()
+	out, err := gitCommand(t, dir, args...).Output()
 	assert.NilError(t, err, "git %v", args)
 
 	return string(out)
@@ -120,7 +118,7 @@ func TestNotOwnedFileDoesNotChangeRepo(t *testing.T) {
 	gitignore := filepath.Join(in.RepoDir, ".gitignore")
 	assert.NilError(t, os.WriteFile(gitignore, []byte("ignored.log\n"), 0o600))
 	runGit(t, in.RepoDir, "add", "-A")
-	runGit(t, in.RepoDir, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init")
+	commitAll(t, in.RepoDir, "init")
 
 	// Make the repository dirty: an unstaged edit of a tracked file, an untracked file that no
 	// pattern matches, and a staged file that no pattern matches.
@@ -156,4 +154,40 @@ func TestNotOwnedFileNotAGitRepo(t *testing.T) {
 
 	_, err := NewNotOwnedFile(NotOwnedFileConfig{}).Check(t.Context(), in)
 	assert.ErrorContains(t, err, "not a git repository")
+}
+
+func TestNotOwnedFileUnknownSubdirectory(t *testing.T) {
+	in := loadInput(t, "*.go @owner")
+	in.RepoDir = newGitRepo(t, "one/a.go", "two/b.go")
+
+	_, err := NewNotOwnedFile(NotOwnedFileConfig{Subdirectories: []string{"one", "typo-dir"}}).Check(t.Context(), in)
+	assert.ErrorContains(t, err, "pathspec 'typo-dir' did not match any file(s) known to git")
+}
+
+func TestNotOwnedFileListsConflictedFileOnce(t *testing.T) {
+	in := loadInput(t, "*.go @owner")
+	in.RepoDir = newGitRepo(t, "a.go", "c.txt")
+	commitAll(t, in.RepoDir, "base")
+
+	// Change c.txt in two branches, then merge them.
+	runGit(t, in.RepoDir, "checkout", "-q", "-b", "other")
+	assert.NilError(t, os.WriteFile(filepath.Join(in.RepoDir, "c.txt"), []byte("other"), 0o600))
+	commitAll(t, in.RepoDir, "other")
+
+	runGit(t, in.RepoDir, "checkout", "-q", "-")
+	assert.NilError(t, os.WriteFile(filepath.Join(in.RepoDir, "c.txt"), []byte("main"), 0o600))
+	commitAll(t, in.RepoDir, "main")
+
+	out, err := gitCommand(t, in.RepoDir, "merge", "other").CombinedOutput()
+	assert.Assert(t, err != nil, "git merge: want a conflict, got: %s", out)
+
+	unmerged := gitOutput(t, in.RepoDir, "ls-files", "--unmerged", "--", "c.txt")
+	assert.Equal(t, strings.Count(unmerged, "\n"), 3, "the index has three stages of c.txt:\n%s", unmerged)
+
+	got, err := NewNotOwnedFile(NotOwnedFileConfig{}).Check(t.Context(), in)
+	assert.NilError(t, err)
+
+	want := &Issue{Severity: Error, Message: `Found 1 not owned files (skipped patterns: ""):
+            * c.txt`}
+	assertSingleIssue(t, want, got.Issues)
 }

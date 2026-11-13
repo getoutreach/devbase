@@ -59,14 +59,31 @@ func newGitRepo(t *testing.T, files ...string) string {
 	return dir
 }
 
+// gitCommand returns the command that runs git with args in dir, with an identity for commits
+// and merges.
+func gitCommand(t *testing.T, dir string, args ...string) *exec.Cmd {
+	t.Helper()
+
+	identity := []string{"-c", "user.name=test", "-c", "user.email=test@example.com"}
+	cmd := exec.CommandContext(t.Context(), "git", append(identity, args...)...)
+	cmd.Dir = dir
+
+	return cmd
+}
+
 // runGit runs git with args in dir and fails the test on error.
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
-	cmd := exec.CommandContext(t.Context(), "git", args...)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
+	out, err := gitCommand(t, dir, args...).CombinedOutput()
 	assert.NilError(t, err, "git %v: %s", args, out)
+}
+
+// commitAll commits the changes of the tracked files in dir.
+func commitAll(t *testing.T, dir, msg string) {
+	t.Helper()
+
+	runGit(t, dir, "commit", "-q", "-a", "-m", msg)
 }
 
 // assertSingleIssue asserts that issues has exactly one issue, equal to want, or none when want is nil.

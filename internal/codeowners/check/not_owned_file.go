@@ -21,8 +21,9 @@ type NotOwnedFileConfig struct {
 	// these patterns match is reported as not owned.
 	SkipPatterns []string
 
-	// Subdirectories limits the check to the files in these directories. All the files of the
-	// repository are checked when it is empty.
+	// Subdirectories limits the check to the files in these directories. Each one is a git
+	// pathspec, and Check returns an error when one matches no file in the git index. All the
+	// files of the repository are checked when it is empty.
 	Subdirectories []string
 }
 
@@ -63,7 +64,7 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 		return Output{}, err
 	}
 
-	all, err := gitLsFiles(ctx, in, c.withSubdirectories("--cached")...)
+	all, err := gitLsFiles(ctx, in, c.withSubdirectories("--cached", "--error-unmatch")...)
 	if err != nil {
 		return Output{}, err
 	}
@@ -73,12 +74,11 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 		ownedSet[file] = struct{}{}
 	}
 
-	var notOwned []string
-	for _, file := range all {
-		if _, ok := ownedSet[file]; !ok {
-			notOwned = append(notOwned, file)
-		}
-	}
+	// git lists the files in index order, so the stages of a file in a merge conflict are adjacent.
+	notOwned := slices.DeleteFunc(slices.Compact(all), func(file string) bool {
+		_, ok := ownedSet[file]
+		return ok
+	})
 
 	if len(notOwned) > 0 {
 		out.Report(fmt.Sprintf("Found %d not owned files (skipped patterns: %q):\n%s",

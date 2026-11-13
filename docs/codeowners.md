@@ -73,6 +73,8 @@ The check does not look up email addresses on GitHub. It compares user logins, o
 | `--skip-patterns`  | None    | Patterns that do not count as owning a file, such as a default `*` pattern. |
 | `--subdirectories` | None    | Directories to limit the check to.                                          |
 
+Each `--subdirectories` value is a git pathspec (see `gitglossary(7)`), so it can also be a file or a glob. The check fails when a value matches no file in the git index.
+
 ## GitHub access
 
 Only the `owners` check needs GitHub access. The command looks for credentials only when this check runs. `--github-timeout` sets the timeout of each GitHub API request. The default is 30 seconds.
