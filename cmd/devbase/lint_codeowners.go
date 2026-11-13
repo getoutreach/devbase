@@ -72,8 +72,7 @@ func newLintCodeownersCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "repository-path",
-				Usage: "Path to the root of the repository",
-				Value: ".",
+				Usage: "Path to the root of the repository (default: the root of the git work tree of the current directory)",
 			},
 			&cli.StringSliceFlag{
 				Name: "checks",
@@ -163,7 +162,7 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	repoDir, err := filepath.Abs(c.String("repository-path"))
+	repoDir, err := repositoryRoot(ctx, c.String("repository-path"))
 	if err != nil {
 		return fmt.Errorf("resolve --repository-path: %w", err)
 	}
@@ -201,6 +200,22 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 	}
 
 	return nil
+}
+
+// repositoryRoot returns the absolute path of the repository: path when it is not empty, or else
+// the root of the git work tree of the current directory, or else the current directory.
+func repositoryRoot(ctx context.Context, path string) (string, error) {
+	if path == "" {
+		out, err := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel").Output()
+		if err == nil {
+			return strings.TrimSpace(string(out)), nil
+		}
+
+		// Not in a git work tree. The checks that need git report it.
+		path = "."
+	}
+
+	return filepath.Abs(path)
 }
 
 // parseCheckNames returns names without the repeated names, or an error when a name is not the
@@ -311,18 +326,32 @@ func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (stri
 			repoDir, err, strings.TrimSpace(stderr.String()))
 	}
 
+	// The error does not wrap the parse error, which shows the full URL with its credentials.
 	origin := strings.TrimSpace(stdout.String())
 	path, err := pathFromGitURL(origin)
-	if err != nil {
-		return "", fmt.Errorf("parse the origin remote %q: %w", origin, err)
-	}
-
 	repository := strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".git")
-	if owner, repo, ok := strings.Cut(repository, "/"); !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
-		return "", fmt.Errorf("%w: %q", errInvalidOrigin, origin)
+	if owner, repo, ok := strings.Cut(repository, "/"); err != nil || !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
+		return "", fmt.Errorf("%w: %q", errInvalidOrigin, redactURL(origin))
 	}
 
 	return repository, nil
+}
+
+// redactURL returns the git URL without its user information, which can hold a password or a
+// token. Like git, it takes the user information from the text before the first "/" after the
+// scheme, and it removes all of it up to the last "@".
+func redactURL(rawURL string) string {
+	start := 0
+	if i := strings.Index(rawURL, "://"); i >= 0 {
+		start = i + len("://")
+	}
+
+	authority, _, _ := strings.Cut(rawURL[start:], "/")
+	if at := strings.LastIndex(authority, "@"); at >= 0 {
+		return rawURL[:start] + rawURL[start+at+1:]
+	}
+
+	return rawURL
 }
 
 // pathFromGitURL returns the path of the git URL, which is "owner/repository" with an optional

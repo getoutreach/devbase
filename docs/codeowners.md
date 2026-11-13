@@ -6,19 +6,19 @@ This command is derived from [mszostok/codeowners-validator](https://github.com/
 
 ## Usage
 
-Run the command from the root of the repository:
+Run the command in the repository:
 
 ```shell
 devbase lint codeowners
 ```
 
-The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository.
+The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository. Without `--repository-path`, the root of the repository is the root of the git work tree of the current directory. When git cannot find the work tree, for example outside of a git repository, it is the current directory.
 
 The command runs the checks in parallel and prints the results in the order of `--checks`. Run `devbase lint codeowners --help` to list all flags. The general flags are:
 
 | Flag                    | Default                           | Description                                                                                            |
 | ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `--repository-path`     | `.`                               | Path to the root of the repository.                                                                    |
+| `--repository-path`     | The root of the git work tree     | Path to the root of the repository.                                                                    |
 | `--checks`              | `files,owners,duppatterns,syntax` | Checks to run. Repeat the flag or separate the names with commas. The value replaces the default list. |
 | `--check-failure-level` | `warning`                         | With `warning`, warnings and errors make the command fail. With `error`, only errors make it fail.     |
 | `--repository`          | The `origin` remote               | GitHub repository in the form `owner/repository`, for the `owners` check.                              |
@@ -135,7 +135,9 @@ When the App ID is set, the command does not look for an access token.
 
 ### GitHub Enterprise Server
 
-Set `--github-base-url` to the API base URL of the server, and `--github-upload-url` to its upload URL. The upload URL defaults to the base URL.
+Set `--github-base-url` to the API base URL of the server, and `--github-upload-url` to its upload URL. The upload URL defaults to the base URL. The command does not get the server from the `origin` remote. Without `--github-base-url`, it uses the API of github.com.
+
+`gh auth token` gives the token of the default host of `gh`, because the command does not give it `--hostname`. To use a token for the server, set `GITHUB_TOKEN` to the token, or set `GH_HOST` to the hostname of the server.
 
 ## Differences from codeowners-validator
 

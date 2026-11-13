@@ -132,6 +132,28 @@ func TestLintCodeowners_Staged(t *testing.T) {
 	})
 }
 
+// TestLintCodeowners_RepositoryRoot checks that, without --repository-path, the command uses the
+// root of the git work tree of the current directory, or the current directory outside of one.
+// It changes the current directory, so it cannot run in parallel.
+func TestLintCodeowners_RepositoryRoot(t *testing.T) {
+	t.Run("from a subdirectory", func(t *testing.T) {
+		repo := newCodeownersRepo(t, "* @org/team\n", "main.go", "sub/a.go")
+		t.Chdir(filepath.Join(repo, "sub"))
+
+		out, err := runLintCodeowners(t, "--checks", "files,notowned")
+		assert.NilError(t, err, out)
+	})
+
+	t.Run("outside of a git work tree", func(t *testing.T) {
+		dir := t.TempDir()
+		assert.NilError(t, os.WriteFile(filepath.Join(dir, "CODEOWNERS"), []byte("* @org/team\n"), 0o600))
+		t.Chdir(dir)
+
+		out, err := runLintCodeowners(t, "--checks", "syntax")
+		assert.NilError(t, err, out)
+	})
+}
+
 // TestLintCodeowners_Errors checks the errors that stop the command before any check runs.
 func TestLintCodeowners_Errors(t *testing.T) {
 	repo := newCodeownersRepo(t, "* @org/team\n", "main.go")
@@ -221,5 +243,43 @@ func TestRepositoryFromOrigin(t *testing.T) {
 		_, err := repositoryFromOrigin(t.Context(), dir, false)
 
 		assert.ErrorIs(t, err, errInvalidOrigin)
+		assert.ErrorContains(t, err, "https://github.com/just-one")
 	})
+
+	for _, origin := range []string{
+		"https://user:secret@github.com/a/b/c.git",
+		"https://secret@github.com/just-one",
+		"https://user:secret%zz@github.com/o/r.git",
+	} {
+		t.Run("credentials are not shown for "+origin, func(t *testing.T) {
+			dir := t.TempDir()
+			runGit(t, dir, "init", "-q")
+			runGit(t, dir, "remote", "add", "origin", origin)
+
+			_, err := repositoryFromOrigin(t.Context(), dir, false)
+
+			assert.ErrorIs(t, err, errInvalidOrigin)
+			assert.ErrorContains(t, err, "github.com/")
+			assert.Assert(t, !strings.Contains(err.Error(), "secret"), "got %v", err)
+		})
+	}
+}
+
+// TestRedactURL checks that the user information is removed from git URLs.
+func TestRedactURL(t *testing.T) {
+	tests := map[string]string{
+		"https://user:token@github.com/a/b/c.git": "https://github.com/a/b/c.git",
+		"https://token@github.com":                "https://github.com",
+		"https://u:t%zz@host/x?y=@z#@":            "https://host/x?y=@z#@",
+		"https://u:p?w@host/x":                    "https://host/x",
+		"ssh://git@github.com/o/r":                "ssh://github.com/o/r",
+		"git@github.com:o/r.git":                  "github.com:o/r.git",
+		"https://github.com/o/r":                  "https://github.com/o/r",
+		"/some/path@x":                            "/some/path@x",
+	}
+	for in, want := range tests {
+		t.Run(in, func(t *testing.T) {
+			assert.Equal(t, redactURL(in), want)
+		})
+	}
 }
