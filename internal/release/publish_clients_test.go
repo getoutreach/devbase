@@ -400,9 +400,14 @@ func TestPublishClientsDryRun(t *testing.T) {
 	c := newServiceFixture(t)
 	_, err := c.release(true)
 	assert.NilError(t, err)
-	assert.Equal(t, len(c.toolCalls()), 0, "a dry run builds and pushes nothing")
+	// A dry run builds the gem, restores its version file, and pushes
+	// nothing.
+	assert.DeepEqual(t, c.toolCalls(), []string{"bundle install", "bundle exec rake"})
 	assert.Equal(t, len(c.api.paths), 0)
 	assert.Equal(t, c.remoteRef("refs/tags/v1.0.0"), "")
+	rb, err := os.ReadFile(filepath.Join(c.git.Dir, "api", "clients", "ruby", "lib", "widgets_client", "version.rb"))
+	assert.NilError(t, err)
+	assert.Equal(t, string(rb), gemVersionRb)
 }
 
 // TestRollbackGem checks that rollback stops when the gem of the version

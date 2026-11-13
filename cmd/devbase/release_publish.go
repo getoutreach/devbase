@@ -31,7 +31,7 @@ func publishCommands() []*cli.Command {
 		{
 			Name:   "publish",
 			Usage:  "Publish a planned release after the build jobs",
-			Flags:  []cli.Flag{planFlag(), distFlag(), dryRunFlag("Check the assets and the tag, and publish nothing")},
+			Flags:  []cli.Flag{planFlag(), distFlag(), dryRunFlag("Check the assets, the tag and the package builds, and publish nothing")},
 			Action: releasePublish,
 		},
 		{

@@ -30,8 +30,9 @@ var (
 	// line to replace.
 	errGemNoVersion = errors.New("the gem version file has no VERSION line")
 
-	// errGemNoFile is returned when the built .gem file is missing, as
-	// publish.sh refuses to publish nothing.
+	// errGemNoFile is returned when the built .gem file is missing after
+	// a build check, or before a publish, as publish.sh refuses to
+	// publish nothing.
 	errGemNoFile = errors.New(".gem file not found")
 
 	// errGemNoToken is returned when no GitHub Packages token is found
@@ -94,6 +95,9 @@ type gemSession struct {
 	// Gem::Version writes it.
 	version string
 
+	// versionFile is the gem version file.
+	versionFile string
+
 	// env is the environment of the commands.
 	env []string
 }
@@ -111,14 +115,14 @@ func (g *gemRegistry) open(p *regTarget) (*gemSession, error) {
 		}
 		s.name = app + "_client"
 	}
+	s.versionFile = filepath.Join(p.dir, filepath.FromSlash(g.plugin.VersionPath(s.name)))
 	return s, nil
 }
 
 // prepare writes the release version into the gem version file and
-// builds the gem with "bundle install" and "bundle exec rake build", as
-// build.sh does. The version changes only in the checkout (requirement
-// 12). It also checks that publish will find the token and the owner,
-// so that a missing one fails before the tag push.
+// builds the gem, as build.sh does. The version changes only in the
+// checkout (requirement 12). It also checks that publish will find the
+// token and the owner, so that a missing one fails before the tag push.
 func (g *gemRegistry) prepare(ctx context.Context, p *regTarget) error {
 	s, err := g.open(p)
 	if err != nil {
@@ -130,9 +134,41 @@ func (g *gemRegistry) prepare(ctx context.Context, p *regTarget) error {
 	if _, err := g.owner(ctx, p); err != nil {
 		return err
 	}
-	file := filepath.Join(p.dir, filepath.FromSlash(g.plugin.VersionPath(s.name)))
-	fmt.Fprintf(p.log, "Write version %s to %s\n", p.version, file)
-	if err := writeGemVersion(file, p.version); err != nil {
+	return g.build(ctx, p, s)
+}
+
+// checkBuild builds the gem as prepare does, and checks that the .gem
+// file exists. It needs no token or owner and pushes nothing, so that
+// branch builds and forks can run it. It restores the gem version file
+// afterwards, also on a failure.
+func (g *gemRegistry) checkBuild(ctx context.Context, p *regTarget) (err error) {
+	s, err := g.open(p)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(p.log, "Build check: %s %s\n", s.name, s.version)
+	orig, err := os.ReadFile(s.versionFile)
+	if err != nil {
+		return fmt.Errorf("read the gem version file: %w", err)
+	}
+	defer func() {
+		if werr := os.WriteFile(s.versionFile, orig, 0o600); werr != nil {
+			err = errors.Join(err, fmt.Errorf("restore the gem version file: %w", werr))
+		}
+	}()
+	if err := g.build(ctx, p, s); err != nil {
+		return err
+	}
+	_, err = s.gemFile()
+	return err
+}
+
+// build writes the release version into the gem version file and builds
+// the gem with "bundle install" and "bundle exec rake build", as
+// build.sh does.
+func (g *gemRegistry) build(ctx context.Context, p *regTarget, s *gemSession) error {
+	fmt.Fprintf(p.log, "Write version %s to %s\n", p.version, s.versionFile)
+	if err := writeGemVersion(s.versionFile, p.version); err != nil {
 		return err
 	}
 	for _, args := range [][]string{{"install"}, {"exec", "rake", "build"}} {
@@ -143,6 +179,16 @@ func (g *gemRegistry) prepare(ctx context.Context, p *regTarget) error {
 	return nil
 }
 
+// gemFile returns the built .gem file, which rake build writes to
+// pkg/<name>-<version>.gem, or an error when it does not exist.
+func (s *gemSession) gemFile() (string, error) {
+	file := filepath.Join(s.dir, "pkg", s.name+"-"+s.version+".gem")
+	if _, err := os.Stat(file); err != nil {
+		return "", fmt.Errorf("%w at %s: %w", errGemNoFile, file, err)
+	}
+	return file, nil
+}
+
 // publish pushes the built gem with "gem push", as publish.sh does. It
 // skips the push when the registry has the version (requirement 8). It
 // returns no release info, as publish.sh prints none.
@@ -151,9 +197,9 @@ func (g *gemRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 	if err != nil {
 		return nil, err
 	}
-	gemFile := filepath.Join(s.dir, "pkg", s.name+"-"+s.version+".gem")
-	if _, err := os.Stat(gemFile); err != nil {
-		return nil, fmt.Errorf("%w at %s; refusing to publish nothing: %w", errGemNoFile, gemFile, err)
+	gemFile, err := s.gemFile()
+	if err != nil {
+		return nil, fmt.Errorf("refusing to publish nothing: %w", err)
 	}
 	owner, err := g.owner(ctx, p)
 	if err != nil {

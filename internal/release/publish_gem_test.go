@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -166,6 +167,83 @@ func TestGemPrepareErrors(t *testing.T) {
 		f.run.replies["bundle exec"] = fakeReply{stderr: "rake aborted!", err: errExit}
 		assert.ErrorIs(t, f.registry().prepare(context.Background(), f.target("1.0.0")), errExit)
 	})
+}
+
+// TestGemCheckBuild checks the build check of the dry runs: it builds
+// as prepare does, without the token or the owner, and restores the
+// version file.
+func TestGemCheckBuild(t *testing.T) {
+	f := newGemFixture(t)
+	assert.NilError(t, os.Remove(filepath.Join(f.home, ".gem", "credentials")))
+	f.buildGem("1.2.0.pre.rc.1")
+	reg := f.registry()
+	reg.plugin.Owner = "" // The fixture has no origin remote.
+	file := filepath.Join(f.gemDir(), "lib", "widgets_client", "version.rb")
+	var built string
+	reg.run = func(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
+		if c.args[0] == "exec" {
+			b, err := os.ReadFile(file)
+			assert.NilError(t, err)
+			built = string(b)
+		}
+		return f.run.run(ctx, log, c)
+	}
+	assert.NilError(t, reg.checkBuild(context.Background(), f.target("1.2.0-rc.1")))
+
+	assert.DeepEqual(t, f.run.argvs(), [][]string{
+		{"bundle", "install"},
+		{"bundle", "exec", "rake", "build"},
+	})
+	for _, c := range f.run.calls {
+		assert.Equal(t, c.dir, f.gemDir())
+	}
+	assert.Equal(t, built, strings.Replace(gemVersionRb, "0.0.0-development", "1.2.0-rc.1", 1))
+	b, err := os.ReadFile(file)
+	assert.NilError(t, err)
+	assert.Equal(t, string(b), gemVersionRb)
+	assert.Assert(t, strings.Contains(f.log.String(), "Build check: widgets_client 1.2.0.pre.rc.1\n"), f.log.String())
+	assert.Equal(t, len(f.api.paths), 0, "the build check does not call the API")
+}
+
+func TestGemCheckBuildErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func(f *gemFixture)
+		wantErr error
+		calls   int
+	}{
+		{
+			name: "failed build",
+			setup: func(f *gemFixture) {
+				f.buildGem("1.0.0")
+				f.run.replies["bundle exec"] = fakeReply{stderr: "rake aborted!", err: errExit}
+			},
+			wantErr: errExit, calls: 2,
+		},
+		{name: "missing gem", setup: func(*gemFixture) {}, wantErr: errGemNoFile, calls: 2},
+		{
+			name: "no VERSION line",
+			setup: func(f *gemFixture) {
+				writeFile(t, f.gemDir(), "lib/widgets_client/version.rb", "module WidgetsClient\nend\n")
+			},
+			wantErr: errGemNoVersion,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newGemFixture(t)
+			tc.setup(f)
+			file := filepath.Join(f.gemDir(), "lib", "widgets_client", "version.rb")
+			before, err := os.ReadFile(file)
+			assert.NilError(t, err)
+			err = f.registry().checkBuild(context.Background(), f.target("1.0.0"))
+			assert.ErrorIs(t, err, tc.wantErr)
+			assert.Equal(t, len(f.run.calls), tc.calls)
+			after, err := os.ReadFile(file)
+			assert.NilError(t, err)
+			assert.Equal(t, string(after), string(before), "the version file is restored")
+		})
+	}
 }
 
 // TestGemPublishScenarios checks the gem push and the version lookup.

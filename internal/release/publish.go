@@ -77,8 +77,9 @@ type PublishOptions struct {
 	// Log receives progress messages and the output of the hooks.
 	Log io.Writer
 
-	// DryRun stops after the checks of the assets and of the tag, as
-	// semantic-release --dry-run stops before the prepare step. It does
+	// DryRun stops after the checks of the assets and of the tag, and
+	// the build checks of the registries, such as the gem build. It
+	// makes no release commit, tag, push or registry publish, and does
 	// not report a failure to the forge.
 	DryRun bool
 }
@@ -100,11 +101,12 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 	}
 	p := &publisher{r: r, plan: plan, opts: opts, log: logOr(opts.Log)}
 	// The root steps run only when the root releases.
-	steps := []struct {
+	type step struct {
 		name string
 		fn   func(context.Context) error
 		root bool
-	}{
+	}
+	steps := []step{
 		{"assets", p.assets, true},
 		{"state", p.state, false},
 		{"generate_notes", p.generateNotes, true},
@@ -116,7 +118,7 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		{"success", p.success, false},
 	}
 	if opts.DryRun {
-		steps = steps[:2]
+		steps = append(steps[:2:2], step{"build_check", p.checkBuilds, true})
 	}
 	defer func() {
 		if err != nil && r.Config.Forge() != nil && !opts.DryRun {
@@ -442,6 +444,28 @@ func (p *publisher) publish(ctx context.Context) error {
 	return nil
 }
 
+// checkBuilds runs the build checks of the registries in the
+// repository, with the planned version.
+func (p *publisher) checkBuilds(ctx context.Context) error {
+	return checkBuilds(ctx, p.r.Config, p.target())
+}
+
+// checkBuilds runs the build check of each registry plugin of cfg that
+// has one, in plugin order.
+func checkBuilds(ctx context.Context, cfg *spec.Config, t *regTarget) error {
+	for _, pl := range cfg.Plugins {
+		if !isRegistry(&pl) {
+			continue
+		}
+		if c, ok := registryOf(&pl).(buildChecker); ok {
+			if err := c.checkBuild(ctx, t); err != nil {
+				return fmt.Errorf("build check: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
 // registry publishes a package to a package registry.
 type registry interface {
 	// name names the registry in messages.
@@ -458,6 +482,16 @@ type registry interface {
 
 	// exists reports whether the registry has the version.
 	exists(ctx context.Context, t *regTarget) (bool, error)
+}
+
+// buildChecker is a registry that can build its package without
+// publishing it, for the dry runs.
+type buildChecker interface {
+	// checkBuild builds the package of version t.version and checks the
+	// build output, without publishing it. It needs no publish
+	// credentials, and restores the files that it changes to set the
+	// version.
+	checkBuild(ctx context.Context, t *regTarget) error
 }
 
 // regTarget is the release that a registry prepares, publishes or looks
