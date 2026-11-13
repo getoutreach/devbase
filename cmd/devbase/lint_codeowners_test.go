@@ -324,17 +324,28 @@ func TestRepositoryFromOrigin(t *testing.T) {
 }
 
 // TestRepositoryFromOriginParseError checks that the error for an origin URL that cannot be
-// parsed names the cause, without the credentials in the URL.
+// parsed has a fixed cause, and no part of the credentials in the URL.
 func TestRepositoryFromOriginParseError(t *testing.T) {
-	dir := t.TempDir()
-	runGit(t, dir, "init", "-q")
-	runGit(t, dir, "remote", "add", "origin", "https://user:s3cr3t%zz@github.com/o/r.git")
+	tests := map[string]string{
+		"https://x-access-token:ghp_SECRETTOKEN#@github.com/o/r.git": "ghp_SECRETTOKEN",
+		"https://user:s3cr3t%zz@github.com/o/r.git":                  "s3cr3t%zz",
+		"https://user:s3cr3t?x@github.com/o/r.git":                   "s3cr3t?x",
+		"https://user:s3cr3t#x@github.com/o/r.git":                   "s3cr3t#x",
+	}
+	for origin, password := range tests {
+		t.Run(origin, func(t *testing.T) {
+			dir := t.TempDir()
+			runGit(t, dir, "init", "-q")
+			runGit(t, dir, "remote", "add", "origin", origin)
 
-	_, err := repositoryFromOrigin(t.Context(), dir, false)
+			_, err := repositoryFromOrigin(t.Context(), dir, false)
 
-	assert.ErrorIs(t, err, errInvalidOrigin)
-	assert.ErrorContains(t, err, `invalid URL escape "%zz"`)
-	assert.Assert(t, !strings.Contains(err.Error(), "s3cr3t"), "got %v", err)
+			assert.ErrorIs(t, err, errInvalidOrigin)
+			assert.Error(t, err,
+				`the origin remote is not in the form owner/repository: "https://github.com/o/r.git": the URL cannot be parsed`)
+			assert.Assert(t, !strings.Contains(err.Error(), password), "got %v", err)
+		})
+	}
 }
 
 // TestRedactURL checks that the user information is removed from git URLs.

@@ -7,32 +7,26 @@ package giturl
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 
 	giturls "github.com/chainguard-dev/git-urls"
 )
 
-// errNotGitURL is wrapped by the error that Path returns for a URL that is not a git URL.
-var errNotGitURL = errors.New("not a git URL")
+// ErrInvalidURL is the error that Path returns for a URL that cannot be parsed. It has no other
+// text, because the text of a parse error can contain parts of the URL, such as a password.
+var ErrInvalidURL = errors.New("the URL cannot be parsed")
 
 // Path returns the path of the git URL rawURL, which is "owner/repository" with an optional
 // ".git" suffix for a GitHub repository. The path of an HTTPS URL or of an SCP-like URL, such as
 // git@github.com:owner/repository.git, has no leading "/". The path of another URL, such as
-// ssh://git@github.com/owner/repository, keeps it. The error does not contain rawURL, which can
-// hold credentials.
+// ssh://git@github.com/owner/repository, keeps it. When rawURL cannot be parsed, the error is
+// ErrInvalidURL.
 func Path(rawURL string) (string, error) {
 	if strings.HasPrefix(rawURL, "https://") {
 		u, err := url.Parse(rawURL)
 		if err != nil {
-			// A *url.Error contains the URL, so only its cause is kept.
-			var urlErr *url.Error
-			if errors.As(err, &urlErr) {
-				err = urlErr.Err
-			}
-
-			return "", fmt.Errorf("parse HTTPS URL: %w", err)
+			return "", ErrInvalidURL
 		}
 
 		return strings.TrimPrefix(u.Path, "/"), nil
@@ -40,8 +34,7 @@ func Path(rawURL string) (string, error) {
 
 	u, err := giturls.Parse(rawURL)
 	if err != nil {
-		// The error contains the URL.
-		return "", fmt.Errorf("parse SSH URL: %w", errNotGitURL)
+		return "", ErrInvalidURL
 	}
 
 	return u.Path, nil
