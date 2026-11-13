@@ -42,3 +42,21 @@ func TestPathError(t *testing.T) {
 		})
 	}
 }
+
+func TestRedact(t *testing.T) {
+	tests := map[string]string{
+		"https://user:token@github.com/a/b/c.git": "https://github.com/a/b/c.git",
+		"https://token@github.com":                "https://github.com",
+		"https://u:t%zz@host/x?y=@z#@":            "https://host/x?y=@z#@",
+		"https://u:p?w@host/x":                    "https://host/x",
+		"ssh://git@github.com/o/r":                "ssh://github.com/o/r",
+		"git@github.com:o/r.git":                  "github.com:o/r.git",
+		"https://github.com/o/r":                  "https://github.com/o/r",
+		"/some/path@x":                            "/some/path@x",
+	}
+	for in, want := range tests {
+		t.Run(in, func(t *testing.T) {
+			assert.Equal(t, giturl.Redact(in), want)
+		})
+	}
+}

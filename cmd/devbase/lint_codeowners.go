@@ -340,32 +340,15 @@ func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (stri
 	origin := strings.TrimSpace(string(out))
 	path, err := giturl.Path(origin)
 	if err != nil {
-		return "", fmt.Errorf("%w: %q: %w", errInvalidOrigin, redactURL(origin), err)
+		return "", fmt.Errorf("%w: %q: %w", errInvalidOrigin, giturl.Redact(origin), err)
 	}
 
 	repository := strings.TrimPrefix(path, "/")
 	repository = strings.TrimSuffix(repository, "/")
 	repository = strings.TrimSuffix(repository, ".git")
 	if owner, repo, ok := strings.Cut(repository, "/"); !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
-		return "", fmt.Errorf("%w: %q", errInvalidOrigin, redactURL(origin))
+		return "", fmt.Errorf("%w: %q", errInvalidOrigin, giturl.Redact(origin))
 	}
 
 	return repository, nil
-}
-
-// redactURL returns the git URL without its user information, which can hold a password or a
-// token. It removes the text up to the last "@" before the first "/" after the scheme, which
-// includes all the user information that git can read from the URL.
-func redactURL(rawURL string) string {
-	start := 0
-	if i := strings.Index(rawURL, "://"); i >= 0 {
-		start = i + len("://")
-	}
-
-	authority, _, _ := strings.Cut(rawURL[start:], "/")
-	if at := strings.LastIndex(authority, "@"); at >= 0 {
-		return rawURL[:start] + rawURL[start+at+1:]
-	}
-
-	return rawURL
 }

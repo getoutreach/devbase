@@ -30,13 +30,13 @@ func getOrg() (string, error) {
 
 	urlPath, err := giturl.Path(origin)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse git origin %q", origin)
+		return "", errors.Wrapf(err, "failed to parse git origin %q", giturl.Redact(origin))
 	}
 
 	// ["getoutreach", "gobox"]
 	spl := strings.Split(urlPath, "/")
 	if len(spl) != 2 {
-		return "", fmt.Errorf("failed to parse org from git origin %q", origin)
+		return "", fmt.Errorf("failed to parse org from git origin %q", giturl.Redact(origin))
 	}
 
 	return spl[0], nil

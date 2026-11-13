@@ -1,8 +1,8 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Parsing the path of git remote URLs.
+// Description: Parsing and redacting git remote URLs.
 
-// Package giturl parses git remote URLs.
+// Package giturl parses and redacts git remote URLs.
 package giturl
 
 import (
@@ -38,4 +38,21 @@ func Path(rawURL string) (string, error) {
 	}
 
 	return u.Path, nil
+}
+
+// Redact returns the git URL rawURL without its user information, which can hold a password or a
+// token. It removes the text up to the last "@" before the first "/" after the scheme, which
+// includes all the user information that git can read from the URL.
+func Redact(rawURL string) string {
+	start := 0
+	if i := strings.Index(rawURL, "://"); i >= 0 {
+		start = i + len("://")
+	}
+
+	authority, _, _ := strings.Cut(rawURL[start:], "/")
+	if at := strings.LastIndex(authority, "@"); at >= 0 {
+		return rawURL[:start] + rawURL[start+at+1:]
+	}
+
+	return rawURL
 }
