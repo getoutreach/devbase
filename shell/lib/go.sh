@@ -213,7 +213,7 @@ check_tool_versions_no_golang_override() {
     inBlock && $1 == "golang" { print $2; exit }' "$toolVersions")"
   # This check comes last, because it needs a yq run and most repositories have
   # no override.
-  if [[ -z $override ]] || ! managed_by_stencil go.mod; then
+  if [[ -z $override ]] || ! go_mod_managed_by_stencil .; then
     return 0
   fi
 
