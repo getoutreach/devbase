@@ -14,12 +14,16 @@ import (
 )
 
 func TestRespectingCanceledContext(t *testing.T) {
+	validOwner, err := NewValidOwner(ValidOwnerConfig{Repository: "org/repo"}, nil)
+	assert.NilError(t, err)
+
 	checkers := []Checker{
 		NewDuplicatedPattern(),
 		NewFileExist(),
 		NewValidSyntax(),
 		NewAvoidShadowing(),
 		NewNotOwnedFile(NotOwnedFileConfig{}),
+		validOwner,
 	}
 
 	for _, checker := range checkers {

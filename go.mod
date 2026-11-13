@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.120.1
 	github.com/getoutreach/localizer v1.15.19
@@ -22,6 +23,8 @@ require (
 )
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/google/go-github/v88 v88.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/itchyny/timefmt-go v0.1.9 // indirect
 )
