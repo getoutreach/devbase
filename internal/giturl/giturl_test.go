@@ -5,6 +5,7 @@
 package giturl_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/giturl"
@@ -30,6 +31,7 @@ func TestPath(t *testing.T) {
 }
 
 func TestPathError(t *testing.T) {
-	_, err := giturl.Path("https://github.com/o/r%zz")
-	assert.ErrorContains(t, err, "parse HTTPS URL")
+	_, err := giturl.Path("https://user:s3cr3t%zz@github.com/o/r.git")
+	assert.ErrorContains(t, err, `parse HTTPS URL: invalid URL escape "%zz"`)
+	assert.Assert(t, !strings.Contains(err.Error(), "s3cr3t"), "got %v", err)
 }

@@ -337,11 +337,16 @@ func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (stri
 		return "", fmt.Errorf("get the URL of the origin remote (or set --repository): %w", err)
 	}
 
-	// The error does not wrap the parse error, which shows the full URL with its credentials.
 	origin := strings.TrimSpace(string(out))
 	path, err := giturl.Path(origin)
-	repository := strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".git")
-	if owner, repo, ok := strings.Cut(repository, "/"); err != nil || !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
+	if err != nil {
+		return "", fmt.Errorf("%w: %q: %w", errInvalidOrigin, redactURL(origin), err)
+	}
+
+	repository := strings.TrimPrefix(path, "/")
+	repository = strings.TrimSuffix(repository, "/")
+	repository = strings.TrimSuffix(repository, ".git")
+	if owner, repo, ok := strings.Cut(repository, "/"); !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
 		return "", fmt.Errorf("%w: %q", errInvalidOrigin, redactURL(origin))
 	}
 
@@ -349,8 +354,8 @@ func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (stri
 }
 
 // redactURL returns the git URL without its user information, which can hold a password or a
-// token. Like git, it takes the user information from the text before the first "/" after the
-// scheme, and it removes all of it up to the last "@".
+// token. It removes the text up to the last "@" before the first "/" after the scheme, which
+// includes all the user information that git can read from the URL.
 func redactURL(rawURL string) string {
 	start := 0
 	if i := strings.Index(rawURL, "://"); i >= 0 {

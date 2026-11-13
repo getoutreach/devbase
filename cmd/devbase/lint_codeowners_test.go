@@ -257,6 +257,8 @@ func TestRepositoryFromOrigin(t *testing.T) {
 	for _, origin := range []string{
 		"https://github.com/o/r.git",
 		"https://github.com/o/r",
+		"https://github.com/o/r/",
+		"https://github.com/o/r.git/",
 		"git@github.com:o/r.git",
 		"ssh://git@github.com/o/r",
 	} {
@@ -309,6 +311,20 @@ func TestRepositoryFromOrigin(t *testing.T) {
 			assert.Assert(t, !strings.Contains(err.Error(), "secret"), "got %v", err)
 		})
 	}
+}
+
+// TestRepositoryFromOriginParseError checks that the error for an origin URL that cannot be
+// parsed names the cause, without the credentials in the URL.
+func TestRepositoryFromOriginParseError(t *testing.T) {
+	dir := t.TempDir()
+	runGit(t, dir, "init", "-q")
+	runGit(t, dir, "remote", "add", "origin", "https://user:s3cr3t%zz@github.com/o/r.git")
+
+	_, err := repositoryFromOrigin(t.Context(), dir, false)
+
+	assert.ErrorIs(t, err, errInvalidOrigin)
+	assert.ErrorContains(t, err, `invalid URL escape "%zz"`)
+	assert.Assert(t, !strings.Contains(err.Error(), "s3cr3t"), "got %v", err)
 }
 
 // TestRedactURL checks that the user information is removed from git URLs.
