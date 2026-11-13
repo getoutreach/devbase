@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
+	"github.com/getoutreach/devbase/v2/internal/gittest"
 	"gotest.tools/v3/assert"
 )
 
@@ -30,6 +31,11 @@ const fixtureValidCodeowners = `
 
 		/script m.t@g.com
 `
+
+// TestMain isolates the git commands of the tests from the git environment of the caller.
+func TestMain(m *testing.M) {
+	os.Exit(gittest.Run(m))
+}
 
 // loadInput returns an Input with the entries parsed from a CODEOWNERS file.
 func loadInput(t *testing.T, content string) Input {

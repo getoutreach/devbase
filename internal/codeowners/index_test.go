@@ -6,12 +6,19 @@ package codeowners_test
 
 import (
 	"errors"
+	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
+	"github.com/getoutreach/devbase/v2/internal/gittest"
 	"gotest.tools/v3/assert"
 )
+
+// TestMain isolates the git commands of the tests from the git environment of the caller.
+func TestMain(m *testing.M) {
+	os.Exit(gittest.Run(m))
+}
 
 // runGit runs git with args in dir and fails the test on error.
 func runGit(t *testing.T, dir string, args ...string) {
