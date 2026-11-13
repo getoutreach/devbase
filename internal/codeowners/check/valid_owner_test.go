@@ -34,7 +34,11 @@ const (
 		{"login": "alice", "permissions": {"admin": false, "maintain": false, "push": true, "triage": true, "pull": true}},
 		{"login": "bob", "permissions": {"admin": false, "maintain": false, "push": false, "triage": true, "pull": true}},
 		{"login": "carol", "permissions": {"maintain": true}},
-		{"login": "dave", "permissions": {"admin": true}}
+		{"login": "dave", "permissions": {"admin": true}},
+		{"login": "frank", "role_name": "write"},
+		{"login": "grace", "role_name": "read"},
+		{"login": "heidi", "role_name": "Maintain"},
+		{"login": "ivan", "role_name": "admin"}
 	]`
 	teamsJSON = `[
 		{"slug": "writers", "permissions": {"admin": false, "maintain": false, "push": true, "triage": true, "pull": true}},
@@ -296,6 +300,13 @@ func TestValidOwnerRepositoryAccess(t *testing.T) {
 		"user with maintain":                {owner: "@carol"},
 		"user with admin":                   {owner: "@dave"},
 		"user login in another letter case": {owner: "@ALICE"},
+		"user with only the write role":     {owner: "@frank"},
+		"user with only the maintain role in another letter case": {owner: "@heidi"},
+		"user with only the admin role":                           {owner: "@ivan"},
+		"user with only the read role": {
+			owner: "@grace",
+			issue: `User "grace" cannot review PRs on "repo" as they don't have write permissions.`,
+		},
 		"user without push": {
 			owner: "@bob",
 			issue: `User "bob" cannot review PRs on "repo" as they don't have write permissions.`,

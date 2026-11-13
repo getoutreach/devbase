@@ -211,7 +211,7 @@ func (v *ValidOwner) validateUser(ctx context.Context, owner string) (string, er
 	switch {
 	case i < 0:
 		return fmt.Sprintf("User %q is not a member of the organization %q or has no access to repository %q", owner, v.org, v.repo), nil
-	case !canWrite(v.collaborators[i].GetPermissions()):
+	case !collaboratorCanWrite(v.collaborators[i]):
 		return fmt.Sprintf("User %q cannot review PRs on %q as they don't have write permissions.", login, v.repo), nil
 	default:
 		return "", nil
@@ -244,7 +244,8 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 		}
 		writable = p["push"] || p["maintain"] || p["admin"]
 	} else {
-		// The repository teams do not include child teams that inherit access from a parent team.
+		// The repository teams may not include a child team that inherits access from a parent team,
+		// so check the team directly.
 		repo, _, err := v.gh.Teams.IsTeamRepoBySlug(ctx, v.org, slug, v.org, v.repo)
 		switch {
 		case statusCode(err) == http.StatusNotFound:
@@ -301,6 +302,17 @@ func collect[T any](seq iter.Seq2[T, error]) ([]T, error) {
 // canWrite reports whether p allows to push to the repository: push, maintain, or admin.
 func canWrite(p *github.RepositoryPermissions) bool {
 	return p.GetPush() || p.GetMaintain() || p.GetAdmin()
+}
+
+// collaboratorCanWrite reports whether the collaborator u can push to the repository. The
+// permissions of a collaborator are optional in the API response, so without them the role name,
+// which is required, decides: write, maintain, or admin.
+func collaboratorCanWrite(u *github.User) bool {
+	if p := u.GetPermissions(); p != nil {
+		return canWrite(p)
+	}
+
+	return slices.Contains([]string{"write", "maintain", "admin"}, strings.ToLower(u.GetRoleName()))
 }
 
 // statusCode returns the HTTP status code of a GitHub API error, or 0 when err has none.

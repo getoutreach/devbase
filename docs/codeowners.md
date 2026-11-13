@@ -71,7 +71,7 @@ The command exits with 1 when a check finds an issue at or above `--check-failur
 
 An owner is a user (`@username`), a team (`@org/team-name`), or an email address. The check validates users and teams as follows:
 
-- A user must be a collaborator of the repository with write access (`push`, `maintain`, or `admin`).
+- A user must be a collaborator of the repository with write access (`push`, `maintain`, or `admin`). When GitHub does not return the permissions of a collaborator, the check uses the role of the collaborator instead: `write`, `maintain`, or `admin`.
 - A team must belong to the organization of the repository and have write access to the repository, directly or through a parent team.
 
 The check does not look up email addresses on GitHub. It compares user logins, organization names, team slugs, and ignored owners without regard to case. It reports an owner that is not valid only on the first line where the owner appears.
