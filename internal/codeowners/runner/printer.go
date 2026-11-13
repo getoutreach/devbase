@@ -8,7 +8,6 @@ package runner
 import (
 	"io"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -38,7 +37,8 @@ func (p *Printer) PrintCheckResult(name string, duration time.Duration, out chec
 	header(p.w, "==> Executing %s (%v)\n", name, duration)
 
 	for _, issue := range out.Issues {
-		p.severityStyle(issue.Severity).Fprintf(p.w, "    [%s]", strings.ToLower(issue.Severity.String()[:3]))
+		tag, style := p.severityTag(issue.Severity)
+		style.Fprintf(p.w, "    [%s]", tag)
 		if issue.LineNo != 0 {
 			issueBody(p.w, " line %d:", issue.LineNo)
 		}
@@ -77,14 +77,14 @@ func (p *Printer) style(attrs ...color.Attribute) *color.Color {
 	return c
 }
 
-// severityStyle returns the color of the tag of an issue with the severity.
-func (p *Printer) severityStyle(severity check.Severity) *color.Color {
+// severityTag returns the tag of an issue with the severity, and the color of the tag.
+func (p *Printer) severityTag(severity check.Severity) (string, *color.Color) {
 	switch severity {
 	case check.Warning:
-		return p.style(color.FgYellow)
+		return "war", p.style(color.FgYellow)
 	case check.Error:
-		return p.style(color.FgRed)
+		return "err", p.style(color.FgRed)
 	default:
-		return p.style()
+		return "???", p.style()
 	}
 }

@@ -51,6 +51,16 @@ func TestPrinterPrintCheckResult(t *testing.T) {
 
 		golden.Assert(t, buf.String(), "check_result_warning_only.golden")
 	})
+
+	t.Run("prints an issue with an unknown severity", func(t *testing.T) {
+		var buf bytes.Buffer
+
+		runner.NewPrinter(&buf, true).PrintCheckResult("Foo Checker", time.Second, check.Output{
+			Issues: []check.Issue{{Severity: check.Severity(0), Message: "No severity"}},
+		}, nil)
+
+		assert.Assert(t, strings.Contains(buf.String(), "    [???] No severity\n"), buf.String())
+	})
 }
 
 // TestPrinterPrintSummary checks the text that PrintSummary writes.
