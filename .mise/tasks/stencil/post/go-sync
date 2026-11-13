@@ -53,10 +53,10 @@ for godir in $(go_mod_dirs); do
   if managed_by_stencil "$gomod"; then
     continue
   fi
-  info "Syncing Go version/toolchain in $gomod to $gomodGoVersion/$goVersion"
+  info "Syncing Go version in $gomod to $gomodGoVersion"
 
   sed_replace '^go .*$' "go $gomodGoVersion" "$appDir/$gomod"
-  sed_replace '^toolchain go.\+$' "toolchain go$goVersion" "$appDir/$gomod"
+  go_mod_drop_toolchain "$appDir/$gomod"
   for module in ${GO_MODULES_TO_SYNC:-}; do
     moduleVersion="$(grep "$module " "$appDir/go.mod" | awk '{print $2}')"
     if [[ -z $moduleVersion ]]; then

@@ -108,3 +108,22 @@ check_go_mod_go_version() {
     return 1
   fi
 }
+
+# go_mod_drop_toolchain(go_mod_file)
+#
+# Removes the toolchain directive from go_mod_file, and collapses each run of
+# blank lines in the file into one. Does nothing if the file has no toolchain
+# directive.
+#
+# Dependencies: sed.sh, which the script that sources this file has to source.
+go_mod_drop_toolchain() {
+  local goMod="$1"
+  if ! grep -q '^toolchain ' "$goMod"; then
+    return 0
+  fi
+
+  # The collapse is a second pass, because in one pass sed pairs the directive
+  # with the blank line before it and prints it.
+  sed_in_place -e '/^toolchain /d' "$goMod"
+  sed_in_place -e '/^$/N;/\n$/D' "$goMod"
+}

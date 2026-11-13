@@ -5,6 +5,7 @@ bats_load_library "bats-assert/load.bash"
 
 load go.sh
 load mise.sh
+load sed.sh
 load version.sh
 load test_helper.sh
 
@@ -318,4 +319,31 @@ write_go_mod() {
   run check_go_mod_go_version .
   assert_success
   assert_output --partial "warn: Not checking the go directive of go.mod"
+}
+
+@test "go_mod_drop_toolchain removes the toolchain directive and the blank line after it" {
+  printf 'module example.com/test\n\ngo 1.25.7\n\ntoolchain go1.25.7\n\nrequire (\n\texample.com/dep v1.0.0\n)\n' >go.mod
+
+  run go_mod_drop_toolchain go.mod
+  assert_success
+  run cat go.mod
+  assert_output "$(printf 'module example.com/test\n\ngo 1.25.7\n\nrequire (\n\texample.com/dep v1.0.0\n)')"
+}
+
+@test "go_mod_drop_toolchain removes a toolchain directive that follows the go directive directly" {
+  printf 'module example.com/test\n\ngo 1.25.7\ntoolchain go1.25.7\n\nrequire example.com/dep v1.0.0\n' >go.mod
+
+  run go_mod_drop_toolchain go.mod
+  assert_success
+  run cat go.mod
+  assert_output "$(printf 'module example.com/test\n\ngo 1.25.7\n\nrequire example.com/dep v1.0.0')"
+}
+
+@test "go_mod_drop_toolchain leaves a go.mod without a toolchain directive as it is" {
+  printf 'module example.com/test\n\ngo 1.25.7\n\n\nrequire example.com/dep v1.0.0\n' >go.mod
+
+  run go_mod_drop_toolchain go.mod
+  assert_success
+  run cat go.mod
+  assert_output "$(printf 'module example.com/test\n\ngo 1.25.7\n\n\nrequire example.com/dep v1.0.0')"
 }
