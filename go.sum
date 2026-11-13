@@ -103,8 +103,8 @@ github.com/felixge/httpsnoop v1.1.0 h1:3YtUj32ZZkqZtt3sZZsClsymw/QDuVfpNhoA31zeO
 github.com/felixge/httpsnoop v1.1.0/go.mod h1:Zqxgdd+1Rkcz8euOqdr7lqgCRJztwr5hp9vDSi5UZCE=
 github.com/fynelabs/selfupdate v0.2.1 h1:jaU85o1tnzsyICg29YfQurQPlMV4oSHLmomFIGatsgk=
 github.com/fynelabs/selfupdate v0.2.1/go.mod h1:V2z7H295LzTph5mYBnm3EDRN+oKf7G2VU5B0pc77jdw=
-github.com/getoutreach/gobox v1.120.1 h1:uQ59eb7g2k0GEv5MUi8sP/f0nW1gYz62B4+NfMFzlLs=
-github.com/getoutreach/gobox v1.120.1/go.mod h1:3Yy7NJjxbHBb4yJneeBOahABfRFd+ebVqbfsbmiwUeM=
+github.com/getoutreach/gobox v1.122.3-0.20261113042800-ae623367abb0 h1:CcDztoVo48tATT9pX7tviS2Mduo7W2pfvruEloZzL9I=
+github.com/getoutreach/gobox v1.122.3-0.20261113042800-ae623367abb0/go.mod h1:3Yy7NJjxbHBb4yJneeBOahABfRFd+ebVqbfsbmiwUeM=
 github.com/getoutreach/localizer v1.15.19 h1:zhSKF7l7SmJxFfBdoW53ivWlPbJxxNz6odr/N8kGk58=
 github.com/getoutreach/localizer v1.15.19/go.mod h1:PMcXGjVtc1O5svsn5sggcPytr5bZ+8UkObOAo7oPaF0=
 github.com/gliderlabs/ssh v0.3.8 h1:a4YXD1V7xMF9g5nTkdfnja3Sxy1PVDCj1Zg4Wb8vY6c=

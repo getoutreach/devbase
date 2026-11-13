@@ -8,7 +8,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/chainguard-dev/git-urls v1.0.2
-	github.com/getoutreach/gobox v1.120.1
+	github.com/getoutreach/gobox v1.122.3-0.20261113042800-ae623367abb0
 	github.com/getoutreach/localizer v1.15.19
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/go-github/v84 v84.0.0
