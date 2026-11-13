@@ -114,8 +114,10 @@ Before any check runs, the command gets the repository to confirm that the crede
 | -------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
 | `GET /repos/{owner}/{repo}`                              | Confirm access                                      | `repo`, for a private repository                 | Repository "Metadata" (read)                                   |
 | `GET /repos/{owner}/{repo}/collaborators`                | Users                                               | `repo` and `read:org`                            | Repository "Metadata" (read)                                   |
-| `GET /repos/{owner}/{repo}/teams`                        | Teams                                               | `repo`, or `public_repo` for a public repository | Repository "Administration" (read)                             |
+| `GET /repos/{owner}/{repo}/teams`                        | Teams (optional)                                    | `repo`, or `public_repo` for a public repository | Repository "Administration" (read)                             |
 | `GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}` | Other teams, including access through a parent team | `repo` or `admin:org`, for a private repository  | Organization "Members" (read) and repository "Metadata" (read) |
+
+The list of the repository teams is optional. When GitHub refuses it with HTTP 403, for example because a GitHub App does not have the repository permission "Administration" (read), the check uses one team repository call (`GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}`) for each team.
 
 A scope that includes a listed scope also works. For example, `write:org` and `admin:org` include `read:org`. To list the collaborators, the authenticated user must also have write, maintain, or admin privileges on the repository. For a repository that an organization owns, the user must also be a member of the organization.
 

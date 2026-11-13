@@ -514,10 +514,16 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 			want:    []string{"list the collaborators of org/repo: ", "500"},
 			notWant: "Access needed",
 		},
-		"teams forbidden": {
+		"teams unauthorized": {
 			route:   routeTeams,
-			handler: reply(http.StatusForbidden, "", `{"message": "Resource not accessible by personal access token"}`),
-			want:    []string{"list the teams of org/repo: ", `repository permission "Administration" (read)`},
+			handler: reply(http.StatusUnauthorized, "", `{"message": "Bad credentials"}`),
+			want:    []string{"list the teams of org/repo: GitHub authorization is required", `repository permission "Administration" (read)`},
+		},
+		"teams rate limit": {
+			route:   routeTeams,
+			handler: rateLimited,
+			want:    []string{"list the teams of org/repo: GitHub rate limit reached"},
+			notWant: "Access needed",
 		},
 		"team repository forbidden": {
 			route:   routeTeamRepo,
@@ -552,6 +558,28 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 			}, out.Issues)
 		})
 	}
+}
+
+// TestValidOwnerTeamListForbidden checks that, when the token cannot list the teams of the
+// repository, each team is checked with the team repository call.
+func TestValidOwnerTeamListForbidden(t *testing.T) {
+	routes := defaultRoutes()
+	routes[routeTeams] = reply(http.StatusForbidden, "", `{"message": "Resource not accessible by integration"}`)
+	gh, fake := newFakeGitHub(t, routes)
+
+	out, err := newTestValidOwner(t, gh).Check(t.Context(),
+		loadInput(t, "*.go @org/child @org/child-reader\n*.md @org/nope @org/Child"))
+
+	assert.NilError(t, err)
+	assert.DeepEqual(t, out.Issues, []Issue{
+		{
+			Severity: Error, LineNo: 1,
+			Message: `Team "child-reader" cannot review PRs on "repo" as neither it nor any parent team has write permissions.`,
+		},
+		{Severity: Error, LineNo: 2, Message: `Team "@org/nope" does not exist in organization "org" or has no access to repository "repo"`},
+	})
+	assert.Equal(t, fake.count(routeTeams), 1, "the team list is requested once")
+	assert.Equal(t, fake.count(routeTeamRepo), 3, "each team is checked once")
 }
 
 func TestValidOwnerCanceledContext(t *testing.T) {

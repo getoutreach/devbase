@@ -229,7 +229,12 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 
 	if v.teams == nil {
 		teams, err := collect(v.gh.Repositories.ListTeamsIter(ctx, v.org, v.repo, &github.ListOptions{PerPage: 100}))
-		if err != nil {
+		switch {
+		case statusCode(err) == http.StatusForbidden:
+			// The list needs the "Administration" (read) permission. Without it, an empty list makes
+			// each team use the team repository call below.
+			teams = []*github.Team{}
+		case err != nil:
 			return "", v.apiError("list the teams of "+v.fullName(), &repoTeamsEndpoint, err)
 		}
 		v.teams = teams
