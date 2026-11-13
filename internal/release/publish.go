@@ -20,6 +20,7 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/exec"
 )
 
 // These are the errors that Publish returns.
@@ -73,6 +74,11 @@ type PublishOptions struct {
 
 	// Env is the environment of the hooks and of git.
 	Env []string
+
+	// Exec creates the registry commands, such as npm, bundle, gem,
+	// poetry, aws, circleci and mise. Nil means real processes. git, go,
+	// the builder and the exec hooks always run as real processes.
+	Exec exec.Exec
 
 	// Log receives progress messages and the output of the hooks.
 	Log io.Writer
@@ -507,15 +513,23 @@ type regTarget struct {
 	// process environment.
 	env []string
 
+	// exec creates the registry commands, or is nil for real processes.
+	exec exec.Exec
+
 	// log receives progress messages and command output.
 	log io.Writer
+}
+
+// run runs a registry command with the Exec of t.
+func (t *regTarget) run(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
+	return execCommand(ctx, t.exec, log, c)
 }
 
 // target returns the registry target of the publish.
 func (p *publisher) target() *regTarget {
 	return &regTarget{
 		dir: p.r.Git.Dir, version: p.plan.NextRelease.Version, channel: p.plan.NextRelease.Channel,
-		env: p.opts.Env, log: p.log,
+		env: p.opts.Env, exec: p.opts.Exec, log: p.log,
 	}
 }
 

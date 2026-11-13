@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/getoutreach/devbase/v2/internal/release/rlog"
+	"github.com/getoutreach/gobox/pkg/exec"
 )
 
 // command is a child process of the release.
@@ -50,23 +50,24 @@ type cmdResult struct {
 	stderr string
 }
 
-// cmdRunner is the runner of the registry CLIs, which tests replace.
-type cmdRunner func(ctx context.Context, log io.Writer, c *command) (cmdResult, error)
-
-// execCommand runs a command with os/exec. The command line and the
-// output go to log while it runs, and a failed command returns an error
-// with the command line, stderr and stdout. The log and the error have
-// the secrets masked, as semantic-release masks its output, with the
-// Masker of ctx, or else of the command's environment.
-func execCommand(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
+// execCommand runs a command that ex creates, or a real process when ex
+// is nil. The command line and the output go to log while it runs, and a
+// failed command returns an error with the command line, stderr and
+// stdout. The log and the error have the secrets masked, as
+// semantic-release masks its output, with the Masker of ctx, or else of
+// the command's environment.
+func execCommand(ctx context.Context, ex exec.Exec, log io.Writer, c *command) (cmdResult, error) {
 	m := maskerFor(ctx, c.env)
-	cmd := exec.CommandContext(ctx, c.name, c.args...) //nolint:gosec // Why: the release runs the commands of its config.
+	if ex == nil {
+		ex = exec.NewRealExec()
+	}
+	cmd := ex.CommandContext(ctx, c.name, c.args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Dir, cmd.Env = c.dir, c.env
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	if log != io.Discard {
-		// os/exec copies stdout and stderr in two goroutines, and both
-		// write to log.
+		// A real process has its stdout and stderr copied in two
+		// goroutines, and both write to log.
 		log = &syncWriter{w: m.Writer(log)}
 		fmt.Fprintf(log, "Run %s\n", c)
 		cmd.Stdout, cmd.Stderr = io.MultiWriter(&stdout, log), io.MultiWriter(&stderr, log)
@@ -106,7 +107,7 @@ func maskerFor(ctx context.Context, env []string) *rlog.Masker {
 func run(ctx context.Context, dir string, env []string, name string, args ...string) (string, error) {
 	c := &command{dir: dir, env: env, name: name, args: args}
 	rlog.Debugf(ctx, "run %s", c)
-	res, err := execCommand(ctx, io.Discard, c)
+	res, err := execCommand(ctx, nil, io.Discard, c)
 	if err != nil {
 		return "", err
 	}

@@ -70,16 +70,13 @@ type pythonRegistry struct {
 	// plugin is the plugin with its defaults.
 	plugin spec.PythonPlugin
 
-	// run runs the mise, poetry and aws commands.
-	run cmdRunner
-
 	// boxAccount returns aws.defaultAccountID of the box config.
 	boxAccount func() (string, error)
 }
 
 // newPythonRegistry returns the registry of a Python plugin.
 func newPythonRegistry(pl *spec.PythonPlugin) registry {
-	return &pythonRegistry{plugin: pl.WithDefaults(), run: execCommand, boxAccount: boxDefaultAccount}
+	return &pythonRegistry{plugin: pl.WithDefaults(), boxAccount: boxDefaultAccount}
 }
 
 // boxDefaultAccount returns aws.defaultAccountID of the box config, as
@@ -177,7 +174,7 @@ func (py *pythonRegistry) prepare(ctx context.Context, p *regTarget) error {
 	if err != nil {
 		return err
 	}
-	if _, err := py.run(ctx, p.log, &command{dir: p.dir, env: s.env, name: "aws", args: []string{"sts", "get-caller-identity"}}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: p.dir, env: s.env, name: "aws", args: []string{"sts", "get-caller-identity"}}); err != nil {
 		return fmt.Errorf("AWS credentials are not available or not valid: %w", err)
 	}
 	poetry, err := py.poetry(ctx, p, s)
@@ -185,7 +182,7 @@ func (py *pythonRegistry) prepare(ctx context.Context, p *regTarget) error {
 		return err
 	}
 	fmt.Fprintf(p.log, "Write version %s to pyproject.toml in %s\n", s.version, s.dir)
-	if _, err := py.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: poetry, args: []string{"version", p.version}}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: poetry, args: []string{"version", p.version}}); err != nil {
 		return fmt.Errorf("poetry version: %w", err)
 	}
 	return nil
@@ -218,11 +215,11 @@ func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Pub
 	if err != nil {
 		return nil, err
 	}
-	if _, err := py.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: []string{"build"}}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: []string{"build"}}); err != nil {
 		return nil, fmt.Errorf("poetry build: %w", err)
 	}
 	fmt.Fprintf(p.log, "Publishing %s %s to %s\n", s.pkg, s.version, py.name())
-	if _, err := py.run(ctx, p.log, &command{
+	if _, err := p.run(ctx, p.log, &command{
 		dir: s.dir, env: env, name: poetry, args: []string{"publish", "--repository", poetryRepository},
 	}); err != nil {
 		return nil, fmt.Errorf("poetry publish: %w", err)
@@ -246,7 +243,7 @@ func (py *pythonRegistry) exists(ctx context.Context, p *regTarget) (bool, error
 // ResourceNotFoundException for a missing package or version. A version
 // in any status counts, because CodeArtifact keeps its name.
 func (py *pythonRegistry) describe(ctx context.Context, p *regTarget, s *pythonSession) (bool, error) {
-	res, err := py.run(ctx, p.log, py.awsCommand(p, s, "describe-package-version",
+	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "describe-package-version",
 		"--repository", py.plugin.Repository, "--format", "pypi",
 		"--package", s.pkg, "--package-version", s.version,
 		"--query", "packageVersion.status", "--output", "text"))
@@ -263,7 +260,7 @@ func (py *pythonRegistry) describe(ctx context.Context, p *regTarget, s *pythonS
 // endpoint and an authorization token, as the task gets them. The token
 // command logs nothing, because its stdout is the token.
 func (py *pythonRegistry) poetryEnv(ctx context.Context, p *regTarget, s *pythonSession) ([]string, error) {
-	res, err := py.run(ctx, p.log, py.awsCommand(p, s, "get-repository-endpoint",
+	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "get-repository-endpoint",
 		"--repository", py.plugin.Repository, "--format", "pypi",
 		"--query", "repositoryEndpoint", "--output", "text"))
 	if err != nil {
@@ -271,7 +268,7 @@ func (py *pythonRegistry) poetryEnv(ctx context.Context, p *regTarget, s *python
 	}
 	endpoint := strings.TrimSpace(res.stdout)
 	fmt.Fprintf(p.log, "Get a CodeArtifact authorization token for %s\n", py.plugin.Domain)
-	res, err = py.run(ctx, io.Discard, py.awsCommand(p, s, "get-authorization-token",
+	res, err = p.run(ctx, io.Discard, py.awsCommand(p, s, "get-authorization-token",
 		"--query", "authorizationToken", "--output", "text"))
 	if err != nil {
 		return nil, fmt.Errorf("get the CodeArtifact token: %w", err)
@@ -299,7 +296,7 @@ func (py *pythonRegistry) awsCommand(p *regTarget, s *pythonSession, op string, 
 // poetry returns the Poetry program of the repository, with
 // "mise which poetry", as the hook and the task find it.
 func (py *pythonRegistry) poetry(ctx context.Context, p *regTarget, s *pythonSession) (string, error) {
-	res, err := py.run(ctx, p.log, &command{dir: p.dir, env: s.env, name: "mise", args: []string{"which", "poetry"}})
+	res, err := p.run(ctx, p.log, &command{dir: p.dir, env: s.env, name: "mise", args: []string{"which", "poetry"}})
 	if err != nil {
 		return "", fmt.Errorf("find poetry: %w", err)
 	}

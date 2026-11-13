@@ -1,7 +1,8 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Tests for the npm registry, with cases ported from
-// @semantic-release/npm 13.2.0 (test/*.test.js), and a fake runner.
+// @semantic-release/npm 13.2.0 (test/*.test.js), and stubs of the npm
+// commands.
 
 package release
 
@@ -9,10 +10,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -20,76 +19,22 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/exec"
+	"github.com/getoutreach/gobox/pkg/exec/execstub"
 	"gotest.tools/v3/assert"
 )
-
-// errExit stands for the exit error of a failed command.
-var errExit = errors.New("exit status 1")
 
 // npmE404 is the stderr of npm 10 for a missing version.
 const npmE404 = "npm error code E404\nnpm error 404 No match found for version 1.0.0\n"
 
-// fakeReply is the scripted result of a command.
-type fakeReply struct {
-	stdout, stderr string
-	err            error
-}
-
-// fakeCall is a command that the fake runner got, with the contents of
-// its --userconfig file at that time.
-type fakeCall struct {
-	dir   string
-	env   []string
-	argv  []string
-	npmrc string
-}
-
-// fakeRunner records the commands and returns scripted results by the
-// command name and its first arguments, such as "npm view",
-// "circleci orb info" or "aws codeartifact get-authorization-token".
-type fakeRunner struct {
-	calls   []fakeCall
-	replies map[string]fakeReply
-}
-
-// run is the cmdRunner of the fake. It writes the masked command line to
-// log, as execCommand does.
-func (f *fakeRunner) run(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
-	call := fakeCall{dir: c.dir, env: c.env, argv: append([]string{c.name}, c.args...)}
-	if i := slices.Index(c.args, "--userconfig"); i >= 0 {
-		b, _ := os.ReadFile(c.args[i+1])
-		call.npmrc = string(b)
-		call.argv[i+2] = "<npmrc>"
-	}
-	f.calls = append(f.calls, call)
-	io.WriteString(log, maskerFor(ctx, c.env).Mask("Run "+c.String()+"\n"))
-	key := c.name + " " + c.args[0]
-	if c.args[0] == "orb" || c.args[0] == "codeartifact" {
-		key += " " + c.args[1]
-	}
-	r := f.replies[key]
-	return cmdResult{stdout: r.stdout, stderr: r.stderr}, r.err
-}
-
-// argvs returns the argv of each call.
-func (f *fakeRunner) argvs() [][]string {
-	if len(f.calls) == 0 {
-		return nil
-	}
-	out := make([][]string, 0, len(f.calls))
-	for _, c := range f.calls {
-		out = append(out, c.argv)
-	}
-	return out
-}
-
-// npmFixture is a repository with a package.json and an isolated HOME.
+// npmFixture is a repository with a package.json, an isolated HOME and
+// stubs of the registry commands.
 type npmFixture struct {
 	t    *testing.T
 	repo string
 	home string
 	env  []string
-	run  *fakeRunner
+	cmds *cmdStubs
 	log  bytes.Buffer
 }
 
@@ -97,7 +42,7 @@ type npmFixture struct {
 // with HOME and the extra variables.
 func newNPMFixture(t *testing.T, pkgRoot, pkgJSON string, extraEnv ...string) *npmFixture {
 	t.Helper()
-	f := &npmFixture{t: t, repo: t.TempDir(), home: t.TempDir(), run: &fakeRunner{replies: map[string]fakeReply{}}}
+	f := &npmFixture{t: t, repo: t.TempDir(), home: t.TempDir(), cmds: newCmdStubs(t)}
 	if pkgJSON != "" {
 		writeFile(t, f.repo, filepath.Join(pkgRoot, "package.json"), pkgJSON)
 	}
@@ -105,26 +50,48 @@ func newNPMFixture(t *testing.T, pkgRoot, pkgJSON string, extraEnv ...string) *n
 	return f
 }
 
-// publisher returns the registry target of version on channel.
+// publisher returns the registry target of version on channel, with the
+// stubs.
 func (f *npmFixture) publisher(version, channel string) *regTarget {
-	return &regTarget{dir: f.repo, version: version, channel: channel, env: f.env, log: &f.log}
+	return &regTarget{dir: f.repo, version: version, channel: channel, env: f.env, exec: f.cmds.spy, log: &f.log}
 }
 
-// registry returns the npm registry of pkgRoot with the fake runner.
+// registry returns the npm registry of pkgRoot.
 func (f *npmFixture) registry(pkgRoot string) *npmRegistry {
-	return &npmRegistry{plugin: &spec.NPMPlugin{PkgRoot: pkgRoot}, run: f.run.run}
+	return &npmRegistry{plugin: &spec.NPMPlugin{PkgRoot: pkgRoot}}
 }
 
 // githubNpmrc is the ~/.npmrc of Outreach CI: the scope registry and a
 // token from an environment variable.
 const githubNpmrc = "@getoutreach:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${GH_TOKEN}\n"
 
+// npmVersionArgv is the argv of npm version.
+func npmVersionArgv(version string) []string {
+	return []string{"npm", "version", version, "--userconfig", anyArg, "--no-git-tag-version", "--allow-same-version"}
+}
+
+// npmViewArgv is the argv of npm view for pkgVersion on registry.
+func npmViewArgv(pkgVersion, registry string) []string {
+	return []string{"npm", "view", pkgVersion, "version", "--userconfig", anyArg, "--registry", registry}
+}
+
+// npmPublishArgv is the argv of npm publish of dir with distTag on
+// registry.
+func npmPublishArgv(dir, distTag, registry string) []string {
+	return []string{"npm", "publish", dir, "--userconfig", anyArg, "--tag", distTag, "--registry", registry}
+}
+
+// npmWhoamiArgv is the argv of npm whoami on the official registry.
+var npmWhoamiArgv = []string{"npm", "whoami", "--userconfig", anyArg, "--registry", officialNPMRegistry}
+
 // TestNPMPublishScenarios checks the argv, dir and env of the npm
 // commands in prepare and publish.
-
 func TestNPMPublishScenarios(t *testing.T) {
 	const pkgRoot = "api/clients/node"
 	const scoped = `{"name": "@getoutreach/client", "version": "0.0.0-development"}`
+	const github = "https://npm.pkg.github.com/"
+	// pkg is the package folder in npm publish.
+	const pkg = "<pkg>"
 	tests := []struct {
 		name     string
 		pkg      string
@@ -132,8 +99,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 		env      []string
 		version  string
 		channel  string
-		replies  map[string]fakeReply
-		wantArgv [][]string
+		cmds     []stubCmd
 		wantInfo *forge.Published
 		wantErr  error
 	}{
@@ -141,40 +107,36 @@ func TestNPMPublishScenarios(t *testing.T) {
 			// Scenario 10 of the RFC: npm version, then npm publish with
 			// dist-tag latest, to the scope registry in ~/.npmrc.
 			name: "first publish", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
-			replies: map[string]fakeReply{"npm view": {stderr: npmE404, err: errExit}},
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "@getoutreach/client@1.0.0", "version", "--userconfig", "<npmrc>", "--registry", "https://npm.pkg.github.com/"},
-				{"npm", "publish", "<pkg>", "--userconfig", "<npmrc>", "--tag", "latest", "--registry", "https://npm.pkg.github.com/"},
+			cmds: []stubCmd{
+				{npmVersionArgv("1.0.0"), cmdOK("")},
+				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdFails(npmE404)},
+				{npmPublishArgv(pkg, "latest", github), cmdOK("")},
 			},
 			wantInfo: &forge.Published{Name: "npm package (@latest dist-tag)"},
 		},
 		{
 			name: "first publish with old npm", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
-			replies: map[string]fakeReply{"npm view": {}},
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "@getoutreach/client@1.0.0", "version", "--userconfig", "<npmrc>", "--registry", "https://npm.pkg.github.com/"},
-				{"npm", "publish", "<pkg>", "--userconfig", "<npmrc>", "--tag", "latest", "--registry", "https://npm.pkg.github.com/"},
+			cmds: []stubCmd{
+				{npmVersionArgv("1.0.0"), cmdOK("")},
+				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdOK("")},
+				{npmPublishArgv(pkg, "latest", github), cmdOK("")},
 			},
 			wantInfo: &forge.Published{Name: "npm package (@latest dist-tag)"},
 		},
 		{
 			name: "prerelease channel dist-tag", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0-rc.1", channel: "main",
-			replies: map[string]fakeReply{"npm view": {stderr: npmE404, err: errExit}},
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0-rc.1", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "@getoutreach/client@1.0.0-rc.1", "version", "--userconfig", "<npmrc>", "--registry", "https://npm.pkg.github.com/"},
-				{"npm", "publish", "<pkg>", "--userconfig", "<npmrc>", "--tag", "main", "--registry", "https://npm.pkg.github.com/"},
+			cmds: []stubCmd{
+				{npmVersionArgv("1.0.0-rc.1"), cmdOK("")},
+				{npmViewArgv("@getoutreach/client@1.0.0-rc.1", github), cmdFails(npmE404)},
+				{npmPublishArgv(pkg, "main", github), cmdOK("")},
 			},
 			wantInfo: &forge.Published{Name: "npm package (@main dist-tag)"},
 		},
 		{
 			name: "already published version skipped", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
-			replies: map[string]fakeReply{"npm view": {stdout: "1.0.0\n"}},
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "@getoutreach/client@1.0.0", "version", "--userconfig", "<npmrc>", "--registry", "https://npm.pkg.github.com/"},
+			cmds: []stubCmd{
+				{npmVersionArgv("1.0.0"), cmdOK("")},
+				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdOK("1.0.0\n")},
 			},
 			wantInfo: &forge.Published{Name: "npm package (@latest dist-tag)"},
 		},
@@ -183,9 +145,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 			// "package.private" is true' and 'Create the package and skip
 			// publish from a sub-directory ("package.private" is true)'.
 			name: "private package skipped", pkg: `{"name": "@getoutreach/client", "private": true}`, version: "1.0.0",
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-			},
+			cmds: []stubCmd{{npmVersionArgv("1.0.0"), cmdOK("")}},
 		},
 		{
 			// integration.test.js: "Throws error if NPM token is not
@@ -197,31 +157,26 @@ func TestNPMPublishScenarios(t *testing.T) {
 			// integration.test.js: "Throws error if NPM token is invalid
 			// when targeting the default registry".
 			name: "invalid token error", pkg: `{"name": "client"}`, env: []string{"NPM_TOKEN=wrong_token"}, version: "1.0.0",
-			replies: map[string]fakeReply{"npm whoami": {stderr: "npm error code E401\n", err: errExit}},
-			wantArgv: [][]string{
-				{"npm", "whoami", "--userconfig", "<npmrc>", "--registry", officialNPMRegistry},
-			},
+			cmds:    []stubCmd{{npmWhoamiArgv, cmdFails("npm error code E401\n")}},
 			wantErr: errNPMInvalidToken,
 		},
 		{
 			// integration.test.js: "Publish the package on a dist-tag".
 			name: "default registry with NPM_TOKEN", pkg: `{"name": "client"}`, env: []string{"NPM_TOKEN=npm_token"},
 			version: "1.0.0", channel: "next",
-			replies: map[string]fakeReply{"npm view": {stderr: npmE404, err: errExit}},
-			wantArgv: [][]string{
-				{"npm", "whoami", "--userconfig", "<npmrc>", "--registry", officialNPMRegistry},
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "client@1.0.0", "version", "--userconfig", "<npmrc>", "--registry", officialNPMRegistry},
-				{"npm", "publish", "<pkg>", "--userconfig", "<npmrc>", "--tag", "next", "--registry", officialNPMRegistry},
+			cmds: []stubCmd{
+				{npmWhoamiArgv, cmdOK("")},
+				{npmVersionArgv("1.0.0"), cmdOK("")},
+				{npmViewArgv("client@1.0.0", officialNPMRegistry), cmdFails(npmE404)},
+				{npmPublishArgv(pkg, "next", officialNPMRegistry), cmdOK("")},
 			},
 			wantInfo: &forge.Published{Name: "npm package (@next dist-tag)", URL: "https://www.npmjs.com/package/client/v/1.0.0"},
 		},
 		{
 			name: "npm view failure", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
-			replies: map[string]fakeReply{"npm view": {stderr: "npm error code E401\n", err: errExit}},
-			wantArgv: [][]string{
-				{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-				{"npm", "view", "@getoutreach/client@1.0.0", "version", "--userconfig", "<npmrc>", "--registry", "https://npm.pkg.github.com/"},
+			cmds: []stubCmd{
+				{npmVersionArgv("1.0.0"), cmdOK("")},
+				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdFails("npm error code E401\n")},
 			},
 			wantErr: errExit,
 		},
@@ -232,7 +187,14 @@ func TestNPMPublishScenarios(t *testing.T) {
 			if tc.npmrc != "" {
 				writeFile(t, f.home, ".npmrc", tc.npmrc)
 			}
-			f.run.replies = tc.replies
+			pkgDir := filepath.Join(f.repo, pkgRoot)
+			for _, c := range tc.cmds {
+				argv := slices.Clone(c.argv)
+				if i := slices.Index(argv, pkg); i >= 0 {
+					argv[i] = pkgDir
+				}
+				f.cmds.expect(c.res, argv...)
+			}
 			n, p := f.registry(pkgRoot), f.publisher(tc.version, tc.channel)
 			err := n.prepare(context.Background(), p)
 			var info *forge.Published
@@ -240,42 +202,57 @@ func TestNPMPublishScenarios(t *testing.T) {
 				info, err = n.publish(context.Background(), p)
 			}
 			if tc.wantErr != nil {
-				assert.ErrorIs(t, err, tc.wantErr)
+				assertErrIs(t, err, tc.wantErr)
 			} else {
 				assert.NilError(t, err)
 				assert.DeepEqual(t, info, tc.wantInfo)
 			}
-			pkgDir := filepath.Join(f.repo, pkgRoot)
-			for _, argv := range tc.wantArgv {
-				if i := slices.Index(argv, "<pkg>"); i >= 0 {
-					argv[i] = pkgDir
-				}
-			}
-			assert.DeepEqual(t, f.run.argvs(), tc.wantArgv)
-			for _, c := range f.run.calls {
+			for _, c := range f.cmds.calls() {
 				wantDir, wantEnv := f.repo, f.env
-				switch c.argv[1] {
+				switch c.Args[0] {
 				case "version":
 					wantDir = pkgDir
 				case "whoami":
 					wantEnv = withoutEnv(f.env, "DEFAULT_NPM_REGISTRY")
 				}
-				assert.Equal(t, c.dir, wantDir, c.argv)
-				assert.DeepEqual(t, c.env, wantEnv)
+				assert.Equal(t, c.Cmd.Dir, wantDir, c.Args)
+				assert.DeepEqual(t, c.Cmd.Env, wantEnv)
 			}
 		})
 	}
 }
 
+// TestNPMNpmrcHasNoToken checks that the temporary npm config of each
+// command names NPM_TOKEN, and that no file or log has its value.
 func TestNPMNpmrcHasNoToken(t *testing.T) {
 	f := newNPMFixture(t, "", `{"name": "client"}`, "NPM_TOKEN=s3cr3t-value")
-	f.run.replies = map[string]fakeReply{"npm view": {stderr: npmE404, err: errExit}}
+	var npmrcs []string
+	// readNpmrc keeps the npm config of the command, and then gives
+	// stderr with code.
+	readNpmrc := func(stderr string, code int) execstub.Result {
+		return execstub.Result{Func: func(_ context.Context, cmd *exec.Cmd, _ io.Reader, _, _ io.Writer) error {
+			b, err := os.ReadFile(cmd.Args[slices.Index(cmd.Args, "--userconfig")+1])
+			if err != nil {
+				return err
+			}
+			npmrcs = append(npmrcs, string(b))
+			if code == 0 {
+				return nil
+			}
+			return execstub.NewExitError(code, stderr)
+		}}
+	}
+	f.cmds.expect(readNpmrc("", 0), npmWhoamiArgv...)
+	f.cmds.expect(readNpmrc("", 0), npmVersionArgv("1.0.0")...)
+	f.cmds.expect(readNpmrc(npmE404, 1), npmViewArgv("client@1.0.0", officialNPMRegistry)...)
+	f.cmds.expect(readNpmrc("", 0), npmPublishArgv(f.repo, "latest", officialNPMRegistry)...)
 	n, p := f.registry(""), f.publisher("1.0.0", "")
 	assert.NilError(t, n.prepare(context.Background(), p))
 	_, err := n.publish(context.Background(), p)
 	assert.NilError(t, err)
-	for _, c := range f.run.calls {
-		assert.Equal(t, c.npmrc, "//registry.npmjs.org/:_authToken = ${NPM_TOKEN}")
+	assert.Equal(t, len(npmrcs), 4)
+	for _, npmrc := range npmrcs {
+		assert.Equal(t, npmrc, "//registry.npmjs.org/:_authToken = ${NPM_TOKEN}")
 	}
 	assert.Assert(t, !strings.Contains(f.log.String(), "s3cr3t-value"))
 }
@@ -288,24 +265,27 @@ func TestNPMInstall(t *testing.T) {
 	f := newNPMFixture(t, "node/widgets", pkg, "NPM_TOKEN=s3cr3t-value")
 	n, p := f.registry("node/widgets"), f.publisher("1.0.0", "")
 	n.plugin.Install = `yarn install --frozen-lockfile --network-concurrency "1" --token s3cr3t-value`
+	yarn := []string{"yarn", "install", "--frozen-lockfile", "--network-concurrency", "1", "--token", "s3cr3t-value"}
+	f.cmds.expect(cmdOK("Done\n"), yarn...)
+	f.cmds.expect(cmdOK(""), npmVersionArgv("1.0.0")...)
 	assert.NilError(t, n.prepare(context.Background(), p))
-	assert.DeepEqual(t, f.run.argvs(), [][]string{
-		{"yarn", "install", "--frozen-lockfile", "--network-concurrency", "1", "--token", "s3cr3t-value"},
-		{"npm", "version", "1.0.0", "--userconfig", "<npmrc>", "--no-git-tag-version", "--allow-same-version"},
-	})
 	dir := filepath.Join(f.repo, "node", "widgets")
-	assert.Equal(t, f.run.calls[0].dir, dir)
-	assert.DeepEqual(t, f.run.calls[0].env, f.env)
-	assert.Assert(t, strings.Contains(f.log.String(), "Run yarn install --frozen-lockfile"), f.log.String())
+	install := f.cmds.calls()[0].Cmd
+	assert.Equal(t, install.Dir, dir)
+	assert.DeepEqual(t, install.Env, f.env)
+	assert.Assert(t, strings.Contains(f.log.String(),
+		"Run yarn install --frozen-lockfile --network-concurrency 1 --token [secure]\nDone\n"), f.log.String())
 	assert.Assert(t, !strings.Contains(f.log.String(), "s3cr3t-value"))
 
-	// A failed install stops prepare before npm version.
-	f.run = &fakeRunner{replies: map[string]fakeReply{"yarn install": {stderr: "error", err: errExit}}}
-	n.run = f.run.run
+	// A failed install stops prepare before npm version, and its error
+	// has the masked command line and stderr.
+	f.cmds = newCmdStubs(t)
+	p = f.publisher("1.0.0", "")
+	f.cmds.expect(cmdFails("error s3cr3t-value"), yarn...)
 	err := n.prepare(context.Background(), p)
-	assert.ErrorIs(t, err, errExit)
-	assert.ErrorContains(t, err, "npm install command")
-	assert.Equal(t, len(f.run.calls), 1)
+	assertErrIs(t, err, errExit)
+	assert.ErrorContains(t, err, "npm install command: yarn install --frozen-lockfile --network-concurrency 1 "+
+		"--token [secure]: exit status 1: error [secure]")
 
 	// A command without a program, or with an open quote, is an error.
 	for _, bad := range []string{" ", `yarn "install`} {
@@ -318,30 +298,34 @@ func TestNPMInstall(t *testing.T) {
 
 func TestNPMExists(t *testing.T) {
 	tests := []struct {
-		name  string
-		pkg   string
-		reply fakeReply
-		want  bool
-		calls int
+		name string
+		pkg  string
+		cmds []stubCmd
+		want bool
 	}{
-		{name: "published", pkg: `{"name": "@getoutreach/client"}`, reply: fakeReply{stdout: "1.0.0\n"}, want: true, calls: 1},
-		{name: "missing", pkg: `{"name": "@getoutreach/client"}`, reply: fakeReply{stderr: npmE404, err: errExit}, calls: 1},
+		{
+			name: "published", pkg: `{"name": "@getoutreach/client"}`, want: true,
+			cmds: []stubCmd{{npmViewArgv("@getoutreach/client@1.0.0", "https://npm.pkg.github.com/"), cmdOK("1.0.0\n")}},
+		},
+		{
+			name: "missing", pkg: `{"name": "@getoutreach/client"}`,
+			cmds: []stubCmd{{npmViewArgv("@getoutreach/client@1.0.0", "https://npm.pkg.github.com/"), cmdFails(npmE404)}},
+		},
 		{name: "private", pkg: `{"name": "@getoutreach/client", "private": true}`},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newNPMFixture(t, "", tc.pkg)
 			writeFile(t, f.home, ".npmrc", githubNpmrc)
-			f.run.replies = map[string]fakeReply{"npm view": tc.reply}
+			f.cmds.expectAll(tc.cmds)
 			got, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
 			assert.NilError(t, err)
 			assert.Equal(t, got, tc.want)
-			assert.Equal(t, len(f.run.calls), tc.calls)
 		})
 	}
 }
 
-// TestNPMPrepareRealNPM runs npm version with the production runner, as
+// TestNPMPrepareRealNPM runs npm version as a real process, as
 // prepare.test.js "Update package.json" and "Updade package.json and
 // package-lock.json in a sub-directory" do. It is skipped without npm.
 func TestNPMPrepareRealNPM(t *testing.T) {
@@ -353,8 +337,9 @@ func TestNPMPrepareRealNPM(t *testing.T) {
 		"PATH="+os.Getenv("PATH"))
 	writeFile(t, f.repo, "dist/package-lock.json",
 		`{"name": "@getoutreach/client", "version": "0.0.0-dev", "lockfileVersion": 3, "packages": {"": {"version": "0.0.0-dev"}}}`)
-	n := &npmRegistry{plugin: &spec.NPMPlugin{PkgRoot: "dist"}, run: execCommand}
-	assert.NilError(t, n.prepare(context.Background(), f.publisher("1.0.0", "")))
+	p := f.publisher("1.0.0", "")
+	p.exec = nil
+	assert.NilError(t, f.registry("dist").prepare(context.Background(), p))
 	for _, file := range []string{"package.json", "package-lock.json"} {
 		b, err := os.ReadFile(filepath.Join(f.repo, "dist", file))
 		assert.NilError(t, err)

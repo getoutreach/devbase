@@ -154,7 +154,7 @@ func runUnstableInclude(ctx context.Context, dir string, env []string, log io.Wr
 	if _, err := os.Stat(script); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	_, err := execCommand(ctx, log, &command{
+	_, err := execCommand(ctx, nil, log, &command{
 		dir: dir, env: slices.Concat(envOrProcess(env), []string{"DRYRUN=false"}), name: script, display: unstableInclude,
 	})
 	return err

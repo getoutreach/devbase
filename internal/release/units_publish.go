@@ -129,7 +129,9 @@ func (p *publisher) publishUnit(ctx context.Context, u *unitPublish) error {
 // unitTarget returns the registry target of a unit release.
 func (p *publisher) unitTarget(u *unitPublish) *regTarget {
 	next := u.plan.NextRelease
-	return &regTarget{dir: p.r.Git.Dir, version: next.Version, channel: next.Channel, env: p.opts.Env, log: p.log}
+	return &regTarget{
+		dir: p.r.Git.Dir, version: next.Version, channel: next.Channel, env: p.opts.Env, exec: p.opts.Exec, log: p.log,
+	}
 }
 
 // unitForgeRelease makes the forge release of a unit, or finds the one

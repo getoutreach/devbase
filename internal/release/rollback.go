@@ -14,6 +14,7 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/exec"
 )
 
 // ErrRollbackRefused is returned when rollback stops before it deletes
@@ -34,6 +35,9 @@ type RollbackOptions struct {
 
 	// Env is the environment of the registry CLIs.
 	Env []string
+
+	// Exec creates the registry commands. Nil means real processes.
+	Exec exec.Exec
 
 	// Force removes a published forge release.
 	Force bool
@@ -218,7 +222,7 @@ func rollbackRefusals(
 
 	// A later run with the same version skips a registry that has it
 	// (requirement 8), so the old package would stay.
-	rt := &regTarget{dir: r.Git.Dir, version: version, env: opts.Env, log: log}
+	rt := &regTarget{dir: r.Git.Dir, version: version, env: opts.Env, exec: opts.Exec, log: log}
 	for _, pl := range rollbackPlugins(r, t.unit) {
 		reg := registryOf(&pl)
 		found, err := reg.exists(ctx, rt)

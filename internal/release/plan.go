@@ -269,7 +269,7 @@ func (p *Plan) execFields() *spec.ExecFields {
 // stdout without the surrounding whitespace.
 func runExecHook(ctx context.Context, dir string, env []string, log io.Writer, cmd string, fields *spec.ExecFields) (string, error) {
 	rendered := spec.RenderExecCommand(cmd, fields)
-	res, err := execCommand(ctx, log, &command{
+	res, err := execCommand(ctx, nil, log, &command{
 		dir: dir, env: env, name: "/bin/sh", args: []string{"-c", rendered}, display: rendered,
 	})
 	if err != nil {

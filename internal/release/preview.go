@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/gobox/pkg/exec"
 )
 
 // These are the errors that Preview returns.
@@ -66,6 +66,11 @@ type PreviewOptions struct {
 	// Env is the environment of the build checks. Nil means the process
 	// environment.
 	Env []string
+
+	// Exec creates the registry commands of the build checks, such as
+	// bundle. Nil means real processes. git and go always run as real
+	// processes.
+	Exec exec.Exec
 
 	// Log receives progress messages and the output of the build checks.
 	Log io.Writer
@@ -123,7 +128,8 @@ func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (_ *Plan, err e
 	} else {
 		fmt.Fprintf(log, "The changes of %s are already in %s, previewing %s as it is\n", head, base, base)
 	}
-	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks, DryRun: true}, opts.Env, log)
+	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks, DryRun: true},
+		&regTarget{env: opts.Env, exec: opts.Exec, log: log})
 }
 
 // previewBase returns the branch to preview head against, as
@@ -205,8 +211,9 @@ func headHasNetChanges(ctx context.Context, g *Git, base, head string) bool {
 // planWorktree plans the release of commit on a branch in a temporary
 // worktree, so the config of commit applies and the checkout does not
 // change, and runs the build checks there with the version of
-// buildVersion, the environment env and the output to log.
-func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOptions, env []string, log io.Writer) (*Plan, error) {
+// buildVersion, and the environment, Exec and log of build. It sets the
+// dir and version of build.
+func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOptions, build *regTarget) (*Plan, error) {
 	tmp, err := os.MkdirTemp("", "devbase-release-preview-")
 	if err != nil {
 		return nil, fmt.Errorf("create the preview worktree: %w", err)
@@ -225,7 +232,8 @@ func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOption
 	if err != nil {
 		return nil, err
 	}
-	if err := checkBuilds(ctx, repo.Config, &regTarget{dir: dir, version: buildVersion(plan), env: env, log: log}); err != nil {
+	build.dir, build.version = dir, buildVersion(plan)
+	if err := checkBuilds(ctx, repo.Config, build); err != nil {
 		return nil, err
 	}
 	return plan, nil

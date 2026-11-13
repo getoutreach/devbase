@@ -14,6 +14,7 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/exec/execstub"
 	"gotest.tools/v3/assert"
 )
 
@@ -41,7 +42,7 @@ func TestExecCommandMasksSecrets(t *testing.T) {
 		dir: t.TempDir(), env: []string{"PATH=/usr/bin:/bin", "SOME_TOKEN=tok-SECRET"}, name: "/bin/sh",
 		args: []string{"-c", `echo "bad token $SOME_TOKEN" >&2; exit 3`, "sh", "tok-SECRET"},
 	}
-	res, err := execCommand(context.Background(), &log, c)
+	res, err := execCommand(context.Background(), nil, &log, c)
 	assert.ErrorContains(t, err, "bad token [secure]")
 	assert.Assert(t, !strings.Contains(err.Error(), "tok-SECRET"), err)
 	assert.Equal(t, res.stderr, "bad token tok-SECRET\n")
@@ -52,8 +53,26 @@ func TestExecCommandMasksSecrets(t *testing.T) {
 	// The Masker of the context replaces the one of the environment.
 	log.Reset()
 	ctx := rlog.WithMasker(context.Background(), rlog.NewMasker([]string{"OTHER_TOKEN=bad token"}))
-	_, err = execCommand(ctx, &log, c)
+	_, err = execCommand(ctx, nil, &log, c)
 	assert.ErrorContains(t, err, "[secure] tok-SECRET")
+}
+
+// TestExecCommandExec checks that execCommand creates the command with
+// its Exec, in the dir and env of the command, with the same log and
+// error as for a real process.
+func TestExecCommandExec(t *testing.T) {
+	cmds := newCmdStubs(t)
+	cmds.expect(execstub.Result{Stdout: "out tok-SECRET\n", Stderr: "err\n", ExitCode: 2}, "tool", "--token", "tok-SECRET")
+	var log bytes.Buffer
+	c := &command{dir: "/repo", env: []string{"SOME_TOKEN=tok-SECRET"}, name: "tool", args: []string{"--token", "tok-SECRET"}}
+	res, err := execCommand(context.Background(), cmds.spy, &log, c)
+	assert.Error(t, err, "tool --token [secure]: exit status 2: err\nout [secure]")
+	assert.Equal(t, res.stdout, "out tok-SECRET\n")
+	assert.Equal(t, res.stderr, "err\n")
+	assert.Equal(t, log.String(), "Run tool --token [secure]\nout [secure]\nerr\n")
+	cmd := cmds.calls()[0].Cmd
+	assert.Equal(t, cmd.Dir, "/repo")
+	assert.DeepEqual(t, cmd.Env, c.env)
 }
 
 // TestExecCommandConcurrentOutput checks that stdout and stderr, which
@@ -65,7 +84,7 @@ func TestExecCommandConcurrentOutput(t *testing.T) {
 		dir: t.TempDir(), env: []string{"PATH=/usr/bin:/bin"}, name: "/bin/sh",
 		args: []string{"-c", `for i in $(seq 200); do echo "out $i"; echo "err $i" >&2; done`},
 	}
-	_, err := execCommand(context.Background(), &log, c)
+	_, err := execCommand(context.Background(), nil, &log, c)
 	assert.NilError(t, err)
 	// The first log line is the command line, which also has "out ".
 	assert.Equal(t, strings.Count(log.String(), "\nout "), 200)

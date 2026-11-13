@@ -48,14 +48,11 @@ const (
 // orbRegistry publishes the orb of an orb plugin.
 type orbRegistry struct {
 	plugin *spec.OrbPlugin
-
-	// run runs the circleci commands.
-	run cmdRunner
 }
 
 // newOrbRegistry returns the registry of an orb plugin.
 func newOrbRegistry(pl *spec.OrbPlugin) registry {
-	return &orbRegistry{plugin: pl, run: execCommand}
+	return &orbRegistry{plugin: pl}
 }
 
 // name names the registry in messages.
@@ -72,7 +69,7 @@ func (o *orbRegistry) prepare(ctx context.Context, p *regTarget) error {
 	if envValue(env, "CIRCLECI_API_TOKEN") == "" {
 		errs = append(errs, errOrbNoToken)
 	}
-	if _, err := o.run(ctx, p.log, &command{dir: p.dir, env: env, name: orbCommand, args: []string{"version"}}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: p.dir, env: env, name: orbCommand, args: []string{"version"}}); err != nil {
 		errs = append(errs, fmt.Errorf("%w: %w", errOrbNoCLI, err))
 	}
 	if o.plugin.Name == "" {
@@ -104,7 +101,7 @@ func (o *orbRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 	if path == "" {
 		path = orbDefaultPath
 	}
-	if _, err := o.run(ctx, p.log, o.cliCommand(p, "orb", "publish", path, ref)); err != nil {
+	if _, err := p.run(ctx, p.log, o.cliCommand(p, "orb", "publish", path, ref)); err != nil {
 		return nil, fmt.Errorf("circleci orb publish: %w", err)
 	}
 	fmt.Fprintf(p.log, "Published %s\n", ref)
@@ -116,7 +113,7 @@ func (o *orbRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 // found" for a missing orb or version.
 func (o *orbRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 	ref := o.ref(p)
-	res, err := o.run(ctx, p.log, o.cliCommand(p, "orb", "info", ref))
+	res, err := p.run(ctx, p.log, o.cliCommand(p, "orb", "info", ref))
 	if err != nil {
 		if orbNotFoundRe.MatchString(res.stderr) {
 			return false, nil

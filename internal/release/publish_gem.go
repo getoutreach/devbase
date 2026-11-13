@@ -68,14 +68,11 @@ const (
 // gemRegistry builds and publishes the gem of a gem plugin.
 type gemRegistry struct {
 	plugin *spec.GemPlugin
-
-	// run runs the bundle and gem commands.
-	run cmdRunner
 }
 
 // newGemRegistry returns the registry of a gem plugin.
 func newGemRegistry(pl *spec.GemPlugin) registry {
-	return &gemRegistry{plugin: pl, run: execCommand}
+	return &gemRegistry{plugin: pl}
 }
 
 // name names the registry in messages.
@@ -172,7 +169,7 @@ func (g *gemRegistry) build(ctx context.Context, p *regTarget, s *gemSession) er
 		return err
 	}
 	for _, args := range [][]string{{"install"}, {"exec", "rake", "build"}} {
-		if _, err := g.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: "bundle", args: args}); err != nil {
+		if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: "bundle", args: args}); err != nil {
 			return fmt.Errorf("bundle %s: %w", strings.Join(args, " "), err)
 		}
 	}
@@ -214,7 +211,7 @@ func (g *gemRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 		return nil, nil //nolint:nilnil // Why: publish.sh returns no release info.
 	}
 	fmt.Fprintf(p.log, "Pushing %s %s to GitHub Packages\n", s.name, s.version)
-	_, err = g.run(ctx, p.log, &command{
+	_, err = p.run(ctx, p.log, &command{
 		dir: s.dir, env: s.env, name: "gem",
 		args: []string{"push", "--key", gemKey, "--host", gemHost + owner, gemFile},
 	})
