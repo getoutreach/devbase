@@ -15,10 +15,19 @@ The easy solution for now is to return the value 1 from the function indicating 
 
 The Go linter fails if the `go` directive of a `go.mod` that Stencil manages (one
 listed in `stencil.lock`) is not the Go version that Stencil provides. That is the
-`go.stanza` argument in `service.yaml`, then the `versions.go` argument, otherwise
-the `golang` version in `.tool-versions`. This catches changes that Stencil did
-not make, such as a dependency update. To use another Go version, change it in
-`service.yaml` or update `stencil-golang`, and run `stencil`.
+`go.stanza` argument in `service.yaml` if set, otherwise the `golang` version in
+`.tool-versions`, which Stencil writes from `versions.go`. This catches changes
+that Stencil did not make, such as a dependency update. To use another Go
+version, change `versions.go` in `service.yaml` or update `stencil-golang`, and
+run `stencil`.
+
+The Go linter also fails if the `toolverOverride` block of `.tool-versions` sets
+`golang`, because the Go version in use would then differ from the one in
+`go.mod`. Set `versions.go` in `service.yaml` instead. This applies only to
+repositories where Stencil manages the `go.mod` file in the repository root.
+
+If `go.stanza` is set, the linter compares the `go` directive with it, and not
+with `.tool-versions`.
 
 ## Project specific linters
 

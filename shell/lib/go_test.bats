@@ -146,22 +146,14 @@ teardown() {
 }
 
 # stub_stencil_environment stubs the functions from bootstrap.sh and
-# logging.sh that check_go_mod_go_version needs. The test sets
-# STENCIL_GO_STANZA and STENCIL_VERSIONS_GO to the values of the go.stanza and
-# versions.go arguments in service.yaml, and STENCIL_MANAGED_FILES to the
-# space-separated files that stencil.lock lists.
+# logging.sh that the Go directive checks need. The test sets STENCIL_GO_STANZA
+# to the value of the go.stanza argument in service.yaml, and
+# STENCIL_MANAGED_FILES to the space-separated files that stencil.lock lists.
 stub_stencil_environment() {
   STENCIL_GO_STANZA="null"
-  STENCIL_VERSIONS_GO="null"
   STENCIL_MANAGED_FILES="go.mod"
   get_repo_directory() { echo "$REPOPATH"; }
-  stencil_arg() {
-    case "$1" in
-    go.stanza) echo "$STENCIL_GO_STANZA" ;;
-    versions.go) echo "$STENCIL_VERSIONS_GO" ;;
-    *) echo "null" ;;
-    esac
-  }
+  stencil_arg() { echo "$STENCIL_GO_STANZA"; }
   managed_by_stencil() { [[ " $STENCIL_MANAGED_FILES " == *" $1 "* ]]; }
   error() { echo "error: $*" >&2; }
   warn() { echo "warn: $*" >&2; }
@@ -209,27 +201,6 @@ write_go_mod() {
 @test "expected_go_mod_go_version prefers the go.stanza argument" {
   stub_stencil_environment
   STENCIL_GO_STANZA="1.19"
-  printf 'golang 1.25.7\n' >.tool-versions
-
-  run expected_go_mod_go_version
-  assert_success
-  assert_output "1.19"
-}
-
-@test "expected_go_mod_go_version prefers the versions.go argument over .tool-versions" {
-  stub_stencil_environment
-  STENCIL_VERSIONS_GO="1.24.3"
-  printf 'golang 1.25.7\n' >.tool-versions
-
-  run expected_go_mod_go_version
-  assert_success
-  assert_output "1.24.3"
-}
-
-@test "expected_go_mod_go_version prefers the go.stanza argument over versions.go" {
-  stub_stencil_environment
-  STENCIL_GO_STANZA="1.19"
-  STENCIL_VERSIONS_GO="1.24.3"
   printf 'golang 1.25.7\n' >.tool-versions
 
   run expected_go_mod_go_version
@@ -346,4 +317,61 @@ write_go_mod() {
   assert_success
   run cat go.mod
   assert_output "$(printf 'module example.com/test\n\ngo 1.25.7\n\n\nrequire example.com/dep v1.0.0')"
+}
+
+@test "check_tool_versions_no_golang_override fails when the toolverOverride block sets golang" {
+  stub_stencil_environment
+  cat >.tool-versions <<'EOF'
+## <<Stencil::Block(toolverOverride)>>
+golang 1.26.0
+## <</Stencil::Block>>
+nodejs 22.22.0
+golang 1.25.7
+## <<Stencil::Block(toolver)>>
+## <</Stencil::Block>>
+EOF
+
+  run check_tool_versions_no_golang_override
+  assert_failure 1
+  assert_output --partial "sets golang 1.26.0. Remove it, set versions.go to 1.26.0 in service.yaml"
+}
+
+@test "check_tool_versions_no_golang_override ignores golang outside the toolverOverride block" {
+  stub_stencil_environment
+  cat >.tool-versions <<'EOF'
+## <<Stencil::Block(toolverOverride)>>
+nodejs 20.0.0
+## <</Stencil::Block>>
+nodejs 22.22.0
+golang 1.25.7
+## <<Stencil::Block(toolver)>>
+golang 1.24.0
+## <</Stencil::Block>>
+EOF
+
+  run check_tool_versions_no_golang_override
+  assert_success
+  assert_output ""
+}
+
+@test "check_tool_versions_no_golang_override skips a repository whose go.mod Stencil does not manage" {
+  stub_stencil_environment
+  STENCIL_MANAGED_FILES=""
+  cat >.tool-versions <<'EOF'
+## <<Stencil::Block(toolverOverride)>>
+golang 1.26.0
+## <</Stencil::Block>>
+EOF
+
+  run check_tool_versions_no_golang_override
+  assert_success
+  assert_output ""
+}
+
+@test "check_tool_versions_no_golang_override succeeds without a .tool-versions file" {
+  stub_stencil_environment
+
+  run check_tool_versions_no_golang_override
+  assert_success
+  assert_output ""
 }

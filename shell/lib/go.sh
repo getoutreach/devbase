@@ -55,21 +55,19 @@ go_mod_go_version() {
 # expected_go_mod_go_version
 #
 # Prints the Go version that Stencil provides, which is what the go directive of
-# a Stencil-managed go.mod must be: the go.stanza argument, then the versions.go
-# argument in service.yaml, then the golang version in .tool-versions. This is
-# the order that go.mod.tpl in stencil-golang uses. Prints nothing if none exist.
+# a Stencil-managed go.mod must be: the go.stanza argument in service.yaml if
+# set, otherwise the golang version in .tool-versions, which Stencil writes from
+# versions.go. Prints nothing if neither exists.
 #
 # Dependencies: bootstrap.sh and mise.sh, which the script that sources this
 # file has to source.
 expected_go_mod_go_version() {
-  local argName override
-  for argName in go.stanza versions.go; do
-    override="$(stencil_arg "$argName" 2>/dev/null || true)"
-    if [[ -n $override && $override != "null" ]]; then
-      echo "$override"
-      return
-    fi
-  done
+  local stanza
+  stanza="$(stencil_arg go.stanza 2>/dev/null || true)"
+  if [[ -n $stanza && $stanza != "null" ]]; then
+    echo "$stanza"
+    return
+  fi
 
   version_from_toolversions "$(get_repo_directory)" golang 2>/dev/null || true
 }
@@ -97,7 +95,7 @@ check_go_mod_go_version() {
   local expected
   expected="$(expected_go_mod_go_version)"
   if [[ -z $expected ]]; then
-    warn "Not checking the go directive of $goMod: found no Go version in service.yaml or .tool-versions"
+    warn "Not checking the go directive of $goMod: found no Go version in go.stanza or .tool-versions"
     return 0
   fi
 
@@ -126,4 +124,33 @@ go_mod_drop_toolchain() {
   # with the blank line before it and prints it.
   sed_in_place -e '/^toolchain /d' "$goMod"
   sed_in_place -e '/^$/N;/\n$/D' "$goMod"
+}
+
+# check_tool_versions_no_golang_override
+#
+# Fails with 1 if the toolverOverride block of the repository's .tool-versions
+# sets golang, because the Go version in use then differs from the one that
+# Stencil writes to go.mod. Succeeds if Stencil does not manage the go.mod file
+# in the repository root, or if there is no .tool-versions file.
+#
+# Dependencies: bootstrap.sh and logging.sh, which the script that sources this
+# file has to source.
+check_tool_versions_no_golang_override() {
+  local toolVersions override
+  toolVersions="$(get_repo_directory)/.tool-versions"
+  if [[ ! -f $toolVersions ]]; then
+    return 0
+  fi
+
+  override="$(awk '/<<Stencil::Block\(toolverOverride\)>>/ { inBlock = 1; next }
+    /<<\/Stencil::Block>>/ { inBlock = 0 }
+    inBlock && $1 == "golang" { print $2; exit }' "$toolVersions")"
+  # This check comes last, because it needs a yq run and most repositories have
+  # no override.
+  if [[ -z $override ]] || ! managed_by_stencil go.mod; then
+    return 0
+  fi
+
+  error "The toolverOverride block of .tool-versions sets golang $override. Remove it, set versions.go to $override in service.yaml, and run stencil."
+  return 1
 }

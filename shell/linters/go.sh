@@ -27,6 +27,7 @@ gofumpt() {
 }
 
 linter() {
+  run_command "golang override" check_tool_versions_no_golang_override || return 1
   for godir in $(go_mod_dirs); do
     # Fast, and needs a repository-relative path, so run before pushd.
     run_command "go directive" check_go_mod_go_version "$godir" || return 1
