@@ -28,6 +28,7 @@ From there you can run `stencil`, you'll now be able to start using `devbase`!
 ## Documentation
 
 * [Makefile Targets](./makefile.md)
+* [CODEOWNERS Linter](./codeowners.md)
 
 ## Contributing
 
