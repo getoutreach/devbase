@@ -53,6 +53,19 @@ func newCodeownersRepo(t *testing.T, content string, files ...string) string {
 	return dir
 }
 
+// chdirOutsideGitRepo changes the current directory to a new temporary directory, and stops git
+// from finding a repository that contains it, such as a TMPDIR inside a git work tree. It returns
+// the directory. The test cannot run in parallel.
+func chdirOutsideGitRepo(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+	t.Chdir(dir)
+
+	return dir
+}
+
 // runLintCodeowners runs the lint codeowners subcommand with args, and returns its output with
 // the durations replaced, and the error that it returned.
 func runLintCodeowners(t *testing.T, args ...string) (stdout string, err error) {
@@ -146,9 +159,8 @@ func TestLintCodeowners_RepositoryRoot(t *testing.T) {
 	})
 
 	t.Run("outside of a git work tree", func(t *testing.T) {
-		dir := t.TempDir()
+		dir := chdirOutsideGitRepo(t)
 		assert.NilError(t, os.WriteFile(filepath.Join(dir, "CODEOWNERS"), []byte("* @org/team\n"), 0o600))
-		t.Chdir(dir)
 
 		out, err := runLintCodeowners(t, "--checks", "syntax")
 		assert.NilError(t, err, out)
@@ -159,9 +171,7 @@ func TestLintCodeowners_RepositoryRoot(t *testing.T) {
 // current directory and the environment, so it cannot run in parallel.
 func TestRepositoryRoot(t *testing.T) {
 	t.Run("not in a git work tree", func(t *testing.T) {
-		dir := t.TempDir()
-		t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
-		t.Chdir(dir)
+		dir := chdirOutsideGitRepo(t)
 
 		root, err := repositoryRoot(t.Context(), "", false)
 		assert.NilError(t, err)
