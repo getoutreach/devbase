@@ -157,6 +157,7 @@ stub_stencil_environment() {
   managed_by_stencil() { [[ " $STENCIL_MANAGED_FILES " == *" $1 "* ]]; }
   error() { echo "error: $*" >&2; }
   warn() { echo "warn: $*" >&2; }
+  info() { echo "info: $*" >&2; }
 }
 
 # write_go_mod(directory, go_version) writes a go.mod file.
@@ -374,4 +375,67 @@ EOF
   run check_tool_versions_no_golang_override
   assert_success
   assert_output ""
+}
+
+@test "go_mod_file_for_dir prints go.mod for the repository root" {
+  run go_mod_file_for_dir .
+  assert_success
+  assert_output "go.mod"
+}
+
+@test "go_mod_file_for_dir prints the go.mod path in a subdirectory" {
+  run go_mod_file_for_dir moduleB/submodule
+  assert_success
+  assert_output "moduleB/submodule/go.mod"
+}
+
+# write_root_and_child_go_mod writes a root go.mod and a child go.mod in pkg
+# whose go directive, toolchain directive, and gobox version are out of date.
+write_root_and_child_go_mod() {
+  printf 'module example.com/root\n\ngo 1.25.7\n\nrequire (\n\tgithub.com/getoutreach/gobox v1.120.1\n)\n' >go.mod
+  mkdir -p pkg
+  printf 'module example.com/root/pkg\n\ngo 1.25.0\n\ntoolchain go1.25.0\n\nrequire (\n\tgithub.com/getoutreach/gobox v1.100.0\n\texample.com/other v1.0.0\n)\n' >pkg/go.mod
+}
+
+@test "go_mod_sync_child syncs the go directive, drops the toolchain, and syncs listed modules" {
+  stub_stencil_environment
+  write_root_and_child_go_mod
+
+  run go_mod_sync_child pkg/go.mod go.mod "example.com/missing github.com/getoutreach/gobox"
+  assert_success
+  assert_output --partial "warn: Module example.com/missing not found in go.mod, skipping"
+  run cat pkg/go.mod
+  assert_output "$(printf 'module example.com/root/pkg\n\ngo 1.25.7\n\nrequire (\n\tgithub.com/getoutreach/gobox v1.120.1\n\texample.com/other v1.0.0\n)')"
+}
+
+@test "go_mod_sync_child leaves modules that are not listed as they are" {
+  stub_stencil_environment
+  write_root_and_child_go_mod
+
+  run go_mod_sync_child pkg/go.mod go.mod
+  assert_success
+  run cat pkg/go.mod
+  assert_output --partial "github.com/getoutreach/gobox v1.100.0"
+}
+
+@test "go_mod_managed_by_stencil succeeds for the root when stencil.lock lists go.mod" {
+  stub_stencil_environment
+
+  run go_mod_managed_by_stencil .
+  assert_success
+}
+
+@test "go_mod_managed_by_stencil succeeds for a subdirectory that stencil.lock lists" {
+  stub_stencil_environment
+  STENCIL_MANAGED_FILES="go.mod pkg/go.mod"
+
+  run go_mod_managed_by_stencil pkg
+  assert_success
+}
+
+@test "go_mod_managed_by_stencil fails for a subdirectory that stencil.lock does not list" {
+  stub_stencil_environment
+
+  run go_mod_managed_by_stencil pkg
+  assert_failure
 }

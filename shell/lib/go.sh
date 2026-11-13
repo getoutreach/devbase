@@ -72,6 +72,31 @@ expected_go_mod_go_version() {
   version_from_toolversions "$(get_repo_directory)" golang 2>/dev/null || true
 }
 
+# go_mod_file_for_dir(module_dir)
+#
+# Prints the path of the go.mod file in module_dir, a directory relative to the
+# repository root, in the form that stencil.lock uses: go.mod for the root, and
+# <module_dir>/go.mod for any other directory.
+go_mod_file_for_dir() {
+  if [[ $1 == "." ]]; then
+    echo "go.mod"
+  else
+    echo "$1/go.mod"
+  fi
+}
+
+# go_mod_managed_by_stencil(module_dir)
+#
+# Succeeds if Stencil manages the go.mod file in module_dir, a directory
+# relative to the repository root. This is the only place that pairs a module
+# directory with the name that stencil.lock uses for its go.mod file.
+#
+# Dependencies: bootstrap.sh (managed_by_stencil), which the script that sources
+# this file has to source.
+go_mod_managed_by_stencil() {
+  managed_by_stencil "$(go_mod_file_for_dir "$1")"
+}
+
 # check_go_mod_go_version(module_dir)
 #
 # Succeeds if the go directive of the go.mod in module_dir (relative to the
@@ -83,14 +108,12 @@ expected_go_mod_go_version() {
 # Dependencies: bootstrap.sh and logging.sh, which the script that sources this
 # file has to source.
 check_go_mod_go_version() {
-  local moduleDir="$1" goMod="go.mod"
-  if [[ $moduleDir != "." ]]; then
-    goMod="$moduleDir/go.mod"
-  fi
-
-  if ! managed_by_stencil "$goMod"; then
+  if ! go_mod_managed_by_stencil "$1"; then
     return 0
   fi
+
+  local goMod
+  goMod="$(go_mod_file_for_dir "$1")"
 
   local expected
   expected="$(expected_go_mod_go_version)"
@@ -124,6 +147,34 @@ go_mod_drop_toolchain() {
   # with the blank line before it and prints it.
   sed_in_place -e '/^toolchain /d' "$goMod"
   sed_in_place -e '/^$/N;/\n$/D' "$goMod"
+}
+
+# go_mod_sync_child(go_mod_file, root_go_mod, [modules])
+#
+# Syncs go_mod_file, a go.mod file that Stencil does not manage, with
+# root_go_mod, which has to have a go directive: it sets the go directive to the
+# one of root_go_mod, removes the toolchain directive, and sets the version of
+# each module in modules, a space-separated list, to its version in root_go_mod.
+# A module that root_go_mod does not require is skipped with a warning.
+#
+# Dependencies: sed.sh and logging.sh, which the script that sources this file
+# has to source.
+go_mod_sync_child() {
+  local goMod="$1" rootGoMod="$2" modules="${3:-}"
+
+  sed_replace '^go .*$' "go $(go_mod_go_version "$rootGoMod")" "$goMod"
+  go_mod_drop_toolchain "$goMod"
+
+  local module moduleVersion
+  for module in $modules; do
+    moduleVersion="$(grep "$module " "$rootGoMod" | awk '{print $2}' || true)"
+    if [[ -z $moduleVersion ]]; then
+      warn "Module $module not found in $rootGoMod, skipping"
+      continue
+    fi
+    info "Syncing $module version in $goMod to $moduleVersion"
+    sed_replace "\(\t$module\) .*" "\1 $moduleVersion" "$goMod"
+  done
 }
 
 # check_tool_versions_no_golang_override
