@@ -48,6 +48,21 @@ github_token() {
   run_gh auth token
 }
 
+# github_pr_is_draft_without_label(prURL, label)
+#
+# Returns 0 if the pull request at prURL is a draft without the given
+# label, and 1 otherwise. Also returns 1, with a warning, if the pull
+# request can't be read, so callers fall back to their non-draft behavior.
+github_pr_is_draft_without_label() {
+  local prURL="$1" label="$2" result
+  if ! result="$(run_gh pr view "$prURL" --json isDraft,labels \
+    --jq ".isDraft and ([.labels[].name] | index(\"$label\") | not)")"; then
+    warn "Could not read $prURL"
+    return 1
+  fi
+  [[ $result == "true" ]]
+}
+
 # Determines the latest release version of a GitHub repository.
 #
 # $1: The slug of the repo to query, e.g. "getoutreach/stencil".

@@ -67,6 +67,9 @@ steps:
       restore_cache: false
       install_e2e_tools: true
   - run:
+      name: Skip E2E Tests on Draft PRs
+      command: ./scripts/shell-wrapper.sh ci/testing/skip-draft-e2e.sh
+  - run:
       name: Run E2E Tests
       command: KUBECONFIG="$HOME/.outreach/kubeconfig.yaml" make e2e
       no_output_timeout: << parameters.no_output_timeout >>
