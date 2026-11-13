@@ -52,6 +52,23 @@ With `--staged`:
 
 The `notowned` check always uses the files in the git index.
 
+## CI
+
+When a repository has a CODEOWNERS file, `make lint` runs the CODEOWNERS linter, `shell/linters/codeowners.sh`. The linter runs:
+
+```shell
+devbase lint codeowners --checks files,duppatterns,syntax,owners --owners-if-changed --base <default branch>
+```
+
+The default branch is the branch that `origin/HEAD` points to, for example `origin/main`. When `origin/HEAD` is not set, it is `main`.
+
+The `owners` check makes GitHub API calls. All the CI jobs that use the same token share its rate limit. To use fewer requests:
+
+- The check runs only when CODEOWNERS changed since the merge base with the default branch. See [Only when CODEOWNERS changed](#only-when-codeowners-changed). A shallow clone has no merge base for the command, so the check runs on each build.
+- The check is skipped when fewer than 500 requests remain in the rate limit. See [Rate limit](#rate-limit).
+
+The linter uses the token in `GITHUB_TOKEN`. In CI, the linter framework uses `GITHUB_TOKEN` when it is set, or else gets a token with `ghaccesstoken`. Outside of CI, it uses the output of `gh auth token`. When the token is a GitHub App installation token, the App needs the repository permission "Metadata" (read) and the organization permission "Members" (read). The repository permission "Administration" (read) is optional. See [Required access](#required-access).
+
 ## Exit codes
 
 The command exits with 1 when a check finds an issue at or above `--check-failure-level`, or when a check cannot complete, for example because a GitHub API call fails. It also exits with 1 when it cannot start, for example when a flag value is not valid, or when it finds no CODEOWNERS file or more than one. Otherwise, it exits with 0.

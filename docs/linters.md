@@ -29,6 +29,12 @@ repositories where Stencil manages the `go.mod` file in the repository root.
 If `go.stanza` is set, the linter compares the `go` directive with it, and not
 with `.tool-versions`.
 
+## CODEOWNERS linter
+
+The `codeowners` linter runs `devbase lint codeowners` when the repository has a CODEOWNERS file in the root, `docs/`, or `.github/` directory. It validates the owners on GitHub only when CODEOWNERS changed since the merge base with the default branch. It has no formatter. See [CI](codeowners.md#ci) in the CODEOWNERS linter documentation.
+
+A CODEOWNERS file has no extension, so the linter sets `extensions` to an empty list. An empty list matches every file, so the linter always runs, and it skips a repository without a CODEOWNERS file.
+
 ## Project specific linters
 
 Projects can create additional linters to be run in addition to the built-in
