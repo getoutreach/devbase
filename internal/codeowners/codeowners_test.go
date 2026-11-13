@@ -63,6 +63,29 @@ func TestParseInlineComment(t *testing.T) {
 	})
 }
 
+func TestParseByteOrderMark(t *testing.T) {
+	tests := map[string]struct {
+		content string
+		want    []codeowners.Entry
+	}{
+		"before a comment line": {
+			content: "\uFEFF# comment\n* @a\n",
+			want:    []codeowners.Entry{{LineNo: 2, Pattern: "*", Owners: []string{"@a"}}},
+		},
+		"before an entry line": {
+			content: "\uFEFF* @a\n",
+			want:    []codeowners.Entry{{LineNo: 1, Pattern: "*", Owners: []string{"@a"}}},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			entries, err := codeowners.Parse(strings.NewReader(tc.content))
+			assert.NilError(t, err)
+			assert.DeepEqual(t, entries, tc.want)
+		})
+	}
+}
+
 func TestParseReaderError(t *testing.T) {
 	_, err := codeowners.Parse(strings.NewReader(strings.Repeat("a", 1<<20)))
 	assert.ErrorContains(t, err, "token too long")

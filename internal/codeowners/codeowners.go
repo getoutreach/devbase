@@ -125,13 +125,18 @@ func oxfordList(items []string) string {
 	}
 }
 
-// Parse returns the entries of a CODEOWNERS file. Blank lines and comment lines are skipped, and
-// the owners of an entry end at the first inline comment.
+// Parse returns the entries of a CODEOWNERS file. A UTF-8 byte order mark at the start, blank
+// lines, and comment lines are skipped, and the owners of an entry end at the first inline comment.
 func Parse(r io.Reader) ([]Entry, error) {
 	var entries []Entry
 	s := bufio.NewScanner(r)
 	for no := uint64(1); s.Scan(); no++ {
-		fields := strings.Fields(s.Text())
+		line := s.Text()
+		if no == 1 {
+			line = strings.TrimPrefix(line, "\uFEFF")
+		}
+
+		fields := strings.Fields(line)
 		if len(fields) == 0 || strings.HasPrefix(fields[0], "#") { // empty or comment
 			continue
 		}
