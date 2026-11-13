@@ -13,10 +13,10 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// rollback runs Rollback with the fixture's remote and fake forge.
+// rollback runs Rollback with the fixture's remote, fake forge and stubs.
 func (p *publishFixture) rollback(opts *RollbackOptions) ([]string, error) {
 	p.t.Helper()
-	opts.Remote, opts.Forge, opts.Env = p.remote, p.forge, os.Environ()
+	opts.Remote, opts.Forge, opts.Env, opts.Exec = p.remote, p.forge, os.Environ(), p.exec()
 	return Rollback(context.Background(), p.repo(), opts)
 }
 

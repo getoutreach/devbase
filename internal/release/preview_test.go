@@ -291,12 +291,13 @@ func TestPreviewBaseErrors(t *testing.T) {
 	assert.ErrorIs(t, err, ErrPreviewBase)
 }
 
-// gemPreview runs Preview of the checked-out branch against main.
-func (g *gemRepoFixture) gemPreview(extra ...string) (*Plan, string, error) {
+// gemPreview runs Preview of the checked-out branch against main, with
+// the stubs.
+func (g *gemRepoFixture) gemPreview() (*Plan, string, error) {
 	g.t.Helper()
 	var log strings.Builder
 	plan, err := Preview(context.Background(), g.repo(), &PreviewOptions{
-		Base: "main", Remote: g.remote, NewLinks: github.NewLinks, Env: g.env(extra...), Log: &log,
+		Base: "main", Remote: g.remote, NewLinks: github.NewLinks, Exec: g.exec(), Log: &log,
 	})
 	return plan, log.String(), err
 }
@@ -326,21 +327,21 @@ func TestPreviewBuildsGem(t *testing.T) {
 			g.run("reset", "-q", "--hard", head)
 			g.writeCommit(tc.file, tc.msg+"\n", tc.msg)
 			before := g.run("rev-parse", "HEAD")
+			g.cmds = newCmdStubs(t)
+			expectGemBuild(g.cmds, rakeBuildWrites("widgets", "lib/version.rb"))
 			plan, log, err := g.gemPreview()
 			assert.NilError(t, err)
 			assert.Equal(t, plan.Release, tc.release)
 			assert.Equal(t, plan.RootRelease(), tc.root)
 			assert.Equal(t, buildVersion(plan), tc.want)
 
-			calls := g.toolCalls()
-			assert.Equal(t, len(calls), 2, calls)
-			for i, args := range []string{"bundle install", "bundle exec rake build"} {
-				dir, rest, _ := strings.Cut(calls[i], " ")
+			for _, c := range g.cmds.calls() {
+				dir := c.Cmd.Dir
 				assert.Assert(t, strings.HasSuffix(dir, filepath.Join("worktree", "ruby-grpc", "widgets")), dir)
 				assert.Assert(t, !strings.HasPrefix(dir, g.git.Dir), dir)
-				assert.Equal(t, rest, args+" "+tc.want)
 			}
 			assert.Assert(t, strings.Contains(log, "Build check: widgets "+tc.want+"\n"), log)
+			assert.Assert(t, strings.Contains(log, "widgets "+tc.want+" built to pkg/widgets-"+tc.want+".gem.\n"), log)
 
 			// The checkout did not change, and the worktree is gone.
 			assert.Equal(t, g.run("rev-parse", "HEAD"), before)
@@ -355,16 +356,15 @@ func TestPreviewGemBuildFails(t *testing.T) {
 	g := newGemRepoFixture(t)
 	g.run("checkout", "-q", "-b", "feature")
 	g.writeCommit("a.txt", "a\n", "feat: widget")
-	_, _, err := g.gemPreview("WIDGETS_FAIL=1")
-	assert.ErrorContains(t, err, "build check: bundle exec rake build")
-	assert.ErrorContains(t, err, "rake aborted!")
-	assert.Equal(t, len(g.toolCalls()), 2)
+	expectGemBuild(g.cmds, cmdFails("rake aborted!"))
+	_, _, err := g.gemPreview()
+	assert.ErrorContains(t, err, "build check: bundle exec rake build: bundle exec rake build: exit status 1: rake aborted!")
 	assert.Equal(t, g.run("status", "--porcelain", "--ignored"), "")
 
-	// A pull request that adds no change builds nothing.
+	// A pull request that adds no change builds nothing: the stubs have
+	// no more commands.
 	g.run("checkout", "-q", "main")
 	plan, _, err := g.gemPreview()
 	assert.NilError(t, err)
 	assert.Assert(t, plan == nil)
-	assert.Assert(t, g.toolCalls() == nil)
 }

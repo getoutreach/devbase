@@ -6,8 +6,6 @@ package release
 
 import (
 	"context"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +14,7 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/forge/forgetest"
 	"github.com/getoutreach/devbase/v2/internal/release/native"
+	"github.com/getoutreach/gobox/pkg/exec"
 	"gotest.tools/v3/assert"
 )
 
@@ -58,6 +57,10 @@ type publishFixture struct {
 	*fixture
 
 	forge *forgetest.Fake
+
+	// cmds are the stubs of the registry commands, or nil for real
+	// processes.
+	cmds *cmdStubs
 }
 
 // newPublishFixture makes a publishFixture on the release branch. extra
@@ -105,12 +108,20 @@ func (p *publishFixture) repo() *Repo {
 	return repo
 }
 
-// publish runs Publish with the fixture's remote and fake forge.
+// publish runs Publish with the fixture's remote, fake forge and stubs.
 func (p *publishFixture) publish(repo *Repo, plan *Plan) error {
 	p.t.Helper()
 	return Publish(context.Background(), repo, plan, &PublishOptions{
-		Dist: "dist", Remote: p.remote, Forge: p.forge, Env: os.Environ(),
+		Dist: "dist", Remote: p.remote, Forge: p.forge, Env: os.Environ(), Exec: p.exec(),
 	})
+}
+
+// exec returns the Exec of the stubs, or nil for real processes.
+func (p *publishFixture) exec() exec.Exec {
+	if p.cmds == nil {
+		return nil
+	}
+	return p.cmds.spy
 }
 
 // remoteRef returns the commit of a ref on the remote, or "".
@@ -321,26 +332,10 @@ const gemSection = `release:
 // gemVersionFile is the version file of the gem of gemSection.
 const gemVersionFile = "module Widgets\n  VERSION = \"0.0.0\"\nend\n"
 
-// fakeGemTools is a fake bundle and gem. Each call appends its folder,
-// its arguments and the VERSION line to $WIDGETS_LOG. "bundle exec rake
-// build" writes the .gem file of that version, as rake build does, and
-// fails when $WIDGETS_FAIL is set.
-const fakeGemTools = `#!/bin/sh
-version=$(sed -n 's/.*VERSION = "\(.*\)".*/\1/p' lib/version.rb 2>/dev/null)
-echo "$PWD $(basename "$0") $* $version" >> "$WIDGETS_LOG"
-if [ "$1" = exec ]; then
-  [ -z "$WIDGETS_FAIL" ] || { echo "rake aborted!" >&2; exit 1; }
-  mkdir -p pkg && echo gem > "pkg/widgets-$(echo "$version" | sed 's/-/.pre./g').gem"
-fi
-`
-
 // gemRepoFixture is a repository with gemSection, on main at v1.0.0,
-// with a remote, and the fake bundle and gem on PATH.
+// with a remote and stubs of the registry commands.
 type gemRepoFixture struct {
 	*publishFixture
-
-	// toolLog is the log of the fake tools.
-	toolLog string
 }
 
 // newGemRepoFixture makes a gemRepoFixture.
@@ -363,30 +358,7 @@ func newGemRepoFixture(t *testing.T) *gemRepoFixture {
 	f.addTag("nodejs-widgets-client-v1.1.0", "")
 	f.withRemote()
 	f.run("push", "-q", "origin", "refs/notes/*")
-
-	withFakeCLIs(t, map[string]string{"bundle": fakeGemTools, "gem": fakeGemTools})
-	return &gemRepoFixture{
-		publishFixture: &publishFixture{fixture: f, forge: forgetest.New()},
-		toolLog:        filepath.Join(t.TempDir(), "tools.log"),
-	}
-}
-
-// env returns the environment of the fake tools.
-func (g *gemRepoFixture) env(extra ...string) []string {
-	return append(os.Environ(), append([]string{"WIDGETS_LOG=" + g.toolLog}, extra...)...)
-}
-
-// toolCalls returns the calls of the fake tools, one per line, and
-// removes the log.
-func (g *gemRepoFixture) toolCalls() []string {
-	g.t.Helper()
-	b, err := os.ReadFile(g.toolLog)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	assert.NilError(g.t, err)
-	assert.NilError(g.t, os.Remove(g.toolLog))
-	return strings.Split(strings.TrimSuffix(string(b), "\n"), "\n")
+	return &gemRepoFixture{publishFixture: &publishFixture{fixture: f, forge: forgetest.New(), cmds: newCmdStubs(t)}}
 }
 
 // TestPublishDryRunBuildsGem checks that publish --dry-run builds the gem
@@ -400,17 +372,18 @@ func TestPublishDryRunBuildsGem(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, plan.NextRelease.Version, "1.1.0")
 	var log strings.Builder
+	expectGemBuild(g.cmds, rakeBuildWrites("widgets", "lib/version.rb"))
 	err = Publish(context.Background(), g.repo(), plan, &PublishOptions{
-		Dist: "dist", Remote: g.remote, Forge: g.forge, Env: g.env(), Log: &log, DryRun: true,
+		Dist: "dist", Remote: g.remote, Forge: g.forge, Exec: g.exec(), Log: &log, DryRun: true,
 	})
 	assert.NilError(t, err)
 
 	gemDir := filepath.Join(g.git.Dir, "ruby-grpc", "widgets")
-	assert.DeepEqual(t, g.toolCalls(), []string{
-		gemDir + " bundle install 1.1.0",
-		gemDir + " bundle exec rake build 1.1.0",
-	})
+	for _, c := range g.cmds.calls() {
+		assert.Equal(t, c.Cmd.Dir, gemDir)
+	}
 	assert.Assert(t, strings.Contains(log.String(), "Build check: widgets 1.1.0\n"), log.String())
+	assert.Assert(t, strings.Contains(log.String(), "widgets 1.1.0 built to pkg/widgets-1.1.0.gem.\n"), log.String())
 	_, err = os.Stat(filepath.Join(gemDir, "pkg", "widgets-1.1.0.gem"))
 	assert.NilError(t, err)
 

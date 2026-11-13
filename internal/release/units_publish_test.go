@@ -1,7 +1,7 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Tests for the publish and the rollback of release units,
-// with a bare remote, a fake forge and a fake npm CLI.
+// with a bare remote, a fake forge and stubs of the npm commands.
 
 package release
 
@@ -15,67 +15,47 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/exec/execstub"
 	"gotest.tools/v3/assert"
 )
 
-// fakeUnitNPM is an npm CLI that logs its arguments. npm view finds the
-// version after a publish; npm publish fails while the file "fail"
-// exists.
-const fakeUnitNPM = `#!/bin/sh
-echo "$*" >> "$FAKE_NPM_DIR/log"
-case "$1" in
-view)
-  if [ -f "$FAKE_NPM_DIR/published" ]; then echo 1.0.0; exit 0; fi
-  echo "npm error code E404" >&2; exit 1 ;;
-publish)
-  if [ -f "$FAKE_NPM_DIR/fail" ]; then echo "npm error boom" >&2; exit 1; fi
-  touch "$FAKE_NPM_DIR/published" ;;
-esac
-`
+// unitRegistry is the registry of the npm package of the unit.
+const unitRegistry = "https://npm.pkg.github.com"
 
-// fakeYarn is a yarn CLI that logs its folder and arguments to the log
-// of fakeUnitNPM.
-const fakeYarn = `#!/bin/sh
-echo "yarn in $PWD: $*" >> "$FAKE_NPM_DIR/log"
-`
-
-// withFakeNPM puts fakeUnitNPM and fakeYarn first in PATH and returns their
-// folder.
-func withFakeNPM(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	writeFile(t, dir, "npm", fakeUnitNPM)
-	writeFile(t, dir, "yarn", fakeYarn)
-	assert.NilError(t, os.Chmod(filepath.Join(dir, "npm"), 0o700))
-	assert.NilError(t, os.Chmod(filepath.Join(dir, "yarn"), 0o700))
-	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("FAKE_NPM_DIR", dir)
-	t.Setenv("NPM_TOKEN", "test-token")
-	return dir
+// withNPMStubs sets NPM_TOKEN, and gives u stubs of the npm commands.
+func (u *unitFixture) withNPMStubs() {
+	u.t.Helper()
+	u.t.Setenv("NPM_TOKEN", "test-token")
+	u.cmds = newCmdStubs(u.t)
 }
 
-// publishUnits publishes plan with the fixture's units.
+// expectNPMRelease adds the npm commands of the release of the unit
+// with version: npm version, then npm view, which gives view, and then
+// npm publish, which gives publish, when publish is not nil.
+func (u *unitFixture) expectNPMRelease(version string, view execstub.Result, publish *execstub.Result) {
+	u.cmds.expect(cmdOK(""), npmVersionArgv(version)...)
+	u.cmds.expect(view, npmViewArgv("@acme/widgets-client@"+version, unitRegistry)...)
+	if publish != nil {
+		u.cmds.expect(*publish, npmPublishArgv(filepath.Join(u.git.Dir, "node", "widgets-client"), "latest", unitRegistry)...)
+	}
+}
+
+// publishUnits publishes plan with the fixture's units and stubs.
 func (u *unitFixture) publishUnits(plan *Plan) error {
 	u.t.Helper()
 	return Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
-		Dist: "dist", Remote: u.remote, Forge: u.forge, Env: os.Environ(),
+		Dist: "dist", Remote: u.remote, Forge: u.forge, Env: os.Environ(), Exec: u.exec(),
 	})
 }
 
-// npmLog returns the commands of the fake npm.
-func npmLog(t *testing.T, dir string) string {
-	t.Helper()
-	b, _ := os.ReadFile(filepath.Join(dir, "log"))
-	return string(b)
-}
-
 func TestPublishUnits(t *testing.T) {
-	npm := withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.units[0].ForgeRelease = true
 	u.change("feat: both", "main.go", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
+	u.expectNPMRelease("1.2.0", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
 
 	// Both tags are on the plan commit, with their notes.
@@ -84,9 +64,7 @@ func TestPublishUnits(t *testing.T) {
 	assert.Assert(t, u.remoteRef("refs/notes/semantic-release-nodejs-widgets-client-v1.2.0") != "")
 
 	// npm set the version in node/widgets-client and published it.
-	log := npmLog(t, npm)
-	assert.Assert(t, strings.Contains(log, "version 1.2.0 --userconfig"), log)
-	assert.Assert(t, strings.Contains(log, "publish "+filepath.Join(u.git.Dir, "node", "widgets-client")+" --userconfig"), log)
+	assert.Equal(t, u.cmds.calls()[0].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
 
 	// The root release is the latest one; the unit release, which comes
 	// first, is not.
@@ -117,35 +95,34 @@ func TestPublishUnits(t *testing.T) {
 }
 
 func TestPublishUnitInstall(t *testing.T) {
-	npm := withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.units[0].NPM = &spec.NPMPlugin{Install: "yarn install --frozen-lockfile"}
 	u.change("fix: client", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
 
-	// A dry run does not install.
+	// A dry run does not install: the stubs have no commands yet.
 	err = Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
-		Remote: u.remote, Forge: u.forge, Env: os.Environ(), DryRun: true,
+		Remote: u.remote, Forge: u.forge, Env: os.Environ(), Exec: u.exec(), DryRun: true,
 	})
 	assert.NilError(t, err)
-	assert.Equal(t, npmLog(t, npm), "")
 
 	// The install runs in the unit folder before npm version.
+	u.cmds.expect(cmdOK(""), "yarn", "install", "--frozen-lockfile")
+	u.expectNPMRelease("1.1.1", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
-	dir := filepath.Join(u.git.Dir, "node", "widgets-client")
-	lines := strings.Split(npmLog(t, npm), "\n")
-	assert.Equal(t, lines[0], "yarn in "+dir+": install --frozen-lockfile")
-	assert.Assert(t, strings.HasPrefix(lines[1], "version 1.1.1 "), lines[1])
+	assert.Equal(t, u.cmds.calls()[0].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
 }
 
 func TestPublishUnitOnly(t *testing.T) {
-	withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.change("fix: client", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
 	assert.Assert(t, plan.Release && !plan.RootRelease())
+	u.expectNPMRelease("1.1.1", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
 	assert.Equal(t, u.remoteRef("refs/tags/nodejs-widgets-client-v1.1.1"), plan.Commit)
 	assert.Equal(t, u.remoteRef("refs/tags/v1.0.1"), "")
@@ -154,42 +131,42 @@ func TestPublishUnitOnly(t *testing.T) {
 }
 
 func TestPublishUnitsRerun(t *testing.T) {
-	npm := withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.change("feat: both", "main.go", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
 
 	// The npm publish fails: the root release goes on, and publish fails
 	// at the end with the unit error.
-	writeFile(t, npm, "fail", "")
+	u.expectNPMRelease("1.2.0", cmdFails(npmE404), &execstub.Result{Stderr: "npm error boom\n", ExitCode: 1})
 	err = u.publishUnits(plan)
-	assert.ErrorContains(t, err, "unit widgets-client: npm publish")
+	assert.ErrorContains(t, err, "unit widgets-client: npm publish: npm publish ")
+	assert.ErrorContains(t, err, "exit status 1: npm error boom")
 	assert.Equal(t, u.remoteRef("refs/tags/v1.1.0"), plan.Commit)
 	assert.Equal(t, u.remoteRef("refs/tags/nodejs-widgets-client-v1.2.0"), plan.Commit)
 	assert.Equal(t, len(u.forge.Successes), 1, "only the root release succeeded")
 	assert.Equal(t, len(u.forge.Failures["main"]), 1)
 
 	// The branch moved on; the rerun continues the same release.
-	assert.NilError(t, os.Remove(filepath.Join(npm, "fail")))
 	u.change("fix: later", "main.go")
+	u.expectNPMRelease("1.2.0", cmdFails(npmE404), &execstub.Result{})
 	var log bytes.Buffer
 	err = Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
-		Remote: u.remote, Forge: u.forge, Env: os.Environ(), Log: &log,
+		Remote: u.remote, Forge: u.forge, Env: os.Environ(), Exec: u.exec(), Log: &log,
 	})
 	assert.NilError(t, err)
 	assert.Assert(t, strings.Contains(log.String(), "Continue the release of nodejs-widgets-client-v1.2.0"), log.String())
-	assert.Equal(t, strings.Count(npmLog(t, npm), "\npublish "), 2)
 	assert.Equal(t, len(u.forge.Successes), 3)
 
-	// A third run publishes nothing again.
+	// A third run finds the package and publishes nothing again.
+	u.expectNPMRelease("1.2.0", cmdOK("1.2.0\n"), nil)
 	assert.NilError(t, u.publishUnits(plan))
-	assert.Equal(t, strings.Count(npmLog(t, npm), "\npublish "), 2)
 }
 
 func TestPublishUnitsStale(t *testing.T) {
-	withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.change("fix: client", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
@@ -199,8 +176,8 @@ func TestPublishUnitsStale(t *testing.T) {
 }
 
 func TestPublishUnitTagElsewhere(t *testing.T) {
-	withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.change("fix: client", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
@@ -232,30 +209,33 @@ func TestPublishGoPin(t *testing.T) {
 }
 
 func TestRollbackUnit(t *testing.T) {
-	npm := withFakeNPM(t)
 	u := baselined(t, unitsConfig)
+	u.withNPMStubs()
 	u.units[0].ForgeRelease = true
 	u.change("feat: both", "main.go", "node/widgets-client/index.js")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
+	u.expectNPMRelease("1.2.0", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
 
 	rollback := func(tag string, force bool) ([]string, string, error) {
 		var log bytes.Buffer
 		deleted, err := Rollback(context.Background(), u.unitRepo(), &RollbackOptions{
-			Tag: tag, Remote: u.remote, Forge: u.forge, Env: os.Environ(), Force: force, Log: &log,
+			Tag: tag, Remote: u.remote, Forge: u.forge, Env: os.Environ(), Exec: u.exec(), Force: force, Log: &log,
 		})
 		return deleted, log.String(), err
 	}
+	view := npmViewArgv("@acme/widgets-client@1.2.0", unitRegistry)
 
 	// The package exists and the release is published.
+	u.cmds.expect(cmdOK("1.2.0\n"), view...)
 	_, _, err = rollback("nodejs-widgets-client-v1.2.0", false)
 	assert.ErrorIs(t, err, ErrRollbackRefused)
 	assert.ErrorContains(t, err, "the npm package for 1.2.0 exists")
 	assert.ErrorContains(t, err, "is published")
 
 	// Without the package, --force removes the unit release only.
-	assert.NilError(t, os.Remove(filepath.Join(npm, "published")))
+	u.cmds.expect(cmdFails(npmE404), view...)
 	deleted, _, err := rollback("nodejs-widgets-client-v1.2.0", true)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, deleted, []string{
@@ -268,6 +248,7 @@ func TestRollbackUnit(t *testing.T) {
 	assert.Assert(t, u.forge.Release("v1.1.0") != nil)
 
 	// A rerun of the plan releases the unit again.
+	u.expectNPMRelease("1.2.0", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
 	assert.Equal(t, u.remoteRef("refs/tags/nodejs-widgets-client-v1.2.0"), plan.Commit)
 
