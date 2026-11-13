@@ -191,3 +191,21 @@ func TestNotOwnedFileListsConflictedFileOnce(t *testing.T) {
             * c.txt`}
 	assertSingleIssue(t, want, got.Issues)
 }
+
+// TestNotOwnedFileRelativeTempDir checks the check when TMPDIR is a relative path. It changes the
+// current directory and the environment, so it cannot run in parallel.
+func TestNotOwnedFileRelativeTempDir(t *testing.T) {
+	in := loadInput(t, "*.go @owner\n")
+	in.RepoDir = newGitRepo(t, "a.go", "b.txt")
+
+	base := t.TempDir()
+	assert.NilError(t, os.Mkdir(filepath.Join(base, "tmp"), 0o755))
+	t.Chdir(base)
+	t.Setenv("TMPDIR", "tmp")
+
+	out, err := NewNotOwnedFile(NotOwnedFileConfig{}).Check(t.Context(), in)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, out.Issues, []Issue{
+		{Severity: Error, Message: "Found 1 not owned files (skipped patterns: \"\"):\n            * b.txt"},
+	})
+}

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -128,7 +129,13 @@ func (c *NotOwnedFile) ownedFiles(ctx context.Context, in Input) (owned []string
 		return nil, fmt.Errorf("write pattern file: %w", closeErr)
 	}
 
-	return gitLsFiles(ctx, in, c.withSubdirectories("--cached", "--ignored", "--exclude-from="+f.Name())...)
+	// git runs in the repository directory, so a relative TMPDIR would point to another file.
+	path, err := filepath.Abs(f.Name())
+	if err != nil {
+		return nil, fmt.Errorf("get the absolute path of the pattern file: %w", err)
+	}
+
+	return gitLsFiles(ctx, in, c.withSubdirectories("--cached", "--ignored", "--exclude-from="+path)...)
 }
 
 // listFormat formats the lines as a bullet point list.
