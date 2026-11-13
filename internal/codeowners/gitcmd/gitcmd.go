@@ -28,9 +28,15 @@ type Error struct {
 	Err error
 }
 
-// Error returns the command, its directory, its error, and the standard error of git.
+// Error returns the command, its directory, its error, and the standard error of git when it is
+// not empty.
 func (e *Error) Error() string {
-	return fmt.Sprintf("%s in %s: %v: %s", strings.Join(e.Args, " "), e.Dir, e.Err, e.Stderr)
+	msg := fmt.Sprintf("%s in %s: %v", strings.Join(e.Args, " "), e.Dir, e.Err)
+	if e.Stderr == "" {
+		return msg
+	}
+
+	return msg + ": " + e.Stderr
 }
 
 // Unwrap returns the error of the command.

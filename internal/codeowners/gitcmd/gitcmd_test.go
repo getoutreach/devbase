@@ -78,3 +78,11 @@ func TestRunError(t *testing.T) {
 	var exitErr *exec.ExitError
 	assert.Assert(t, errors.As(err, &exitErr))
 }
+
+// TestRunErrorWithoutStderr checks the error of a git command that fails without output.
+func TestRunErrorWithoutStderr(t *testing.T) {
+	dir := newRepo(t)
+
+	_, err := gitcmd.Run(t.Context(), dir, false, "rev-parse", "--verify", "--quiet", "missing")
+	assert.Error(t, err, "git rev-parse --verify --quiet missing in "+dir+": exit status 1")
+}
