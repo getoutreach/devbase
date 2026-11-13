@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -161,12 +162,12 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	repoDir, err := repositoryRoot(ctx, c.String("repository-path"))
+	staged, trust := c.Bool("staged"), c.Bool("trust-workspace")
+
+	repoDir, err := repositoryRoot(ctx, c.String("repository-path"), trust)
 	if err != nil {
 		return fmt.Errorf("resolve --repository-path: %w", err)
 	}
-
-	staged, trust := c.Bool("staged"), c.Bool("trust-workspace")
 
 	var entries []codeowners.Entry
 	if staged {
@@ -202,19 +203,40 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 }
 
 // repositoryRoot returns the absolute path of the repository: path when it is not empty, or else
-// the root of the git work tree of the current directory, or else the current directory.
-func repositoryRoot(ctx context.Context, path string) (string, error) {
-	if path == "" {
-		out, err := gitcmd.Run(ctx, ".", false, "rev-parse", "--show-toplevel")
-		if err == nil {
-			return strings.TrimSpace(string(out)), nil
-		}
-
-		// Not in a git work tree. The checks that need git report it.
-		path = "."
+// the root of the git work tree of the current directory, or else the current directory when it
+// is not in a git repository. With trust, git trusts the repository, even when another user owns it.
+func repositoryRoot(ctx context.Context, path string, trust bool) (string, error) {
+	if path != "" {
+		return filepath.Abs(path)
 	}
 
-	return filepath.Abs(path)
+	out, err := gitcmd.Output(rootCommand(ctx, trust))
+
+	var gitErr *gitcmd.Error
+	switch {
+	case err == nil:
+		return strings.TrimSpace(string(out)), nil
+	case errors.As(err, &gitErr) && strings.Contains(gitErr.Stderr, "not a git repository"):
+		// The checks that need git report it.
+		return filepath.Abs(".")
+	default:
+		return "", fmt.Errorf("find the root of the git work tree: %w", err)
+	}
+}
+
+// rootCommand returns the git command that prints the root of the git work tree of the current
+// directory. Its messages are in English, so that repositoryRoot can detect them. With trust, git
+// trusts every directory for this command, because the root is not known yet.
+func rootCommand(ctx context.Context, trust bool) *exec.Cmd {
+	args := []string{"rev-parse", "--show-toplevel"}
+	if trust {
+		args = append([]string{"-c", "safe.directory=*"}, args...)
+	}
+
+	cmd := gitcmd.Command(ctx, ".", false, args...)
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
+
+	return cmd
 }
 
 // parseCheckNames returns names without the repeated names, or an error when a name is not the

@@ -12,7 +12,7 @@ Run the command in the repository:
 devbase lint codeowners
 ```
 
-The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository. Without `--repository-path`, the root of the repository is the root of the git work tree of the current directory. When git cannot find the work tree, for example outside of a git repository, it is the current directory.
+The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository. Without `--repository-path`, the root of the repository is the root of the git work tree of the current directory. Outside of a git repository, it is the current directory. When git fails for another reason, for example because another user owns the repository and `--trust-workspace` is not set, the command fails.
 
 The command runs the checks in parallel and prints the results in the order of `--checks`. Run `devbase lint codeowners --help` to list all flags. The general flags are:
 
@@ -145,5 +145,5 @@ Set `--github-base-url` to the API base URL of the server, and `--github-upload-
 - The `owners` check requires a user to be a collaborator of the repository with write access. The upstream check requires a user to be a member of the organization.
 - The upstream command checks that a token has the `read:org` scope. This command does not check scopes, because fine-grained tokens and GitHub Apps use permissions instead of scopes.
 - The command takes its settings from flags, except for some authentication settings (see [GitHub access](#github-access)). `--checks` selects both the default and the experimental checks. The upstream command uses environment variables, with `CHECKS` and `EXPERIMENTAL_CHECKS` for the checks.
-- `--trust-workspace` passes the directory as `safe.directory` to each git command. The upstream command adds the directory to the global git configuration.
+- `--trust-workspace` passes the repository directory as `safe.directory` to each git command. To find the root of the git work tree, it passes `*`, because the root is not known yet. The upstream command adds the directory to the global git configuration.
 - When a check fails, the command exits with 1. The upstream command exits with 3.

@@ -5,9 +5,11 @@
 package gitcmd_test
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
@@ -67,4 +69,12 @@ func TestRunError(t *testing.T) {
 	_, err := gitcmd.Run(t.Context(), dir, false, "cat-file", "blob", ":missing.txt")
 	assert.ErrorContains(t, err, "git cat-file blob :missing.txt in "+dir+": exit status 128: fatal: ")
 	assert.ErrorContains(t, err, "missing.txt")
+
+	var gitErr *gitcmd.Error
+	assert.Assert(t, errors.As(err, &gitErr))
+	assert.Equal(t, gitErr.Dir, dir)
+	assert.Assert(t, strings.HasPrefix(gitErr.Stderr, "fatal: "), gitErr.Stderr)
+
+	var exitErr *exec.ExitError
+	assert.Assert(t, errors.As(err, &exitErr))
 }

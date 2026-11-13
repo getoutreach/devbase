@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -151,6 +152,51 @@ func TestLintCodeowners_RepositoryRoot(t *testing.T) {
 
 		out, err := runLintCodeowners(t, "--checks", "syntax")
 		assert.NilError(t, err, out)
+	})
+}
+
+// TestRepositoryRoot checks the root of the repository without --repository-path. It changes the
+// current directory and the environment, so it cannot run in parallel.
+func TestRepositoryRoot(t *testing.T) {
+	t.Run("not in a git work tree", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+		t.Chdir(dir)
+
+		root, err := repositoryRoot(t.Context(), "", false)
+		assert.NilError(t, err)
+		assert.Equal(t, root, dir)
+	})
+
+	t.Run("canceled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		_, err := repositoryRoot(ctx, "", false)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
+
+	t.Run("git not found", func(t *testing.T) {
+		t.Setenv("PATH", t.TempDir())
+
+		_, err := repositoryRoot(t.Context(), "", false)
+		assert.ErrorIs(t, err, exec.ErrNotFound)
+	})
+}
+
+// TestRootCommand checks the arguments and the environment of the git command that finds the
+// root of the work tree.
+func TestRootCommand(t *testing.T) {
+	t.Run("trusted", func(t *testing.T) {
+		cmd := rootCommand(t.Context(), true)
+		assert.DeepEqual(t, cmd.Args, []string{"git", "-c", "safe.directory=*", "rev-parse", "--show-toplevel"})
+		assert.Assert(t, slices.Contains(cmd.Env, "LC_ALL=C"))
+	})
+
+	t.Run("not trusted", func(t *testing.T) {
+		cmd := rootCommand(t.Context(), false)
+		assert.DeepEqual(t, cmd.Args, []string{"git", "rev-parse", "--show-toplevel"})
+		assert.Assert(t, slices.Contains(cmd.Env, "LC_ALL=C"))
 	})
 }
 
