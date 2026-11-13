@@ -290,3 +290,81 @@ func TestPreviewBaseErrors(t *testing.T) {
 	_, err = p.preview("main", "")
 	assert.ErrorIs(t, err, ErrPreviewBase)
 }
+
+// gemPreview runs Preview of the checked-out branch against main.
+func (g *gemRepoFixture) gemPreview(extra ...string) (*Plan, string, error) {
+	g.t.Helper()
+	var log strings.Builder
+	plan, err := Preview(context.Background(), g.repo(), &PreviewOptions{
+		Base: "main", Remote: g.remote, NewLinks: github.NewLinks, Env: g.env(extra...), Log: &log,
+	})
+	return plan, log.String(), err
+}
+
+// TestPreviewBuildsGem checks that the preview builds the gem in the
+// temporary worktree with the planned root version, or the last root
+// version when the root does not release, and that the checkout does
+// not change.
+func TestPreviewBuildsGem(t *testing.T) {
+	g := newGemRepoFixture(t)
+	g.run("checkout", "-q", "-b", "feature")
+	head := g.run("rev-parse", "HEAD")
+
+	tests := []struct {
+		name, file, msg, want string
+		release, root         bool
+	}{
+		// The root releases 1.1.0.
+		{name: "root release", file: "a.txt", msg: "feat: widget", want: "1.1.0", release: true, root: true},
+		// Only the unit releases, as the root excludes node/**.
+		{name: "unit release", file: "node/widgets-client/index.js", msg: "fix: client", want: "1.0.0", release: true},
+		// Nothing releases, but the gem is built as on every branch.
+		{name: "no release", file: "README.md", msg: "docs: readme", want: "1.0.0"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g.run("reset", "-q", "--hard", head)
+			g.writeCommit(tc.file, tc.msg+"\n", tc.msg)
+			before := g.run("rev-parse", "HEAD")
+			plan, log, err := g.gemPreview()
+			assert.NilError(t, err)
+			assert.Equal(t, plan.Release, tc.release)
+			assert.Equal(t, plan.RootRelease(), tc.root)
+			assert.Equal(t, buildVersion(plan), tc.want)
+
+			calls := g.toolCalls()
+			assert.Equal(t, len(calls), 2, calls)
+			for i, args := range []string{"bundle install", "bundle exec rake build"} {
+				dir, rest, _ := strings.Cut(calls[i], " ")
+				assert.Assert(t, strings.HasSuffix(dir, filepath.Join("worktree", "ruby-grpc", "widgets")), dir)
+				assert.Assert(t, !strings.HasPrefix(dir, g.git.Dir), dir)
+				assert.Equal(t, rest, args+" "+tc.want)
+			}
+			assert.Assert(t, strings.Contains(log, "Build check: widgets "+tc.want+"\n"), log)
+
+			// The checkout did not change, and the worktree is gone.
+			assert.Equal(t, g.run("rev-parse", "HEAD"), before)
+			assert.Equal(t, g.run("status", "--porcelain", "--ignored"), "")
+			assert.Equal(t, strings.Count(g.run("worktree", "list"), "\n"), 0)
+		})
+	}
+	assert.Equal(t, buildVersion(&Plan{}), "0.0.0")
+}
+
+func TestPreviewGemBuildFails(t *testing.T) {
+	g := newGemRepoFixture(t)
+	g.run("checkout", "-q", "-b", "feature")
+	g.writeCommit("a.txt", "a\n", "feat: widget")
+	_, _, err := g.gemPreview("WIDGETS_FAIL=1")
+	assert.ErrorContains(t, err, "build check: bundle exec rake build")
+	assert.ErrorContains(t, err, "rake aborted!")
+	assert.Equal(t, len(g.toolCalls()), 2)
+	assert.Equal(t, g.run("status", "--porcelain", "--ignored"), "")
+
+	// A pull request that adds no change builds nothing.
+	g.run("checkout", "-q", "main")
+	plan, _, err := g.gemPreview()
+	assert.NilError(t, err)
+	assert.Assert(t, plan == nil)
+	assert.Assert(t, g.toolCalls() == nil)
+}

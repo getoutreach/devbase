@@ -273,7 +273,8 @@ func releasePreview(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("read the origin URL: %w", err)
 	}
 	plan, err := release.Preview(ctx, repo, &release.PreviewOptions{
-		Base: c.String("base"), Head: c.String("head"), Remote: remote, Log: w, NewLinks: github.NewLinks,
+		Base: c.String("base"), Head: c.String("head"), Remote: remote, Env: os.Environ(), Log: w,
+		NewLinks: github.NewLinks,
 	})
 	switch {
 	case err != nil:

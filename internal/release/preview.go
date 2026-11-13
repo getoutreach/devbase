@@ -63,15 +63,20 @@ type PreviewOptions struct {
 	// NewLinks makes the links in the release notes.
 	NewLinks func(repoURL string) forge.NoteLinks
 
-	// Log receives progress messages.
+	// Env is the environment of the build checks. Nil means the process
+	// environment.
+	Env []string
+
+	// Log receives progress messages and the output of the build checks.
 	Log io.Writer
 }
 
 // Preview previews the release that a pull request makes when it is
 // merged: it squashes the pull request onto the base branch in a
-// temporary worktree, as "Devbase CI", and plans the release of the
-// result. The checkout does not change. The plan is nil when the pull
-// request adds no change.
+// temporary worktree, as "Devbase CI", plans the release of the result,
+// and runs the build checks of the registries there, such as the gem
+// build, also when nothing releases. The checkout does not change. The
+// plan is nil when the pull request adds no change.
 func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (_ *Plan, err error) {
 	ctx, end := startStep(ctx, "preview")
 	defer end(&err)
@@ -118,7 +123,7 @@ func Preview(ctx context.Context, r *Repo, opts *PreviewOptions) (_ *Plan, err e
 	} else {
 		fmt.Fprintf(log, "The changes of %s are already in %s, previewing %s as it is\n", head, base, base)
 	}
-	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks, DryRun: true})
+	return r.planWorktree(ctx, commit, &PlanOptions{Branch: base, NewLinks: opts.NewLinks, DryRun: true}, opts.Env, log)
 }
 
 // previewBase returns the branch to preview head against, as
@@ -199,8 +204,9 @@ func headHasNetChanges(ctx context.Context, g *Git, base, head string) bool {
 
 // planWorktree plans the release of commit on a branch in a temporary
 // worktree, so the config of commit applies and the checkout does not
-// change.
-func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOptions) (*Plan, error) {
+// change, and runs the build checks there with the version of
+// buildVersion, the environment env and the output to log.
+func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOptions, env []string, log io.Writer) (*Plan, error) {
 	tmp, err := os.MkdirTemp("", "devbase-release-preview-")
 	if err != nil {
 		return nil, fmt.Errorf("create the preview worktree: %w", err)
@@ -215,7 +221,26 @@ func (r *Repo) planWorktree(ctx context.Context, commit string, opts *PlanOption
 	if err != nil {
 		return nil, err
 	}
-	return MakePlan(ctx, repo, opts)
+	plan, err := MakePlan(ctx, repo, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkBuilds(ctx, repo.Config, &regTarget{dir: dir, version: buildVersion(plan), env: env, log: log}); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// buildVersion returns the root version of the build checks of plan:
+// the next release, or else the last release, or else 0.0.0.
+func buildVersion(plan *Plan) string {
+	switch {
+	case plan.NextRelease != nil:
+		return plan.NextRelease.Version
+	case plan.LastRelease != nil:
+		return plan.LastRelease.Version
+	}
+	return "0.0.0"
 }
 
 // checkBranchName returns an error when name is not a valid branch name.
