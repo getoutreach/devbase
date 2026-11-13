@@ -14,7 +14,8 @@ import (
 )
 
 // FileExist validates that every pattern of the CODEOWNERS file matches at least one file of the
-// repository. The files are the ones that git tracks, plus the ones that it does not ignore.
+// repository. The files are the ones in the git index and, when Input.Staged is not set, the
+// untracked files that git does not ignore.
 type FileExist struct{}
 
 // NewFileExist returns a new FileExist instance.
@@ -30,7 +31,12 @@ func (*FileExist) Check(ctx context.Context, in Input) (Output, error) {
 		return Output{}, err
 	}
 
-	files, err := gitLsFiles(ctx, in, "--cached", "--others", "--exclude-standard")
+	args := []string{"--cached"}
+	if !in.Staged {
+		args = append(args, "--others", "--exclude-standard")
+	}
+
+	files, err := gitLsFiles(ctx, in, args...)
 	if err != nil {
 		return Output{}, err
 	}

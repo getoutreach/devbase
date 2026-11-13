@@ -22,6 +22,7 @@ The command runs the checks in parallel and prints the results in the order of `
 | `--checks`              | `files,owners,duppatterns,syntax` | Checks to run. Repeat the flag or separate the names with commas. The value replaces the default list. |
 | `--check-failure-level` | `warning`                         | With `warning`, warnings and errors make the command fail. With `error`, only errors make it fail.     |
 | `--repository`          | The `origin` remote               | GitHub repository in the form `owner/repository`, for the `owners` check.                              |
+| `--staged`              | `false`                           | Check the files in the git index only. See [Pre-commit hook](#pre-commit-hook).                        |
 | `--trust-workspace`     | `false`                           | Make git trust the repository directory, even when another user owns it.                               |
 
 To run all the checks:
@@ -36,6 +37,21 @@ To run the default checks without GitHub access:
 devbase lint codeowners --checks files,duppatterns,syntax
 ```
 
+## Pre-commit hook
+
+In a git pre-commit hook, use `--staged`, so that the command checks what the commit will contain. For example, to run the checks that need no GitHub access:
+
+```shell
+devbase lint codeowners --staged --checks files,duppatterns,syntax,notowned
+```
+
+With `--staged`:
+
+- The command reads the CODEOWNERS file from the git index. Without `--staged`, it reads the file from the working tree.
+- The `files` check uses only the files in the git index. Without `--staged`, it also uses the untracked files that git does not ignore.
+
+The `notowned` check always uses the files in the git index.
+
 ## Exit codes
 
 The command exits with 1 when a check finds an issue at or above `--check-failure-level`, or when a check cannot complete, for example because a GitHub API call fails. It also exits with 1 when it cannot start, for example when a flag value is not valid, or when it finds no CODEOWNERS file or more than one. Otherwise, it exits with 0.
@@ -44,7 +60,7 @@ The command exits with 1 when a check finds an issue at or above `--check-failur
 
 | Name              | Default | Description                                                                                                                                                                                              |
 | ----------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `files`           | Yes     | Reports each pattern that matches no file. The check uses the files that git tracks and the untracked files that git does not ignore.                                                                    |
+| `files`           | Yes     | Reports each pattern that matches no file. The check uses the files that git tracks and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index.          |
 | `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                       |
 | `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                      |
 | `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address.                                                                                                          |

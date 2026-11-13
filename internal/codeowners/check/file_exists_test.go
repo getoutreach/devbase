@@ -192,6 +192,21 @@ func TestFileExistsUntrackedFiles(t *testing.T) {
 	})
 }
 
+func TestFileExistsStaged(t *testing.T) {
+	in := loadInput(t, "*.go @pico\n*.txt @pico\n")
+	in.RepoDir = newGitRepo(t, "tracked.go")
+	in.Staged = true
+
+	// An untracked file does not count.
+	assert.NilError(t, os.WriteFile(filepath.Join(in.RepoDir, "untracked.txt"), nil, 0o600))
+
+	out, err := NewFileExist().Check(t.Context(), in)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, out.Issues, []Issue{
+		{Severity: Error, LineNo: 2, Message: `"*.txt" does not match any files in repository`},
+	})
+}
+
 func TestFileExistsNotAGitRepository(t *testing.T) {
 	in := loadInput(t, "* @pico")
 	in.RepoDir = t.TempDir()

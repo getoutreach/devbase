@@ -82,6 +82,10 @@ type Input struct {
 
 	// TrustRepoDir makes git treat RepoDir as a safe directory, even when another user owns it.
 	TrustRepoDir bool
+
+	// Staged limits the files of the repository to the files in the git index, so the files check
+	// ignores untracked files. The notowned check always uses the git index.
+	Staged bool
 }
 
 // Output is what a check found.

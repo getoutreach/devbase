@@ -18,12 +18,14 @@ import (
 	"syscall"
 )
 
-// Sentinel errors returned (wrapped) by Load.
+// Sentinel errors returned (wrapped) by Load and LoadFromIndex.
 var (
-	// ErrNotFound is wrapped by the error that Load returns when a repository has no CODEOWNERS file.
+	// ErrNotFound is wrapped by the error that Load and LoadFromIndex return when a repository has
+	// no CODEOWNERS file.
 	ErrNotFound = errors.New("codeowners file not found")
 
-	// ErrMultipleFiles is wrapped by the error that Load returns when a repository has more than one CODEOWNERS file.
+	// ErrMultipleFiles is wrapped by the error that Load and LoadFromIndex return when a repository
+	// has more than one CODEOWNERS file.
 	ErrMultipleFiles = errors.New("multiple codeowners files found")
 )
 
@@ -64,8 +66,7 @@ func (e Entry) String() string {
 // See: https://help.github.com/articles/about-code-owners/#codeowners-file-location
 func Load(repoDir string) ([]Entry, error) {
 	var found []string
-	for _, dir := range []string{".", "docs", ".github"} {
-		rel := filepath.Join(dir, "CODEOWNERS")
+	for _, rel := range locations() {
 		_, err := os.Stat(filepath.Join(repoDir, rel))
 		switch {
 		case err == nil:
@@ -77,21 +78,38 @@ func Load(repoDir string) ([]Entry, error) {
 		}
 	}
 
+	rel, err := selectFile(repoDir, found)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadFile(filepath.Join(repoDir, rel))
+}
+
+// locations returns the paths where a CODEOWNERS file can be, relative to the root of the
+// repository and with "/" as the separator.
+func locations() []string {
+	return []string{"CODEOWNERS", "docs/CODEOWNERS", ".github/CODEOWNERS"}
+}
+
+// selectFile returns the only path in found, which are the locations of the CODEOWNERS files of
+// the repository in repoDir. It returns an error when found has no path or more than one.
+func selectFile(repoDir string, found []string) (string, error) {
 	switch len(found) {
 	case 0:
-		return nil, &loadError{
+		return "", &loadError{
 			msg: "No CODEOWNERS found in the root, docs/, or .github/ directory of the repository " + repoDir,
 			err: ErrNotFound,
 		}
 	case 1:
-		return loadFile(filepath.Join(repoDir, found[0]))
+		return found[0], nil
 	default:
 		display := make([]string, len(found))
 		for i, rel := range found {
-			display[i] = "./" + filepath.ToSlash(rel)
+			display[i] = "./" + rel
 		}
 
-		return nil, &loadError{
+		return "", &loadError{
 			msg: fmt.Sprintf("Multiple CODEOWNERS files found in the %s locations of the repository %s",
 				oxfordList(display), repoDir),
 			err: ErrMultipleFiles,

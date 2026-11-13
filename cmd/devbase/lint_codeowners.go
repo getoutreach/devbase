@@ -113,6 +113,10 @@ func newLintCodeownersCommand() *cli.Command {
 				Usage: "Only check the files in these directories in the notowned check",
 			},
 			&cli.BoolFlag{
+				Name:  "staged",
+				Usage: "Read CODEOWNERS and the files from the git index, and ignore changes that are not staged (for a pre-commit hook)",
+			},
+			&cli.BoolFlag{
 				Name:  "trust-workspace",
 				Usage: "Make git trust the repository directory, even when another user owns it",
 			},
@@ -164,7 +168,14 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("resolve --repository-path: %w", err)
 	}
 
-	entries, err := codeowners.Load(repoDir)
+	staged, trust := c.Bool("staged"), c.Bool("trust-workspace")
+
+	var entries []codeowners.Entry
+	if staged {
+		entries, err = codeowners.LoadFromIndex(ctx, repoDir, trust)
+	} else {
+		entries, err = codeowners.Load(repoDir)
+	}
 	if err != nil {
 		return fmt.Errorf("load CODEOWNERS: %w", err)
 	}
@@ -178,7 +189,7 @@ func lintCodeowners(ctx context.Context, c *cli.Command) error {
 		checks = append(checks, chk)
 	}
 
-	in := check.Input{RepoDir: repoDir, Entries: entries, TrustRepoDir: c.Bool("trust-workspace")}
+	in := check.Input{RepoDir: repoDir, Entries: entries, TrustRepoDir: trust, Staged: staged}
 	printer := runner.NewPrinter(c.Writer, color.NoColor || c.Writer != os.Stdout)
 	failed := runner.Run(ctx, printer, in, failureLevel, checks...)
 

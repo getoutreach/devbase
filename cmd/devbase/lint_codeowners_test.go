@@ -100,6 +100,38 @@ func TestLintCodeowners_FailureLevel(t *testing.T) {
 	assert.Assert(t, strings.Contains(out, "[war]"), out)
 }
 
+// TestLintCodeowners_Staged checks that --staged reads CODEOWNERS and the files from the git
+// index, and ignores the changes that are not staged.
+func TestLintCodeowners_Staged(t *testing.T) {
+	t.Run("notowned", func(t *testing.T) {
+		repo := newCodeownersRepo(t, "/.github/ @org/team\n/main.go @org/team\n", "main.go", "x.txt")
+
+		// An unstaged change of CODEOWNERS that owns x.txt.
+		assert.NilError(t, os.WriteFile(filepath.Join(repo, ".github", "CODEOWNERS"),
+			[]byte("/.github/ @org/team\n/main.go @org/team\n*.txt @org/team\n"), 0o600))
+
+		out, err := runLintCodeowners(t, "--repository-path", repo, "--checks", "notowned")
+		assert.NilError(t, err, out)
+
+		out, err = runLintCodeowners(t, "--repository-path", repo, "--checks", "notowned", "--staged")
+		assert.Equal(t, exitCode(t, err), 1)
+		assert.Assert(t, strings.Contains(out, "Found 1 not owned files"), out)
+		assert.Assert(t, strings.Contains(out, "* x.txt"), out)
+	})
+
+	t.Run("files", func(t *testing.T) {
+		repo := newCodeownersRepo(t, "* @org/team\n/untracked.txt @org/team\n", "main.go")
+		assert.NilError(t, os.WriteFile(filepath.Join(repo, "untracked.txt"), []byte("x"), 0o600))
+
+		out, err := runLintCodeowners(t, "--repository-path", repo, "--checks", "files")
+		assert.NilError(t, err, out)
+
+		out, err = runLintCodeowners(t, "--repository-path", repo, "--checks", "files", "--staged")
+		assert.Equal(t, exitCode(t, err), 1)
+		assert.Assert(t, strings.Contains(out, `"/untracked.txt" does not match any files in repository`), out)
+	})
+}
+
 // TestLintCodeowners_Errors checks the errors that stop the command before any check runs.
 func TestLintCodeowners_Errors(t *testing.T) {
 	repo := newCodeownersRepo(t, "* @org/team\n", "main.go")
