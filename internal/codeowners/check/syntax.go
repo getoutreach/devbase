@@ -26,10 +26,8 @@ var (
 	emailRegexp = regexp.MustCompile(`.+@.+\..+`)
 )
 
-// ValidSyntax provides a syntax validation for CODEOWNERS file.
-//
-// If any line in your CODEOWNERS file contains invalid syntax, the file will not be detected and will
-// not be used to request reviews. Invalid syntax includes inline comments and user or team names that do not exist on GitHub.
+// ValidSyntax reports owners that do not look like a GitHub user, a team, or an email address.
+// GitHub skips a line that has invalid syntax.
 type ValidSyntax struct{}
 
 // NewValidSyntax returns new ValidSyntax instance.

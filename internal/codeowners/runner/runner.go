@@ -8,6 +8,7 @@ package runner
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -60,11 +61,5 @@ func Run(ctx context.Context, p *Printer, in check.Input, failureLevel check.Sev
 
 // hasIssueAtLeast reports whether out has an issue that is at least as serious as level.
 func hasIssueAtLeast(out check.Output, level check.Severity) bool {
-	for _, issue := range out.Issues {
-		if issue.Severity.IsAtLeast(level) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(out.Issues, func(i check.Issue) bool { return i.Severity.IsAtLeast(level) })
 }

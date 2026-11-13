@@ -39,7 +39,9 @@ const (
 	teamsJSON = `[
 		{"slug": "writers", "permissions": {"admin": false, "maintain": false, "push": true, "triage": true, "pull": true}},
 		{"slug": "readers", "permissions": {"admin": false, "maintain": false, "push": false, "triage": true, "pull": true}},
-		{"slug": "maintainers", "permissions": {"maintain": true}}
+		{"slug": "maintainers", "permissions": {"maintain": true}},
+		{"slug": "push-string", "permission": "push"},
+		{"slug": "pull-string", "permission": "pull"}
 	]`
 	notFoundJSON = `{"message": "Not Found"}`
 )
@@ -302,9 +304,14 @@ func TestValidOwnerRepositoryAccess(t *testing.T) {
 			owner: "@eve",
 			issue: `User "@eve" is not a member of the organization "org" or has no access to repository "repo"`,
 		},
-		"team with push":                        {owner: "@org/writers"},
-		"team with maintain":                    {owner: "@org/maintainers"},
-		"team and org in another letter case":   {owner: "@ORG/Writers"},
+		"team with push":                      {owner: "@org/writers"},
+		"team with maintain":                  {owner: "@org/maintainers"},
+		"team and org in another letter case": {owner: "@ORG/Writers"},
+		"team with only the push permission":  {owner: "@org/push-string"},
+		"team with only the pull permission": {
+			owner: "@org/pull-string",
+			issue: `Team "pull-string" cannot review PRs on "repo" as neither it nor any parent team has write permissions.`,
+		},
 		"child team with inherited push access": {owner: "@org/child"},
 		"team without push": {
 			owner: "@org/readers",
@@ -362,6 +369,20 @@ func TestValidOwnerChecksEachOwnerOnce(t *testing.T) {
 	assert.Equal(t, fake.count(routeCollaborators), 1, "collaborators are fetched once")
 	assert.Equal(t, fake.count(routeTeams), 1, "teams are fetched once")
 	assert.Equal(t, fake.count(routeTeamRepo), 2, "an unknown team is checked once per Check call")
+}
+
+func TestValidOwnerComparesOwnersCaseInsensitively(t *testing.T) {
+	gh, fake := newFakeGitHub(t, defaultRoutes())
+	v, err := NewValidOwner(ValidOwnerConfig{Repository: "org/repo", IgnoredOwners: []string{"@ghost"}}, gh)
+	assert.NilError(t, err)
+
+	out, err := v.Check(t.Context(), loadInput(t, "*.go @Ghost @eve\n*.js @EVE @GHOST"))
+	assert.NilError(t, err)
+
+	assert.DeepEqual(t, out.Issues, []Issue{
+		{Severity: Error, LineNo: 1, Message: `User "@eve" is not a member of the organization "org" or has no access to repository "repo"`},
+	})
+	assert.Equal(t, fake.count(routeCollaborators), 1)
 }
 
 func TestValidOwnerListsAllPages(t *testing.T) {

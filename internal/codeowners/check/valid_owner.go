@@ -80,7 +80,8 @@ type ValidOwner struct {
 	teams []*github.Team
 }
 
-// NewValidOwner returns a new ValidOwner instance. gh is only used when an owner is a GitHub user or team.
+// NewValidOwner returns a new ValidOwner instance. gh is used by CheckSatisfied, and by Check
+// when an owner is a GitHub user or team.
 func NewValidOwner(cfg ValidOwnerConfig, gh *github.Client) (*ValidOwner, error) {
 	org, repo, ok := strings.Cut(cfg.Repository, "/")
 	if !ok || org == "" || repo == "" || strings.Contains(repo, "/") {
@@ -135,7 +136,13 @@ func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 func (v *ValidOwner) Check(ctx context.Context, in Input) (Output, error) {
 	var out Output
 
+	// Owners compare case-insensitively, like GitHub logins, organization names, and team slugs.
+	// The ignored owners count as checked.
 	checked := map[string]bool{}
+	for _, owner := range v.ignoredOwners {
+		checked[strings.ToLower(owner)] = true
+	}
+
 	for _, entry := range in.Entries {
 		if err := ctx.Err(); err != nil {
 			return Output{}, err
@@ -147,10 +154,11 @@ func (v *ValidOwner) Check(ctx context.Context, in Input) (Output, error) {
 		}
 
 		for _, owner := range entry.Owners {
-			if checked[owner] || slices.Contains(v.ignoredOwners, owner) {
+			key := strings.ToLower(owner)
+			if checked[key] {
 				continue
 			}
-			checked[owner] = true
+			checked[key] = true
 
 			msg, err := v.validate(ctx, owner)
 			if ctxErr := ctx.Err(); ctxErr != nil {
@@ -230,6 +238,10 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 	var writable bool
 	if i := slices.IndexFunc(v.teams, func(t *github.Team) bool { return strings.EqualFold(t.GetSlug(), slug) }); i >= 0 {
 		p := v.teams[i].Permissions
+		if p == nil {
+			// The permissions map is optional. The permission field is required, and names one permission.
+			p = map[string]bool{v.teams[i].GetPermission(): true}
+		}
 		writable = p["push"] || p["maintain"] || p["admin"]
 	} else {
 		// The repository teams do not include child teams that inherit access from a parent team.

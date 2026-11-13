@@ -58,7 +58,7 @@ An owner is a user (`@username`), a team (`@org/team-name`), or an email address
 - A user must be a collaborator of the repository with write access (`push`, `maintain`, or `admin`).
 - A team must belong to the organization of the repository and have write access to the repository, directly or through a parent team.
 
-The check does not look up email addresses on GitHub. It compares user logins, organization names, and team slugs without regard to case. It reports an owner that is not valid only on the first line where the owner appears.
+The check does not look up email addresses on GitHub. It compares user logins, organization names, team slugs, and ignored owners without regard to case. It reports an owner that is not valid only on the first line where the owner appears.
 
 | Flag                       | Default  | Description                                                                                     |
 | -------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
@@ -101,7 +101,7 @@ Before any check runs, the command gets the repository to confirm that the crede
 | `GET /repos/{owner}/{repo}/teams`                        | Teams                                               | `repo`, or `public_repo` for a public repository | Repository "Administration" (read)                             |
 | `GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}` | Other teams, including access through a parent team | `repo` or `admin:org`, for a private repository  | Organization "Members" (read) and repository "Metadata" (read) |
 
-A scope that includes a listed scope also works. For example, `admin:org` includes `read:org`. To list the collaborators, the authenticated user must also have write, maintain, or admin privileges on the repository.
+A scope that includes a listed scope also works. For example, `write:org` and `admin:org` include `read:org`. To list the collaborators, the authenticated user must also have write, maintain, or admin privileges on the repository. For a repository that an organization owns, the user must also be a member of the organization.
 
 When a call fails because of missing access, the error message names the access that the endpoint needs. For a classic token, it also names the missing scopes.
 

@@ -17,7 +17,8 @@ func TestEndpointHint(t *testing.T) {
 
 		collaborators     = `Access needed for GET /repos/{owner}/{repo}/collaborators: a classic token needs the scopes "repo" and "read:org"`
 		collaboratorsPerm = `; a fine-grained token or a GitHub App needs the repository permission "Metadata" (read).` +
-			` The authenticated user must also have write, maintain, or admin privileges on the repository.`
+			` The authenticated user must also have write, maintain, or admin privileges on the repository.` +
+			` For a repository that an organization owns, the user must also be a member of the organization.`
 
 		repoTeams = `Access needed for GET /repos/{owner}/{repo}/teams: a classic token needs the scope "repo" or "public_repo"` +
 			` ("public_repo" only for a public repository)`
@@ -25,7 +26,8 @@ func TestEndpointHint(t *testing.T) {
 
 		teamRepo = `Access needed for GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}: a classic token needs the scope` +
 			` "repo" or "admin:org" for a private repository`
-		teamRepoPerm = `; a fine-grained token or a GitHub App needs the organization permission "Members" (read).`
+		teamRepoPerm = `; a fine-grained token or a GitHub App needs the organization permission "Members" (read)` +
+			` and the repository permission "Metadata" (read).`
 	)
 
 	tests := map[string]struct {
@@ -59,6 +61,11 @@ func TestEndpointHint(t *testing.T) {
 		"collaborators, admin:org includes read:org": {
 			ep:     collaboratorsEndpoint,
 			scopes: "admin:org,repo",
+			want:   collaborators + `, and this token has them` + collaboratorsPerm,
+		},
+		"collaborators, write:org includes read:org": {
+			ep:     collaboratorsEndpoint,
+			scopes: "repo, write:org",
 			want:   collaborators + `, and this token has them` + collaboratorsPerm,
 		},
 		"repository teams, no scopes header": {

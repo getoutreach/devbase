@@ -46,7 +46,8 @@ var (
 		route:      "GET /repos/{owner}/{repo}/collaborators",
 		scopes:     [][]string{{"repo"}, {"read:org"}},
 		permission: `repository permission "Metadata" (read)`,
-		note:       "The authenticated user must also have write, maintain, or admin privileges on the repository.",
+		note: "The authenticated user must also have write, maintain, or admin privileges on the repository. " +
+			"For a repository that an organization owns, the user must also be a member of the organization.",
 	}
 
 	// repoTeamsEndpoint lists the teams of the repository.
@@ -63,7 +64,7 @@ var (
 		route:      "GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
 		scopes:     [][]string{{"repo", "admin:org"}},
 		scopesNote: "for a private repository",
-		permission: `organization permission "Members" (read)`,
+		permission: `organization permission "Members" (read) and the repository permission "Metadata" (read)`,
 	}
 )
 
@@ -102,13 +103,15 @@ func isScopeSeparator(r rune) bool {
 	return r == ',' || r == ' '
 }
 
-// parentScope returns the scope that includes scope, or "" when no scope does. Only the scopes
-// that the owners check needs are listed.
+// parentScope returns the scope that directly includes scope, or "" when no scope does. Only the
+// scopes that the owners check needs are listed.
 func parentScope(scope string) string {
 	switch scope {
 	case "public_repo":
 		return "repo"
-	case "read:org", "write:org":
+	case "read:org":
+		return "write:org"
+	case "write:org":
 		return "admin:org"
 	default:
 		return ""
@@ -117,8 +120,15 @@ func parentScope(scope string) string {
 
 // missingScopes returns the groups of needed scopes that have no scope in granted.
 func missingScopes(granted []string, needed [][]string) [][]string {
+	// has reports whether granted has scope, or a scope that includes it.
 	has := func(scope string) bool {
-		return slices.Contains(granted, scope) || slices.Contains(granted, parentScope(scope))
+		for ; scope != ""; scope = parentScope(scope) {
+			if slices.Contains(granted, scope) {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	var missing [][]string
