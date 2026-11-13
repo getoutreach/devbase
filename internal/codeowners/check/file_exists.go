@@ -50,19 +50,13 @@ func (*FileExist) Check(ctx context.Context, in Input) (Output, error) {
 		return Output{}, err
 	}
 
+	index := newFileIndex(files)
 	for _, entry := range in.Entries {
 		if err := ctx.Err(); err != nil {
 			return Output{}, err
 		}
 
-		// A pattern follows the rules of gitignore files. A negated pattern never excludes a file,
-		// so it is reported as matching no files. GitHub does not support negation either.
-		pattern := gitignore.ParsePattern(entry.Pattern, nil)
-
-		matched := slices.ContainsFunc(files, func(f repoFile) bool {
-			return pattern.Match(f.path, f.isDir) == gitignore.Exclude
-		})
-		if !matched {
+		if !index.match(entry.Pattern) {
 			out.Report(fmt.Sprintf("%q does not match any files in repository", entry.Pattern), WithEntry(entry))
 		}
 	}
@@ -111,4 +105,69 @@ func repoFiles(ctx context.Context, in Input) ([]repoFile, error) {
 	}
 
 	return files, nil
+}
+
+// fileIndex is the files of the repository, also grouped by the first element of their path.
+type fileIndex struct {
+	// files are all the files.
+	files []repoFile
+
+	// byTop are the files grouped by the first element of their path.
+	byTop map[string][]repoFile
+}
+
+// newFileIndex returns the index of files.
+func newFileIndex(files []repoFile) *fileIndex {
+	byTop := make(map[string][]repoFile)
+	for _, f := range files {
+		byTop[f.path[0]] = append(byTop[f.path[0]], f)
+	}
+
+	return &fileIndex{files: files, byTop: byTop}
+}
+
+// match reports whether the CODEOWNERS pattern matches a file. For a pattern that anchoredTop
+// accepts, it only tries the files below the first element of the pattern.
+func (x *fileIndex) match(pattern string) bool {
+	// A pattern follows the rules of gitignore files. A negated pattern never excludes a file,
+	// so it matches no files. GitHub does not support negation either.
+	p := gitignore.ParsePattern(pattern, nil)
+
+	candidates := x.files
+	if top, ok := anchoredTop(pattern); ok {
+		candidates = x.byTop[top]
+	}
+
+	return slices.ContainsFunc(candidates, func(f repoFile) bool {
+		return p.Match(f.path, f.isDir) == gitignore.Exclude
+	})
+}
+
+// anchoredTop returns the first element of an anchored pattern, and false when the pattern is not
+// anchored or the element has glob characters. Like gitignore.ParsePattern, it ignores a leading
+// "!", trailing spaces, and a trailing "/". A pattern that still has a "/" is anchored, and its
+// first non-empty element only matches the first element of a path.
+func anchoredTop(pattern string) (string, bool) {
+	p := strings.TrimPrefix(pattern, "!")
+	if !strings.HasSuffix(p, `\ `) {
+		p = strings.TrimRight(p, " ")
+	}
+	p = strings.TrimSuffix(p, "/")
+
+	if !strings.Contains(p, "/") {
+		return "", false
+	}
+
+	for elem := range strings.SplitSeq(p, "/") {
+		if elem == "" {
+			continue
+		}
+		if strings.ContainsAny(elem, `*?[\`) {
+			return "", false
+		}
+
+		return elem, true
+	}
+
+	return "", false
 }

@@ -38,11 +38,11 @@ func TestMain(m *testing.M) {
 }
 
 // loadInput returns an Input with the entries parsed from a CODEOWNERS file.
-func loadInput(t *testing.T, content string) Input {
-	t.Helper()
+func loadInput(tb testing.TB, content string) Input {
+	tb.Helper()
 
 	entries, err := codeowners.Parse(strings.NewReader(content))
-	assert.NilError(t, err)
+	assert.NilError(tb, err)
 
 	return Input{Entries: entries}
 }
@@ -67,22 +67,22 @@ func newGitRepo(t *testing.T, files ...string) string {
 
 // gitCommand returns the command that runs git with args in dir, with an identity for commits
 // and merges.
-func gitCommand(t *testing.T, dir string, args ...string) *exec.Cmd {
-	t.Helper()
+func gitCommand(tb testing.TB, dir string, args ...string) *exec.Cmd {
+	tb.Helper()
 
 	identity := []string{"-c", "user.name=test", "-c", "user.email=test@example.com"}
-	cmd := exec.CommandContext(t.Context(), "git", append(identity, args...)...)
+	cmd := exec.CommandContext(tb.Context(), "git", append(identity, args...)...)
 	cmd.Dir = dir
 
 	return cmd
 }
 
 // runGit runs git with args in dir and fails the test on error.
-func runGit(t *testing.T, dir string, args ...string) {
-	t.Helper()
+func runGit(tb testing.TB, dir string, args ...string) {
+	tb.Helper()
 
-	out, err := gitCommand(t, dir, args...).CombinedOutput()
-	assert.NilError(t, err, "git %v: %s", args, out)
+	out, err := gitCommand(tb, dir, args...).CombinedOutput()
+	assert.NilError(tb, err, "git %v: %s", args, out)
 }
 
 // commitAll commits the changes of the tracked files in dir.
