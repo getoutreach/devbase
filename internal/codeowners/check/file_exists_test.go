@@ -6,6 +6,7 @@
 package check
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -215,4 +216,24 @@ func TestFileExistsNotAGitRepository(t *testing.T) {
 	assert.Assert(t, err != nil)
 	assert.Assert(t, strings.Contains(err.Error(), "not a git repository"), "got %v", err)
 	assert.Equal(t, len(out.Issues), 0)
+}
+
+func TestFileExistsSubmodule(t *testing.T) {
+	for _, staged := range []bool{false, true} {
+		t.Run(fmt.Sprintf("staged=%t", staged), func(t *testing.T) {
+			in := loadInput(t, "/vendor/lib/ @pico\n/vendor/lib/x.go @pico\n")
+			in.RepoDir = newGitRepo(t, "a.go")
+			in.Staged = staged
+
+			// A submodule that is not checked out is a gitlink in the index and an empty directory.
+			runGit(t, in.RepoDir, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("1", 40)+",vendor/lib")
+			assert.NilError(t, os.MkdirAll(filepath.Join(in.RepoDir, "vendor", "lib"), 0o755))
+
+			out, err := NewFileExist().Check(t.Context(), in)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, out.Issues, []Issue{
+				{Severity: Error, LineNo: 2, Message: `"/vendor/lib/x.go" does not match any files in repository`},
+			})
+		})
+	}
 }
