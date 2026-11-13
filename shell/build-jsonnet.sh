@@ -40,14 +40,37 @@ environment="${DEVENV_DEPLOY_ENVIRONMENT:-"development"}"
 host="${DEVENV_DEPLOY_HOST:-"bento1a.outreach-dev.com"}"
 email="${DEV_EMAIL:-$(git config user.email || echo 'devbase@outreach.io')}"
 appImageRegistry="${DEVENV_DEPLOY_IMAGE_REGISTRY:-"$(get_docker_pull_registry)"}"
+cluster="development.us-west-2"
+region="us-west-2"
+
+# jsonnet-libs' kubernetes/cluster.libsonnet imports clusters.yaml and looks up the
+# `cluster` extVar in it. jsonnet-libs does not ship that file, so write the dev
+# cluster's entry to a temp dir on the jpath.
+clustersDir="$(mktemp -d)"
+trap 'rm -rf "$clustersDir"' EXIT
+cat >"$clustersDir/clusters.yaml" <<EOF
+$cluster:
+  availability_zones:
+    - us-east-2a
+    - us-east-2b
+    - us-east-2c
+  bentos:
+    - $bento
+  cloud_provider: aws
+  custom_addons: {}
+  dns_zone: outreach.cloud
+  environment: development
+  name: development
+  region: $region
+EOF
 
 mise_exec_tool_with_bin github:getoutreach/kubecfg kubecfg \
   --jpath "$jsonnetLibsCacheDir" \
-  --jurl http://k8s-clusters.outreach.cloud/ \
+  --jpath "$clustersDir" \
   -n "$namespace" \
   --context "dev-environment" "$action" "$(get_repo_directory)/$jsonnetSourcePath/$jsonnetManifestPath" \
-  -V cluster="development.us-west-2" \
-  -V region="us-west-2" \
+  -V cluster="$cluster" \
+  -V region="$region" \
   -V namespace="$namespace" \
   -V environment="$environment" \
   -V version="$version" \
