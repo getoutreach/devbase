@@ -52,7 +52,11 @@ func newRepo(t *testing.T, branch string) *fixture {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	f := &fixture{t: t, git: &Git{Dir: t.TempDir()}}
+	// Fake commands print their folder with the symlinks resolved, such
+	// as /private/var for /var on macOS, so the fixture uses that form.
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	assert.NilError(t, err)
+	f := &fixture{t: t, git: &Git{Dir: dir}}
 	f.run("init", "-q", "-b", branch)
 	f.configure()
 	return f

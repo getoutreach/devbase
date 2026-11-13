@@ -59,7 +59,7 @@ const fakePoetry = `#!/bin/sh
 d=$(dirname "$0")
 echo "poetry $*" >> "$d/calls.log"
 case "$1" in
-version) sed -i "s/^version = .*/version = \"$2\"/" pyproject.toml ;;
+version) sed "s/^version = .*/version = \"$2\"/" pyproject.toml > pyproject.toml.new && mv pyproject.toml.new pyproject.toml ;;
 publish) touch "$d/published" ;;
 esac
 `

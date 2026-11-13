@@ -133,8 +133,7 @@ func TestPublishUnitInstall(t *testing.T) {
 
 	// The install runs in the unit folder before npm version.
 	assert.NilError(t, u.publishUnits(plan))
-	dir, err := filepath.EvalSymlinks(filepath.Join(u.git.Dir, "node", "widgets-client"))
-	assert.NilError(t, err)
+	dir := filepath.Join(u.git.Dir, "node", "widgets-client")
 	lines := strings.Split(npmLog(t, npm), "\n")
 	assert.Equal(t, lines[0], "yarn in "+dir+": install --frozen-lockfile")
 	assert.Assert(t, strings.HasPrefix(lines[1], "version 1.1.1 "), lines[1])
