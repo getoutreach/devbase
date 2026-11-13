@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 )
@@ -59,12 +60,17 @@ type cmdRunner func(ctx context.Context, log io.Writer, c *command) (cmdResult, 
 // Masker of ctx, or else of the command's environment.
 func execCommand(ctx context.Context, log io.Writer, c *command) (cmdResult, error) {
 	m := maskerFor(ctx, c.env)
-	log = m.Writer(log)
-	fmt.Fprintf(log, "Run %s\n", c)
 	cmd := exec.CommandContext(ctx, c.name, c.args...) //nolint:gosec // Why: the release runs the commands of its config.
 	var stdout, stderr bytes.Buffer
 	cmd.Dir, cmd.Env = c.dir, c.env
-	cmd.Stdout, cmd.Stderr = io.MultiWriter(&stdout, log), io.MultiWriter(&stderr, log)
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if log != io.Discard {
+		// os/exec copies stdout and stderr in two goroutines, and both
+		// write to log.
+		log = &syncWriter{w: m.Writer(log)}
+		fmt.Fprintf(log, "Run %s\n", c)
+		cmd.Stdout, cmd.Stderr = io.MultiWriter(&stdout, log), io.MultiWriter(&stderr, log)
+	}
 	err := cmd.Run()
 	res := cmdResult{stdout: stdout.String(), stderr: stderr.String()}
 	if err != nil {
@@ -72,6 +78,19 @@ func execCommand(ctx context.Context, log io.Writer, c *command) (cmdResult, err
 		return res, fmt.Errorf("%s: %w: %s", m.Mask(c.String()), err, m.Mask(out))
 	}
 	return res, nil
+}
+
+// syncWriter serializes the writes to w.
+type syncWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+// Write writes p to w while it holds the lock.
+func (s *syncWriter) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.w.Write(p)
 }
 
 // maskerFor returns the Masker of ctx, or else a Masker of env.

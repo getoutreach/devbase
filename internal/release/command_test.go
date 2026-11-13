@@ -56,6 +56,22 @@ func TestExecCommandMasksSecrets(t *testing.T) {
 	assert.ErrorContains(t, err, "[secure] tok-SECRET")
 }
 
+// TestExecCommandConcurrentOutput checks that stdout and stderr, which
+// os/exec copies in two goroutines, write to the log one at a time. Run
+// it with -race.
+func TestExecCommandConcurrentOutput(t *testing.T) {
+	var log bytes.Buffer
+	c := &command{
+		dir: t.TempDir(), env: []string{"PATH=/usr/bin:/bin"}, name: "/bin/sh",
+		args: []string{"-c", `for i in $(seq 200); do echo "out $i"; echo "err $i" >&2; done`},
+	}
+	_, err := execCommand(context.Background(), &log, c)
+	assert.NilError(t, err)
+	// The first log line is the command line, which also has "out ".
+	assert.Equal(t, strings.Count(log.String(), "\nout "), 200)
+	assert.Equal(t, strings.Count(log.String(), "\nerr "), 200)
+}
+
 // TestRunExecHook checks that a hook's stdout and stderr go to the log,
 // as @semantic-release/exec pipes them, and that its error has stderr.
 func TestRunExecHook(t *testing.T) {

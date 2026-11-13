@@ -131,7 +131,8 @@ func MaskerFrom(ctx context.Context) *Masker {
 	return m
 }
 
-// WithDebug returns a context whose Debugf calls write to w.
+// WithDebug returns a context whose Debugf calls write to w. w must be
+// safe for concurrent use, because Build runs its targets in parallel.
 func WithDebug(ctx context.Context, w io.Writer) context.Context {
 	return context.WithValue(ctx, debugKey{}, w)
 }
