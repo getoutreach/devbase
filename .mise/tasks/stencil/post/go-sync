@@ -48,11 +48,8 @@ if [[ -z $gomodGoVersion ]]; then
   exit 0
 fi
 
-for godir in $(go_mod_dirs); do
-  if go_mod_managed_by_stencil "$godir"; then
-    continue
-  fi
-  gomod="$(go_mod_file_for_dir "$godir")"
+for godir in $(go_mod_unmanaged_child_dirs); do
+  gomod="$godir/go.mod"
   info "Syncing Go version in $gomod to $gomodGoVersion"
 
   go_mod_sync_child "$appDir/$gomod" "$appDir/go.mod" "${GO_MODULES_TO_SYNC:-}"

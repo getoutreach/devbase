@@ -439,3 +439,14 @@ write_root_and_child_go_mod() {
   run go_mod_managed_by_stencil pkg
   assert_failure
 }
+
+@test "go_mod_unmanaged_child_dirs prints the unmanaged child modules, and skips the root and managed modules" {
+  stub_stencil_environment
+  STENCIL_MANAGED_FILES="pkg/go.mod" # the root go.mod is not managed
+  mkdir -p pkg other third
+  touch go.mod pkg/go.mod other/go.mod third/go.mod
+
+  run go_mod_unmanaged_child_dirs
+  assert_success
+  assert_output "$(printf 'other\nthird')"
+}

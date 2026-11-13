@@ -97,6 +97,21 @@ go_mod_managed_by_stencil() {
   managed_by_stencil "$(go_mod_file_for_dir "$1")"
 }
 
+# go_mod_unmanaged_child_dirs
+#
+# Prints, one per line, the directories of the go.mod files that Stencil does not
+# manage, except the root go.mod, which is the source of the sync and never a
+# target.
+go_mod_unmanaged_child_dirs() {
+  local godir
+  for godir in $(go_mod_dirs); do
+    if [[ $godir == "." ]] || go_mod_managed_by_stencil "$godir"; then
+      continue
+    fi
+    echo "$godir"
+  done
+}
+
 # check_go_mod_go_version(module_dir)
 #
 # Succeeds if the go directive of the go.mod in module_dir (relative to the
