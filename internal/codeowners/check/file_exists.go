@@ -18,8 +18,9 @@ import (
 const gitlinkMode = "160000"
 
 // FileExist validates that every pattern of the CODEOWNERS file matches at least one file of the
-// repository. The files are the ones in the git index and, when Input.Staged is not set, the
-// untracked files that git does not ignore. A submodule counts as a directory.
+// repository. The files are the ones in the git index. When Input.Staged is not set, they also
+// include the untracked files that git does not ignore, and exclude the files deleted from the
+// working tree. A submodule counts as a directory.
 type FileExist struct{}
 
 // repoFile is a file of the repository.
@@ -74,8 +75,8 @@ func (*FileExist) Name() string {
 	return "File Exist Checker"
 }
 
-// repoFiles returns the files in the git index and, when in.Staged is not set, the untracked
-// files that git does not ignore.
+// repoFiles returns the files in the git index. When in.Staged is not set, it also returns the
+// untracked files that git does not ignore, and leaves out the files deleted from the working tree.
 func repoFiles(ctx context.Context, in Input) ([]repoFile, error) {
 	// Each staged entry is "<mode> <object> <stage>\t<path>".
 	staged, err := gitLsFiles(ctx, in, "--stage")
@@ -83,18 +84,27 @@ func repoFiles(ctx context.Context, in Input) ([]repoFile, error) {
 		return nil, err
 	}
 
-	var untracked []string
+	var untracked, deleted []string
 	if !in.Staged {
-		untracked, err = gitLsFiles(ctx, in, "--others", "--exclude-standard")
-		if err != nil {
+		if untracked, err = gitLsFiles(ctx, in, "--others", "--exclude-standard"); err != nil {
 			return nil, err
 		}
+		if deleted, err = gitLsFiles(ctx, in, "--deleted"); err != nil {
+			return nil, err
+		}
+	}
+
+	gone := make(map[string]bool, len(deleted))
+	for _, path := range deleted {
+		gone[path] = true
 	}
 
 	files := make([]repoFile, 0, len(staged)+len(untracked))
 	for _, entry := range staged {
 		_, path, _ := strings.Cut(entry, "\t")
-		files = append(files, repoFile{path: strings.Split(path, "/"), isDir: strings.HasPrefix(entry, gitlinkMode+" ")})
+		if !gone[path] {
+			files = append(files, repoFile{path: strings.Split(path, "/"), isDir: strings.HasPrefix(entry, gitlinkMode+" ")})
+		}
 	}
 	for _, path := range untracked {
 		files = append(files, repoFile{path: strings.Split(path, "/")})

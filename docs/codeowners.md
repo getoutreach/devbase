@@ -48,7 +48,7 @@ devbase lint codeowners --staged --checks files,duppatterns,syntax,notowned
 With `--staged`:
 
 - The command reads the CODEOWNERS file from the git index. Without `--staged`, it reads the file from the working tree.
-- The `files` check uses only the files in the git index. Without `--staged`, it also uses the untracked files that git does not ignore.
+- The `files` check uses only the files in the git index. Without `--staged`, it also uses the untracked files that git does not ignore, and it does not use the files deleted from the working tree.
 
 The `notowned` check always uses the files in the git index.
 
@@ -58,14 +58,14 @@ The command exits with 1 when a check finds an issue at or above `--check-failur
 
 ## Checks
 
-| Name              | Default | Description                                                                                                                                                                                                                        |
-| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `files`           | Yes     | Reports each pattern that matches no file. The check uses the files that git tracks and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index. A submodule counts as a directory. |
-| `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                 |
-| `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                |
-| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address.                                                                                                                                    |
-| `notowned`        | No      | Reports each file in the git index that no pattern matches. This check is experimental.                                                                                                                                            |
-| `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                           |
+| Name              | Default | Description                                                                                                                                                                                                                                                                         |
+| ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`           | Yes     | Reports each pattern that matches no file. The check uses the files that git tracks, except the files deleted from the working tree, and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index. A submodule counts as a directory. |
+| `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                                                                  |
+| `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                                                                 |
+| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address.                                                                                                                                                                                     |
+| `notowned`        | No      | Reports each file in the git index that no pattern matches. This check is experimental.                                                                                                                                                                                             |
+| `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                                                                            |
 
 ### The `owners` check
 

@@ -237,3 +237,29 @@ func TestFileExistsSubmodule(t *testing.T) {
 		})
 	}
 }
+
+func TestFileExistsDeletedFile(t *testing.T) {
+	tests := map[string]struct {
+		staged bool
+		issues []Issue
+	}{
+		"the working tree": {
+			issues: []Issue{{Severity: Error, LineNo: 1, Message: `"/old/" does not match any files in repository`}},
+		},
+		"the git index": {staged: true},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			in := loadInput(t, "/old/ @pico\n/a.go @pico\n")
+			in.RepoDir = newGitRepo(t, "a.go", "old/x")
+			in.Staged = tc.staged
+
+			// The deletion is not staged.
+			assert.NilError(t, os.Remove(filepath.Join(in.RepoDir, "old", "x")))
+
+			out, err := NewFileExist().Check(t.Context(), in)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, out.Issues, tc.issues)
+		})
+	}
+}
