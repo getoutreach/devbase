@@ -1,0 +1,8 @@
+==> Executing Slow (<duration>)
+    Check OK
+==> Executing Fast (<duration>)
+    [war] line 3: a warning
+==> Executing Last (<duration>)
+    [Internal Error] it broke
+
+3 check(s) executed, 2 failure(s)

@@ -1,0 +1,18 @@
+==> Executing File Exist Checker (<duration>)
+    [err] line 2: "/missing.go" does not match any files in repository
+==> Executing Duplicated Pattern Checker (<duration>)
+    [err] Pattern "/main.go" is defined 2 times in lines:
+            * 1: with owners: [@org/team]
+            * 3: with owners: [@org/other]
+==> Executing Valid Syntax Checker (<duration>)
+    [war] line 4: Owner '@-bad' does not look like a GitHub username or team name
+==> Executing [Experimental] Avoid Shadowing Checker (<duration>)
+    [err] line 3: Pattern "/main.go" shadows the following patterns:
+            * 1: "/main.go"
+Entries should go from least-specific to most-specific.
+==> Executing [Experimental] Not Owned File Checker (<duration>)
+    [err] Found 2 not owned files (skipped patterns: ""):
+            * .github/CODEOWNERS
+            * docs/readme.md
+
+5 check(s) executed, 5 failure(s)

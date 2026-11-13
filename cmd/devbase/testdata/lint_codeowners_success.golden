@@ -1,0 +1,12 @@
+==> Executing File Exist Checker (<duration>)
+    Check OK
+==> Executing Duplicated Pattern Checker (<duration>)
+    Check OK
+==> Executing Valid Syntax Checker (<duration>)
+    Check OK
+==> Executing [Experimental] Avoid Shadowing Checker (<duration>)
+    Check OK
+==> Executing [Experimental] Not Owned File Checker (<duration>)
+    Check OK
+
+5 check(s) executed, no failure(s)

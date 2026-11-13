@@ -12,6 +12,7 @@ func newLintCommand() *cli.Command {
 		Name:  "lint",
 		Usage: "Run lint checks on the codebase",
 		Commands: []*cli.Command{
+			newLintCodeownersCommand(),
 			newLintGraphQLCommand(),
 		},
 	}

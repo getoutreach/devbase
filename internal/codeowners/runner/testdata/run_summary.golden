@@ -1,0 +1,8 @@
+==> Executing OK (<duration>)
+    Check OK
+==> Executing Warn (<duration>)
+    [war] w
+==> Executing Broken (<duration>)
+    [Internal Error] boom
+
+3 check(s) executed, 2 failure(s)
