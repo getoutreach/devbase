@@ -4,33 +4,16 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
-	giturls "github.com/chainguard-dev/git-urls"
+	"github.com/getoutreach/devbase/v2/internal/giturl"
 	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/magefile/mage/sh"
 	"github.com/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
-
-func pathFromGitURL(origin string) (string, error) {
-	if strings.HasPrefix(origin, "https://") {
-		u, err := url.Parse(origin)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to parse HTTPS URL")
-		}
-		return strings.TrimPrefix(u.Path, "/"), nil
-	}
-
-	u, err := giturls.Parse(origin)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse SSH URL")
-	}
-	return u.Path, nil
-}
 
 // getOrg returns the Github organization name of the current repository
 func getOrg() (string, error) {
@@ -45,7 +28,7 @@ func getOrg() (string, error) {
 		return "", errors.Wrap(err, "failed to get git origin")
 	}
 
-	urlPath, err := pathFromGitURL(origin)
+	urlPath, err := giturl.Path(origin)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse git origin %q", origin)
 	}

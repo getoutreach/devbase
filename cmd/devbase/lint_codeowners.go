@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,13 +16,13 @@ import (
 	"strings"
 	"time"
 
-	giturls "github.com/chainguard-dev/git-urls"
 	"github.com/fatih/color"
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/check"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/ghclient"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
 	"github.com/getoutreach/devbase/v2/internal/codeowners/runner"
+	"github.com/getoutreach/devbase/v2/internal/giturl"
 	githubauth "github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/urfave/cli/v3"
 )
@@ -340,7 +339,7 @@ func repositoryFromOrigin(ctx context.Context, repoDir string, trust bool) (stri
 
 	// The error does not wrap the parse error, which shows the full URL with its credentials.
 	origin := strings.TrimSpace(string(out))
-	path, err := pathFromGitURL(origin)
+	path, err := giturl.Path(origin)
 	repository := strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".git")
 	if owner, repo, ok := strings.Cut(repository, "/"); err != nil || !ok || owner == "" || repo == "" || strings.Contains(repo, "/") {
 		return "", fmt.Errorf("%w: %q", errInvalidOrigin, redactURL(origin))
@@ -364,24 +363,4 @@ func redactURL(rawURL string) string {
 	}
 
 	return rawURL
-}
-
-// pathFromGitURL returns the path of the git URL, which is "owner/repository" with an optional
-// ".git" suffix for a GitHub repository.
-func pathFromGitURL(origin string) (string, error) {
-	if strings.HasPrefix(origin, "https://") {
-		u, err := url.Parse(origin)
-		if err != nil {
-			return "", fmt.Errorf("parse HTTPS URL: %w", err)
-		}
-
-		return u.Path, nil
-	}
-
-	u, err := giturls.Parse(origin)
-	if err != nil {
-		return "", fmt.Errorf("parse SSH URL: %w", err)
-	}
-
-	return u.Path, nil
 }
