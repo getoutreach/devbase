@@ -22,6 +22,10 @@ type serviceOptions struct {
 
 	// PrereleasesBranch is the branch of the unstable release.
 	PrereleasesBranch string `yaml:"prereleasesBranch"`
+
+	// Signing is how publish signs checksums.txt: "none", the default,
+	// or "keyless".
+	Signing string `yaml:"signing"`
 }
 
 // loadServiceOptions reads the release options of service.yaml in dir. A

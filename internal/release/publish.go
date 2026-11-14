@@ -1,8 +1,8 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
-// Description: Publishes a planned release: checksums, hooks, the release
-// commit, the tag and note, the publish step in plugin order, and the
-// success step.
+// Description: Publishes a planned release: checksums, the signature,
+// hooks, the release commit, the tag and note, the publish step in plugin
+// order, and the success step.
 
 package release
 
@@ -76,26 +76,29 @@ type PublishOptions struct {
 	// Env is the environment of the hooks and of git.
 	Env []string
 
-	// Exec creates the registry commands, such as npm, bundle, gem,
-	// poetry, aws, circleci and mise. Nil means real processes. git, go,
-	// the builder and the exec hooks always run as real processes.
+	// Exec creates the registry and signing commands, such as npm,
+	// bundle, gem, poetry, aws, circleci, cosign and mise. Nil means real
+	// processes. git, go, the builder and the exec hooks always run as
+	// real processes.
 	Exec exec.Exec
 
 	// Log receives progress messages and the output of the hooks.
 	Log io.Writer
 
-	// DryRun stops after the checks of the assets and of the tag, and
-	// the build checks of the registries, such as the gem build. It
-	// makes no release commit, tag, push or registry publish, and does
-	// not report a failure to the forge.
+	// DryRun stops after the signing check, the checks of the assets
+	// and of the tag, and the build checks of the registries, such as the
+	// gem build. It signs nothing, makes no release commit, tag, push or
+	// registry publish, and does not report a failure to the forge.
 	DryRun bool
 }
 
 // Publish publishes a planned release, in the order of the RFC:
-// checksums, generateNotes and prepare hooks, the release commit, the tag
-// and its git note, the publish step in plugin order, and the success
-// step. A rerun after a failure continues the same release. When a step
-// fails, the forge opens or updates the failure issue.
+// checksums, the keyless signature, generateNotes and prepare hooks, the
+// release commit, the tag and its git note, the publish step in plugin
+// order, and the success step. The signing check comes first, so that a
+// private repository with keyless signing stops before the other steps.
+// A rerun after a failure continues the same release. When a step fails,
+// the forge opens or updates the failure issue.
 func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (err error) {
 	switch {
 	case !plan.Release:
@@ -114,8 +117,10 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		root bool
 	}
 	steps := []step{
+		{"signing_check", p.checkSigning, true},
 		{"assets", p.assets, true},
 		{"state", p.state, false},
+		{"sign", p.sign, true},
 		{"generate_notes", p.generateNotes, true},
 		{"units", p.tagUnits, false},
 		{"unit_publish", func(ctx context.Context) error { return p.publishUnits(ctx, false) }, false},
@@ -126,7 +131,7 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		{"success", p.success, false},
 	}
 	if opts.DryRun {
-		steps = append(steps[:2:2], step{"build_check", p.checkBuilds, true})
+		steps = append(steps[:3:3], step{"build_check", p.checkBuilds, true})
 	}
 	defer func() {
 		if err != nil && r.Config.Forge() != nil && !opts.DryRun {
@@ -176,6 +181,13 @@ type publisher struct {
 
 	// unitErrs are the errors of the units that failed to publish.
 	unitErrs []error
+
+	// keyless is true when the release has a keyless signature.
+	keyless bool
+
+	// bundle is the Sigstore bundle that this run signed, for the forge
+	// release, or empty.
+	bundle string
 }
 
 // assets checks that every planned asset exists, moves the archives of
@@ -611,13 +623,17 @@ func execRelease(stdout string) *forge.Published {
 
 // forgeRelease publishes the forge release with its assets, as
 // @semantic-release/github does: a release with assets is a draft until
-// they are uploaded. A rerun continues a draft: it replaces broken or
-// changed uploads and uploads the missing assets.
+// they are uploaded. The Sigstore bundle of this run is an asset too. A
+// rerun continues a draft: it replaces broken or changed uploads and
+// uploads the missing assets.
 func (p *publisher) forgeRelease(ctx context.Context, fp *spec.ForgePlugin) error {
 	f, next := p.opts.Forge, p.plan.NextRelease
 	files, err := p.globAssets(fp.Assets)
 	if err != nil {
 		return err
+	}
+	if p.bundle != "" && !slices.Contains(files, p.bundle) {
+		files = append(files, p.bundle)
 	}
 	// A draft from an earlier run exists only after its tag push.
 	var rel *forge.Release
