@@ -400,22 +400,27 @@ func TestValidOwnerComparesOwnersCaseInsensitively(t *testing.T) {
 	assert.Equal(t, fake.count(routeCollaborators), 1)
 }
 
+// collaboratorPages responds with the collaborators in two pages. The first page has
+// collaboratorsJSON, and a link to the second page, which has the user zed.
+func collaboratorPages(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("page") == "" {
+		next := *r.URL
+		q := next.Query()
+		q.Set("page", "2")
+		next.RawQuery = q.Encode()
+		w.Header().Set("Link", `<http://`+r.Host+next.String()+`>; rel="next"`)
+		reply(http.StatusOK, "", collaboratorsJSON)(w, r)
+		return
+	}
+	reply(http.StatusOK, "", `[{"login": "zed", "permissions": {"push": true}}]`)(w, r)
+}
+
 func TestValidOwnerListsAllPages(t *testing.T) {
 	routes := defaultRoutes()
 	routes[routeCollaborators] = func(w http.ResponseWriter, r *http.Request) {
 		assert.Check(t, cmp.Equal(r.URL.Query().Get("affiliation"), "all"))
 		assert.Check(t, cmp.Equal(r.URL.Query().Get("per_page"), "100"))
-
-		if r.URL.Query().Get("page") == "" {
-			next := *r.URL
-			q := next.Query()
-			q.Set("page", "2")
-			next.RawQuery = q.Encode()
-			w.Header().Set("Link", `<http://`+r.Host+next.String()+`>; rel="next"`)
-			reply(http.StatusOK, "", collaboratorsJSON)(w, r)
-			return
-		}
-		reply(http.StatusOK, "", `[{"login": "zed", "permissions": {"push": true}}]`)(w, r)
+		collaboratorPages(w, r)
 	}
 	routes[routeTeams] = func(w http.ResponseWriter, r *http.Request) {
 		assert.Check(t, cmp.Equal(r.URL.Query().Get("per_page"), "100"))
@@ -689,20 +694,6 @@ func withDecreasingRate(start int, routes map[string]http.HandlerFunc) map[strin
 // last response said that fewer requests remain than the reserve, and returns the issues that it
 // found before.
 func TestValidOwnerRateLimitReserveBeforeEachCall(t *testing.T) {
-	// paged responds with the collaborators in two pages. The user zed is on the second page.
-	paged := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("page") == "" {
-			next := *r.URL
-			q := next.Query()
-			q.Set("page", "2")
-			next.RawQuery = q.Encode()
-			w.Header().Set("Link", `<http://`+r.Host+next.String()+`>; rel="next"`)
-			reply(http.StatusOK, "", collaboratorsJSON)(w, r)
-			return
-		}
-		reply(http.StatusOK, "", `[{"login": "zed", "permissions": {"push": true}}]`)(w, r)
-	}
-
 	tests := map[string]struct {
 		// start is one more than the remaining requests in the response of routeRepository.
 		start      int
@@ -713,7 +704,7 @@ func TestValidOwnerRateLimitReserveBeforeEachCall(t *testing.T) {
 	}{
 		"before the next page of a list": {
 			start:      501,
-			routes:     map[string]http.HandlerFunc{routeCollaborators: paged},
+			routes:     map[string]http.HandlerFunc{routeCollaborators: collaboratorPages},
 			codeowners: "*.md @other/team\n*.go @zed",
 			remaining:  499,
 			calls:      map[string]int{routeCollaborators: 1},
