@@ -24,10 +24,11 @@ func releaseConfigCommand() *cli.Command {
 				Name: "convert",
 				Usage: "Print the release section of scripts/devbase.yaml that replaces " +
 					".releaserc.yaml and .goreleaser.yml",
-				Description: "Reads .releaserc.yaml, and .goreleaser.yml when the release builds, in the working " +
-					"directory, and prints the equivalent release section without the default values. " +
-					"Put the section in scripts/devbase.yaml and delete both files: the release command " +
-					"refuses to run while both configurations exist.",
+				Description: "Reads .releaserc.yaml and .goreleaser.yml in the working directory, and prints the " +
+					"equivalent release section without the default values. The Go submodules that " +
+					"release-submodules.sh tags become units. Put the section in scripts/devbase.yaml and " +
+					"delete both files. The release command fails while the section and either file exist. " +
+					"See docs/releasing.md.",
 				Action: releaseConfigConvert,
 			},
 		},
