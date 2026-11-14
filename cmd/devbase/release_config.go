@@ -28,7 +28,9 @@ func releaseConfigCommand() *cli.Command {
 					"equivalent release section without the default values. The Go submodules that " +
 					"release-submodules.sh tags become units. Put the section in scripts/devbase.yaml and " +
 					"delete both files. The release command fails while the section and either file exist. " +
-					"See docs/releasing.md.",
+					"If stencil renders scripts/devbase.yaml and no module adds the release section, put the " +
+					"section between the \"## <<Stencil::Block(release)>>\" and \"## <</Stencil::Block>>\" " +
+					"lines. See docs/releasing.md.",
 				Action: releaseConfigConvert,
 			},
 		},

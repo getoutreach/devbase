@@ -144,7 +144,10 @@ when the commit changes no unit.
 
 `devbase release config convert` prints the equivalent `release`
 section to stdout, and notes to stderr. Put the section in
-`scripts/devbase.yaml` and delete both old files.
+`scripts/devbase.yaml` and delete both old files. If stencil renders
+`scripts/devbase.yaml` and no module adds the `release` section, put the
+section between the `## <<Stencil::Block(release)>>` and
+`## <</Stencil::Block>>` lines.
 
 * A `.goreleaser.yml` without the build hook in `.releaserc.yaml`
   becomes a build with `unstableOnly: true`.
