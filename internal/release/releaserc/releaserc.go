@@ -10,7 +10,6 @@ package releaserc
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/internal/strictyaml"
@@ -72,9 +71,6 @@ const (
 	// CodeArtifactRegionEnv is the AWS region of the domain.
 	CodeArtifactRegionEnv = "DEVBASE_RELEASE_CODEARTIFACT_REGION"
 )
-
-// pythonHookRe matches another form of the Python client hooks.
-var pythonHookRe = regexp.MustCompile(`(?s)poetry.*\bversion\b|publish:pyclient`)
 
 // majorReleaseCheckerCmd is the exec hook that stencil-base renders
 // when major versions are not allowed. The release command replaces it
@@ -258,10 +254,10 @@ func addExec(cfg *spec.Config, opts *yaml.Node, name string) error {
 		switch {
 		case strings.Contains(cmd, "make release") || strings.Contains(cmd, "release:build"):
 			return fmt.Errorf("%w: build hook %q; use %q", spec.ErrUnsupported, cmd, buildTaskCmd)
-		case strings.Contains(cmd, "ruby/build.sh") || strings.Contains(cmd, "ruby/publish.sh"):
+		case spec.IsRubyClientHook(cmd):
 			return fmt.Errorf("%w: Ruby client hook %q; use generateNotesCmd %q with publishCmd %q",
 				spec.ErrUnsupported, cmd, rubyBuildCmd, rubyPublishCmd)
-		case pythonHookRe.MatchString(cmd):
+		case spec.IsPythonClientHook(cmd):
 			return fmt.Errorf("%w: Python client hook %q; use the stencil Python client hooks", spec.ErrUnsupported, cmd)
 		}
 	}

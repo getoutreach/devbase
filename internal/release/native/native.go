@@ -114,7 +114,6 @@ package native
 import (
 	"fmt"
 	"io/fs"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -184,10 +183,6 @@ var buildCommands = []string{"make release", "release:build", "major-release-che
 // SubmodulesScript is the script that tags the Go submodules in the old
 // configuration. Go module units replace it.
 const SubmodulesScript = "release-submodules.sh"
-
-// clientHookRe matches a hook that runs the stencil Ruby or Python
-// client scripts, which the gem and python publishers replace.
-var clientHookRe = regexp.MustCompile(`(?s)ruby/(build|publish)\.sh|poetry.*\bversion\b|publish:pyclient`)
 
 // file is the top-level shape of scripts/devbase.yaml. Other tools own
 // the other keys.
@@ -511,7 +506,7 @@ func checkHookCommand(cmd string) error {
 			return fmt.Errorf("%w: hook %q runs %s; use the build key or allowMajorVersions", spec.ErrUnsupported, cmd, c)
 		}
 	}
-	if clientHookRe.MatchString(cmd) {
+	if spec.IsRubyClientHook(cmd) || spec.IsPythonClientHook(cmd) {
 		return fmt.Errorf("%w: hook %q publishes a client; use the gem or python publisher", spec.ErrUnsupported, cmd)
 	}
 	if strings.Contains(cmd, SubmodulesScript) {
