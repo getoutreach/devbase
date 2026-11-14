@@ -195,7 +195,9 @@ func TestRollbackStopsForPythonPackage(t *testing.T) {
 	p.partialRelease()
 	view := npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)
 
-	// A Python package for the version stops the rollback.
+	// A Python package for the version stops the rollback. The npm check
+	// verifies the token first.
+	p.cmds.expect(cmdOK("acme\n"), npmWhoamiArgv...)
 	p.cmds.expect(cmdFails(npmE404), view...)
 	p.cmds.expect(cmdOK("Published\n"), describeArgs("1.0.0")...)
 	_, err := p.rollback(&RollbackOptions{Tag: "v1.0.0"})
@@ -204,6 +206,7 @@ func TestRollbackStopsForPythonPackage(t *testing.T) {
 	assert.Assert(t, p.remoteRef("refs/tags/v1.0.0") != "")
 
 	// Without it, the rollback deletes the tag.
+	p.cmds.expect(cmdOK("acme\n"), npmWhoamiArgv...)
 	p.cmds.expect(cmdFails(npmE404), view...)
 	expectMissingVersion(p.cmds, "1.0.0")
 	_, err = p.rollback(&RollbackOptions{Tag: "v1.0.0"})
@@ -217,6 +220,7 @@ func TestRollbackStopsForMissingRepository(t *testing.T) {
 	p := clientsFixture(t, "", map[string]string{})
 	expectClientsPrepare(p.cmds)
 	p.partialRelease()
+	p.cmds.expect(cmdOK("acme\n"), npmWhoamiArgv...)
 	p.cmds.expect(cmdFails(npmE404), npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)...)
 	p.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.0.0")...)
 	p.cmds.expect(cmdFails(codeArtifactNoRepository), endpointArgs...)

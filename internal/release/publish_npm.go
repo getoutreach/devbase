@@ -174,9 +174,11 @@ func (n *npmRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 }
 
 // exists reports whether the registry has the version of the plan. A
-// private package is never published, so it is false.
+// private package is never published, so it is false. It checks the
+// token as prepare does, because npm view of a restricted package with
+// a bad token fails with E404, as for a missing version.
 func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
-	s, err := n.open(ctx, p, false)
+	s, err := n.open(ctx, p, true)
 	if err != nil {
 		return false, err
 	}

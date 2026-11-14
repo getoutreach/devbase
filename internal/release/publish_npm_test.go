@@ -322,6 +322,26 @@ func TestNPMExists(t *testing.T) {
 	}
 }
 
+// TestNPMExistsChecksToken checks that exists verifies the token with npm
+// whoami on the default registry, as prepare does, and fails before npm
+// view, which gives E404 for a restricted package with a bad token.
+func TestNPMExistsChecksToken(t *testing.T) {
+	pkg := `{"name": "@acme/client"}`
+	view := npmViewArgv("@acme/client@1.0.0", officialNPMRegistry)
+
+	f := newNPMFixture(t, "", pkg, "NPM_TOKEN=bad")
+	f.cmds.expect(cmdFails("npm error code E401\n"), npmWhoamiArgv...)
+	_, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
+	assert.ErrorIs(t, err, errNPMInvalidToken)
+	assert.Equal(t, len(f.cmds.calls()), 1, "exists runs no npm view")
+
+	f = newNPMFixture(t, "", pkg, "NPM_TOKEN=good")
+	f.cmds.expectAll([]stubCmd{{npmWhoamiArgv, cmdOK("acme\n")}, {view, cmdFails(npmE404)}})
+	got, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
+	assert.NilError(t, err)
+	assert.Assert(t, !got)
+}
+
 // TestNPMPrepareRealNPM runs npm version as a real process, as
 // prepare.test.js "Update package.json" and "Updade package.json and
 // package-lock.json in a sub-directory" do. It is skipped without npm.

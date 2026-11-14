@@ -488,7 +488,9 @@ type registry interface {
 
 	// exists reports whether the registry has the version. It reports a
 	// missing version only after it shows that it reached the right
-	// registry with valid credentials, because rollback trusts it.
+	// registry with valid credentials, because rollback trusts it. The
+	// npm registry checks the token only on the default registry, as
+	// prepare does.
 	exists(ctx context.Context, t *regTarget) (bool, error)
 }
 
