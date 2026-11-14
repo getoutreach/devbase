@@ -6,6 +6,7 @@ package gittest_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/gittest"
@@ -30,4 +31,29 @@ func TestIsolateEnv(t *testing.T) {
 	assert.Equal(t, os.Getenv("GIT_CONFIG_GLOBAL"), os.DevNull)
 	assert.Equal(t, os.Getenv("GIT_CONFIG_NOSYSTEM"), "1")
 	assert.Equal(t, os.Getenv("GIT_CEILING_DIRECTORIES"), os.TempDir())
+}
+
+// TestIsolateEnvSymlinkedTempDir checks that GIT_CEILING_DIRECTORIES also has the real path of a
+// temporary directory that is a symbolic link, as on macOS. git does not resolve the symbolic links
+// of the ceiling directories.
+func TestIsolateEnvSymlinkedTempDir(t *testing.T) {
+	target, err := filepath.EvalSymlinks(t.TempDir())
+	assert.NilError(t, err)
+	link := filepath.Join(t.TempDir(), "tmp")
+	assert.NilError(t, os.Symlink(target, link))
+	t.Setenv("GIT_CEILING_DIRECTORIES", "from-the-caller")
+
+	t.Run("symbolic link", func(t *testing.T) {
+		t.Setenv("TMPDIR", link)
+
+		assert.NilError(t, gittest.IsolateEnv())
+		assert.Equal(t, os.Getenv("GIT_CEILING_DIRECTORIES"), link+string(os.PathListSeparator)+target)
+	})
+
+	t.Run("real path with a trailing slash", func(t *testing.T) {
+		t.Setenv("TMPDIR", target+"/")
+
+		assert.NilError(t, gittest.IsolateEnv())
+		assert.Equal(t, os.Getenv("GIT_CEILING_DIRECTORIES"), target+"/")
+	})
 }

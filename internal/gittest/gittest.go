@@ -10,6 +10,7 @@ package gittest
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -30,6 +31,11 @@ func Run(m *testing.M) int {
 // not look for a repository in os.TempDir or above it, so a test directory is never part of a
 // repository that contains the temporary directory. It must run before any test starts.
 func IsolateEnv() error {
+	ceiling, err := ceilingDirectories()
+	if err != nil {
+		return err
+	}
+
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"} {
 		if err := os.Unsetenv(name); err != nil {
 			return fmt.Errorf("unset %s: %w", name, err)
@@ -39,7 +45,7 @@ func IsolateEnv() error {
 	for name, value := range map[string]string{
 		"GIT_CONFIG_GLOBAL":       os.DevNull,
 		"GIT_CONFIG_NOSYSTEM":     "1",
-		"GIT_CEILING_DIRECTORIES": os.TempDir(),
+		"GIT_CEILING_DIRECTORIES": ceiling,
 	} {
 		if err := os.Setenv(name, value); err != nil {
 			return fmt.Errorf("set %s: %w", name, err)
@@ -47,4 +53,21 @@ func IsolateEnv() error {
 	}
 
 	return nil
+}
+
+// ceilingDirectories returns the value of GIT_CEILING_DIRECTORIES: os.TempDir, and its real path
+// when it differs. git does not resolve the symbolic links of the ceiling directories, so a
+// temporary directory that is a symbolic link, as on macOS, needs both paths.
+func ceilingDirectories() (string, error) {
+	dir := os.TempDir()
+	realDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return "", fmt.Errorf("resolve the temporary directory %s: %w", dir, err)
+	}
+
+	if realDir == filepath.Clean(dir) {
+		return dir, nil
+	}
+
+	return dir + string(os.PathListSeparator) + realDir, nil
 }
