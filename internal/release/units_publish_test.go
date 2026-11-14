@@ -185,11 +185,13 @@ func TestPublishUnitTagElsewhere(t *testing.T) {
 	assert.ErrorIs(t, u.publishUnits(plan), ErrTagExists)
 }
 
-func TestPublishGoPin(t *testing.T) {
-	cfg := unitsConfig + `  - - "@semantic-release/git"
+// goPinConfig is unitsConfig with a release commit of go.mod and go.sum.
+const goPinConfig = unitsConfig + `  - - "@semantic-release/git"
     - assets: [go.mod, go.sum]
 `
-	u := goFixture(t, cfg, &spec.Unit{Kind: spec.UnitGoModule, Dir: "api"})
+
+func TestPublishGoPin(t *testing.T) {
+	u := goFixture(t, goPinConfig, &spec.Unit{Kind: spec.UnitGoModule, Dir: "api"})
 	u.change("fix: api", "api/api.go")
 	plan, err := u.planUnits()
 	assert.NilError(t, err)
@@ -206,6 +208,60 @@ func TestPublishGoPin(t *testing.T) {
 
 	// The Go unit has no forge release.
 	assert.Equal(t, len(u.forge.Created), 1)
+}
+
+// goGetFixture adds the Go module api to a unit fixture with cfg: the
+// root go.mod requires the released api/v1.0.0 without a replace
+// directive. The go commands fetch the module from the bare remote
+// through a git URL rewrite, with no module proxy and no network.
+func goGetFixture(t *testing.T, cfg string) *unitFixture {
+	t.Helper()
+	u := baselined(t, cfg)
+	writeFile(t, u.git.Dir, "go.mod", "module github.com/acme/widgets\n\ngo 1.22\n\nrequire github.com/acme/widgets/api v1.0.0\n")
+	writeFile(t, u.git.Dir, "main.go", "package main\n\nimport _ \"github.com/acme/widgets/api\"\n\nfunc main() {}\n")
+	writeFile(t, u.git.Dir, "api/go.mod", "module github.com/acme/widgets/api\n\ngo 1.22\n")
+	writeFile(t, u.git.Dir, "api/api.go", "package api\n")
+	u.change("chore: add api")
+	u.run("tag", "api/v1.0.0")
+	u.run("push", "-q", "origin", "api/v1.0.0")
+	u.units = append(u.units, spec.Unit{Kind: spec.UnitGoModule, Dir: "api"})
+
+	// The go command clones https://github.com/acme/widgets in its own
+	// folder, so the rewrite must be in the global git config.
+	dir, bare := t.TempDir(), u.run("ls-remote", "--get-url", "origin")
+	writeFile(t, dir, "gitconfig", "[url \""+bare+"\"]\n\tinsteadOf = https://github.com/acme/widgets\n")
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(dir, "gitconfig"))
+	for k, v := range map[string]string{
+		"GOENV": "off", "GOPROXY": "off", "GOPRIVATE": "github.com/acme/*", "GOWORK": "off", "GOTOOLCHAIN": "local",
+		"GOFLAGS": "-mod=mod -modcacherw", "GOMODCACHE": t.TempDir(),
+	} {
+		t.Setenv(k, v)
+	}
+	return u
+}
+
+// TestPublishGoGet checks the root go.mod pin without a replace
+// directive: go get fetches the unit tag that the units step pushed, and
+// go mod tidy adds its go.sum lines to the release commit.
+func TestPublishGoGet(t *testing.T) {
+	u := goGetFixture(t, goPinConfig)
+	writeFile(t, u.git.Dir, "api/fix.go", "package api\n\n// Fix is new.\nconst Fix = 1\n")
+	u.change("fix: api")
+	plan, err := u.planUnits()
+	assert.NilError(t, err)
+	assert.Equal(t, versions(plan), "root=1.0.1 widgets-client=- api=1.0.1")
+	assert.NilError(t, u.publishUnits(plan))
+
+	// The root tag is on the release commit, whose go.mod and go.sum
+	// have the new unit version.
+	assert.Equal(t, u.remoteRef("refs/tags/api/v1.0.1"), plan.Commit)
+	tagged := u.remoteRef("refs/tags/v1.0.1")
+	assert.Equal(t, u.run("log", "-1", "--format=%P", tagged), plan.Commit)
+	assert.Assert(t, strings.Contains(u.run("show", tagged+":go.mod"), "require github.com/acme/widgets/api v1.0.1"))
+	sum := u.run("show", tagged+":go.sum")
+	assert.Assert(t, strings.Contains(sum, "github.com/acme/widgets/api v1.0.1 h1:"), sum)
+	assert.Assert(t, strings.Contains(sum, "github.com/acme/widgets/api v1.0.1/go.mod h1:"), sum)
+	assert.Assert(t, !strings.Contains(sum, "v1.0.0"), sum)
 }
 
 func TestRollbackUnit(t *testing.T) {
