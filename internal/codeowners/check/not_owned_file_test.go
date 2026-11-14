@@ -81,9 +81,45 @@ func TestNotOwnedFile(t *testing.T) {
             * two/d.txt`,
 		},
 		{
-			name:       "a negated pattern is ignored",
+			name:       "a pattern that starts with ! does not negate",
 			codeowners: "*.txt @owner\n!b.txt @nobody",
 			files:      []string{"a.txt", "b.txt"},
+		},
+		{
+			name:       "the last matching pattern without owners leaves a file unowned",
+			codeowners: "/apps/ @octocat\n/apps/github",
+			files:      []string{"apps/a.go", "apps/github/b.go"},
+			wantMsg: `Found 1 not owned files (skipped patterns: ""):
+            * apps/github/b.go`,
+		},
+		{
+			name:       "a later pattern with owners owns a file",
+			codeowners: "/apps/\n/apps/github @doctocat",
+			files:      []string{"apps/a.go", "apps/github/b.go"},
+			wantMsg: `Found 1 not owned files (skipped patterns: ""):
+            * apps/a.go`,
+		},
+		{
+			name:       "a wildcard at the end does not match nested files",
+			codeowners: "docs/* @docs",
+			files:      []string{"docs/a.md", "docs/build-app/b.md"},
+			wantMsg: `Found 1 not owned files (skipped patterns: ""):
+            * docs/build-app/b.md`,
+		},
+		{
+			name:       "brackets do not define a character range",
+			codeowners: "[ab].txt @owner",
+			files:      []string{"a.txt", "[ab].txt"},
+			wantMsg: `Found 1 not owned files (skipped patterns: ""):
+            * a.txt`,
+		},
+		{
+			name:       "a skipped pattern does not hide an earlier pattern",
+			codeowners: "/docs/ @docs\n* @global",
+			files:      []string{"docs/a.md", "b.txt"},
+			cfg:        NotOwnedFileConfig{SkipPatterns: []string{"*"}},
+			wantMsg: `Found 1 not owned files (skipped patterns: "*"):
+            * b.txt`,
 		},
 		{
 			name:       "an empty CODEOWNERS file owns nothing",
@@ -190,24 +226,6 @@ func TestNotOwnedFileListsConflictedFileOnce(t *testing.T) {
 	want := &Issue{Severity: Error, Message: `Found 1 not owned files (skipped patterns: ""):
             * c.txt`}
 	assertSingleIssue(t, want, got.Issues)
-}
-
-// TestNotOwnedFileRelativeTempDir checks the check when TMPDIR is a relative path. It changes the
-// current directory and the environment, so it cannot run in parallel.
-func TestNotOwnedFileRelativeTempDir(t *testing.T) {
-	in := loadInput(t, "*.go @owner\n")
-	in.RepoDir = newGitRepo(t, "a.go", "b.txt")
-
-	base := t.TempDir()
-	assert.NilError(t, os.Mkdir(filepath.Join(base, "tmp"), 0o755))
-	t.Chdir(base)
-	t.Setenv("TMPDIR", "tmp")
-
-	out, err := NewNotOwnedFile(NotOwnedFileConfig{}).Check(t.Context(), in)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, out.Issues, []Issue{
-		{Severity: Error, Message: "Found 1 not owned files (skipped patterns: \"\"):\n            * b.txt"},
-	})
 }
 
 // BenchmarkNotOwnedFile runs the notowned check on the benchmark repository, with a default

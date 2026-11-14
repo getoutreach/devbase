@@ -54,7 +54,7 @@ type segment struct {
 //   - A pattern that matches a directory also matches everything below the directory.
 //   - When the last segment of a pattern that does not end with "/" has "*" or "?", the pattern
 //     only matches whole paths: "docs/*" matches "docs/a.md", but not "docs/x/a.md". This rule
-//     is specific to GitHub.
+//     comes from an example in the GitHub documentation, and gitignore files do not have it.
 //   - GitHub does not support negation with "!", character ranges with "[ ]", or escaping a
 //     leading "#" with "\". These characters, and "\" in any position, only match themselves.
 //   - Matching is case-sensitive.

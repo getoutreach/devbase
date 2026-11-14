@@ -7,19 +7,17 @@ package check
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/getoutreach/devbase/v2/internal/codeowners"
 )
 
 // NotOwnedFileConfig configures the NotOwnedFile check.
 type NotOwnedFileConfig struct {
-	// SkipPatterns are CODEOWNERS patterns that do not count as owning a file. A file that only
-	// these patterns match is reported as not owned.
+	// SkipPatterns are CODEOWNERS patterns that the check ignores, such as a default "*" pattern.
+	// A file that only these patterns match is reported as not owned.
 	SkipPatterns []string
 
 	// Subdirectories limits the check to the files in these directories. Each one is a git
@@ -28,7 +26,8 @@ type NotOwnedFileConfig struct {
 	Subdirectories []string
 }
 
-// NotOwnedFile validates that every file that git tracks has an owner. It only reads the git
+// NotOwnedFile validates that every file that git tracks has an owner, like GitHub: the last entry
+// of the CODEOWNERS file whose pattern matches the file must have owners. It only reads the git
 // index, so it works on a repository that has uncommitted changes and it never changes the
 // repository.
 type NotOwnedFile struct {
@@ -47,7 +46,8 @@ func NewNotOwnedFile(cfg NotOwnedFileConfig) *NotOwnedFile {
 	}
 }
 
-// Check reports the files that no pattern of the CODEOWNERS file matches.
+// Check reports the files that have no owner, because no pattern of the CODEOWNERS file matches
+// them, or because the last pattern that matches them has no owners.
 func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 	var out Output
 
@@ -60,25 +60,19 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 		return out, nil
 	}
 
-	owned, err := c.ownedFiles(ctx, in)
+	files, err := gitLsFiles(ctx, in, append([]string{"--cached", "--error-unmatch", "--"}, c.subdirectories...)...)
 	if err != nil {
 		return Output{}, err
 	}
 
-	all, err := gitLsFiles(ctx, in, c.withSubdirectories("--cached", "--error-unmatch")...)
-	if err != nil {
-		return Output{}, err
-	}
-
-	ownedSet := make(map[string]struct{}, len(owned))
-	for _, file := range owned {
-		ownedSet[file] = struct{}{}
-	}
+	matcher := codeowners.NewMatcher(slices.DeleteFunc(slices.Clone(in.Entries), func(entry codeowners.Entry) bool {
+		return slices.Contains(c.skipPatterns, entry.Pattern)
+	}))
 
 	// git lists the files in index order, so the stages of a file in a merge conflict are adjacent.
-	notOwned := slices.DeleteFunc(slices.Compact(all), func(file string) bool {
-		_, ok := ownedSet[file]
-		return ok
+	notOwned := slices.DeleteFunc(slices.Compact(files), func(file string) bool {
+		entry, ok := matcher.Match(file)
+		return ok && len(entry.Owners) > 0
 	})
 
 	if len(notOwned) > 0 {
@@ -92,50 +86,6 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 // Name returns human readable name of the validator.
 func (*NotOwnedFile) Name() string {
 	return "[Experimental] Not Owned File Checker"
-}
-
-// withSubdirectories returns args followed by the subdirectories to limit the listing to.
-func (c *NotOwnedFile) withSubdirectories(args ...string) []string {
-	return append(append(args, "--"), c.subdirectories...)
-}
-
-// ownedFiles returns the files in the git index that a pattern of the CODEOWNERS file matches.
-// The patterns go to git in a temporary file, so the repository stays as it is.
-func (c *NotOwnedFile) ownedFiles(ctx context.Context, in Input) (owned []string, err error) {
-	var patterns strings.Builder
-
-	for _, entry := range in.Entries {
-		if slices.Contains(c.skipPatterns, entry.Pattern) || strings.HasPrefix(entry.Pattern, "!") {
-			continue
-		}
-
-		patterns.WriteString(entry.Pattern + "\n")
-	}
-
-	f, err := os.CreateTemp("", "codeowners-patterns-*")
-	if err != nil {
-		return nil, fmt.Errorf("create pattern file: %w", err)
-	}
-
-	defer func() {
-		// The file is in the temporary directory, so a file that is already gone is not a problem.
-		if rmErr := os.Remove(f.Name()); rmErr != nil && !errors.Is(rmErr, fs.ErrNotExist) {
-			err = errors.Join(err, fmt.Errorf("remove pattern file: %w", rmErr))
-		}
-	}()
-
-	_, writeErr := f.WriteString(patterns.String())
-	if closeErr := errors.Join(writeErr, f.Close()); closeErr != nil {
-		return nil, fmt.Errorf("write pattern file: %w", closeErr)
-	}
-
-	// git runs in the repository directory, so a relative TMPDIR would point to another file.
-	path, err := filepath.Abs(f.Name())
-	if err != nil {
-		return nil, fmt.Errorf("get the absolute path of the pattern file: %w", err)
-	}
-
-	return gitLsFiles(ctx, in, c.withSubdirectories("--cached", "--ignored", "--exclude-from="+path)...)
 }
 
 // listFormat formats the lines as a bullet point list.

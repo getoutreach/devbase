@@ -83,7 +83,7 @@ A skipped check does not make the command fail. See [Only when CODEOWNERS change
 | `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                                                                                             |
 | `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                                                                                            |
 | `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address. It also reports a warning for each pattern that uses negation (`!`), a character range (`[ ]`), or an escaped `#` (`\#`). CODEOWNERS does not support these features.                                          |
-| `notowned`        | No      | Reports each file in the git index that no pattern matches. This check is experimental.                                                                                                                                                                                                                        |
+| `notowned`        | No      | Reports each file in the git index that has no owner: no pattern matches the file, or the last pattern that matches it has no owners. See [Patterns](#patterns). This check is experimental.                                                                                                                   |
 | `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                                                                                                       |
 
 ### The `owners` check
@@ -113,16 +113,16 @@ An owner can become invalid without a change to CODEOWNERS, for example when a u
 
 ### Flags for the `notowned` check
 
-| Flag               | Default | Description                                                                 |
-| ------------------ | ------- | --------------------------------------------------------------------------- |
-| `--skip-patterns`  | None    | Patterns that do not count as owning a file, such as a default `*` pattern. |
-| `--subdirectories` | None    | Directories to limit the check to.                                          |
+| Flag               | Default | Description                                                     |
+| ------------------ | ------- | --------------------------------------------------------------- |
+| `--skip-patterns`  | None    | Patterns that the check ignores, such as a default `*` pattern. |
+| `--subdirectories` | None    | Directories to limit the check to.                              |
 
 Each `--subdirectories` value is a git pathspec (see `gitglossary(7)`), so it can also be a file or a glob. The check fails when a value matches no file in the git index.
 
 ## Patterns
 
-The `files` check matches the CODEOWNERS patterns with the rules of GitHub. GitHub uses most of the rules of [gitignore files](https://git-scm.com/docs/gitignore#_pattern_format):
+The `files` and `notowned` checks match the CODEOWNERS patterns with the rules of GitHub. GitHub uses most of the rules of [gitignore files](https://git-scm.com/docs/gitignore#_pattern_format):
 
 - `*` matches any sequence of characters except `/`. `?` matches any one character except `/`.
 - `**/` at the start of a pattern matches in all directories. `/**` at the end matches everything below a directory. `/**/` in the middle matches zero or more directories.
@@ -205,7 +205,8 @@ Set `--github-base-url` to the API base URL of the server, and `--github-upload-
 - The `owners` check requires a user to be a collaborator of the repository with write access. The upstream check requires a user to be a member of the organization.
 - The upstream command checks that a token has the `read:org` scope. This command does not check scopes, because fine-grained tokens and GitHub Apps use permissions instead of scopes.
 - The command takes its settings from flags, except for some authentication settings (see [GitHub access](#github-access)). `--checks` selects both the default and the experimental checks. The upstream command uses environment variables, with `CHECKS` and `EXPERIMENTAL_CHECKS` for the checks.
-- The `files` check matches the patterns with the rules of GitHub. See [Patterns](#patterns). The upstream check matches glob patterns against the files in the working tree.
+- The `files` and `notowned` checks match the patterns with the rules of GitHub. See [Patterns](#patterns). The upstream `files` check matches glob patterns against the files in the working tree. The upstream `notowned` check uses the rules of gitignore files.
+- The `notowned` check reports a file when the last pattern that matches it has no owners. The upstream check reports a file only when no pattern matches it.
 - `--trust-workspace` passes the repository directory as `safe.directory` to each git command. To find the root of the git work tree, it passes `*`, because the root is not known yet. The upstream command adds the directory to the global git configuration.
 - When a check fails, the command exits with 1. The upstream command exits with 3.
 - When the GitHub rate limit is low or reached, the `owners` check is skipped and does not make the command fail. The upstream command fails, or reports the rate limit as an issue.

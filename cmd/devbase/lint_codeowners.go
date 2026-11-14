@@ -117,7 +117,7 @@ func newLintCodeownersCommandWith(getToken tokenGetter) *cli.Command {
 			},
 			&cli.StringSliceFlag{
 				Name:  "skip-patterns",
-				Usage: "Patterns that do not count as owning a file in the notowned check",
+				Usage: "Patterns that the notowned check ignores, such as a default \"*\" pattern",
 			},
 			&cli.StringSliceFlag{
 				Name:  "subdirectories",
