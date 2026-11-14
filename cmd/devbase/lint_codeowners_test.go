@@ -522,3 +522,21 @@ func TestLintCodeowners_OwnersIfChangedStaged(t *testing.T) {
 	assert.Assert(t, strings.Contains(out, "    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
 	assert.Equal(t, calls, 1, "only the run without --staged gets a token")
 }
+
+// TestLintCodeowners_OwnersIfChangedLinkedWorktree checks that --owners-if-changed reads the merge
+// base in a linked git worktree, so that it skips the owners check when CODEOWNERS did not change.
+func TestLintCodeowners_OwnersIfChangedLinkedWorktree(t *testing.T) {
+	const owners = "* @alice\n"
+
+	repo := newBranchedCodeownersRepo(t, owners, owners)
+	worktree := filepath.Join(t.TempDir(), "linked")
+	runGit(t, repo, "worktree", "add", "-q", "-b", "linked", worktree, "feature")
+	var calls int
+
+	out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), ownersIfChangedArgs(t, worktree)...)
+
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
+	assert.Equal(t, calls, 0, "no GitHub token is needed")
+	assert.Equal(t, stderr, "")
+}

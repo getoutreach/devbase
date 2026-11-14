@@ -39,7 +39,8 @@ var errNoCommonAncestor = errors.New("no common ancestor")
 // exist at the merge-base is omitted rather than treated as an error,
 // since it can't have had any violations at that point.
 func MergeBaseFiles(dir, base string, files []string) (map[string]string, error) {
-	repo, err := git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{DetectDotGit: true})
+	// The common git directory holds the refs, objects and shallow file of a linked worktree.
+	repo, err := git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{DetectDotGit: true, EnableDotGitCommonDir: true})
 	if err != nil {
 		return nil, fmt.Errorf("open git repository containing %s: %w", dir, err)
 	}

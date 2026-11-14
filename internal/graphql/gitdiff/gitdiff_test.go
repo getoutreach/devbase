@@ -8,7 +8,9 @@ package gitdiff
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -128,4 +130,45 @@ func TestMergeBaseFilesShallowClone(t *testing.T) {
 
 	_, err = MergeBaseFiles(clonePath, "master", []string{"schema.graphql"})
 	assert.Assert(t, errors.Is(err, ErrShallowClone))
+}
+
+// runGit runs git in dir and fails the test when git fails.
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+
+	identity := []string{"-c", "user.name=test", "-c", "user.email=test@example.com"}
+	cmd := exec.CommandContext(t.Context(), "git", append(identity, args...)...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	assert.NilError(t, err, "git %s: %s", strings.Join(args, " "), out)
+}
+
+// TestMergeBaseFilesLinkedWorktree checks that the merge base is read when dir is a linked git
+// worktree, where the refs and objects are in the common git directory.
+func TestMergeBaseFilesLinkedWorktree(t *testing.T) {
+	root, _, baseName := newTestRepo(t)
+
+	worktree := filepath.Join(t.TempDir(), "linked")
+	runGit(t, root, "worktree", "add", "-q", "-b", "linked", worktree, "feature")
+	assert.NilError(t, os.WriteFile(filepath.Join(worktree, "new.graphql"), []byte("type Bar { a: String }\n"), 0o600))
+	runGit(t, worktree, "add", "-A")
+	runGit(t, worktree, "commit", "-q", "-m", "add new.graphql")
+
+	content, err := MergeBaseFiles(worktree, baseName, []string{"schema.graphql", "new.graphql"})
+	assert.NilError(t, err)
+	assert.DeepEqual(t, content, map[string]string{"schema.graphql": "type Foo { a: String }\n"})
+}
+
+// TestMergeBaseFilesShallowCloneLinkedWorktree checks that a linked worktree of a shallow clone
+// is detected as shallow, although the shallow file is in the common git directory.
+func TestMergeBaseFilesShallowCloneLinkedWorktree(t *testing.T) {
+	root, _, baseName := newTestRepo(t)
+
+	clonePath := filepath.Join(t.TempDir(), "clone")
+	runGit(t, root, "clone", "-q", "--depth", "1", "file://"+root, clonePath)
+	worktree := filepath.Join(t.TempDir(), "linked")
+	runGit(t, clonePath, "worktree", "add", "-q", "--detach", worktree)
+
+	_, err := MergeBaseFiles(worktree, baseName, []string{"schema.graphql"})
+	assert.Assert(t, errors.Is(err, ErrShallowClone), "%v", err)
 }
