@@ -13,18 +13,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
-	"strings"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/getoutreach/gobox/pkg/exec/execstub"
 	"gotest.tools/v3/assert"
 )
-
-// anyArg in an expected command matches any one argument, such as the
-// path of a temporary npm config.
-const anyArg = "<any>"
 
 // errExit stands for the *exec.ExitError of a failed command in the
 // test tables. See assertErrIs.
@@ -53,35 +47,23 @@ type stubCmd struct {
 // a command out of order, and an expected command that does not run
 // fail the test.
 type cmdStubs struct {
-	t     *testing.T
 	stubs *execstub.Stubs
 
 	// spy records the commands in the order that they were created.
 	spy *execstub.SpyExec
-
-	// want are the expected commands, in order.
-	want []execstub.Matcher
 }
 
-// newCmdStubs returns a cmdStubs that checks the order of the commands
-// at the end of the test.
+// newCmdStubs returns a cmdStubs that checks the order of the commands.
 func newCmdStubs(t *testing.T) *cmdStubs {
 	t.Helper()
-	stubs := execstub.NewStubs(t)
-	s := &cmdStubs{t: t, stubs: stubs, spy: execstub.NewSpyExec(stubs)}
-	t.Cleanup(s.checkOrder)
-	return s
+	stubs := execstub.NewStubs(t, execstub.InOrder())
+	return &cmdStubs{stubs: stubs, spy: execstub.NewSpyExec(stubs)}
 }
 
-// expect adds the command argv, which gives res.
+// expect adds the command argv, which gives res. An execstub.AnyArg in
+// argv matches any one argument.
 func (s *cmdStubs) expect(res execstub.Result, argv ...string) {
-	m := execstub.MatchFunc(strings.Join(argv, " "), func(name string, args []string) bool {
-		return slices.EqualFunc(argv, append([]string{name}, args...), func(want, got string) bool {
-			return want == anyArg || want == got
-		})
-	})
-	s.want = append(s.want, m)
-	s.stubs.Register(m, res)
+	s.stubs.Register(execstub.Exact(argv[0], argv[1:]...), res)
 }
 
 // expectAll adds each command of cmds, in order.
@@ -94,17 +76,6 @@ func (s *cmdStubs) expectAll(cmds []stubCmd) {
 // calls returns the commands that ran.
 func (s *cmdStubs) calls() []execstub.Call {
 	return s.spy.Calls
-}
-
-// checkOrder fails the test for each command that ran in the place of
-// another expected command. execstub reports the commands that are not
-// expected, and the expected commands that did not run.
-func (s *cmdStubs) checkOrder() {
-	for i, c := range s.calls() {
-		if i < len(s.want) && !s.want[i].Match(c.Name, c.Args) {
-			s.t.Errorf("command %d is %s, want %s", i, strings.Join(append([]string{c.Name}, c.Args...), " "), s.want[i])
-		}
-	}
 }
 
 // cmdOK is the result of a command that succeeds with stdout.

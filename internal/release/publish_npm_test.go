@@ -67,22 +67,22 @@ const githubNpmrc = "@getoutreach:registry=https://npm.pkg.github.com\n//npm.pkg
 
 // npmVersionArgv is the argv of npm version.
 func npmVersionArgv(version string) []string {
-	return []string{"npm", "version", version, "--userconfig", anyArg, "--no-git-tag-version", "--allow-same-version"}
+	return []string{"npm", "version", version, "--userconfig", execstub.AnyArg, "--no-git-tag-version", "--allow-same-version"}
 }
 
 // npmViewArgv is the argv of npm view for pkgVersion on registry.
 func npmViewArgv(pkgVersion, registry string) []string {
-	return []string{"npm", "view", pkgVersion, "version", "--userconfig", anyArg, "--registry", registry}
+	return []string{"npm", "view", pkgVersion, "version", "--userconfig", execstub.AnyArg, "--registry", registry}
 }
 
 // npmPublishArgv is the argv of npm publish of dir with distTag on
 // registry.
 func npmPublishArgv(dir, distTag, registry string) []string {
-	return []string{"npm", "publish", dir, "--userconfig", anyArg, "--tag", distTag, "--registry", registry}
+	return []string{"npm", "publish", dir, "--userconfig", execstub.AnyArg, "--tag", distTag, "--registry", registry}
 }
 
 // npmWhoamiArgv is the argv of npm whoami on the official registry.
-var npmWhoamiArgv = []string{"npm", "whoami", "--userconfig", anyArg, "--registry", officialNPMRegistry}
+var npmWhoamiArgv = []string{"npm", "whoami", "--userconfig", execstub.AnyArg, "--registry", officialNPMRegistry}
 
 // TestNPMPublishScenarios checks the argv, dir and env of the npm
 // commands in prepare and publish.
@@ -236,11 +236,8 @@ func TestNPMNpmrcHasNoToken(t *testing.T) {
 				return err
 			}
 			npmrcs = append(npmrcs, string(b))
-			if code == 0 {
-				return nil
-			}
-			return execstub.NewExitError(code, stderr)
-		}}
+			return nil
+		}, Stderr: stderr, ExitCode: code}
 	}
 	f.cmds.expect(readNpmrc("", 0), npmWhoamiArgv...)
 	f.cmds.expect(readNpmrc("", 0), npmVersionArgv("1.0.0")...)

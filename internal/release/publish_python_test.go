@@ -7,7 +7,6 @@ package release
 
 import (
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -199,8 +198,7 @@ func TestNormalizePythonName(t *testing.T) {
 // processes, and stubs mise, aws and poetry publish. It is skipped
 // without poetry.
 func TestPythonRealPoetry(t *testing.T) {
-	poetry, err := exec.LookPath("poetry")
-	if err != nil {
+	if _, err := exec.LookPath("poetry"); err != nil {
 		t.Skip("poetry is not installed")
 	}
 	py, f := pythonFixture(t)
@@ -216,11 +214,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 `)
 	// realPoetry runs the command with the real poetry.
-	realPoetry := execstub.Result{Func: func(ctx context.Context, cmd *exec.Cmd, stdin io.Reader, stdout, stderr io.Writer) error {
-		c := exec.NewRealExec().CommandContext(ctx, poetry, cmd.Args[1:]...)
-		c.Dir, c.Env, c.Stdin, c.Stdout, c.Stderr = cmd.Dir, cmd.Env, stdin, stdout, stderr
-		return c.Run()
-	}}
+	realPoetry := execstub.Result{Real: true}
 	f.cmds.expect(cmdOK("{}\n"), awsIdentity...)
 	f.cmds.expectAll([]stubCmd{misePoetry, {[]string{"poetry", "version", "1.2.0-rc.1"}, realPoetry}})
 	f.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.2.0rc1")...)
@@ -232,7 +226,7 @@ build-backend = "poetry.core.masonry.api"
 	})
 	p := f.publisher("1.2.0-rc.1", "main")
 	assert.NilError(t, py.prepare(context.Background(), p))
-	_, err = py.publish(context.Background(), p)
+	_, err := py.publish(context.Background(), p)
 	assert.NilError(t, err)
 
 	pkgDir := filepath.Join(f.repo, filepath.FromSlash(spec.DefaultPythonDir))
