@@ -16,8 +16,8 @@ import (
 const fixture = `before:
   hooks: [make dep]
 builds:
-  - main: ./cmd/orc
-    id: &name orc
+  - main: ./cmd/widgets
+    id: &name widgets
     binary: *name
     goos: [linux, darwin]
     goarch: [amd64, arm64]

@@ -50,8 +50,9 @@ func TestParseYqFlags_Aliases(t *testing.T) {
 
 // TestParseYqFlags_Clustering confirms bundled short flags parse
 // identically to their unbundled equivalents, matching real call
-// sites audited from orc#2042 (-cr, -ry, -yi -- -ni is skipped, since
-// -n/--null-input has no equivalent among devbase yq's own flags).
+// sites audited in a downstream repository (-cr, -ry, -yi -- -ni is
+// skipped, since -n/--null-input has no equivalent among devbase yq's
+// own flags).
 func TestParseYqFlags_Clustering(t *testing.T) {
 	cases := []struct {
 		name      string

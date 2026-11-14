@@ -169,7 +169,7 @@ func TestKVGet(t *testing.T) {
 		rest    string
 		path    string
 	}{
-		{name: "v2", mount: "deploy/", version: "2", rest: "delibird/development/upload", path: "deploy/delibird/development/upload"},
+		{name: "v2", mount: "deploy/", version: "2", rest: "widgets/development/upload", path: "deploy/widgets/development/upload"},
 		{name: "v2 nested mount", mount: "secret/team/", version: "2", rest: "app", path: "secret/team/app"},
 		{name: "v2 leading and trailing slash", mount: "deploy/", version: "2", rest: "a/b", path: "/deploy/a/b/"},
 		{name: "v1", mount: "legacy/", version: "1", rest: "app/key", path: "legacy/app/key"},
