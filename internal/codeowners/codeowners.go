@@ -3,7 +3,7 @@
 // Description: Locating and parsing GitHub CODEOWNERS files.
 // Derived from github.com/mszostok/codeowners-validator (Apache License 2.0), with changes.
 
-// Package codeowners finds and parses CODEOWNERS files.
+// Package codeowners finds and parses CODEOWNERS files, and matches paths against their patterns.
 package codeowners
 
 import (
