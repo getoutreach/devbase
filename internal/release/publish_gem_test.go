@@ -34,17 +34,22 @@ const gemVersionRb = "# Copyright 2024 Outreach Corporation. All Rights Reserved
 // shell/ci/auth/github_packages.sh writes.
 const gemCredentials = "---\n:github: Bearer ghp_s3cr3t\n"
 
-// fakePackages is a fake of the GitHub Packages REST API endpoint "List
-// package versions for a package owned by an organization". It returns
-// versions in pages of two, or status when it is not zero.
+// fakePackages is a fake of the GitHub Packages REST API endpoints "List
+// package versions for a package owned by an organization", which
+// returns versions in pages of two, or status when it is not zero, and
+// "List packages for an organization", which returns no packages, or
+// orgStatus when it is not zero.
 type fakePackages struct {
 	*httptest.Server
 
-	status   int
-	versions []string
+	status, orgStatus int
+	versions          []string
 
 	// paths and auths are the request paths and Authorization headers.
 	paths, auths []string
+
+	// orgQuery is the query of the last organization request.
+	orgQuery string
 }
 
 // newFakePackages starts a fakePackages that the test closes.
@@ -54,6 +59,16 @@ func newFakePackages(t *testing.T, versions ...string) *fakePackages {
 	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.paths = append(f.paths, r.URL.Path)
 		f.auths = append(f.auths, r.Header.Get("Authorization"))
+		if !strings.HasSuffix(r.URL.Path, "/versions") {
+			f.orgQuery = r.URL.RawQuery
+			if f.orgStatus != 0 {
+				w.WriteHeader(f.orgStatus)
+				_, _ = w.Write([]byte(`{"message": "Not Found"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
 		if f.status != 0 {
 			w.WriteHeader(f.status)
 			_, _ = w.Write([]byte(`{"message": "Package not found."}`))
@@ -250,9 +265,13 @@ func TestGemPublishScenarios(t *testing.T) {
 		built     string
 		published []string
 		status    int
+		orgStatus int
 		wantPush  bool
 		wantPages int
-		wantErr   error
+		// wantOrgCheck is true when the lookup lists the packages of
+		// the organization after the versions.
+		wantOrgCheck bool
+		wantErr      error
 	}{
 		{name: "first publish", version: "1.0.0", built: "1.0.0", published: []string{"0.9.0"}, wantPush: true, wantPages: 1},
 		{
@@ -260,7 +279,20 @@ func TestGemPublishScenarios(t *testing.T) {
 			name: "rc version", version: "1.2.0-rc.1", built: "1.2.0.pre.rc.1",
 			published: []string{"1.2.0.pre.rc.0"}, wantPush: true, wantPages: 1,
 		},
-		{name: "new package", version: "1.0.0", built: "1.0.0", status: http.StatusNotFound, wantPush: true, wantPages: 1},
+		{
+			// A 404 for the versions is a new package only when the
+			// packages of the organization can be listed.
+			name: "new package", version: "1.0.0", built: "1.0.0", status: http.StatusNotFound,
+			wantPush: true, wantPages: 1, wantOrgCheck: true,
+		},
+		{
+			name: "missing owner", version: "1.0.0", built: "1.0.0", status: http.StatusNotFound,
+			orgStatus: http.StatusNotFound, wantErr: errGemLookup, wantPages: 1, wantOrgCheck: true,
+		},
+		{
+			name: "token without read:packages", version: "1.0.0", built: "1.0.0", status: http.StatusNotFound,
+			orgStatus: http.StatusForbidden, wantErr: errGemLookup, wantPages: 1, wantOrgCheck: true,
+		},
 		{
 			// Requirement 8: a rerun skips a version that exists, also on
 			// a later page.
@@ -273,7 +305,7 @@ func TestGemPublishScenarios(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newGemFixture(t, tc.published...)
-			f.api.status = tc.status
+			f.api.status, f.api.orgStatus = tc.status, tc.orgStatus
 			gemFile := f.buildGem(tc.built)
 			if tc.wantPush {
 				f.cmds.expect(cmdOK("Pushing gem to "+host+"...\n"), "gem", "push", "--key", "github", "--host", host, gemFile)
@@ -288,10 +320,19 @@ func TestGemPublishScenarios(t *testing.T) {
 			for _, c := range f.cmds.calls() {
 				assert.Equal(t, c.Cmd.Dir, f.gemDir())
 			}
-			assert.Equal(t, len(f.api.paths), tc.wantPages)
-			for i := range f.api.paths {
-				assert.Equal(t, f.api.paths[i], "/orgs/acme/packages/rubygems/widgets_client/versions")
-				assert.Equal(t, f.api.auths[i], "Bearer ghp_s3cr3t")
+			paths := f.api.paths
+			if tc.wantOrgCheck {
+				assert.Assert(t, len(paths) > 0)
+				assert.Equal(t, paths[len(paths)-1], "/orgs/acme/packages")
+				assert.Equal(t, f.api.orgQuery, "package_type=rubygems&per_page=1")
+				paths = paths[:len(paths)-1]
+			}
+			assert.Equal(t, len(paths), tc.wantPages)
+			for i := range paths {
+				assert.Equal(t, paths[i], "/orgs/acme/packages/rubygems/widgets_client/versions")
+			}
+			for _, auth := range f.api.auths {
+				assert.Equal(t, auth, "Bearer ghp_s3cr3t")
 			}
 			assert.Assert(t, !strings.Contains(f.log.String(), "ghp_s3cr3t"))
 		})
@@ -305,6 +346,13 @@ func TestGemExists(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, got, want, version)
 	}
+
+	// A 404 for an owner that is not an organization is an error, so
+	// that rollback does not trust it.
+	f.api.status, f.api.orgStatus = http.StatusNotFound, http.StatusNotFound
+	_, err := f.registry().exists(context.Background(), f.target("1.1.0"))
+	assert.ErrorIs(t, err, errGemLookup)
+	assert.ErrorContains(t, err, "cannot list the packages of acme; acme may not exist or may not be an organization")
 }
 
 func TestGemToken(t *testing.T) {

@@ -237,7 +237,9 @@ func (g *gemRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 // hasVersion reports whether the GitHub Packages of owner have the gem
 // version, with the REST API "List package versions for a package owned
 // by an organization", and the token of gem push. A missing package is a
-// 404.
+// 404, but so are a missing owner, a user owner and a package that the
+// token cannot see, so a 404 counts as a missing version only after
+// confirmMissing.
 func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner string) (bool, error) {
 	token, err := gemToken(s.env)
 	if err != nil {
@@ -256,7 +258,7 @@ func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner strin
 		versions, resp, err := client.Organizations.PackageGetAllVersions(ctx, owner, "rubygems", s.name, opts)
 		var ghErr *gh.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
-			return false, nil
+			return false, confirmMissing(ctx, client, s.name, owner)
 		}
 		if err != nil {
 			return false, fmt.Errorf("%w: gem %s in %s: %w", errGemLookup, s.name, owner, err)
@@ -271,6 +273,24 @@ func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner strin
 		}
 		opts.Page = resp.NextPage
 	}
+}
+
+// confirmMissing checks, after a 404 for the versions of the gem name,
+// that owner is an organization whose packages the token can read, with
+// the REST API "List packages for an organization". That call fails for
+// a missing owner, a user owner and a token without read:packages, so
+// the 404 then means a missing gem, unless the token cannot see a
+// private gem.
+func confirmMissing(ctx context.Context, client *gh.Client, name, owner string) error {
+	_, _, err := client.Organizations.ListPackages(ctx, owner, &gh.PackageListOptions{
+		PackageType: gh.Ptr("rubygems"), ListOptions: gh.ListOptions{PerPage: 1},
+	})
+	if err != nil {
+		return fmt.Errorf("%w: gem %s: GitHub returned 404 for its versions, and cannot list the packages of %s; "+
+			"%s may not exist or may not be an organization, or the token may not have read:packages for it: %w",
+			errGemLookup, name, owner, owner, err)
+	}
+	return nil
 }
 
 // owner returns the GitHub owner of the registry: the plugin's owner, or
