@@ -97,6 +97,34 @@ func TestUnstableNativeUnstableOnly(t *testing.T) {
 		[]string{"widgets_0.0.0-unstable+" + head + "_linux_amd64.tar.gz", "checksums.txt"})
 }
 
+// TestUnstableNoBuild checks that the unstable release without a build
+// names the configuration that has no build, and runs only the include
+// script.
+func TestUnstableNoBuild(t *testing.T) {
+	p := newUnstableFixture(t)
+	assert.NilError(t, os.Remove(filepath.Join(p.git.Dir, ".goreleaser.yml")))
+	writeFile(t, p.git.Dir, ".releaserc.yaml", fixtureConfig)
+	var legacy strings.Builder
+	assert.NilError(t, Unstable(context.Background(), p.repo(), &UnstableOptions{
+		Branch: "main", Remote: p.remote, Forge: p.forge, Env: os.Environ(), Log: &legacy,
+	}))
+	assert.Assert(t, strings.Contains(legacy.String(), "No .goreleaser.yml, skipping creating unstable release"),
+		legacy.String())
+
+	assert.NilError(t, os.Remove(filepath.Join(p.git.Dir, ".releaserc.yaml")))
+	writeFile(t, p.git.Dir, "scripts/devbase.yaml", "release:\n  branches:\n    - name: main\n")
+	var section strings.Builder
+	assert.NilError(t, Unstable(context.Background(), p.repo(), &UnstableOptions{
+		Branch: "main", Remote: p.remote, Forge: p.forge, Env: os.Environ(), Log: &section,
+	}))
+	assert.Assert(t, strings.Contains(section.String(),
+		"The release section of scripts/devbase.yaml has no build key, skipping creating unstable release"),
+		section.String())
+	assert.Equal(t, len(p.forge.Calls), 0)
+	_, err := os.Stat(filepath.Join(p.git.Dir, "include.log"))
+	assert.NilError(t, err)
+}
+
 func TestUnstableSkips(t *testing.T) {
 	p := newUnstableFixture(t)
 

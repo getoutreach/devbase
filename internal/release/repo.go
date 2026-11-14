@@ -36,6 +36,11 @@ type Repo struct {
 	// files as parsed: scripts/devbase.yaml, or .releaserc.yaml and
 	// .goreleaser.yml.
 	Digest string
+
+	// Native is true when Config is the release section of
+	// scripts/devbase.yaml, and false when it is .releaserc.yaml and
+	// .goreleaser.yml.
+	Native bool
 }
 
 // ErrConfigConflict is returned when scripts/devbase.yaml has a release
@@ -53,6 +58,7 @@ func LoadRepo(dir string) (*Repo, error) {
 	if r.Config, r.Warnings, err = loadNative(dir, h); err != nil {
 		return nil, err
 	}
+	r.Native = r.Config != nil
 	if r.Config == nil {
 		if r.Config, r.Warnings, err = loadLegacy(dir, h); err != nil {
 			return nil, err

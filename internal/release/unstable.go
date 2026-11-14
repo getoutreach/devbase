@@ -15,6 +15,8 @@ import (
 	"slices"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/goreleaser"
+	"github.com/getoutreach/devbase/v2/internal/release/native"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 )
 
@@ -70,9 +72,19 @@ func Unstable(ctx context.Context, r *Repo, opts *UnstableOptions) (err error) {
 			return err
 		}
 	} else {
-		fmt.Fprintf(log, "No .goreleaser.yml, skipping creating unstable release\n")
+		fmt.Fprintf(log, "%s, skipping creating unstable release\n", r.noUnstableBuild())
 	}
 	return runUnstableInclude(ctx, r.Git.Dir, opts.Env, log)
+}
+
+// noUnstableBuild says which configuration has no build for the
+// unstable release: the release section, or .goreleaser.yml, which
+// pre-release.sh names.
+func (r *Repo) noUnstableBuild() string {
+	if r.Native {
+		return fmt.Sprintf("The %s section of %s has no build key", native.Key, native.File)
+	}
+	return "No " + goreleaser.File
 }
 
 // UnstableEnabled reports whether Unstable makes a release on branch, as
