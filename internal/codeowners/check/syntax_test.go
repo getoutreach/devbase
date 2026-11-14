@@ -82,3 +82,17 @@ func TestValidSyntaxZeroValueEntry(t *testing.T) {
 
 	assert.DeepEqual(t, out.Issues, []Issue{{Severity: Error, Message: "Missing pattern"}})
 }
+
+func TestValidSyntaxUnsupportedPatternFeatures(t *testing.T) {
+	in := loadInput(t, "!a.go @pico\n/pages/[id].tsx @pico\n\\#a @pico\n!b] @pico\n*.go @pico\n")
+
+	out, err := NewValidSyntax().Check(t.Context(), in)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, out.Issues, []Issue{
+		{Severity: Warning, LineNo: 1, Message: "Pattern '!a.go' uses negation with '!', which CODEOWNERS does not support"},
+		{Severity: Warning, LineNo: 2, Message: "Pattern '/pages/[id].tsx' uses a character range with '[ ]', which CODEOWNERS does not support"},
+		{Severity: Warning, LineNo: 3, Message: `Pattern '\#a' uses an escape with '\', which CODEOWNERS does not support`},
+		{Severity: Warning, LineNo: 4, Message: "Pattern '!b]' uses negation with '!', which CODEOWNERS does not support"},
+		{Severity: Warning, LineNo: 4, Message: "Pattern '!b]' uses a character range with '[ ]', which CODEOWNERS does not support"},
+	})
+}

@@ -27,7 +27,8 @@ var (
 )
 
 // ValidSyntax reports owners that do not look like a GitHub user, a team, or an email address.
-// GitHub skips a line that has invalid syntax.
+// GitHub skips a line that has invalid syntax. It also reports patterns that use features of
+// gitignore files that CODEOWNERS does not support.
 type ValidSyntax struct{}
 
 // NewValidSyntax returns new ValidSyntax instance.
@@ -48,6 +49,11 @@ func (*ValidSyntax) Check(ctx context.Context, in Input) (Output, error) {
 			out.Report("Missing pattern", WithEntry(entry))
 		}
 
+		for _, feature := range unsupportedFeatures(entry.Pattern) {
+			out.Report(fmt.Sprintf("Pattern '%s' uses %s, which CODEOWNERS does not support", entry.Pattern, feature),
+				WithEntry(entry), WithSeverity(Warning))
+		}
+
 		for _, owner := range entry.Owners {
 			if strings.HasPrefix(owner, "@") {
 				if !usernameOrTeamRegexp.MatchString(owner) {
@@ -66,4 +72,22 @@ func (*ValidSyntax) Check(ctx context.Context, in Input) (Output, error) {
 // Name returns human readable name of the validator.
 func (*ValidSyntax) Name() string {
 	return "Valid Syntax Checker"
+}
+
+// unsupportedFeatures returns the features of gitignore files that pattern uses and that
+// CODEOWNERS does not support. codeowners.Pattern matches the characters of these features
+// literally.
+func unsupportedFeatures(pattern string) []string {
+	var features []string
+	switch {
+	case strings.HasPrefix(pattern, "!"):
+		features = append(features, "negation with '!'")
+	case strings.HasPrefix(pattern, `\#`):
+		features = append(features, `an escape with '\'`)
+	}
+	if strings.ContainsAny(pattern, "[]") {
+		features = append(features, "a character range with '[ ]'")
+	}
+
+	return features
 }
