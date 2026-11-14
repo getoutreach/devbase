@@ -77,7 +77,7 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 
 	if len(notOwned) > 0 {
 		out.Report(fmt.Sprintf("Found %d not owned files (skipped patterns: %q):\n%s",
-			len(notOwned), strings.Join(c.skipPatterns, ","), listFormat(notOwned)))
+			len(notOwned), strings.Join(c.skipPatterns, ","), bulletList(notOwned, func(file string) string { return file })))
 	}
 
 	return out, nil
@@ -86,14 +86,4 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 // Name returns human readable name of the validator.
 func (*NotOwnedFile) Name() string {
 	return "[Experimental] Not Owned File Checker"
-}
-
-// listFormat formats the lines as a bullet point list.
-func listFormat(lines []string) string {
-	points := make([]string, len(lines))
-	for i, line := range lines {
-		points[i] = "            * " + line
-	}
-
-	return strings.Join(points, "\n")
 }

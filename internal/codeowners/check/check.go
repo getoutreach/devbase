@@ -129,6 +129,17 @@ func (o *Output) Report(msg string, opts ...IssueOption) {
 	o.Issues = append(o.Issues, i)
 }
 
+// bulletList formats the items as a bullet point list, one item per line, with the text that
+// format returns for each item. The list is indented for the message of an issue.
+func bulletList[T any](items []T, format func(T) string) string {
+	points := make([]string, len(items))
+	for i, item := range items {
+		points[i] = "            * " + format(item)
+	}
+
+	return strings.Join(points, "\n")
+}
+
 // Checker validates the entries of a CODEOWNERS file.
 type Checker interface {
 	// Name returns the human-readable name of the check.

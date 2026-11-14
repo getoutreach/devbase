@@ -8,7 +8,6 @@ package check
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
 )
@@ -42,8 +41,8 @@ func (*DuplicatedPattern) Check(ctx context.Context, in Input) (Output, error) {
 
 	for _, pattern := range order {
 		if entries := patterns[pattern]; len(entries) > 1 {
-			out.Report(fmt.Sprintf("Pattern %q is defined %d times in lines:\n%s",
-				pattern, len(entries), listDuplicates(entries)))
+			list := bulletList(entries, func(e codeowners.Entry) string { return fmt.Sprintf("%d: with owners: %s", e.LineNo, e.Owners) })
+			out.Report(fmt.Sprintf("Pattern %q is defined %d times in lines:\n%s", pattern, len(entries), list))
 		}
 	}
 
@@ -53,14 +52,4 @@ func (*DuplicatedPattern) Check(ctx context.Context, in Input) (Output, error) {
 // Name returns human readable name of the validator.
 func (*DuplicatedPattern) Name() string {
 	return "Duplicated Pattern Checker"
-}
-
-// listDuplicates formats the entries as a bullet point list.
-func listDuplicates(es []codeowners.Entry) string {
-	points := make([]string, len(es))
-	for i, e := range es {
-		points[i] = fmt.Sprintf("            * %d: with owners: %s", e.LineNo, e.Owners)
-	}
-
-	return strings.Join(points, "\n")
 }

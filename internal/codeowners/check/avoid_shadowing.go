@@ -46,9 +46,9 @@ func (*AvoidShadowing) Check(ctx context.Context, in Input) (Output, error) {
 		}
 
 		if len(shadowed) > 0 {
+			list := bulletList(shadowed, func(e codeowners.Entry) string { return fmt.Sprintf("%d: %q", e.LineNo, e.Pattern) })
 			out.Report(fmt.Sprintf("Pattern %q shadows the following patterns:\n%s\n"+
-				"Entries should go from least-specific to most-specific.", entry.Pattern, listShadowed(shadowed)),
-				WithEntry(entry))
+				"Entries should go from least-specific to most-specific.", entry.Pattern, list), WithEntry(entry))
 		}
 
 		previousEntries = append(previousEntries, entry)
@@ -60,16 +60,6 @@ func (*AvoidShadowing) Check(ctx context.Context, in Input) (Output, error) {
 // Name returns human readable name of the validator.
 func (*AvoidShadowing) Name() string {
 	return "[Experimental] Avoid Shadowing Checker"
-}
-
-// listShadowed formats the entries as a bullet point list.
-func listShadowed(es []codeowners.Entry) string {
-	points := make([]string, len(es))
-	for i, e := range es {
-		points[i] = fmt.Sprintf("            * %d: %q", e.LineNo, e.Pattern)
-	}
-
-	return strings.Join(points, "\n")
 }
 
 // endWithSlash adds a trailing slash to a string if it doesn't already end with one.

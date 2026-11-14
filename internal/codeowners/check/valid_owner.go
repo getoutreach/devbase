@@ -163,7 +163,8 @@ func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 //	@org/team-name
 //	user@example.com
 //
-// Source: https://help.github.com/articles/about-code-owners/#codeowners-syntax
+// Source: "CODEOWNERS syntax" in:
+// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 //
 // Each owner is validated once. When a GitHub API call fails, or when the rate-limit reserve
 // stops a call, Check returns the issues found so far and the error. The error wraps ErrSkipped

@@ -98,7 +98,8 @@ func TestFileExists(t *testing.T) {
 				"docs/readme.md",
 			},
 		},
-		// https://github.community/t/codeowners-file-with-a-not-file-type-condition/1423
+		// Negation does not work. See "CODEOWNERS syntax" in:
+		// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 		"Should not match with negation pattern": {
 			codeownersInput: `
 					!/codeowners-validator @pico

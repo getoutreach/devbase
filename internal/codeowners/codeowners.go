@@ -63,8 +63,8 @@ func (e Entry) String() string {
 }
 
 // Load returns the entries of the CODEOWNERS file in repoDir. The file is looked up in the
-// root, docs/, and .github/ directories.
-// See: https://help.github.com/articles/about-code-owners/#codeowners-file-location
+// root, docs/, and .github/ directories. See "CODEOWNERS file location" in:
+// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 func Load(repoDir string) ([]Entry, error) {
 	rel, content, err := Read(repoDir)
 	if err != nil {
