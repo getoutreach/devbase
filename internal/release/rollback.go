@@ -125,13 +125,19 @@ func Rollback(ctx context.Context, r *Repo, opts *RollbackOptions) (_ []string, 
 			return nil, fmt.Errorf("delete the remote refs: %w", err)
 		}
 	}
-	// The local refs are only a cache of the remote ones.
-	//nolint:errcheck // Why: the tag may not be local.
-	g.Run(ctx, "tag", "--delete", opts.Tag)
-	//nolint:errcheck // Why: the note may not be local.
-	g.Run(ctx, "update-ref", "-d", notes)
+	deleteLocalTag(ctx, g, opts.Tag)
 	fmt.Fprintf(log, "Deleted\n  %s\n", strings.Join(deleted, "\n  "))
 	return deleted, nil
+}
+
+// deleteLocalTag deletes the local tag and git note of a tag after their
+// remote refs are gone: the local refs are only a cache of the remote
+// ones.
+func deleteLocalTag(ctx context.Context, g *Git, tag string) {
+	//nolint:errcheck // Why: the tag may not be local.
+	g.Run(ctx, "tag", "--delete", tag)
+	//nolint:errcheck // Why: the note may not be local.
+	g.Run(ctx, "update-ref", "-d", noteRef(tag))
 }
 
 // rollbackRelease is the release that rollback removes.

@@ -213,7 +213,9 @@ func TestPublishGoPin(t *testing.T) {
 // goGetFixture adds the Go module api to a unit fixture with cfg: the
 // root go.mod requires the released api/v1.0.0 without a replace
 // directive. The go commands fetch the module from the bare remote
-// through a git URL rewrite, with no module proxy and no network.
+// through a git URL rewrite, with no network. GOPROXY is off and no
+// module is private, so go get works only because publish adds the
+// unit module to GONOPROXY and GONOSUMDB.
 func goGetFixture(t *testing.T, cfg string) *unitFixture {
 	t.Helper()
 	u := baselined(t, cfg)
@@ -232,7 +234,7 @@ func goGetFixture(t *testing.T, cfg string) *unitFixture {
 	writeFile(t, dir, "gitconfig", "[url \""+bare+"\"]\n\tinsteadOf = https://github.com/acme/widgets\n")
 	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(dir, "gitconfig"))
 	for k, v := range map[string]string{
-		"GOENV": "off", "GOPROXY": "off", "GOPRIVATE": "github.com/acme/*", "GOWORK": "off", "GOTOOLCHAIN": "local",
+		"GOENV": "off", "GOPROXY": "off", "GOPRIVATE": "", "GONOPROXY": "", "GONOSUMDB": "", "GOWORK": "off", "GOTOOLCHAIN": "local",
 		"GOFLAGS": "-mod=mod -modcacherw", "GOMODCACHE": t.TempDir(),
 	} {
 		t.Setenv(k, v)
@@ -262,6 +264,100 @@ func TestPublishGoGet(t *testing.T) {
 	assert.Assert(t, strings.Contains(sum, "github.com/acme/widgets/api v1.0.1 h1:"), sum)
 	assert.Assert(t, strings.Contains(sum, "github.com/acme/widgets/api v1.0.1/go.mod h1:"), sum)
 	assert.Assert(t, !strings.Contains(sum, "v1.0.0"), sum)
+}
+
+// rejectTag makes the bare remote of u reject a push of tag, as a tag
+// protection rule does, until the returned function runs.
+func (u *unitFixture) rejectTag(tag string) (allow func()) {
+	u.t.Helper()
+	hooks := filepath.Join(u.run("ls-remote", "--get-url", "origin"), "hooks")
+	writeFile(u.t, hooks, "update", "#!/bin/sh\n[ \"$1\" != refs/tags/"+tag+" ] || { echo \"$1 is protected\" >&2; exit 1; }\n")
+	hook := filepath.Join(hooks, "update")
+	assert.NilError(u.t, os.Chmod(hook, 0o755))
+	return func() { assert.NilError(u.t, os.Remove(hook)) }
+}
+
+// freshCheckout makes the checkout of u as a new CI job has it: the
+// branch at commit, and only the tags of the remote.
+func (u *unitFixture) freshCheckout(commit string) {
+	u.t.Helper()
+	u.run("reset", "-q", "--hard", commit)
+	for tag := range strings.FieldsSeq(u.run("tag", "--list")) {
+		u.run("tag", "--delete", tag)
+	}
+	u.run("fetch", "-q", "--tags", "origin")
+}
+
+// TestPublishMirrorRootPushFails checks that a mirror unit tag goes in
+// the atomic push of the root tag: when the remote rejects the root tag,
+// it has none of the tags and not the release commit, and a rerun of the
+// plan releases both.
+func TestPublishMirrorRootPushFails(t *testing.T) {
+	u := goFixture(t, goPinConfig, &spec.Unit{Kind: spec.UnitGoModule, Dir: "api", ForgeRelease: true})
+	u.change("fix: api", "api/api.go")
+	plan, err := u.planUnits()
+	assert.NilError(t, err)
+	allow := u.rejectTag("v1.0.1")
+	var log bytes.Buffer
+	err = Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
+		Remote: u.remote, Forge: u.forge, Env: os.Environ(), Log: &log,
+	})
+	assert.ErrorContains(t, err, "refs/tags/v1.0.1 is protected")
+	assert.Assert(t, !strings.Contains(log.String(), "api/v1.0.1"), "no push of the unit tag before the root tag:\n%s", log.String())
+	assert.Equal(t, u.remoteRef("refs/heads/main"), plan.Commit)
+	for _, ref := range []string{"refs/tags/v1.0.1", "refs/tags/api/v1.0.1", "refs/notes/semantic-release-api/v1.0.1"} {
+		assert.Equal(t, u.remoteRef(ref), "", ref)
+	}
+	assert.Equal(t, len(u.forge.Created), 0, "the mirror unit release waits for the root tag")
+
+	allow()
+	u.freshCheckout(plan.Commit)
+	assert.NilError(t, u.publishUnits(plan))
+	assert.Equal(t, u.remoteRef("refs/tags/api/v1.0.1"), plan.Commit)
+	assert.Assert(t, u.remoteRef("refs/notes/semantic-release-api/v1.0.1") != "")
+	tagged := u.remoteRef("refs/tags/v1.0.1")
+	assert.Equal(t, u.run("log", "-1", "--format=%P", tagged), plan.Commit)
+	assert.Equal(t, u.remoteRef("refs/heads/main"), tagged)
+	assert.Equal(t, len(u.forge.Created), 2)
+	assert.Equal(t, u.forge.Created[0].Tag, "api/v1.0.1")
+	assert.Assert(t, !u.forge.Created[0].Latest)
+}
+
+// TestPublishGoGetRootPushFails checks that publish deletes a mirror
+// unit tag that the units step pushed for go get, when the remote then
+// rejects the root tag, so that the next plan can release the version.
+func TestPublishGoGetRootPushFails(t *testing.T) {
+	u := goGetFixture(t, goPinConfig)
+	writeFile(t, u.git.Dir, "api/fix.go", "package api\n\n// Fix is new.\nconst Fix = 1\n")
+	u.change("fix: api")
+	plan, err := u.planUnits()
+	assert.NilError(t, err)
+	allow := u.rejectTag("v1.0.1")
+	var log bytes.Buffer
+	err = Publish(context.Background(), u.unitRepo(), plan, &PublishOptions{
+		Remote: u.remote, Forge: u.forge, Env: os.Environ(), Log: &log,
+	})
+	assert.ErrorContains(t, err, "refs/tags/v1.0.1 is protected")
+	assert.Assert(t, strings.Contains(log.String(), "Set the go.mod requirement github.com/acme/widgets/api@v1.0.1"), log.String())
+	assert.Assert(t, strings.Contains(log.String(), "Deleted the unit tags api/v1.0.1, because the root release failed"), log.String())
+	assert.Equal(t, u.remoteRef("refs/heads/main"), plan.Commit)
+	for _, ref := range []string{"refs/tags/v1.0.1", "refs/tags/api/v1.0.1", "refs/notes/semantic-release-api/v1.0.1"} {
+		assert.Equal(t, u.remoteRef(ref), "", ref)
+	}
+
+	// The branch moves on; the next plan releases the same versions.
+	allow()
+	u.freshCheckout(plan.Commit)
+	writeFile(t, u.git.Dir, "README.md", "# widgets\n")
+	u.change("fix: later")
+	plan, err = u.planUnits()
+	assert.NilError(t, err)
+	assert.Equal(t, versions(plan), "root=1.0.1 widgets-client=- api=1.0.1")
+	assert.NilError(t, u.publishUnits(plan))
+	assert.Equal(t, u.remoteRef("refs/tags/api/v1.0.1"), plan.Commit)
+	tagged := u.remoteRef("refs/tags/v1.0.1")
+	assert.Equal(t, u.run("log", "-1", "--format=%P", tagged), plan.Commit)
+	assert.Assert(t, strings.Contains(u.run("show", tagged+":go.mod"), "require github.com/acme/widgets/api v1.0.1"))
 }
 
 func TestRollbackUnit(t *testing.T) {

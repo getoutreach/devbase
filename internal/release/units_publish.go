@@ -1,17 +1,19 @@
 // Copyright 2026 Outreach Corporation. All Rights Reserved.
 
 // Description: Publishes the release units of a plan: the unit tags and
-// notes in one push, the npm packages, the forge releases, the root
-// go.mod pin and the success comments.
+// notes, the npm packages, the forge releases, the root go.mod pin and
+// the success comments.
 
 package release
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
@@ -25,8 +27,15 @@ type unitPublish struct {
 	unit *spec.Unit
 	plan *PlanUnit
 
-	// done is true when an earlier run pushed the tag.
+	// done is true when the tag is on the plan commit: an earlier run or
+	// the units step pushed it.
 	done bool
+
+	// early is true when the units step pushes the tag, before the root
+	// tag: for an independent unit, and for a mirror Go unit whose root
+	// pin runs go get, which needs the tag on the remote. The tag push
+	// of the root release pushes the other mirror unit tags.
+	early bool
 
 	// failed is true when a publisher of the unit failed.
 	failed bool
@@ -40,6 +49,19 @@ func (u *unitPublish) tag() string {
 	return u.plan.NextRelease.GitTag
 }
 
+// mirror reports whether the unit gets the root version.
+func (u *unitPublish) mirror() bool {
+	return u.plan.Strategy == spec.StrategyMirror
+}
+
+// pinsWithGoGet reports whether the root go.mod pin of a Go unit runs go
+// get, because the root go.mod requires the unit without a local
+// replace directive.
+func (u *unitPublish) pinsWithGoGet() bool {
+	g := u.unit.Go
+	return g != nil && g.PinRoot == spec.GoPinAuto && g.RootRequires && !g.RootReplaces
+}
+
 // unitState finds the released units of the plan in the config, and
 // whether an earlier run tagged them (requirement 8). A unit tag on
 // another commit than the plan commit is an error.
@@ -50,6 +72,7 @@ func (p *publisher) unitState(ctx context.Context) error {
 			return fmt.Errorf("%w: %s", ErrUnitPlan, pu.Name)
 		}
 		up := &unitPublish{unit: u, plan: pu}
+		up.early = !up.mirror() || up.pinsWithGoGet()
 		if tagged := p.r.Git.TagCommit(ctx, up.tag()); tagged != "" {
 			if tagged != p.plan.Commit {
 				return fmt.Errorf("%w: %s at %s", ErrTagExists, up.tag(), tagged)
@@ -62,39 +85,98 @@ func (p *publisher) unitState(ctx context.Context) error {
 	return nil
 }
 
-// tagUnits tags each released unit on the plan commit, adds the git
-// notes, and pushes all of them in one atomic push. It first checks
-// that the plan is not stale, unless an earlier run of this plan pushed
-// a tag, after which the branch can have the release commit.
+// tagUnits tags each early unit on the plan commit, adds the git notes,
+// and pushes all of them in one atomic push. It first checks that the
+// plan is not stale, unless an earlier run of this plan pushed a tag,
+// after which the branch can have the release commit.
 func (p *publisher) tagUnits(ctx context.Context) error {
-	if len(p.units) == 0 {
+	units := p.unitsWhere(func(u *unitPublish) bool { return u.early })
+	if len(units) == 0 {
 		return nil
 	}
-	g := p.r.Git
-	if !p.resume && !slices.ContainsFunc(p.units, func(u *unitPublish) bool { return u.done }) {
+	if !p.resume && !slices.ContainsFunc(units, func(u *unitPublish) bool { return u.done }) {
 		if err := p.checkStale(ctx); err != nil {
 			return err
 		}
 	}
-	tags := make([]string, 0, len(p.units))
-	for _, u := range p.units {
-		tags = append(tags, u.tag())
-	}
-	if err := tagAndPush(ctx, g, p.opts.Env, p.opts.Remote, p.plan.Commit, p.plan.Branch.Channel, tags); err != nil {
+	refs, err := p.tagUnitRefs(ctx, units)
+	if err != nil {
 		return err
 	}
-	for _, u := range p.units {
+	if err := pushAtomic(ctx, p.r.Git, p.opts.Remote, refs); err != nil {
+		return err
+	}
+	p.markTagged(units)
+	return nil
+}
+
+// markTagged marks units as tagged after their push.
+func (p *publisher) markTagged(units []*unitPublish) {
+	for _, u := range units {
 		u.done = true
 		fmt.Fprintf(p.log, "Tagged %s as %s\n", p.plan.Commit, u.tag())
 	}
+}
+
+// unitsWhere returns the released units for which keep is true.
+func (p *publisher) unitsWhere(keep func(*unitPublish) bool) []*unitPublish {
+	var out []*unitPublish
+	for _, u := range p.units {
+		if keep(u) {
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
+// tagUnitRefs tags units on the plan commit with their git notes, and
+// returns the refs to push.
+func (p *publisher) tagUnitRefs(ctx context.Context, units []*unitPublish) ([]string, error) {
+	tags := make([]string, 0, len(units))
+	for _, u := range units {
+		tags = append(tags, u.tag())
+	}
+	return tagRefs(ctx, p.r.Git, p.opts.Env, p.plan.Commit, p.plan.Branch.Channel, tags)
+}
+
+// dropEarlyMirrorTags deletes the tags and notes of the mirror units
+// that the units step pushed, after a root step failed before the root
+// tag push. A mirror unit tag without its root release stops the later
+// plans. The go get of the root pin did not use a module proxy or
+// checksum database (see goGetEnv), so no public cache has the version.
+func (p *publisher) dropEarlyMirrorTags(ctx context.Context) error {
+	units := p.unitsWhere(func(u *unitPublish) bool { return u.early && u.mirror() && u.done })
+	if len(units) == 0 {
+		return nil
+	}
+	tags := make([]string, 0, len(units))
+	refs := make([]string, 0, 2*len(units)) //nolint:mnd // Why: a tag and a note per unit.
+	for _, u := range units {
+		tags = append(tags, u.tag())
+		refs = append(refs, ":refs/tags/"+u.tag(), ":"+noteRef(u.tag()))
+	}
+	if err := pushAtomic(ctx, p.r.Git, p.opts.Remote, refs); err != nil {
+		return fmt.Errorf("delete the unit tags %s of the failed root release; run rollback --force for each: %w",
+			strings.Join(tags, ", "), err)
+	}
+	for _, u := range units {
+		u.done = false
+		deleteLocalTag(ctx, p.r.Git, u.tag())
+	}
+	fmt.Fprintf(p.log, "Deleted the unit tags %s, because the root release failed\n", strings.Join(tags, ", "))
 	return nil
 }
 
 // publishUnits publishes each released unit in config order: the npm
-// package and the forge release. A unit that fails does not stop the
-// other units or the root release; Publish returns its error at the end.
-func (p *publisher) publishUnits(ctx context.Context) error {
+// package and the forge release. It publishes the mirror units when
+// mirror is true, and else the other units. A unit that fails does not
+// stop the other units or the root release; Publish returns its error at
+// the end.
+func (p *publisher) publishUnits(ctx context.Context, mirror bool) error {
 	for _, u := range p.units {
+		if u.mirror() != mirror {
+			continue
+		}
 		if err := p.publishUnit(ctx, u); err != nil {
 			u.failed = true
 			p.unitErrs = append(p.unitErrs, fmt.Errorf("unit %s: %w", u.unit.Name, err))
@@ -235,16 +317,20 @@ func (p *publisher) unitCommits(ctx context.Context, pu *PlanUnit) ([]forge.Comm
 // the unit tag, which the units step pushed, and go mod tidy updates
 // go.sum.
 func (p *publisher) pinGoUnits(ctx context.Context) error {
-	dir, env := p.r.Git.Dir, p.opts.Env
+	dir := p.r.Git.Dir
 	for _, u := range p.units {
 		g := u.unit.Go
 		if g == nil || g.PinRoot != spec.GoPinAuto || !g.RootRequires {
 			continue
 		}
 		mod := g.ModulePath + "@v" + u.plan.NextRelease.Version
-		cmds := [][]string{{"get", mod}, {"mod", "tidy"}}
-		if g.RootReplaces {
-			cmds = [][]string{{"mod", "edit", "-require=" + mod}}
+		cmds, env := [][]string{{"mod", "edit", "-require=" + mod}}, p.opts.Env
+		if u.pinsWithGoGet() {
+			cmds = [][]string{{"get", mod}, {"mod", "tidy"}}
+			var err error
+			if env, err = goGetEnv(ctx, dir, env, g.ModulePath); err != nil {
+				return err
+			}
 		}
 		for _, args := range cmds {
 			if _, err := run(ctx, dir, env, "go", args...); err != nil {
@@ -254,4 +340,29 @@ func (p *publisher) pinGoUnits(ctx context.Context) error {
 		fmt.Fprintf(p.log, "Set the go.mod requirement %s\n", mod)
 	}
 	return nil
+}
+
+// goGetEnv returns env with module added to GONOPROXY and GONOSUMDB, so
+// that go get fetches the new unit version from the git remote, and no
+// module proxy or checksum database gets it before the root release.
+// Then publish can delete the unit tag if the root release fails.
+func goGetEnv(ctx context.Context, dir string, env []string, module string) ([]string, error) {
+	keys := []string{"GONOPROXY", "GONOSUMDB"}
+	out, err := run(ctx, dir, env, "go", append([]string{"env", "-json"}, keys...)...)
+	if err != nil {
+		return nil, fmt.Errorf("read the go env: %w", err)
+	}
+	var values map[string]string
+	if err := json.Unmarshal([]byte(out), &values); err != nil {
+		return nil, fmt.Errorf("read the go env: %w", err)
+	}
+	env = slices.Clone(envOrProcess(env))
+	for _, key := range keys {
+		v := module
+		if values[key] != "" {
+			v = values[key] + "," + module
+		}
+		env = append(env, key+"="+v)
+	}
+	return env, nil
 }

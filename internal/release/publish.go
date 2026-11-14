@@ -118,9 +118,10 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 		{"state", p.state, false},
 		{"generate_notes", p.generateNotes, true},
 		{"units", p.tagUnits, false},
-		{"unit_publish", p.publishUnits, false},
+		{"unit_publish", func(ctx context.Context) error { return p.publishUnits(ctx, false) }, false},
 		{"prepare", p.prepare, true},
 		{"tag", p.tag, true},
+		{"mirror_publish", func(ctx context.Context) error { return p.publishUnits(ctx, true) }, true},
 		{"publish", p.publish, true},
 		{"success", p.success, false},
 	}
@@ -139,6 +140,10 @@ func Publish(ctx context.Context, r *Repo, plan *Plan, opts *PublishOptions) (er
 			continue
 		}
 		if err := traceStep(ctx, "publish."+step.name, step.fn); err != nil {
+			// A mirror unit tag belongs to the root release.
+			if !opts.DryRun && !p.resume && !p.rootTagged {
+				err = errors.Join(err, p.dropEarlyMirrorTags(ctx))
+			}
 			return err
 		}
 	}
@@ -155,6 +160,9 @@ type publisher struct {
 
 	// resume is true when the tag exists from an earlier run.
 	resume bool
+
+	// rootTagged is true when this run pushed the root tag.
+	rootTagged bool
 
 	// tagCommit is the commit to tag: the plan commit or its release
 	// commit.
@@ -335,36 +343,39 @@ func matchCommitGlob(glob, file string) bool {
 	return (err == nil && ok) || strings.HasPrefix(file, glob+"/")
 }
 
-// tag checks that the plan is not stale (requirement 7), pushes the
-// release commit, and tags the release and adds its git note, as
-// semantic-release does. A rerun skips the stale check, because the
-// remote branch can then be the release commit.
+// tag checks that the plan is not stale (requirement 7), tags the
+// release and adds its git note, as semantic-release does, and pushes
+// the release commit, the tag, the note and the tags of the mirror units
+// that the units step did not push, in one atomic push. A rerun skips
+// the stale check, because the remote branch can then be the release
+// commit.
 func (p *publisher) tag(ctx context.Context) error {
-	g, tag, branch := p.r.Git, p.plan.NextRelease.GitTag, p.plan.Branch.Name
+	g, tag := p.r.Git, p.plan.NextRelease.GitTag
+	var refs []string
 	if !p.resume {
 		if err := p.checkStale(ctx); err != nil {
 			return err
 		}
 		if p.tagCommit != p.plan.Commit {
-			if _, err := g.Run(ctx, "push", "--", p.opts.Remote, p.tagCommit+":refs/heads/"+branch); err != nil {
-				return fmt.Errorf("push the release commit: %w", err)
-			}
-		}
-		if _, err := g.Run(ctx, "tag", tag, p.tagCommit); err != nil {
-			return err
+			refs = append(refs, p.tagCommit+":refs/heads/"+p.plan.Branch.Name)
 		}
 	}
-	if err := addTagNote(ctx, g, p.opts.Env, tag, p.plan.NextRelease.Channel); err != nil {
+	rootRefs, err := tagRefs(ctx, g, p.opts.Env, p.tagCommit, p.plan.NextRelease.Channel, []string{tag})
+	if err != nil {
 		return err
 	}
-	ref := noteRef(tag)
-	if _, err := g.Run(ctx, "push", "--", p.opts.Remote, "refs/tags/"+tag); err != nil {
-		return fmt.Errorf("push the tag: %w", err)
+	// A mirror unit releases only with the root release.
+	late := p.unitsWhere(func(u *unitPublish) bool { return !u.early })
+	unitRefs, err := p.tagUnitRefs(ctx, late)
+	if err != nil {
+		return err
 	}
-	if _, err := g.Run(ctx, "push", "--", p.opts.Remote, ref); err != nil {
-		return fmt.Errorf("push the tag note: %w", err)
+	if err := pushAtomic(ctx, g, p.opts.Remote, slices.Concat(refs, rootRefs, unitRefs)); err != nil {
+		return err
 	}
+	p.rootTagged = true
 	fmt.Fprintf(p.log, "Tagged %s as %s\n", p.tagCommit, tag)
+	p.markTagged(late)
 	return nil
 }
 
@@ -401,23 +412,37 @@ func addTagNote(ctx context.Context, g *Git, env []string, tag, channel string) 
 // the git notes with channel, and pushes the tags and notes to remote
 // in one atomic push, unless remote is empty.
 func tagAndPush(ctx context.Context, g *Git, env []string, remote, commit, channel string, tags []string) error {
+	refs, err := tagRefs(ctx, g, env, commit, channel, tags)
+	if err != nil || remote == "" {
+		return err
+	}
+	return pushAtomic(ctx, g, remote, refs)
+}
+
+// tagRefs tags commit with each of tags that does not exist yet, adds
+// the git notes with channel, and returns the refs of the tags and
+// notes.
+func tagRefs(ctx context.Context, g *Git, env []string, commit, channel string, tags []string) ([]string, error) {
 	refs := make([]string, 0, 2*len(tags)) //nolint:mnd // Why: a tag and a note per tag.
 	for _, tag := range tags {
 		if g.TagCommit(ctx, tag) == "" {
 			if _, err := g.Run(ctx, "tag", tag, commit); err != nil {
-				return err
+				return nil, err
 			}
 		}
 		if err := addTagNote(ctx, g, env, tag, channel); err != nil {
-			return err
+			return nil, err
 		}
 		refs = append(refs, "refs/tags/"+tag, noteRef(tag))
 	}
-	if remote == "" {
-		return nil
-	}
+	return refs, nil
+}
+
+// pushAtomic pushes refs to remote in one atomic push: the remote gets
+// all of them or none.
+func pushAtomic(ctx context.Context, g *Git, remote string, refs []string) error {
 	if _, err := g.Run(ctx, append([]string{"push", "--atomic", "--", remote}, refs...)...); err != nil {
-		return fmt.Errorf("push the tags %s: %w", strings.Join(tags, ", "), err)
+		return fmt.Errorf("push %s: %w", strings.Join(refs, " "), err)
 	}
 	return nil
 }
