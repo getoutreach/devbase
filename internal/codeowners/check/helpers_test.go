@@ -6,6 +6,8 @@
 package check
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,4 +105,50 @@ func assertSingleIssue(t *testing.T, want *Issue, got []Issue) {
 
 	assert.Equal(t, len(got), 1, "issues: %v", got)
 	assert.DeepEqual(t, *want, got[0])
+}
+
+// newBenchRepo creates a git repository with 50,000 files in the git index and returns its
+// directory. The files are dir000/pkg00/file00.go to dir099/pkg09/file49.go, and they are not in
+// the working tree.
+func newBenchRepo(b *testing.B) string {
+	b.Helper()
+
+	dir := b.TempDir()
+	runGit(b, dir, "init", "-q")
+
+	// All the files have the empty content.
+	blob, err := gitCommand(b, dir, "hash-object", "-w", "--stdin").Output()
+	assert.NilError(b, err)
+
+	var index strings.Builder
+	for i := range 50_000 {
+		fmt.Fprintf(&index, "100644 %s\tdir%03d/pkg%02d/file%02d.go\n", bytes.TrimSpace(blob), i/500, i/50%10, i%50)
+	}
+	update := gitCommand(b, dir, "update-index", "--index-info")
+	update.Stdin = strings.NewReader(index.String())
+	out, err := update.CombinedOutput()
+	assert.NilError(b, err, "git update-index: %s", out)
+
+	return dir
+}
+
+// benchCodeowners returns 500 CODEOWNERS entries for the repository of newBenchRepo. Most
+// patterns are anchored at the root, like in a typical CODEOWNERS file. 125 patterns match no
+// file. The other patterns match 27,500 files.
+func benchCodeowners() string {
+	var content strings.Builder
+	for i := range 500 {
+		switch {
+		case i < 350: // An anchored pattern that matches.
+			fmt.Fprintf(&content, "/dir%03d/pkg%02d/ @team\n", i%100, i%10)
+		case i < 450: // An anchored pattern that matches no file.
+			fmt.Fprintf(&content, "/dir%03d/missing%02d/ @team\n", i%100, i%10)
+		case i < 475: // A pattern that is not anchored and matches.
+			fmt.Fprintf(&content, "file%02d.go @team\n", i%50)
+		default: // A pattern that is not anchored and matches no file.
+			fmt.Fprintf(&content, "*.txt%02d @team\n", i%50)
+		}
+	}
+
+	return content.String()
 }

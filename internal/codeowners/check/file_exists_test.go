@@ -6,7 +6,6 @@
 package check
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -339,41 +338,10 @@ func TestFileIndexMatchesFullScan(t *testing.T) {
 	assert.Assert(t, indexed >= 30, "only %d patterns use the index", indexed)
 }
 
-// BenchmarkFileExist runs the files check on 50,000 files in the git index with 500 patterns. Most
-// patterns are anchored at the root, like in a typical CODEOWNERS file.
+// BenchmarkFileExist runs the files check on the benchmark repository.
 func BenchmarkFileExist(b *testing.B) {
-	dir := b.TempDir()
-	runGit(b, dir, "init", "-q")
-
-	// The files are only in the git index, and all have the empty content.
-	blob, err := gitCommand(b, dir, "hash-object", "-w", "--stdin").Output()
-	assert.NilError(b, err)
-
-	var index strings.Builder
-	for i := range 50_000 {
-		fmt.Fprintf(&index, "100644 %s\tdir%03d/pkg%02d/file%02d.go\n", bytes.TrimSpace(blob), i/500, i/50%10, i%50)
-	}
-	update := gitCommand(b, dir, "update-index", "--index-info")
-	update.Stdin = strings.NewReader(index.String())
-	out, err := update.CombinedOutput()
-	assert.NilError(b, err, "git update-index: %s", out)
-
-	var codeowners strings.Builder
-	for i := range 500 {
-		switch {
-		case i < 350: // An anchored pattern that matches.
-			fmt.Fprintf(&codeowners, "/dir%03d/pkg%02d/ @team\n", i%100, i%10)
-		case i < 450: // An anchored pattern that matches no file.
-			fmt.Fprintf(&codeowners, "/dir%03d/missing%02d/ @team\n", i%100, i%10)
-		case i < 475: // A pattern that is not anchored and matches.
-			fmt.Fprintf(&codeowners, "file%02d.go @team\n", i%50)
-		default: // A pattern that is not anchored and matches no file.
-			fmt.Fprintf(&codeowners, "*.txt%02d @team\n", i%50)
-		}
-	}
-
-	in := loadInput(b, codeowners.String())
-	in.RepoDir = dir
+	in := loadInput(b, benchCodeowners())
+	in.RepoDir = newBenchRepo(b)
 	in.Staged = true
 
 	for b.Loop() {

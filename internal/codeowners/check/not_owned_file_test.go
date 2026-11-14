@@ -209,3 +209,41 @@ func TestNotOwnedFileRelativeTempDir(t *testing.T) {
 		{Severity: Error, Message: "Found 1 not owned files (skipped patterns: \"\"):\n            * b.txt"},
 	})
 }
+
+// BenchmarkNotOwnedFile runs the notowned check on the benchmark repository, with a default
+// pattern on the first line.
+func BenchmarkNotOwnedFile(b *testing.B) {
+	in := loadInput(b, "* @default\n"+benchCodeowners())
+	in.RepoDir = newBenchRepo(b)
+
+	tests := map[string]struct {
+		cfg NotOwnedFileConfig
+
+		// want are the prefixes of the messages of the issues.
+		want []string
+	}{
+		"all owned": {},
+		"default skipped": {
+			cfg:  NotOwnedFileConfig{SkipPatterns: []string{"*"}},
+			want: []string{"Found 22500 not owned files"},
+		},
+	}
+	for name, tc := range tests {
+		b.Run(name, func(b *testing.B) {
+			for b.Loop() {
+				out, err := NewNotOwnedFile(tc.cfg).Check(b.Context(), in)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if len(out.Issues) != len(tc.want) {
+					b.Fatalf("got %d issues, want %d", len(out.Issues), len(tc.want))
+				}
+				for i, prefix := range tc.want {
+					if !strings.HasPrefix(out.Issues[i].Message, prefix) {
+						b.Fatalf("got issue %.100q, want the prefix %q", out.Issues[i].Message, prefix)
+					}
+				}
+			}
+		})
+	}
+}
