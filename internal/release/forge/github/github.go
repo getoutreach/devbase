@@ -24,9 +24,16 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 )
 
-// errRepoURL is returned for a repository URL without an owner and a
-// name.
-var errRepoURL = errors.New("invalid repository URL")
+// These are the errors of the client.
+var (
+	// errRepoURL is returned for a repository URL without an owner and a
+	// name.
+	errRepoURL = errors.New("invalid repository URL")
+
+	// errNoVisibility is returned when the repository response has
+	// neither the visibility nor the private field.
+	errNoVisibility = errors.New("the response has no visibility")
+)
 
 // releaseName names a GitHub release in success comments, as RELEASE_NAME
 // in definitions/constants.js does.
@@ -121,6 +128,25 @@ func (c *Client) ReleaseName() string {
 	return releaseName
 }
 
+// Visibility returns the visibility of the repository that GitHub
+// reports: "public", "private" or "internal". The visibility field is
+// optional in the API description, so without it the required private
+// field decides. A response with neither is an error.
+func (c *Client) Visibility(ctx context.Context) (string, error) {
+	r, err := c.getRepository(ctx)
+	switch {
+	case err != nil:
+		return "", err
+	case r.GetVisibility() != "":
+		return r.GetVisibility(), nil
+	case r.Private == nil:
+		return "", apiError("get the visibility of "+c.owner+"/"+c.repo, errNoVisibility)
+	case *r.Private:
+		return "private", nil
+	}
+	return forge.Public, nil
+}
+
 // parseRepo returns the owner and the name of the repository at repoURL,
 // as parse-github-url.js does: the first path element is the owner, and
 // the rest, without ".git", is the name.
@@ -170,15 +196,24 @@ func statusCode(err error) int {
 // repo changed name, get the new `repo`/`owner` as the search API will
 // not follow redirects" (success.js, fail.js).
 func (c *Client) repository(ctx context.Context) (owner, repo string, err error) {
-	if c.err != nil {
-		return "", "", c.err
-	}
-	r, _, err := c.gh.Repositories.Get(ctx, c.owner, c.repo)
+	r, err := c.getRepository(ctx)
 	if err != nil {
-		return "", "", apiError("get repository "+c.owner+"/"+c.repo, err)
+		return "", "", err
 	}
 	owner, repo, _ = strings.Cut(r.GetFullName(), "/")
 	return owner, repo, nil
+}
+
+// getRepository gets the repository from the API.
+func (c *Client) getRepository(ctx context.Context) (*gh.Repository, error) {
+	if c.err != nil {
+		return nil, c.err
+	}
+	r, _, err := c.gh.Repositories.Get(ctx, c.owner, c.repo)
+	if err != nil {
+		return nil, apiError("get repository "+c.owner+"/"+c.repo, err)
+	}
+	return r, nil
 }
 
 // graphqlResponse is the body of a GraphQL response.

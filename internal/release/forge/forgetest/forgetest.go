@@ -49,6 +49,10 @@ type Fake struct {
 
 	// Uploaded are the file contents of the assets, by tag and name.
 	Uploaded map[string]map[string][]byte
+
+	// RepoVisibility is what Visibility returns. New sets it to
+	// forge.Public.
+	RepoVisibility string
 }
 
 // New returns an empty fake forge.
@@ -56,6 +60,7 @@ func New() *Fake {
 	return &Fake{
 		releases: map[string]*forge.Release{}, failures: map[string][]error{},
 		Failures: map[string][][]error{}, Uploaded: map[string]map[string][]byte{},
+		RepoVisibility: forge.Public,
 	}
 }
 
@@ -202,6 +207,16 @@ func (f *Fake) Fail(_ context.Context, branch string, errs []error) error {
 	defer f.mu.Unlock()
 	f.Failures[branch] = append(f.Failures[branch], errs)
 	return nil
+}
+
+// Visibility returns RepoVisibility.
+func (f *Fake) Visibility(context.Context) (string, error) {
+	if err := f.call("Visibility"); err != nil {
+		return "", err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.RepoVisibility, nil
 }
 
 // call records a call of method and returns its queued failure, if any.

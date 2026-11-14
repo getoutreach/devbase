@@ -17,6 +17,9 @@ import (
 // ErrForge is returned for a forge API call that fails.
 var ErrForge = errors.New("forge request failed")
 
+// Public is the visibility of a repository that everyone can read.
+const Public = "public"
+
 // Forge is a Git forge. Tags and git notes go through the git CLI, not
 // through a forge.
 type Forge interface {
@@ -53,6 +56,10 @@ type Forge interface {
 
 	// Fail opens or updates the failure issue of a branch with errs.
 	Fail(ctx context.Context, branch string, errs []error) error
+
+	// Visibility returns the visibility of the repository: Public, or
+	// another value of the forge, such as "private" or "internal".
+	Visibility(ctx context.Context) (string, error)
 }
 
 // NoteLinks builds the links in release notes.

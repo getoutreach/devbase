@@ -11,8 +11,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"gotest.tools/v3/assert"
+
+	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 )
 
 // TestReleaseNameAndRepo checks the release name of
@@ -66,4 +68,47 @@ func TestTokenTransportDebug(t *testing.T) {
 	assert.NilError(t, err)
 	assert.NilError(t, resp.Body.Close())
 	assert.Equal(t, log.String(), "debug: GET "+srv.URL+"/repos/o/r\n")
+}
+
+// TestVisibility checks that Visibility reads the visibility field of
+// the repository, then the private field, and fails without both.
+func TestVisibility(t *testing.T) {
+	tests := []struct {
+		// name describes the response.
+		name string
+
+		// response is the body of the repository GET.
+		response map[string]any
+
+		// want is the visibility; empty means an error.
+		want string
+	}{
+		{name: "public", response: map[string]any{"visibility": "public", "private": false}, want: "public"},
+		{name: "internal", response: map[string]any{"visibility": "internal", "private": true}, want: "internal"},
+		{name: "private field only", response: map[string]any{"private": true}, want: "private"},
+		{name: "public field only", response: map[string]any{"private": false}, want: "public"},
+		{name: "no fields", response: map[string]any{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFakeGitHub(t)
+			f.expect(route{method: http.MethodGet, path: "/repos/test_user/test_repo", response: tc.response})
+			var logs []string
+			got, err := f.client(&logs).Visibility(context.Background())
+			if tc.want == "" {
+				assert.ErrorIs(t, err, errNoVisibility)
+				assert.ErrorIs(t, err, forge.ErrForge)
+				return
+			}
+			assert.NilError(t, err)
+			assert.Equal(t, got, tc.want)
+		})
+	}
+
+	// An API error is a forge error.
+	f := newFakeGitHub(t)
+	f.expect(route{method: http.MethodGet, path: "/repos/test_user/test_repo", status: http.StatusNotFound})
+	var logs []string
+	_, err := f.client(&logs).Visibility(context.Background())
+	assert.ErrorIs(t, err, forge.ErrForge)
 }
