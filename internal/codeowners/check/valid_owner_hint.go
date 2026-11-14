@@ -69,7 +69,8 @@ var (
 )
 
 // hint describes the access that the endpoint needs. grantedScopes is the X-OAuth-Scopes header
-// value of a classic token; when it is not empty, the hint also tells which scopes are missing.
+// value of a classic token; when it is not empty, the hint also tells which scopes are missing, or
+// which scopes of the token give the access.
 func (e *endpoint) hint(grantedScopes string) string {
 	var b strings.Builder
 
@@ -83,10 +84,10 @@ func (e *endpoint) hint(grantedScopes string) string {
 	}
 
 	if granted := strings.FieldsFunc(grantedScopes, isScopeSeparator); len(granted) > 0 {
-		if missing := missingScopes(granted, e.scopes); len(missing) > 0 {
+		if present, missing := matchScopes(granted, e.scopes); len(missing) > 0 {
 			b.WriteString(", and this token is missing " + formatScopes(missing))
 		} else {
-			b.WriteString(", and this token has them")
+			b.WriteString(", and this token has " + formatScopes(present))
 		}
 	}
 
@@ -118,27 +119,37 @@ func parentScope(scope string) string {
 	}
 }
 
-// missingScopes returns the groups of needed scopes that have no scope in granted.
-func missingScopes(granted []string, needed [][]string) [][]string {
-	// has reports whether granted has scope, or a scope that includes it.
-	has := func(scope string) bool {
+// matchScopes returns, for each group of needed scopes, the scope in granted that gives the access
+// of the group, as a group of one scope. It returns the groups that no granted scope gives access
+// for as missing.
+func matchScopes(granted []string, needed [][]string) (present, missing [][]string) {
+	// grant returns the scope in granted that is scope or includes it, or "" when there is none.
+	grant := func(scope string) string {
 		for ; scope != ""; scope = parentScope(scope) {
 			if slices.Contains(granted, scope) {
-				return true
+				return scope
 			}
 		}
 
-		return false
+		return ""
 	}
 
-	var missing [][]string
 	for _, group := range needed {
-		if !slices.ContainsFunc(group, has) {
+		var found string
+		for _, scope := range group {
+			if found = grant(scope); found != "" {
+				break
+			}
+		}
+
+		if found == "" {
 			missing = append(missing, group)
+		} else {
+			present = append(present, []string{found})
 		}
 	}
 
-	return missing
+	return present, missing
 }
 
 // formatScopes returns groups of scopes as text: the scopes of a group are joined by "or", and

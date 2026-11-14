@@ -39,6 +39,11 @@ func TestEndpointHint(t *testing.T) {
 			ep:   repositoryEndpoint,
 			want: repository + repoPerm,
 		},
+		"repository, classic token with repo": {
+			ep:     repositoryEndpoint,
+			scopes: "repo",
+			want:   repository + `, and this token has "repo"` + repoPerm,
+		},
 		"repository, classic token without repo": {
 			ep:     repositoryEndpoint,
 			scopes: "read:org",
@@ -61,12 +66,12 @@ func TestEndpointHint(t *testing.T) {
 		"collaborators, admin:org includes read:org": {
 			ep:     collaboratorsEndpoint,
 			scopes: "admin:org,repo",
-			want:   collaborators + `, and this token has them` + collaboratorsPerm,
+			want:   collaborators + `, and this token has "repo" and "admin:org"` + collaboratorsPerm,
 		},
 		"collaborators, write:org includes read:org": {
 			ep:     collaboratorsEndpoint,
 			scopes: "repo, write:org",
-			want:   collaborators + `, and this token has them` + collaboratorsPerm,
+			want:   collaborators + `, and this token has "repo" and "write:org"` + collaboratorsPerm,
 		},
 		"repository teams, no scopes header": {
 			ep:   repoTeamsEndpoint,
@@ -75,7 +80,12 @@ func TestEndpointHint(t *testing.T) {
 		"repository teams, public_repo": {
 			ep:     repoTeamsEndpoint,
 			scopes: "public_repo",
-			want:   repoTeams + `, and this token has them` + repoTeamsPerm,
+			want:   repoTeams + `, and this token has "public_repo"` + repoTeamsPerm,
+		},
+		"repository teams, repo and public_repo": {
+			ep:     repoTeamsEndpoint,
+			scopes: "public_repo, repo",
+			want:   repoTeams + `, and this token has "repo"` + repoTeamsPerm,
 		},
 		"repository teams, classic token without a repository scope": {
 			ep:     repoTeamsEndpoint,
@@ -94,7 +104,7 @@ func TestEndpointHint(t *testing.T) {
 		"team repository, admin:org": {
 			ep:     teamRepoEndpoint,
 			scopes: " admin:org ",
-			want:   teamRepo + `, and this token has them` + teamRepoPerm,
+			want:   teamRepo + `, and this token has "admin:org"` + teamRepoPerm,
 		},
 	}
 	for name, tc := range tests {
