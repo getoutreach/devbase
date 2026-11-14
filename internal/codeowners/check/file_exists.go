@@ -14,9 +14,6 @@ import (
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
 )
 
-// gitlinkMode is the mode of a submodule in the git index.
-const gitlinkMode = "160000"
-
 // FileExist validates that every pattern of the CODEOWNERS file matches at least one file of the
 // repository, with the rules of codeowners.Pattern. The files are the ones in the git index. When
 // Input.Staged is not set, they also include the untracked files that git does not ignore, and
@@ -64,8 +61,7 @@ func (*FileExist) Name() string {
 // returns the untracked files that git does not ignore, and leaves out the files deleted from the
 // working tree. The path of a submodule ends with "/", so that patterns match it as a directory.
 func repoPaths(ctx context.Context, in Input) ([]string, error) {
-	// Each staged entry is "<mode> <object> <stage>\t<path>".
-	staged, err := gitLsFiles(ctx, in, "--stage")
+	staged, err := indexPaths(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -85,17 +81,7 @@ func repoPaths(ctx context.Context, in Input) ([]string, error) {
 		gone[path] = true
 	}
 
-	paths := make([]string, 0, len(staged)+len(untracked))
-	for _, entry := range staged {
-		_, path, _ := strings.Cut(entry, "\t")
-		if gone[path] {
-			continue
-		}
-		if strings.HasPrefix(entry, gitlinkMode+" ") {
-			path += "/"
-		}
-		paths = append(paths, path)
-	}
+	paths := slices.DeleteFunc(staged, func(path string) bool { return gone[strings.TrimSuffix(path, "/")] })
 
 	return append(paths, untracked...), nil
 }

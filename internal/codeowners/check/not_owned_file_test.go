@@ -147,6 +147,40 @@ func TestNotOwnedFile(t *testing.T) {
 	}
 }
 
+// TestNotOwnedFileSubmodule checks that a submodule counts as a directory, like in the files check.
+func TestNotOwnedFileSubmodule(t *testing.T) {
+	tests := map[string]struct {
+		codeowners string
+		wantMsg    string
+	}{
+		"a directory pattern owns the submodule": {codeowners: "*.go @owner\n/vendor/lib/ @team"},
+		"a pattern without a slash at the end":   {codeowners: "*.go @owner\n/vendor/lib @team"},
+		"a pattern for the parent directory":     {codeowners: "*.go @owner\n/vendor/ @team"},
+		"a wildcard that matches the submodule":  {codeowners: "*.go @owner\n/vendor/*/ @team"},
+		"no pattern matches the submodule": {
+			codeowners: "*.go @owner",
+			wantMsg: `Found 1 not owned files (skipped patterns: ""):
+            * vendor/lib`,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			in := loadInput(t, tc.codeowners)
+			in.RepoDir = newGitRepo(t, "a.go")
+			runGit(t, in.RepoDir, "update-index", "--add", "--cacheinfo", "160000,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,vendor/lib")
+
+			out, err := NewNotOwnedFile(NotOwnedFileConfig{}).Check(t.Context(), in)
+			assert.NilError(t, err)
+
+			if tc.wantMsg == "" {
+				assertSingleIssue(t, nil, out.Issues)
+				return
+			}
+			assertSingleIssue(t, &Issue{Severity: Error, Message: tc.wantMsg}, out.Issues)
+		})
+	}
+}
+
 func TestNotOwnedFileDoesNotChangeRepo(t *testing.T) {
 	in := loadInput(t, "*.go @owner\n.gitignore @owner")
 	in.RepoDir = newGitRepo(t, "a.go", "b.go", ".gitignore")

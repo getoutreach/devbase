@@ -93,6 +93,11 @@ func (e IndexEntry) IsRegularFile() bool {
 	return e.Mode == "100644" || e.Mode == "100755"
 }
 
+// IsSubmodule reports whether the entry is a submodule.
+func (e IndexEntry) IsSubmodule() bool {
+	return e.Mode == "160000"
+}
+
 // ListIndex runs "git ls-files -z --stage" with args in dir, and returns the listed entries. A file
 // in a merge conflict has one entry for each stage. With trust, git treats dir as a safe directory,
 // even when another user owns it.

@@ -105,9 +105,9 @@ func TestListIndex(t *testing.T) {
 		{Mode: "100755", Path: "run.sh"},
 		{Mode: "160000", Path: "sub module"},
 	})
-	assert.Assert(t, entries[0].IsRegularFile())
-	assert.Assert(t, entries[1].IsRegularFile())
-	assert.Assert(t, !entries[2].IsRegularFile())
+	assert.Assert(t, entries[0].IsRegularFile() && !entries[0].IsSubmodule())
+	assert.Assert(t, entries[1].IsRegularFile() && !entries[1].IsSubmodule())
+	assert.Assert(t, !entries[2].IsRegularFile() && entries[2].IsSubmodule())
 
 	entries, err = gitcmd.ListIndex(t.Context(), dir, false, "--", "missing")
 	assert.NilError(t, err)

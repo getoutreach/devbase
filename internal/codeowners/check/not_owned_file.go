@@ -27,9 +27,9 @@ type NotOwnedFileConfig struct {
 }
 
 // NotOwnedFile validates that every file that git tracks has an owner, like GitHub: the last entry
-// of the CODEOWNERS file whose pattern matches the file must have owners. It only reads the git
-// index, so it works on a repository that has uncommitted changes and it never changes the
-// repository.
+// of the CODEOWNERS file whose pattern matches the file must have owners. A submodule counts as a
+// directory. It only reads the git index, so it works on a repository that has uncommitted changes
+// and it never changes the repository.
 type NotOwnedFile struct {
 	skipPatterns   []string
 	subdirectories []string
@@ -60,7 +60,7 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 		return out, nil
 	}
 
-	files, err := gitLsFiles(ctx, in, append([]string{"--cached", "--error-unmatch", "--"}, c.subdirectories...)...)
+	files, err := indexPaths(ctx, in, append([]string{"--error-unmatch", "--"}, c.subdirectories...)...)
 	if err != nil {
 		return Output{}, err
 	}
@@ -69,15 +69,16 @@ func (c *NotOwnedFile) Check(ctx context.Context, in Input) (Output, error) {
 		return slices.Contains(c.skipPatterns, entry.Pattern)
 	}))
 
-	// git lists the files in index order, so the stages of a file in a merge conflict are adjacent.
-	notOwned := slices.DeleteFunc(slices.Compact(files), func(file string) bool {
+	notOwned := slices.DeleteFunc(files, func(file string) bool {
 		entry, ok := matcher.Match(file)
 		return ok && len(entry.Owners) > 0
 	})
 
 	if len(notOwned) > 0 {
+		// The path of a submodule is shown without the "/" that makes patterns match it as a directory.
+		list := bulletList(notOwned, func(file string) string { return strings.TrimSuffix(file, "/") })
 		out.Report(fmt.Sprintf("Found %d not owned files (skipped patterns: %q):\n%s",
-			len(notOwned), strings.Join(c.skipPatterns, ","), bulletList(notOwned, func(file string) string { return file })))
+			len(notOwned), strings.Join(c.skipPatterns, ","), list))
 	}
 
 	return out, nil
