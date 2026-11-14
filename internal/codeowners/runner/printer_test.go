@@ -106,6 +106,14 @@ func TestPrinterColor(t *testing.T) {
 		assert.Assert(t, strings.Contains(buf.String(), "\x1b["), "no escape code in %q", buf.String())
 	})
 
+	t.Run("writes the summary without escape codes when colors are on", func(t *testing.T) {
+		var buf bytes.Buffer
+
+		runner.NewPrinter(&buf, false).PrintSummary(20, 10)
+
+		assert.Equal(t, buf.String(), "\n20 check(s) executed, 10 failure(s)\n")
+	})
+
 	t.Run("writes no escape codes when colors are off", func(t *testing.T) {
 		var buf bytes.Buffer
 

@@ -7,6 +7,7 @@ package runner
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func (p *Printer) PrintSummary(allChecks, failedChecks int) {
 		failures = strconv.Itoa(failedChecks)
 	}
 
-	p.style().Fprintf(p.w, "\n%d check(s) executed, %s failure(s)\n", allChecks, failures)
+	fmt.Fprintf(p.w, "\n%d check(s) executed, %s failure(s)\n", allChecks, failures)
 }
 
 // style returns a color with the attributes. Only the printer decides if the color is on, so the
