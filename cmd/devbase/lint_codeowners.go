@@ -308,11 +308,11 @@ func repositoryRoot(ctx context.Context, path string, trust bool) (string, error
 
 	out, err := gitcmd.Output(rootCommand(ctx, trust))
 
-	var gitErr *gitcmd.Error
+	var gitError *gitcmd.Error
 	switch {
 	case err == nil:
 		return strings.TrimSpace(string(out)), nil
-	case errors.As(err, &gitErr) && strings.Contains(gitErr.Stderr, "not a git repository"):
+	case errors.As(err, &gitError) && strings.Contains(gitError.Stderr, "not a git repository"):
 		// The checks that need git report it.
 		return filepath.Abs(".")
 	default:

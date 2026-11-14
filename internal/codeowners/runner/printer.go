@@ -34,7 +34,7 @@ func NewPrinter(w io.Writer, noColor bool) *Printer {
 
 // PrintCheckResult prints the name, duration, issues, and error of one check. For an error that
 // wraps check.ErrSkipped, it prints the reason of the skip.
-func (p *Printer) PrintCheckResult(name string, duration time.Duration, out check.Output, checkErr error) {
+func (p *Printer) PrintCheckResult(name string, duration time.Duration, out check.Output, checkError error) {
 	header := p.style(color.Bold).FprintfFunc()
 	issueBody := p.style(color.FgWhite).FprintfFunc()
 
@@ -50,12 +50,12 @@ func (p *Printer) PrintCheckResult(name string, duration time.Duration, out chec
 	}
 
 	switch {
-	case errors.Is(checkErr, check.ErrSkipped):
+	case errors.Is(checkError, check.ErrSkipped):
 		p.style(color.FgYellow).Fprint(p.w, "    [Skipped]")
-		issueBody(p.w, " %s\n", strings.TrimPrefix(checkErr.Error(), check.ErrSkipped.Error()+": "))
-	case checkErr != nil:
+		issueBody(p.w, " %s\n", strings.TrimPrefix(checkError.Error(), check.ErrSkipped.Error()+": "))
+	case checkError != nil:
 		p.style(color.FgRed).Fprint(p.w, "    [Internal Error]")
-		issueBody(p.w, " %s\n", checkErr)
+		issueBody(p.w, " %s\n", checkError)
 	case len(out.Issues) == 0:
 		p.style(color.FgGreen).Fprintln(p.w, "    Check OK")
 	}

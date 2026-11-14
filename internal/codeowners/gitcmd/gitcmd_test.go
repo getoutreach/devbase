@@ -70,13 +70,13 @@ func TestRunError(t *testing.T) {
 	assert.ErrorContains(t, err, "git cat-file blob :missing.txt in "+dir+": exit status 128: fatal: ")
 	assert.ErrorContains(t, err, "missing.txt")
 
-	var gitErr *gitcmd.Error
-	assert.Assert(t, errors.As(err, &gitErr))
-	assert.Equal(t, gitErr.Dir, dir)
-	assert.Assert(t, strings.HasPrefix(gitErr.Stderr, "fatal: "), gitErr.Stderr)
+	var gitError *gitcmd.Error
+	assert.Assert(t, errors.As(err, &gitError))
+	assert.Equal(t, gitError.Dir, dir)
+	assert.Assert(t, strings.HasPrefix(gitError.Stderr, "fatal: "), gitError.Stderr)
 
-	var exitErr *exec.ExitError
-	assert.Assert(t, errors.As(err, &exitErr))
+	var exitError *exec.ExitError
+	assert.Assert(t, errors.As(err, &exitError))
 }
 
 // TestRunErrorWithoutStderr checks the error of a git command that fails without output.

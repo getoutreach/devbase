@@ -202,8 +202,8 @@ func (v *ValidOwner) Check(ctx context.Context, in Input) (Output, error) {
 			checked[key] = true
 
 			msg, err := v.validate(ctx, owner)
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return Output{}, ctxErr
+			if err := ctx.Err(); err != nil {
+				return Output{}, err
 			}
 			if err != nil {
 				return out, err
@@ -402,17 +402,17 @@ func collaboratorCanWrite(u *github.User) bool {
 
 // isRateLimit reports whether err is the error of a primary or a secondary GitHub rate limit.
 func isRateLimit(err error) bool {
-	var rateErr *github.RateLimitError
-	var abuseErr *github.AbuseRateLimitError
+	var rateLimitError *github.RateLimitError
+	var abuseError *github.AbuseRateLimitError
 
-	return errors.As(err, &rateErr) || errors.As(err, &abuseErr)
+	return errors.As(err, &rateLimitError) || errors.As(err, &abuseError)
 }
 
 // statusCode returns the HTTP status code of a GitHub API error, or 0 when err has none.
 func statusCode(err error) int {
-	var respErr *github.ErrorResponse
-	if errors.As(err, &respErr) && respErr.Response != nil {
-		return respErr.Response.StatusCode
+	var responseError *github.ErrorResponse
+	if errors.As(err, &responseError) && responseError.Response != nil {
+		return responseError.Response.StatusCode
 	}
 
 	return 0
