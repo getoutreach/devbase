@@ -445,21 +445,32 @@ func ownersIfChangedArgs(t *testing.T, repo string) []string {
 }
 
 // TestLintCodeowners_OwnersIfChanged checks that, with --owners-if-changed, the owners check runs
-// only when CODEOWNERS changed since the merge base of HEAD and --base, and that it gets no GitHub
-// token when it does not run.
+// only when CODEOWNERS changed since the merge base of HEAD and --base, or since the first parent
+// of HEAD when HEAD is the merge base, and that it gets no GitHub token when it does not run.
 func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
-	const owners = "* @alice\n"
+	const (
+		owners          = "* @alice\n"
+		sinceMergeBase  = "CODEOWNERS did not change since the merge base with main"
+		sinceParent     = "CODEOWNERS did not change since the first parent of HEAD"
+		onTheBaseBranch = "feature"
+	)
 
 	tests := map[string]struct {
 		base, head string
 		args       []string
-		skipped    bool
+		skipped    string
 		warning    string
 	}{
-		"unchanged":                 {base: owners, head: owners, skipped: true},
+		"unchanged":                 {base: owners, head: owners, skipped: sinceMergeBase},
 		"changed":                   {base: "* @bob\n", head: owners},
 		"missing at the merge base": {base: "", head: owners},
 		"unknown base":              {base: owners, head: owners, args: []string{"--base", "nope"}, warning: `"nope"`},
+		"unchanged in HEAD on the base branch": {
+			base: owners, head: owners, args: []string{"--base", onTheBaseBranch},
+			skipped: sinceParent,
+		},
+		"changed in HEAD on the base branch":  {base: "* @bob\n", head: owners, args: []string{"--base", onTheBaseBranch}},
+		"missing in the first parent of HEAD": {base: "", head: owners, args: []string{"--base", onTheBaseBranch}},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -469,9 +480,8 @@ func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
 			out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), tc.args...)...)
 
 			assert.NilError(t, err, out)
-			if tc.skipped {
-				assert.Assert(t, strings.Contains(out,
-					"    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
+			if tc.skipped != "" {
+				assert.Assert(t, strings.Contains(out, "    [Skipped] "+tc.skipped+"\n"), out)
 				assert.Equal(t, calls, 0, "no GitHub token is needed")
 			} else {
 				assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
@@ -486,6 +496,22 @@ func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestLintCodeowners_OwnersIfChangedRootCommit checks that, with --owners-if-changed, the owners
+// check runs on a root commit, which has no first parent to compare CODEOWNERS with.
+func TestLintCodeowners_OwnersIfChangedRootCommit(t *testing.T) {
+	repo := newCodeownersRepo(t, "* @alice\n", "main.go")
+	runGit(t, repo, "checkout", "-q", "-b", "main")
+	commitAll(t, repo)
+	var calls int
+
+	out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), ownersIfChangedArgs(t, repo)...)
+
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+	assert.Equal(t, calls, 1)
+	assert.Equal(t, stderr, "")
 }
 
 // TestLintCodeowners_OwnersIfChangedShallowClone checks that the owners check runs, with a

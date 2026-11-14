@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Linter for the CODEOWNERS file. It validates the owners on GitHub only
-# when CODEOWNERS changed since the merge base with the default branch.
+# when CODEOWNERS changed since the merge base with the default branch,
+# or, on the default branch, since the first parent of HEAD.
 # See docs/codeowners.md.
 
 # shellcheck source=../lib/devbase.sh

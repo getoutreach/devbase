@@ -64,7 +64,8 @@ The default branch is the branch that `origin/HEAD` points to, for example `orig
 
 The `owners` check makes GitHub API calls. All the CI jobs that use the same token share its rate limit. To use fewer requests:
 
-- The check runs only when CODEOWNERS changed since the merge base with the default branch. See [Only when CODEOWNERS changed](#only-when-codeowners-changed). A shallow clone has no merge base for the command, so the check runs on each build.
+- The check runs only when CODEOWNERS changed since the merge base with the default branch. On the default branch, it runs only when CODEOWNERS changed since the first parent of `HEAD`. See [Only when CODEOWNERS changed](#only-when-codeowners-changed).
+- When the command cannot read the commit to compare with, for example in a shallow clone, the check runs on each build, and the command prints a warning.
 - The check is skipped when fewer than 500 requests remain in the rate limit. See [Rate limit](#rate-limit).
 
 The linter uses the token in `GITHUB_TOKEN`. In CI, the linter framework uses `GITHUB_TOKEN` when it is set, or else gets a token with `ghaccesstoken`. Outside of CI, it uses the output of `gh auth token`. When the token is a GitHub App installation token, the App needs the repository permission "Metadata" (read) and the organization permission "Members" (read). The repository permission "Administration" (read) is optional. See [Required access](#required-access).
@@ -105,9 +106,13 @@ The check does not look up email addresses on GitHub. It compares user logins, o
 
 #### Only when CODEOWNERS changed
 
-With `--owners-if-changed`, the command compares the CODEOWNERS file that it loaded with the file at the same path in the merge base of `HEAD` and `--base`. The loaded file is in the working tree, or in the git index with `--staged`. When the two files are the same, the command skips the `owners` check, and it does not look for GitHub credentials. The check runs when the files are different, or when the file does not exist in the merge base.
+With `--owners-if-changed`, the command compares the CODEOWNERS file that it loaded with the file at the same path in an earlier commit. The loaded file is in the working tree, or in the git index with `--staged`. The earlier commit is the merge base of `HEAD` and `--base`. When the merge base is `HEAD` itself, for example on the `--base` branch, the earlier commit is the first parent of `HEAD`.
 
-When the command cannot find the merge base, for example in a shallow clone or when `--base` does not exist, the check runs, and the command prints a warning.
+When the two files are the same, the command skips the `owners` check, and it does not look for GitHub credentials. The check runs when the files are different, when the file does not exist in the earlier commit, or when `HEAD` has no parent.
+
+When the command cannot read the earlier commit, for example in a shallow clone or when `--base` does not exist, the check runs, and the command prints a warning.
+
+On the `--base` branch, the check runs for each commit that changes CODEOWNERS. Thus it also validates a change whose check was skipped in its pull request, for example because of the [rate limit](#rate-limit).
 
 An owner can become invalid without a change to CODEOWNERS, for example when a user leaves the organization. With `--owners-if-changed`, the check does not find this issue until the next change to CODEOWNERS.
 

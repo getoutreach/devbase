@@ -31,7 +31,7 @@ with `.tool-versions`.
 
 ## CODEOWNERS linter
 
-The `codeowners` linter runs `devbase lint codeowners` when the repository has a CODEOWNERS file in the root, `docs/`, or `.github/` directory. It validates the owners on GitHub only when CODEOWNERS changed since the merge base with the default branch. It has no formatter. See [CI](codeowners.md#ci) in the CODEOWNERS linter documentation.
+The `codeowners` linter runs `devbase lint codeowners` when the repository has a CODEOWNERS file in the root, `docs/`, or `.github/` directory. It validates the owners on GitHub only when CODEOWNERS changed since the merge base with the default branch. On the default branch, it validates them only when CODEOWNERS changed since the first parent of `HEAD`. When it cannot read the commit to compare with, for example in a shallow clone, it validates the owners and prints a warning. It has no formatter. See [CI](codeowners.md#ci) in the CODEOWNERS linter documentation.
 
 A CODEOWNERS file has no extension, so the linter sets `extensions` to an empty list. An empty list matches every file, so the linter always runs, and it skips a repository without a CODEOWNERS file.
 

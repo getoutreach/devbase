@@ -132,6 +132,50 @@ func TestMergeBaseFilesShallowClone(t *testing.T) {
 	assert.Assert(t, errors.Is(err, ErrShallowClone))
 }
 
+// TestMergeBaseOrParentFiles checks the commit that MergeBaseOrParentFiles reads the files from:
+// the merge base of HEAD and the base, or the first parent of HEAD when HEAD is the merge base.
+func TestMergeBaseOrParentFiles(t *testing.T) {
+	files := []string{"schema.graphql", "sub/schema.graphql"}
+
+	t.Run("a branch ahead of the base reads the merge base", func(t *testing.T) {
+		root, _, baseName := newTestRepo(t)
+
+		content, firstParent, err := MergeBaseOrParentFiles(root, baseName, files)
+		assert.NilError(t, err)
+		assert.Equal(t, firstParent, false)
+		assert.DeepEqual(t, content, map[string]string{
+			"schema.graphql":     "type Foo { a: String }\n",
+			"sub/schema.graphql": "type Baz { a: String }\n",
+		})
+	})
+
+	t.Run("the base branch reads the first parent of HEAD", func(t *testing.T) {
+		root, repo, baseName := newTestRepo(t)
+		wt, err := repo.Worktree()
+		assert.NilError(t, err)
+		assert.NilError(t, wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(baseName)}))
+
+		content, firstParent, err := MergeBaseOrParentFiles(root, baseName, files)
+		assert.NilError(t, err)
+		assert.Equal(t, firstParent, true)
+		assert.DeepEqual(t, content, map[string]string{"schema.graphql": "type Foo { a: String }\n"})
+	})
+
+	t.Run("a root commit has no files before it", func(t *testing.T) {
+		root := t.TempDir()
+		repo, err := git.PlainInit(root, false)
+		assert.NilError(t, err)
+		commitFile(t, repo, root, "schema.graphql", "type Foo { a: String }\n")
+		head, err := repo.Head()
+		assert.NilError(t, err)
+
+		content, firstParent, err := MergeBaseOrParentFiles(root, head.Name().Short(), []string{"schema.graphql"})
+		assert.NilError(t, err)
+		assert.Equal(t, firstParent, true)
+		assert.DeepEqual(t, content, map[string]string{})
+	})
+}
+
 // runGit runs git in dir and fails the test when git fails.
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()

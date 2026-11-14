@@ -129,8 +129,8 @@ func newLintCodeownersCommandWith(getToken tokenGetter) *cli.Command {
 			},
 			&cli.BoolFlag{
 				Name: "owners-if-changed",
-				Usage: "Run the owners check only when CODEOWNERS changed since the merge base of HEAD and --base, " +
-					"or when the merge base cannot be read",
+				Usage: "Run the owners check only when CODEOWNERS changed since the merge base of HEAD and --base " +
+					"(on the --base branch, since the first parent of HEAD), or when that commit cannot be read",
 			},
 			&cli.StringFlag{
 				Name:  "base",
@@ -179,8 +179,9 @@ func newLintCodeownersCommandWith(getToken tokenGetter) *cli.Command {
 // lintCodeowners is the Action for the "codeowners" subcommand. It loads the CODEOWNERS file of
 // the repository, runs the checks of --checks in parallel, and prints their results in the order
 // of --checks. With --owners-if-changed, it skips the owners check when CODEOWNERS did not change
-// since the merge base of HEAD and --base. It exits with 1 when a check returned an error that is
-// not a skip, or found an issue that is at least as serious as --check-failure-level.
+// since the merge base of HEAD and --base, or since the first parent of HEAD on the --base branch.
+// It exits with 1 when a check returned an error that is not a skip, or found an issue that is at
+// least as serious as --check-failure-level.
 func lintCodeowners(ctx context.Context, c *cli.Command, getToken tokenGetter) error {
 	failureLevel, err := check.ParseSeverity(c.String("check-failure-level"))
 	if err != nil {
@@ -249,11 +250,12 @@ func lintCodeowners(ctx context.Context, c *cli.Command, getToken tokenGetter) e
 }
 
 // ownersSkipReason returns why the owners check does not need to run: the CODEOWNERS file at rel,
-// relative to repoDir, has the same content at the merge base of HEAD and base. It returns ""
-// when the file changed, when it did not exist at the merge base, or when the merge base cannot
-// be read. In the last case, it writes a warning line to w.
+// relative to repoDir, has the same content at the merge base of HEAD and base. When the merge base
+// is HEAD itself, as on the base branch, it compares with the first parent of HEAD instead. It
+// returns "" when the file changed, when it did not exist in the compared commit, or when that
+// commit cannot be read. In the last case, it writes a warning line to w.
 func ownersSkipReason(w io.Writer, repoDir, base, rel string, content []byte) string {
-	mergeBase, err := gitdiff.MergeBaseFiles(repoDir, base, []string{rel})
+	previous, firstParent, err := gitdiff.MergeBaseOrParentFiles(repoDir, base, []string{rel})
 	if err != nil {
 		cause := err.Error()
 		if errors.Is(err, gitdiff.ErrShallowClone) {
@@ -266,11 +268,15 @@ func ownersSkipReason(w io.Writer, repoDir, base, rel string, content []byte) st
 		return ""
 	}
 
-	if old, ok := mergeBase[rel]; ok && old == string(content) {
-		return "CODEOWNERS did not change since the merge base with " + base
+	if old, ok := previous[rel]; !ok || old != string(content) {
+		return ""
 	}
 
-	return ""
+	if firstParent {
+		return "CODEOWNERS did not change since the first parent of HEAD"
+	}
+
+	return "CODEOWNERS did not change since the merge base with " + base
 }
 
 // skippedCheck is a check that does not run, and reports why.
