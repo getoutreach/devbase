@@ -122,3 +122,20 @@ func New(cfg Config) (*github.Client, error) {
 
 	return gh, nil
 }
+
+// IsAppTokenRefused reports whether err comes from a request for the installation token of a
+// GitHub App that GitHub refused with HTTP 401, 403, or 404. This happens, for example, when the
+// App ID, the installation ID, or the private key is wrong.
+func IsAppTokenRefused(err error) bool {
+	var tokenError *ghinstallation.HTTPError
+	if !errors.As(err, &tokenError) || tokenError.Response == nil {
+		return false
+	}
+
+	switch tokenError.Response.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+		return true
+	default:
+		return false
+	}
+}

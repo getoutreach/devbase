@@ -407,7 +407,10 @@ func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string, getToke
 	}
 
 	gh, err := ghclient.New(clientCfg)
-	if err != nil {
+	switch {
+	case errors.Is(err, ghclient.ErrNoPrivateKey):
+		return nil, fmt.Errorf("create the GitHub client: %w: set GITHUB_APP_PRIVATE_KEY to the private key of the App in PEM format", err)
+	case err != nil:
 		return nil, fmt.Errorf("create the GitHub client: %w", err)
 	}
 
@@ -423,6 +426,11 @@ func newOwnersCheck(ctx context.Context, c *cli.Command, repoDir string, getToke
 	}
 
 	if err := owners.CheckSatisfied(ctx); err != nil {
+		if ghclient.IsAppTokenRefused(err) {
+			return nil, fmt.Errorf("the owners check cannot run: the GitHub App installation token could not be created "+
+				"(check GITHUB_APP_ID or --github-app-id, GITHUB_APP_INSTALLATION_ID or --github-app-installation-id, "+
+				"and GITHUB_APP_PRIVATE_KEY): %w", err)
+		}
 		return nil, fmt.Errorf("the owners check cannot run: %w", err)
 	}
 

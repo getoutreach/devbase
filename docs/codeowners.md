@@ -196,7 +196,7 @@ To authenticate as a GitHub App installation, set the App ID, the installation I
 | `--github-app-installation-id` | `GITHUB_APP_INSTALLATION_ID` |
 | None                           | `GITHUB_APP_PRIVATE_KEY`     |
 
-When the App ID is set, the command does not look for an access token.
+When the App ID is set, the command does not look for an access token. When GitHub refuses to create the installation token, for example because one of these values is wrong, the error names these settings.
 
 ### GitHub Enterprise Server
 

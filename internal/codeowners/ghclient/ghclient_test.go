@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -145,4 +146,37 @@ func TestNewAppUsesBaseURL(t *testing.T) {
 
 	_, _, err = gh.Repositories.Get(t.Context(), "org", "repo")
 	assert.NilError(t, err)
+}
+
+// TestIsAppTokenRefused checks which failures of the installation token request of a GitHub App
+// count as refused.
+func TestIsAppTokenRefused(t *testing.T) {
+	tests := map[int]bool{
+		http.StatusUnauthorized:        true,
+		http.StatusForbidden:           true,
+		http.StatusNotFound:            true,
+		http.StatusInternalServerError: false,
+	}
+	key := newPrivateKey(t)
+	for status, want := range tests {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Check(t, cmp.Equal(r.URL.Path, "/api/v3/app/installations/42/access_tokens"))
+				w.WriteHeader(status)
+				_, _ = w.Write([]byte(`{"message": "Bad credentials"}`))
+			}))
+			t.Cleanup(srv.Close)
+
+			gh, err := New(Config{AppID: 7, AppInstallationID: 42, AppPrivateKey: key, BaseURL: srv.URL})
+			assert.NilError(t, err)
+
+			_, _, err = gh.Repositories.Get(t.Context(), "org", "repo")
+			assert.Assert(t, err != nil)
+			assert.Equal(t, IsAppTokenRefused(err), want, "%v", err)
+		})
+	}
+
+	t.Run("another error", func(t *testing.T) {
+		assert.Equal(t, IsAppTokenRefused(fmt.Errorf("create the client: %w", ErrNoAuth)), false)
+	})
 }

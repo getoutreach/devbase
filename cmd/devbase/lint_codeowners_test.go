@@ -7,6 +7,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -565,4 +569,47 @@ func TestLintCodeowners_OwnersIfChangedLinkedWorktree(t *testing.T) {
 	assert.Assert(t, strings.Contains(out, "    [Skipped] CODEOWNERS did not change since the merge base with main\n"), out)
 	assert.Equal(t, calls, 0, "no GitHub token is needed")
 	assert.Equal(t, stderr, "")
+}
+
+// TestLintCodeowners_GitHubAppErrors checks that the errors for the authentication as a GitHub App
+// name the settings of the App. It changes the environment, so it cannot run in parallel.
+func TestLintCodeowners_GitHubAppErrors(t *testing.T) {
+	repo := newCodeownersRepo(t, "* @alice\n", "main.go")
+	args := []string{
+		"--repository-path", repo, "--checks", "owners", "--repository", "o/r",
+		"--github-app-id", "7", "--github-app-installation-id", "42",
+	}
+
+	t.Run("token request refused", func(t *testing.T) {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		assert.NilError(t, err)
+		t.Setenv("GITHUB_APP_PRIVATE_KEY",
+			string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})))
+
+		mux := http.NewServeMux()
+		mux.HandleFunc("POST /api/v3/app/installations/42/access_tokens", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"message": "A JSON web token could not be decoded"}`))
+		})
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+
+		_, err = runLintCodeowners(t, append(args, "--github-base-url", srv.URL)...)
+
+		assert.ErrorContains(t, err, "the GitHub App installation token could not be created")
+		for _, name := range []string{
+			"GITHUB_APP_ID", "--github-app-id", "GITHUB_APP_INSTALLATION_ID", "--github-app-installation-id", "GITHUB_APP_PRIVATE_KEY",
+		} {
+			assert.ErrorContains(t, err, name)
+		}
+		assert.ErrorContains(t, err, "401 Unauthorized")
+	})
+
+	t.Run("no private key", func(t *testing.T) {
+		t.Setenv("GITHUB_APP_PRIVATE_KEY", "")
+
+		_, err := runLintCodeowners(t, args...)
+
+		assert.ErrorContains(t, err, "GITHUB_APP_PRIVATE_KEY")
+	})
 }
