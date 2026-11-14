@@ -162,10 +162,19 @@ func TestPublishClientsMakeNoReleaseCommit(t *testing.T) {
 	assert.Assert(t, strings.Contains(status, "api/clients/node/package.json"), status)
 	assert.Assert(t, strings.Contains(status, "api/clients/python/pyproject.toml"), status)
 
-	// A rerun skips the published packages.
+	// A rerun skips the published packages. The Python package is built
+	// again to compare its files with the files of the version.
 	expectClientsPrepare(p.cmds)
 	p.cmds.expect(cmdOK("1.0.0\n"), npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)...)
 	p.cmds.expect(cmdOK("Published\n"), describeArgs("1.0.0")...)
+	wheel, sdist := "widgets_client-1.0.0-py3-none-any.whl", "widgets_client-1.0.0.tar.gz"
+	p.cmds.expectAll([]stubCmd{
+		{assetsArgs("1.0.0"), cmdOK(`["` + wheel + `", "` + sdist + `"]`)},
+		{endpointArgs, cmdOK(pythonEndpoint + "\n")},
+		codeArtifactToken,
+		misePoetry,
+		{[]string{"poetry", "build"}, poetryBuildWrites(wheel, sdist)},
+	})
 	assert.NilError(t, p.publish(repo, plan))
 }
 

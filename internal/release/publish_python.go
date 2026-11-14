@@ -8,12 +8,14 @@ package release
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -38,6 +40,10 @@ var (
 
 	// errPythonNoPoetry is returned when mise finds no poetry.
 	errPythonNoPoetry = errors.New("mise which poetry printed nothing")
+
+	// errPythonNoBuild is returned when poetry build wrote no files of
+	// the version.
+	errPythonNoBuild = errors.New("poetry build wrote no files of the version")
 )
 
 // codeArtifactNotFoundRe matches the error of the AWS CLI (botocore
@@ -192,9 +198,11 @@ func (py *pythonRegistry) prepare(ctx context.Context, p *regTarget) error {
 }
 
 // publish builds the package and publishes it to the CodeArtifact
-// repository with Poetry, as the publish:pyclient task does. It skips
-// the publish when the repository has the version (requirement 8). It
-// returns no release info, as the exec hook printed none.
+// repository with Poetry, as the publish:pyclient task does. When the
+// repository has the version (requirement 8), it uploads only the files
+// of the build that the version does not have, and skips the publish
+// when it has all of them. It returns no release info, as the exec hook
+// printed none.
 func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Published, error) {
 	s, err := py.open(p)
 	if err != nil {
@@ -204,9 +212,12 @@ func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Pub
 	if err != nil {
 		return nil, err
 	}
+	var assets []string
 	if found {
-		fmt.Fprintf(p.log, "Skip publishing to %s as %s %s exists\n", py.name(), s.pkg, s.version)
-		return nil, nil //nolint:nilnil // Why: the hook gave no release info.
+		if assets, err = py.assets(ctx, p, s); err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(p.log, "%s has %s %s with the files: %s\n", py.name(), s.pkg, s.version, strings.Join(assets, ", "))
 	}
 	env, err := py.poetryEnv(ctx, p, s)
 	if err != nil {
@@ -221,14 +232,94 @@ func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Pub
 	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: []string{"build"}}); err != nil {
 		return nil, fmt.Errorf("poetry build: %w", err)
 	}
+	args := []string{"publish", "--repository", poetryRepository}
+	if found {
+		// A rerun builds the same commit again. CodeArtifact accepts a
+		// file again only with the same content, and a new build can
+		// differ, so the rerun uploads only the files that the version
+		// does not have, and keeps the files that it has.
+		files, err := s.distFiles()
+		if err != nil {
+			return nil, err
+		}
+		missing := slices.DeleteFunc(files, func(f string) bool { return slices.Contains(assets, f) })
+		if len(missing) == 0 {
+			fmt.Fprintf(p.log, "Skip publishing to %s as %s %s exists with all the files of the build\n", py.name(), s.pkg, s.version)
+			return nil, nil //nolint:nilnil // Why: the hook gave no release info.
+		}
+		dir, err := stageFiles(filepath.Join(s.dir, "dist"), missing)
+		defer os.RemoveAll(dir)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(p.log, "Upload the missing files of %s %s: %s\n", s.pkg, s.version, strings.Join(missing, ", "))
+		args = append(args, "--dist-dir", dir)
+	}
 	fmt.Fprintf(p.log, "Publishing %s %s to %s\n", s.pkg, s.version, py.name())
-	if _, err := p.run(ctx, p.log, &command{
-		dir: s.dir, env: env, name: poetry, args: []string{"publish", "--repository", poetryRepository},
-	}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: args}); err != nil {
 		return nil, fmt.Errorf("poetry publish: %w", err)
 	}
 	fmt.Fprintf(p.log, "Published %s %s to %s\n", s.pkg, s.version, py.name())
 	return nil, nil //nolint:nilnil // Why: the hook gave no release info.
+}
+
+// distFiles returns the names of the files of the version in the dist
+// folder, which poetry build writes and poetry publish uploads: the
+// wheels and the sdist.
+func (s *pythonSession) distFiles() ([]string, error) {
+	dist := filepath.Join(s.dir, "dist")
+	prefix := strings.ReplaceAll(s.pkg, "-", "_") + "-" + s.version
+	var files []string
+	for _, pattern := range []string{prefix + "-*.whl", prefix + ".tar.gz"} {
+		matches, err := filepath.Glob(filepath.Join(dist, pattern))
+		if err != nil {
+			return nil, fmt.Errorf("find the Python build output: %w", err)
+		}
+		for _, m := range matches {
+			files = append(files, filepath.Base(m))
+		}
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("%w: no %s files in %s", errPythonNoBuild, prefix, dist)
+	}
+	return files, nil
+}
+
+// assets returns the file names of the package version, with
+// "aws codeartifact list-package-version-assets", which gets all the
+// pages.
+func (py *pythonRegistry) assets(ctx context.Context, p *regTarget, s *pythonSession) ([]string, error) {
+	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "list-package-version-assets",
+		"--repository", py.plugin.Repository, "--format", "pypi",
+		"--package", s.pkg, "--package-version", s.version,
+		"--query", "assets[].name", "--output", "json"))
+	if err != nil {
+		return nil, fmt.Errorf("list the files of %s %s in %s: %w", s.pkg, s.version, py.name(), err)
+	}
+	var names []string
+	if err := json.Unmarshal([]byte(res.stdout), &names); err != nil {
+		return nil, fmt.Errorf("parse the files of %s %s in %s: %w", s.pkg, s.version, py.name(), err)
+	}
+	return names, nil
+}
+
+// stageFiles copies the files of dir to a new temporary folder, and
+// returns the folder, which the caller removes also on an error.
+func stageFiles(dir string, files []string) (string, error) {
+	tmp, err := os.MkdirTemp("", "devbase-pypi-")
+	if err != nil {
+		return "", fmt.Errorf("make the folder of the missing files: %w", err)
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			return tmp, fmt.Errorf("read %s: %w", f, err)
+		}
+		if err := os.WriteFile(filepath.Join(tmp, f), b, 0o600); err != nil {
+			return tmp, fmt.Errorf("write %s: %w", f, err)
+		}
+	}
+	return tmp, nil
 }
 
 // exists reports whether the CodeArtifact repository has the version of

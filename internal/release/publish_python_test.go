@@ -7,6 +7,8 @@ package release
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -131,13 +133,118 @@ func TestPythonPublish(t *testing.T) {
 	assert.Assert(t, !slices.ContainsFunc(f.env, func(kv string) bool { return strings.HasPrefix(kv, "POETRY_") }))
 }
 
-func TestPythonPublishSkipsExistingVersion(t *testing.T) {
+// pythonDist is the build output of version 1.2.0 of pythonFixture.
+var pythonDist = []string{"widgets_client-1.2.0-py3-none-any.whl", "widgets_client-1.2.0.tar.gz"}
+
+// assetsArgs is the argv that lists the files of version.
+func assetsArgs(version string) []string {
+	return codeArtifactArgs("list-package-version-assets", "--repository", "acme-pypi", "--format", "pypi",
+		"--package", "widgets-client", "--package-version", version, "--query", "assets[].name", "--output", "json")
+}
+
+// poetryBuildWrites is the result of poetry build that writes files to
+// the dist folder, and a file of another version that publish ignores.
+func poetryBuildWrites(files ...string) execstub.Result {
+	return execstub.Result{Func: func(_ context.Context, cmd *exec.Cmd, _ io.Reader, _, _ io.Writer) error {
+		dist := filepath.Join(cmd.Dir, "dist")
+		if err := os.MkdirAll(dist, 0o755); err != nil {
+			return fmt.Errorf("make %s: %w", dist, err)
+		}
+		for _, f := range append(files, "widgets_client-1.1.0.tar.gz") {
+			if err := os.WriteFile(filepath.Join(dist, f), []byte(f), 0o600); err != nil {
+				return fmt.Errorf("write %s: %w", f, err)
+			}
+		}
+		return nil
+	}}
+}
+
+// TestPythonPublishExistingVersion checks a rerun for a version that
+// the repository has: it uploads only the files that the version does
+// not have (requirement 8).
+func TestPythonPublishExistingVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		assets  execstub.Result
+		want    []string
+		wantLog string
+		wantErr string
+	}{
+		{
+			name: "all files", assets: cmdOK(`["widgets_client-1.2.0.tar.gz", "widgets_client-1.2.0-py3-none-any.whl"]`),
+			wantLog: "Skip publishing to CodeArtifact acme-pypi as widgets-client 1.2.0 exists with all the files of the build",
+		},
+		{
+			name: "only the sdist", assets: cmdOK("[\n    \"widgets_client-1.2.0.tar.gz\"\n]\n"),
+			want:    []string{"widgets_client-1.2.0-py3-none-any.whl"},
+			wantLog: "Upload the missing files of widgets-client 1.2.0: widgets_client-1.2.0-py3-none-any.whl",
+		},
+		{
+			name: "list failure", assets: cmdFails("An error occurred (AccessDeniedException) when calling the ListPackageVersionAssets operation"),
+			wantErr: "list the files of widgets-client 1.2.0 in CodeArtifact acme-pypi",
+		},
+		{name: "bad list output", assets: cmdOK("widgets_client-1.2.0.tar.gz\n"), wantErr: "parse the files of widgets-client 1.2.0"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			py, f := pythonFixture(t)
+			f.cmds.expect(cmdOK("Published\n"), describeArgs("1.2.0")...)
+			f.cmds.expect(tc.assets, assetsArgs("1.2.0")...)
+			var distDir string
+			var uploaded []string
+			if tc.wantErr == "" {
+				f.cmds.expectAll([]stubCmd{
+					{endpointArgs, cmdOK(pythonEndpoint + "\n")},
+					codeArtifactToken,
+					misePoetry,
+					{[]string{"poetry", "build"}, poetryBuildWrites(pythonDist...)},
+				})
+			}
+			if tc.want != nil {
+				// poetry publish reads the files of --dist-dir, which
+				// publish removes afterwards.
+				f.cmds.expect(execstub.Result{Func: func(_ context.Context, cmd *exec.Cmd, _ io.Reader, _, _ io.Writer) error {
+					distDir = cmd.Args[len(cmd.Args)-1]
+					entries, err := os.ReadDir(distDir)
+					for _, e := range entries {
+						uploaded = append(uploaded, e.Name())
+					}
+					return err
+				}}, "poetry", "publish", "--repository", "codeartifact", "--dist-dir", execstub.AnyArg)
+			}
+			info, err := py.publish(context.Background(), f.publisher("1.2.0", ""))
+			if tc.wantErr != "" {
+				assert.ErrorContains(t, err, tc.wantErr)
+				return
+			}
+			assert.NilError(t, err)
+			assert.Assert(t, info == nil)
+			assert.DeepEqual(t, uploaded, tc.want)
+			assert.Assert(t, strings.Contains(f.log.String(), tc.wantLog), f.log.String())
+			assert.Assert(t, strings.Contains(f.log.String(),
+				"CodeArtifact acme-pypi has widgets-client 1.2.0 with the files: widgets_client-1.2.0"), f.log.String())
+			if tc.want != nil {
+				_, err := os.Stat(distDir)
+				assert.Assert(t, os.IsNotExist(err), "publish removes the folder of the missing files")
+			}
+		})
+	}
+}
+
+// TestPythonPublishNoBuildOutput checks that a rerun fails when poetry
+// build writes no files of the version.
+func TestPythonPublishNoBuildOutput(t *testing.T) {
 	py, f := pythonFixture(t)
 	f.cmds.expect(cmdOK("Published\n"), describeArgs("1.2.0")...)
-	info, err := py.publish(context.Background(), f.publisher("1.2.0", ""))
-	assert.NilError(t, err)
-	assert.Assert(t, info == nil)
-	assert.Assert(t, strings.Contains(f.log.String(), "Skip publishing to CodeArtifact acme-pypi as widgets-client 1.2.0 exists"))
+	f.cmds.expect(cmdOK("[]"), assetsArgs("1.2.0")...)
+	f.cmds.expectAll([]stubCmd{
+		{endpointArgs, cmdOK(pythonEndpoint + "\n")},
+		codeArtifactToken,
+		misePoetry,
+		{[]string{"poetry", "build"}, poetryBuildWrites()},
+	})
+	_, err := py.publish(context.Background(), f.publisher("1.2.0", ""))
+	assert.ErrorIs(t, err, errPythonNoBuild)
 }
 
 func TestPythonExists(t *testing.T) {
@@ -226,8 +333,8 @@ func TestNormalizePythonName(t *testing.T) {
 }
 
 // TestPythonRealPoetry runs poetry version and poetry build as real
-// processes, and stubs mise, aws and poetry publish. It is skipped
-// without poetry.
+// processes, and stubs mise, aws and poetry publish, which runs for real
+// only as a dry run. It is skipped without poetry.
 func TestPythonRealPoetry(t *testing.T) {
 	if _, err := exec.LookPath("poetry"); err != nil {
 		t.Skip("poetry is not installed")
@@ -270,4 +377,30 @@ build-backend = "poetry.core.masonry.api"
 		dist[i] = filepath.Base(dist[i])
 	}
 	assert.DeepEqual(t, dist, []string{"widgets_client-1.2.0rc1-py3-none-any.whl", "widgets_client-1.2.0rc1.tar.gz"})
+
+	// A rerun for a version with only the sdist builds again, and the
+	// real poetry publish, as a dry run, takes only the wheel from
+	// --dist-dir.
+	var out strings.Builder
+	f.cmds.expect(cmdOK("Published\n"), describeArgs("1.2.0rc1")...)
+	f.cmds.expect(cmdOK(`["widgets_client-1.2.0rc1.tar.gz"]`), assetsArgs("1.2.0rc1")...)
+	f.cmds.expectAll([]stubCmd{
+		{endpointArgs, cmdOK(pythonEndpoint + "\n")},
+		codeArtifactToken,
+		misePoetry,
+		{[]string{"poetry", "build"}, realPoetry},
+		{[]string{"poetry", "publish", "--repository", "codeartifact", "--dist-dir", execstub.AnyArg}, execstub.Result{
+			Func: func(ctx context.Context, cmd *exec.Cmd, _ io.Reader, _, _ io.Writer) error {
+				dry := exec.CommandContext(ctx, cmd.Args[0], append(cmd.Args[1:], "--dry-run")...)
+				dry.Dir, dry.Env = cmd.Dir, cmd.Env
+				b, err := dry.CombinedOutput()
+				out.Write(b)
+				return err
+			},
+		}},
+	})
+	_, err = py.publish(context.Background(), p)
+	assert.NilError(t, err, out.String())
+	assert.Assert(t, strings.Contains(out.String(), "Uploading widgets_client-1.2.0rc1-py3-none-any.whl"), out.String())
+	assert.Assert(t, !strings.Contains(out.String(), ".tar.gz"), out.String())
 }
