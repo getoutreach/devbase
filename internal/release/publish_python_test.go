@@ -24,6 +24,11 @@ import (
 const codeArtifactNotFound = "\nAn error occurred (ResourceNotFoundException) when calling the " +
 	"DescribePackageVersion operation: Package version not found\n"
 
+// codeArtifactNoRepository is a stderr of the AWS CLI for a missing
+// repository, in the form of codeArtifactNotFound.
+const codeArtifactNoRepository = "\nAn error occurred (ResourceNotFoundException) when calling the " +
+	"GetRepositoryEndpoint operation: Repository not found\n"
+
 // pythonPyproject is a pyproject.toml whose name PEP 503 normalizes to
 // "widgets-client".
 const pythonPyproject = "[project]\nname = \"Widgets_Client\"\nversion = \"0.0.1\"\n"
@@ -61,14 +66,24 @@ func describeArgs(version string) []string {
 		"--package", "widgets-client", "--package-version", version, "--query", "packageVersion.status", "--output", "text")
 }
 
-// These are the commands that find poetry, and that get the repository
-// and the token of poetry publish.
+// endpointArgs is the argv that gets the repository endpoint.
+var endpointArgs = codeArtifactArgs("get-repository-endpoint", "--repository", "acme-pypi", "--format", "pypi",
+	"--query", "repositoryEndpoint", "--output", "text")
+
+// expectMissingVersion adds the commands of the existence check of a
+// missing version: the package version, and then the repository
+// endpoint.
+func expectMissingVersion(s *cmdStubs, version string) {
+	s.expect(cmdFails(codeArtifactNotFound), describeArgs(version)...)
+	s.expect(cmdOK(pythonEndpoint+"\n"), endpointArgs...)
+}
+
+// These are the commands that find poetry, and that get the token of
+// poetry publish.
 var (
-	misePoetry       = stubCmd{[]string{"mise", "which", "poetry"}, cmdOK("poetry\n")}
-	pythonPublishEnv = []stubCmd{
-		{codeArtifactArgs("get-repository-endpoint", "--repository", "acme-pypi", "--format", "pypi",
-			"--query", "repositoryEndpoint", "--output", "text"), cmdOK(pythonEndpoint + "\n")},
-		{codeArtifactArgs("get-authorization-token", "--query", "authorizationToken", "--output", "text"), cmdOK(pythonToken + "\n")},
+	misePoetry        = stubCmd{[]string{"mise", "which", "poetry"}, cmdOK("poetry\n")}
+	codeArtifactToken = stubCmd{
+		codeArtifactArgs("get-authorization-token", "--query", "authorizationToken", "--output", "text"), cmdOK(pythonToken + "\n"),
 	}
 	awsIdentity = []string{"aws", "sts", "get-caller-identity"}
 )
@@ -92,9 +107,9 @@ func TestPythonPrepare(t *testing.T) {
 
 func TestPythonPublish(t *testing.T) {
 	py, f := pythonFixture(t)
-	f.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.2.0rc1")...)
-	f.cmds.expectAll(pythonPublishEnv)
+	expectMissingVersion(f.cmds, "1.2.0rc1")
 	f.cmds.expectAll([]stubCmd{
+		codeArtifactToken,
 		misePoetry,
 		{[]string{"poetry", "build"}, cmdOK("Building widgets_client\n")},
 		{[]string{"poetry", "publish", "--repository", "codeartifact"}, cmdOK("Publishing with " + pythonToken + "\n")},
@@ -143,6 +158,10 @@ func TestPythonExists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			py, f := pythonFixture(t)
 			f.cmds.expect(tc.res, describeArgs("1.2.0")...)
+			if tc.name == "missing" {
+				// A missing version also checks the repository.
+				f.cmds.expect(cmdOK(pythonEndpoint+"\n"), endpointArgs...)
+			}
 			got, err := py.exists(context.Background(), f.publisher("1.2.0", ""))
 			if tc.wantErr != "" {
 				assert.ErrorContains(t, err, tc.wantErr)
@@ -152,6 +171,18 @@ func TestPythonExists(t *testing.T) {
 			assert.Equal(t, got, tc.want)
 		})
 	}
+}
+
+// TestPythonExistsMissingRepository checks that a missing CodeArtifact
+// repository is an error, not a missing version, so that rollback does
+// not delete a release whose package is in another repository.
+func TestPythonExistsMissingRepository(t *testing.T) {
+	py, f := pythonFixture(t)
+	f.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.2.0")...)
+	f.cmds.expect(cmdFails(codeArtifactNoRepository), endpointArgs...)
+	_, err := py.exists(context.Background(), f.publisher("1.2.0", ""))
+	assert.ErrorContains(t, err, "get the endpoint of CodeArtifact acme-pypi")
+	assert.ErrorContains(t, err, "ResourceNotFoundException")
 }
 
 func TestPythonAccount(t *testing.T) {
@@ -217,9 +248,9 @@ build-backend = "poetry.core.masonry.api"
 	realPoetry := execstub.Result{Real: true}
 	f.cmds.expect(cmdOK("{}\n"), awsIdentity...)
 	f.cmds.expectAll([]stubCmd{misePoetry, {[]string{"poetry", "version", "1.2.0-rc.1"}, realPoetry}})
-	f.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.2.0rc1")...)
-	f.cmds.expectAll(pythonPublishEnv)
+	expectMissingVersion(f.cmds, "1.2.0rc1")
 	f.cmds.expectAll([]stubCmd{
+		codeArtifactToken,
 		misePoetry,
 		{[]string{"poetry", "build"}, realPoetry},
 		{[]string{"poetry", "publish", "--repository", "codeartifact"}, cmdOK("")},

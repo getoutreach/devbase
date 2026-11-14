@@ -110,6 +110,9 @@ type pythonSession struct {
 
 	// env is the environment of the commands.
 	env []string
+
+	// endpoint is the repository endpoint, after endpoint gets it.
+	endpoint string
 }
 
 // open reads the package name from pyproject.toml, and finds the PEP 440
@@ -239,36 +242,51 @@ func (py *pythonRegistry) exists(ctx context.Context, p *regTarget) (bool, error
 }
 
 // describe reports whether the repository has the package version, with
-// "aws codeartifact describe-package-version", which fails with
-// ResourceNotFoundException for a missing package or version. A version
-// in any status counts, because CodeArtifact keeps its name.
+// "aws codeartifact describe-package-version". A version in any status
+// counts, because CodeArtifact keeps its name. ResourceNotFoundException
+// means a missing package or version, but also a missing domain or
+// repository, so describe then gets the endpoint, which fails for those.
 func (py *pythonRegistry) describe(ctx context.Context, p *regTarget, s *pythonSession) (bool, error) {
 	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "describe-package-version",
 		"--repository", py.plugin.Repository, "--format", "pypi",
 		"--package", s.pkg, "--package-version", s.version,
 		"--query", "packageVersion.status", "--output", "text"))
-	if err != nil {
-		if codeArtifactNotFoundRe.MatchString(res.stderr) {
-			return false, nil
-		}
+	switch {
+	case err == nil:
+		return true, nil
+	case !codeArtifactNotFoundRe.MatchString(res.stderr):
 		return false, fmt.Errorf("describe %s %s in %s: %w", s.pkg, s.version, py.name(), err)
 	}
-	return true, nil
+	_, err = py.endpoint(ctx, p, s)
+	return false, err
+}
+
+// endpoint returns the repository endpoint, which it gets once for s. It
+// fails for a missing domain or repository.
+func (py *pythonRegistry) endpoint(ctx context.Context, p *regTarget, s *pythonSession) (string, error) {
+	if s.endpoint != "" {
+		return s.endpoint, nil
+	}
+	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "get-repository-endpoint",
+		"--repository", py.plugin.Repository, "--format", "pypi",
+		"--query", "repositoryEndpoint", "--output", "text"))
+	if err != nil {
+		return "", fmt.Errorf("get the endpoint of %s: %w", py.name(), err)
+	}
+	s.endpoint = strings.TrimSpace(res.stdout)
+	return s.endpoint, nil
 }
 
 // poetryEnv returns the environment of poetry publish: the repository
 // endpoint and an authorization token, as the task gets them. The token
 // command logs nothing, because its stdout is the token.
 func (py *pythonRegistry) poetryEnv(ctx context.Context, p *regTarget, s *pythonSession) ([]string, error) {
-	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "get-repository-endpoint",
-		"--repository", py.plugin.Repository, "--format", "pypi",
-		"--query", "repositoryEndpoint", "--output", "text"))
+	endpoint, err := py.endpoint(ctx, p, s)
 	if err != nil {
-		return nil, fmt.Errorf("get the CodeArtifact endpoint: %w", err)
+		return nil, err
 	}
-	endpoint := strings.TrimSpace(res.stdout)
 	fmt.Fprintf(p.log, "Get a CodeArtifact authorization token for %s\n", py.plugin.Domain)
-	res, err = p.run(ctx, io.Discard, py.awsCommand(p, s, "get-authorization-token",
+	res, err := p.run(ctx, io.Discard, py.awsCommand(p, s, "get-authorization-token",
 		"--query", "authorizationToken", "--output", "text"))
 	if err != nil {
 		return nil, fmt.Errorf("get the CodeArtifact token: %w", err)

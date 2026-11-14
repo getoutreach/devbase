@@ -486,7 +486,9 @@ type registry interface {
 	// release is available, or nil.
 	publish(ctx context.Context, t *regTarget) (*forge.Published, error)
 
-	// exists reports whether the registry has the version.
+	// exists reports whether the registry has the version. It reports a
+	// missing version only after it shows that it reached the right
+	// registry with valid credentials, because rollback trusts it.
 	exists(ctx context.Context, t *regTarget) (bool, error)
 }
 

@@ -137,9 +137,9 @@ func expectClientsPrepare(s *cmdStubs) {
 func expectClientsPublish(s *cmdStubs, dir string) {
 	s.expect(cmdFails(npmE404), npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)...)
 	s.expect(cmdOK(""), npmPublishArgv(filepath.Join(dir, "api", "clients", "node"), "latest", officialNPMRegistry)...)
-	s.expect(cmdFails(codeArtifactNotFound), describeArgs("1.0.0")...)
-	s.expectAll(pythonPublishEnv)
+	expectMissingVersion(s, "1.0.0")
 	s.expectAll([]stubCmd{
+		codeArtifactToken,
 		misePoetry,
 		{[]string{"poetry", "build"}, cmdOK("")},
 		{[]string{"poetry", "publish", "--repository", "codeartifact"}, cmdOK("")},
@@ -196,10 +196,24 @@ func TestRollbackStopsForPythonPackage(t *testing.T) {
 
 	// Without it, the rollback deletes the tag.
 	p.cmds.expect(cmdFails(npmE404), view...)
-	p.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.0.0")...)
+	expectMissingVersion(p.cmds, "1.0.0")
 	_, err = p.rollback(&RollbackOptions{Tag: "v1.0.0"})
 	assert.NilError(t, err)
 	assert.Equal(t, p.remoteRef("refs/tags/v1.0.0"), "")
+}
+
+// TestRollbackStopsForMissingRepository checks that rollback stops, and
+// deletes nothing, when the CodeArtifact repository is missing.
+func TestRollbackStopsForMissingRepository(t *testing.T) {
+	p := clientsFixture(t, "", map[string]string{})
+	expectClientsPrepare(p.cmds)
+	p.partialRelease()
+	p.cmds.expect(cmdFails(npmE404), npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)...)
+	p.cmds.expect(cmdFails(codeArtifactNotFound), describeArgs("1.0.0")...)
+	p.cmds.expect(cmdFails(codeArtifactNoRepository), endpointArgs...)
+	_, err := p.rollback(&RollbackOptions{Tag: "v1.0.0"})
+	assert.ErrorContains(t, err, "get the endpoint of CodeArtifact acme-pypi")
+	assert.Assert(t, p.remoteRef("refs/tags/v1.0.0") != "")
 }
 
 func TestPublishReleaseCommitLeavesOutClientVersionFiles(t *testing.T) {
