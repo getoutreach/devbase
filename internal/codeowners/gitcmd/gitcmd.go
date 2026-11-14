@@ -93,6 +93,11 @@ func (e IndexEntry) IsRegularFile() bool {
 	return e.Mode == "100644" || e.Mode == "100755"
 }
 
+// IsSymbolicLink reports whether the entry is a symbolic link.
+func (e IndexEntry) IsSymbolicLink() bool {
+	return e.Mode == "120000"
+}
+
 // IsSubmodule reports whether the entry is a submodule.
 func (e IndexEntry) IsSubmodule() bool {
 	return e.Mode == "160000"

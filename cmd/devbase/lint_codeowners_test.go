@@ -323,6 +323,21 @@ func TestLintCodeowners_Errors(t *testing.T) {
 	})
 }
 
+// TestLintCodeowners_SymbolicLink checks that a CODEOWNERS file that is a symbolic link is an error,
+// with and without --staged.
+func TestLintCodeowners_SymbolicLink(t *testing.T) {
+	repo := newCodeownersRepo(t, "* @org/team\n", "owners.txt")
+	path := filepath.Join(repo, ".github", "CODEOWNERS")
+	assert.NilError(t, os.Remove(path))
+	assert.NilError(t, os.Symlink("../owners.txt", path))
+	runGit(t, repo, "add", "-A")
+
+	for _, args := range [][]string{{}, {"--staged"}} {
+		_, err := runLintCodeowners(t, append([]string{"--repository-path", repo, "--checks", "syntax"}, args...)...)
+		assert.ErrorContains(t, err, "The CODEOWNERS file ./.github/CODEOWNERS of the repository "+repo+" is a symbolic link", "%v", args)
+	}
+}
+
 // TestLintCodeowners_CanceledContext checks that the command returns the error of the context.
 func TestLintCodeowners_CanceledContext(t *testing.T) {
 	repo := newCodeownersRepo(t, "* @org/team\n", "main.go")

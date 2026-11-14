@@ -202,6 +202,19 @@ func TestReadIgnoresDirectory(t *testing.T) {
 	})
 }
 
+// TestReadSymbolicLink checks that a CODEOWNERS file that is a symbolic link is an error.
+func TestReadSymbolicLink(t *testing.T) {
+	repo := t.TempDir()
+	writeFile(t, repo, "owners.txt", "* @a\n")
+	assert.NilError(t, os.MkdirAll(filepath.Join(repo, ".github"), 0o755))
+	assert.NilError(t, os.Symlink("../owners.txt", filepath.Join(repo, ".github", "CODEOWNERS")))
+
+	_, _, err := codeowners.Read(repo)
+	assert.Assert(t, errors.Is(err, codeowners.ErrSymbolicLink), "got %v", err)
+	assert.Error(t, err, "The CODEOWNERS file ./.github/CODEOWNERS of the repository "+repo+
+		" is a symbolic link, which is not supported")
+}
+
 func TestRead(t *testing.T) {
 	for _, rel := range []string{"CODEOWNERS", "docs/CODEOWNERS", ".github/CODEOWNERS"} {
 		t.Run(rel, func(t *testing.T) {

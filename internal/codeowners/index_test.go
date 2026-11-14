@@ -124,20 +124,38 @@ func TestReadFromIndex(t *testing.T) {
 	assert.Equal(t, string(content), "* @staged\n")
 }
 
-// TestReadFromIndexOnlyRegularFiles checks that a submodule or a symbolic link named CODEOWNERS in
-// the git index is not a CODEOWNERS file.
-func TestReadFromIndexOnlyRegularFiles(t *testing.T) {
-	repo := newStagedRepo(t, map[string]string{"docs/CODEOWNERS": "* @a\n"})
-	hash := exec.CommandContext(t.Context(), "git", "hash-object", "-w", "--stdin")
-	hash.Dir = repo
-	hash.Stdin = strings.NewReader("docs/CODEOWNERS")
-	blob, err := hash.Output()
-	assert.NilError(t, err)
-	runGit(t, repo, "update-index", "--add", "--cacheinfo", "160000,"+strings.TrimSpace(string(blob))+",CODEOWNERS")
-	runGit(t, repo, "update-index", "--add", "--cacheinfo", "120000,"+strings.TrimSpace(string(blob))+",.github/CODEOWNERS")
+// TestReadFromIndexSpecialEntries checks that a submodule named CODEOWNERS in the git index is not
+// a CODEOWNERS file, and that a symbolic link named CODEOWNERS is an error.
+func TestReadFromIndexSpecialEntries(t *testing.T) {
+	newRepo := func(t *testing.T, mode, rel string) string {
+		t.Helper()
 
-	path, content, err := codeowners.ReadFromIndex(t.Context(), repo, false)
-	assert.NilError(t, err)
-	assert.Equal(t, path, "docs/CODEOWNERS")
-	assert.Equal(t, string(content), "* @a\n")
+		repo := newStagedRepo(t, map[string]string{"docs/CODEOWNERS": "* @a\n"})
+		hash := exec.CommandContext(t.Context(), "git", "hash-object", "-w", "--stdin")
+		hash.Dir = repo
+		hash.Stdin = strings.NewReader("docs/CODEOWNERS")
+		blob, err := hash.Output()
+		assert.NilError(t, err)
+		runGit(t, repo, "update-index", "--add", "--cacheinfo", mode+","+strings.TrimSpace(string(blob))+","+rel)
+
+		return repo
+	}
+
+	t.Run("submodule", func(t *testing.T) {
+		repo := newRepo(t, "160000", "CODEOWNERS")
+
+		path, content, err := codeowners.ReadFromIndex(t.Context(), repo, false)
+		assert.NilError(t, err)
+		assert.Equal(t, path, "docs/CODEOWNERS")
+		assert.Equal(t, string(content), "* @a\n")
+	})
+
+	t.Run("symbolic link", func(t *testing.T) {
+		repo := newRepo(t, "120000", ".github/CODEOWNERS")
+
+		_, _, err := codeowners.ReadFromIndex(t.Context(), repo, false)
+		assert.Assert(t, errors.Is(err, codeowners.ErrSymbolicLink), "got %v", err)
+		assert.Error(t, err, "The CODEOWNERS file ./.github/CODEOWNERS of the repository "+repo+
+			" is a symbolic link, which is not supported")
+	})
 }

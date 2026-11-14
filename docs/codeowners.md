@@ -12,7 +12,7 @@ Run the command in the repository:
 devbase lint codeowners
 ```
 
-The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository. Without `--repository-path`, the root of the repository is the root of the git work tree of the current directory. Outside of a git repository, it is the current directory. When git fails for another reason, for example because another user owns the repository and `--trust-workspace` is not set, the command fails.
+The command uses the `CODEOWNERS` file in the root, `docs/`, or `.github/` directory of the repository. When that file is a symbolic link, the command fails, with and without `--staged`. Without `--repository-path`, the root of the repository is the root of the git work tree of the current directory. Outside of a git repository, it is the current directory. When git fails for another reason, for example because another user owns the repository and `--trust-workspace` is not set, the command fails.
 
 The command runs the checks in parallel and prints the results in the order of `--checks`. Run `devbase lint codeowners --help` to list all flags. The general flags are:
 

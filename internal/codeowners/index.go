@@ -15,8 +15,8 @@ import (
 
 // LoadFromIndex returns the entries of the CODEOWNERS file in the git index of the repository in
 // repoDir, so changes that are not staged are ignored. The file is looked up in the same
-// locations as Load. With trust, git treats repoDir as a safe directory, even when another user
-// owns it.
+// locations as Load, with the same rules. With trust, git treats repoDir as a safe directory,
+// even when another user owns it.
 func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, error) {
 	rel, content, err := ReadFromIndex(ctx, repoDir, trust)
 	if err != nil {
@@ -40,11 +40,20 @@ func ReadFromIndex(ctx context.Context, repoDir string, trust bool) (rel string,
 		return "", nil, fmt.Errorf("list the CODEOWNERS files in the git index: %w", err)
 	}
 
-	// A pathspec also matches the files below a directory, so only exact paths count. A submodule or
-	// a symbolic link is not a CODEOWNERS file.
-	found := slices.DeleteFunc(locations(), func(loc string) bool {
-		return !slices.ContainsFunc(listed, func(e gitcmd.IndexEntry) bool { return e.Path == loc && e.IsRegularFile() })
-	})
+	// A pathspec also matches the files below a directory, so only exact paths count. A submodule is
+	// not a CODEOWNERS file, and a symbolic link is an error.
+	var found []string
+	for _, loc := range locations() {
+		i := slices.IndexFunc(listed, func(e gitcmd.IndexEntry) bool { return e.Path == loc })
+		switch {
+		case i < 0:
+			// Not in the index at this location.
+		case listed[i].IsSymbolicLink():
+			return "", nil, symbolicLinkError(repoDir, loc)
+		case listed[i].IsRegularFile():
+			found = append(found, loc)
+		}
+	}
 
 	rel, err = selectFile(repoDir, found)
 	if err != nil {

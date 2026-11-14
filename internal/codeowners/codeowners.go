@@ -28,6 +28,10 @@ var (
 	// ErrMultipleFiles is wrapped by the error that Load and LoadFromIndex return when a repository
 	// has more than one CODEOWNERS file.
 	ErrMultipleFiles = errors.New("multiple codeowners files found")
+
+	// ErrSymbolicLink is wrapped by the error that Load and LoadFromIndex return when the CODEOWNERS
+	// file of a repository is a symbolic link.
+	ErrSymbolicLink = errors.New("codeowners file is a symbolic link")
 )
 
 // loadError is an error with a message that differs from the sentinel error that it wraps.
@@ -63,7 +67,8 @@ func (e Entry) String() string {
 }
 
 // Load returns the entries of the CODEOWNERS file in repoDir. The file is looked up in the
-// root, docs/, and .github/ directories. A directory is not a CODEOWNERS file. See
+// root, docs/, and .github/ directories. A directory is not a CODEOWNERS file, and a symbolic
+// link is an error. See
 // "CODEOWNERS file location" in:
 // https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 func Load(repoDir string) ([]Entry, error) {
@@ -85,8 +90,10 @@ func Load(repoDir string) ([]Entry, error) {
 func Read(repoDir string) (rel string, content []byte, err error) {
 	var found []string
 	for _, loc := range locations() {
-		info, err := os.Stat(filepath.Join(repoDir, loc))
+		info, err := os.Lstat(filepath.Join(repoDir, loc))
 		switch {
+		case err == nil && info.Mode()&os.ModeSymlink != 0:
+			return "", nil, symbolicLinkError(repoDir, loc)
 		case err == nil:
 			if info.Mode().IsRegular() {
 				found = append(found, loc)
@@ -139,6 +146,15 @@ func selectFile(repoDir string, found []string) (string, error) {
 				oxfordList(display), repoDir),
 			err: ErrMultipleFiles,
 		}
+	}
+}
+
+// symbolicLinkError returns the error for the CODEOWNERS file at rel in the repository in repoDir,
+// which is a symbolic link.
+func symbolicLinkError(repoDir, rel string) error {
+	return &loadError{
+		msg: fmt.Sprintf("The CODEOWNERS file ./%s of the repository %s is a symbolic link, which is not supported", rel, repoDir),
+		err: ErrSymbolicLink,
 	}
 }
 

@@ -97,17 +97,23 @@ func TestListIndex(t *testing.T) {
 	assert.NilError(t, os.WriteFile(filepath.Join(dir, "run.sh"), nil, 0o700))
 	run("add", "--chmod=+x", "run.sh")
 	run("update-index", "--add", "--cacheinfo", "160000,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,sub module")
+	run("update-index", "--add", "--cacheinfo", "120000,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,link")
 
 	entries, err := gitcmd.ListIndex(t.Context(), dir, false)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, entries, []gitcmd.IndexEntry{
 		{Mode: "100644", Path: "a.txt"},
+		{Mode: "120000", Path: "link"},
 		{Mode: "100755", Path: "run.sh"},
 		{Mode: "160000", Path: "sub module"},
 	})
-	assert.Assert(t, entries[0].IsRegularFile() && !entries[0].IsSubmodule())
-	assert.Assert(t, entries[1].IsRegularFile() && !entries[1].IsSubmodule())
-	assert.Assert(t, !entries[2].IsRegularFile() && entries[2].IsSubmodule())
+	kinds := func(e gitcmd.IndexEntry) [3]bool {
+		return [3]bool{e.IsRegularFile(), e.IsSymbolicLink(), e.IsSubmodule()}
+	}
+	assert.Equal(t, kinds(entries[0]), [3]bool{true, false, false})
+	assert.Equal(t, kinds(entries[1]), [3]bool{false, true, false})
+	assert.Equal(t, kinds(entries[2]), [3]bool{true, false, false})
+	assert.Equal(t, kinds(entries[3]), [3]bool{false, false, true})
 
 	entries, err = gitcmd.ListIndex(t.Context(), dir, false, "--", "missing")
 	assert.NilError(t, err)
