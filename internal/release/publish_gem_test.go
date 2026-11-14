@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
 	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/getoutreach/gobox/pkg/exec/execstub"
@@ -120,10 +122,15 @@ func (f *gemFixture) target(version string) *regTarget {
 	return &regTarget{dir: f.repo, version: version, env: f.env, exec: f.cmds.spy, log: &f.log}
 }
 
-// registry returns the gem registry of the stencil plugin, with the
-// owner acme.
+// registry returns the gem registry of the stencil plugin, with the box
+// config org acme.
 func (f *gemFixture) registry() *gemRegistry {
-	return &gemRegistry{plugin: &spec.GemPlugin{Dir: spec.DefaultGemDir, Owner: "acme"}}
+	return &gemRegistry{plugin: &spec.GemPlugin{Dir: spec.DefaultGemDir}, boxOrg: fakeBoxOrg("acme", nil)}
+}
+
+// fakeBoxOrg returns a boxOrg that returns org and err.
+func fakeBoxOrg(org string, err error) func() (string, error) {
+	return func() (string, error) { return org, err }
 }
 
 // gemDir is the gem folder of the fixture.
@@ -192,7 +199,7 @@ func TestGemCheckBuild(t *testing.T) {
 	f := newGemFixture(t)
 	assert.NilError(t, os.Remove(filepath.Join(f.home, ".gem", "credentials")))
 	reg := f.registry()
-	reg.plugin.Owner = "" // The fixture has no origin remote.
+	reg.boxOrg = fakeBoxOrg("", nil) // The fixture has no origin remote, so no owner.
 	file := filepath.Join(f.gemDir(), "lib", "widgets_client", "version.rb")
 	// rake build sees the release version, and writes the .gem file.
 	var built []byte
@@ -383,28 +390,89 @@ func TestGemToken(t *testing.T) {
 	assert.Equal(t, token, "from-env")
 }
 
+// gemOwnerRepo returns a repository whose origin remote is remote, or
+// one without an origin remote when remote is empty.
+func gemOwnerRepo(t *testing.T, remote string) string {
+	t.Helper()
+	g := &Git{Dir: t.TempDir()}
+	_, err := g.Run(context.Background(), "init", "-q")
+	assert.NilError(t, err)
+	if remote != "" {
+		_, err = g.Run(context.Background(), "remote", "add", "origin", remote)
+		assert.NilError(t, err)
+	}
+	return g.Dir
+}
+
+// TestGemOwner checks the owner order: the org of the box config, and
+// else the owner of the origin remote, also when the box config cannot
+// be loaded.
 func TestGemOwner(t *testing.T) {
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for remote, want := range map[string]string{
-		"https://github.com/acme/widgets.git": "acme",
-		"git@github.com:acme/widgets.git":     "acme",
-		"https://gitlab.com/acme/widgets.git": "",
-	} {
-		g := &Git{Dir: t.TempDir()}
-		_, err := g.Run(context.Background(), "init", "-q")
-		assert.NilError(t, err)
-		_, err = g.Run(context.Background(), "remote", "add", "origin", remote)
-		assert.NilError(t, err)
-		reg := &gemRegistry{plugin: &spec.GemPlugin{}}
-		got, err := reg.owner(context.Background(), &regTarget{dir: g.Dir})
-		if want == "" {
-			assert.ErrorIs(t, err, errGemOwner, remote)
-			continue
-		}
-		assert.NilError(t, err)
-		assert.Equal(t, got, want, remote)
+	const httpsRemote, sshRemote, gitlabRemote = "https://github.com/acme/widgets.git",
+		"git@github.com:acme/widgets.git", "https://gitlab.com/acme/widgets.git"
+	errBox := fmt.Errorf("open box.yaml: %w", fs.ErrNotExist)
+	tests := []struct {
+		name, remote, org string
+		boxErr            error
+		want              string // Empty means errGemOwner.
+	}{
+		{name: "box org wins over the remote", remote: httpsRemote, org: "acme-gems", want: "acme-gems"},
+		{name: "box org needs no github.com remote", remote: gitlabRemote, org: "acme-gems", want: "acme-gems"},
+		{name: "empty org: https remote", remote: httpsRemote, want: "acme"},
+		{name: "empty org: ssh remote", remote: sshRemote, want: "acme"},
+		{name: "box load error: remote", remote: httpsRemote, boxErr: errBox, want: "acme"},
+		{name: "empty org: not github.com", remote: gitlabRemote},
+		{name: "box load error: not github.com", remote: gitlabRemote, boxErr: errBox},
+		{name: "empty org: no origin remote"},
 	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var debug bytes.Buffer
+			ctx := rlog.WithDebug(context.Background(), &debug)
+			reg := &gemRegistry{plugin: &spec.GemPlugin{}, boxOrg: fakeBoxOrg(tc.org, tc.boxErr)}
+			got, err := reg.owner(ctx, &regTarget{dir: gemOwnerRepo(t, tc.remote)})
+			// Only a box load error is in the debug log.
+			if tc.boxErr != nil {
+				assert.Assert(t, strings.Contains(debug.String(), "gem owner: use the origin remote: "+tc.boxErr.Error()),
+					debug.String())
+			} else {
+				assert.Assert(t, !strings.Contains(debug.String(), "gem owner:"), debug.String())
+			}
+			if tc.want == "" {
+				assert.ErrorIs(t, err, errGemOwner)
+				assert.ErrorContains(t, err, "no org in the box config")
+				return
+			}
+			assert.NilError(t, err)
+			assert.Equal(t, got, tc.want)
+		})
+	}
+}
+
+// TestGemOwnerBoxConfig checks the owner with the box config of HOME, as
+// gobox box.LoadBox reads it: a missing box config falls back to the
+// origin remote, and a box config with an org gives the org.
+func TestGemOwnerBoxConfig(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	p := &regTarget{dir: gemOwnerRepo(t, "https://github.com/acme/widgets.git")}
+	reg, ok := newGemRegistry(&spec.GemPlugin{}).(*gemRegistry)
+	assert.Assert(t, ok)
+
+	var debug bytes.Buffer
+	got, err := reg.owner(rlog.WithDebug(context.Background(), &debug), p)
+	assert.NilError(t, err)
+	assert.Equal(t, got, "acme")
+	assert.Assert(t, strings.Contains(debug.String(), "gem owner: use the origin remote: read the box config: "), debug.String())
+
+	writeFile(t, home, filepath.Join(".outreach", ".config", "box", "box.yaml"), "config:\n  org: acme-gems\n")
+	got, err = reg.owner(context.Background(), p)
+	assert.NilError(t, err)
+	assert.Equal(t, got, "acme-gems")
 }
 
 // TestGemRealBuild builds a gem with the real bundle and rake, as
@@ -446,7 +514,7 @@ end
 		_, err := g.Run(context.Background(), args...)
 		assert.NilError(t, err)
 	}
-	reg := &gemRegistry{plugin: &spec.GemPlugin{Owner: "acme"}}
+	reg := &gemRegistry{plugin: &spec.GemPlugin{}, boxOrg: fakeBoxOrg("acme", nil)}
 	p := f.target("1.2.0-rc.1")
 	p.exec = nil
 	assert.NilError(t, reg.prepare(context.Background(), p))

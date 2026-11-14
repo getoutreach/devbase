@@ -15,7 +15,7 @@ import (
 func TestValidateGem(t *testing.T) {
 	ok := []spec.GemPlugin{
 		{},
-		{Dir: "api/clients/ruby", Name: "widgets_client", VersionFile: "lib/widgets_client/version.rb", Owner: "getoutreach"},
+		{Dir: "api/clients/ruby", Name: "widgets_client", VersionFile: "lib/widgets_client/version.rb"},
 	}
 	for _, g := range ok {
 		_, err := (&spec.Config{Branches: []spec.Branch{{Name: "main"}}, Plugins: []spec.Plugin{{Gem: &g}}}).Validate()
@@ -30,8 +30,6 @@ func TestValidateGem(t *testing.T) {
 		{VersionFile: "../version.rb"},
 		{Name: "bad name"},
 		{Name: "-x"},
-		{Owner: "acme/widgets"},
-		{Owner: "-acme"},
 	}
 	for _, g := range bad {
 		_, err := (&spec.Config{Branches: []spec.Branch{{Name: "main"}}, Plugins: []spec.Plugin{{Gem: &g}}}).Validate()

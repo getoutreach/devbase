@@ -96,7 +96,6 @@ type gem struct {
 	Dir         string `yaml:"dir,omitempty"`
 	Name        string `yaml:"name,omitempty"`
 	VersionFile string `yaml:"versionFile,omitempty"`
-	Owner       string `yaml:"owner,omitempty"`
 }
 
 // python is the Python client. The fields are those of
@@ -126,7 +125,7 @@ var optionKeys = map[string][]string{
 	publisherCommit: {"files"},
 	publisherNPM:    {"packageRoot"},
 	publisherOrb:    {"name", "path"},
-	publisherGem:    {"dir", "name", "versionFile", "owner"},
+	publisherGem:    {"dir", "name", "versionFile"},
 	publisherPython: {"dir", "domain", "account", "region", "repository"},
 	publisherHooks:  {"generateNotes", "prepare", "publish", "success"},
 }

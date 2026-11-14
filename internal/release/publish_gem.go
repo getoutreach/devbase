@@ -21,7 +21,9 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
+	"github.com/getoutreach/devbase/v2/internal/release/rlog"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/box"
 )
 
 // These are the errors of the gem registry.
@@ -68,11 +70,14 @@ const (
 // gemRegistry builds and publishes the gem of a gem plugin.
 type gemRegistry struct {
 	plugin *spec.GemPlugin
+
+	// boxOrg returns the org of the box config.
+	boxOrg func() (string, error)
 }
 
 // newGemRegistry returns the registry of a gem plugin.
 func newGemRegistry(pl *spec.GemPlugin) registry {
-	return &gemRegistry{plugin: pl}
+	return &gemRegistry{plugin: pl, boxOrg: boxField(func(c *box.Config) string { return c.Org })}
 }
 
 // name names the registry in messages.
@@ -293,20 +298,28 @@ func confirmMissing(ctx context.Context, client *gh.Client, name, owner string) 
 	return nil
 }
 
-// owner returns the GitHub owner of the registry: the plugin's owner, or
-// the owner of the origin remote, which must be on github.com.
+// owner returns the GitHub owner of the registry: the org of the box
+// config, as publish.sh uses it, or else the owner of the origin remote,
+// which must be on github.com. A box config that cannot be loaded, such
+// as a missing one in a local run, also falls back to the remote, and
+// the debug log shows why.
 func (g *gemRegistry) owner(ctx context.Context, p *regTarget) (string, error) {
-	if g.plugin.Owner != "" {
-		return g.plugin.Owner, nil
+	org, err := g.boxOrg()
+	if err != nil {
+		rlog.Debugf(ctx, "gem owner: use the origin remote: %v", err)
+	}
+	if org != "" {
+		return org, nil
 	}
 	repoURL, err := (&Git{Dir: p.dir}).RepoURL(ctx)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", errGemOwner, err)
+		return "", fmt.Errorf("%w: no org in the box config: %w", errGemOwner, err)
 	}
 	rest, ok := strings.CutPrefix(repoURL, "https://github.com/")
 	owner, _, _ := strings.Cut(rest, "/")
 	if !ok || owner == "" {
-		return "", fmt.Errorf("%w: the origin remote %s is not a github.com repository", errGemOwner, repoURL)
+		return "", fmt.Errorf("%w: no org in the box config, and the origin remote %s is not a github.com repository",
+			errGemOwner, repoURL)
 	}
 	return owner, nil
 }

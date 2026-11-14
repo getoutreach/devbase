@@ -218,10 +218,6 @@ type GemPlugin struct {
 	// VersionFile is the Ruby file with the VERSION constant, relative
 	// to Dir. Empty means "lib/<gem name>/version.rb".
 	VersionFile string
-
-	// Owner is the GitHub organization of the registry. Empty means the
-	// owner of the origin remote.
-	Owner string
 }
 
 // ExecHooks are the shell commands of an exec plugin, one for each step.

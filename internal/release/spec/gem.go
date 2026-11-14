@@ -16,11 +16,8 @@ import (
 // allows it.
 var gemNameRegex = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
-// githubOwnerRegex matches a GitHub user or organization name.
-var githubOwnerRegex = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$`)
-
 // validate checks that the folders are clean paths in the repository,
-// and that the gem name and the owner are valid.
+// and that the gem name is valid.
 func (g *GemPlugin) validate() error {
 	for _, f := range []struct{ name, value string }{{"dir", g.Dir}, {"version file", g.VersionFile}} {
 		if f.value != "" && !isLocalPath(f.value) {
@@ -32,8 +29,6 @@ func (g *GemPlugin) validate() error {
 		return fmt.Errorf("%w: gem version file %q is not a Ruby file", ErrUnsupported, g.VersionFile)
 	case g.Name != "" && !gemNameRegex.MatchString(g.Name):
 		return fmt.Errorf("%w: gem name %q", ErrUnsupported, g.Name)
-	case g.Owner != "" && !githubOwnerRegex.MatchString(g.Owner):
-		return fmt.Errorf("%w: gem owner %q", ErrUnsupported, g.Owner)
 	}
 	return nil
 }

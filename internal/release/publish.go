@@ -20,6 +20,7 @@ import (
 
 	"github.com/getoutreach/devbase/v2/internal/release/forge"
 	"github.com/getoutreach/devbase/v2/internal/release/spec"
+	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/getoutreach/gobox/pkg/exec"
 )
 
@@ -553,6 +554,18 @@ func registryOf(pl *spec.Plugin) registry {
 		return newPythonRegistry(pl.Python)
 	}
 	return newOrbRegistry(pl.Orb)
+}
+
+// boxField returns a function that reads a field of the box config, as
+// get_box_field in devbase shell/lib/box.sh does.
+func boxField(field func(*box.Config) string) func() (string, error) {
+	return func() (string, error) {
+		c, err := box.LoadBox()
+		if err != nil {
+			return "", fmt.Errorf("read the box config: %w", err)
+		}
+		return field(c), nil
+	}
 }
 
 // logOr returns w, or io.Discard when w is nil.

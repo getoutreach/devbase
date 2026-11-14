@@ -82,17 +82,10 @@ type pythonRegistry struct {
 
 // newPythonRegistry returns the registry of a Python plugin.
 func newPythonRegistry(pl *spec.PythonPlugin) registry {
-	return &pythonRegistry{plugin: pl.WithDefaults(), boxAccount: boxDefaultAccount}
-}
-
-// boxDefaultAccount returns aws.defaultAccountID of the box config, as
-// get_box_field in devbase shell/lib/box.sh reads it.
-func boxDefaultAccount() (string, error) {
-	c, err := box.LoadBox()
-	if err != nil {
-		return "", fmt.Errorf("read the box config: %w", err)
+	return &pythonRegistry{
+		plugin:     pl.WithDefaults(),
+		boxAccount: boxField(func(c *box.Config) string { return c.AWS.DefaultAccountID }),
 	}
-	return c.AWS.DefaultAccountID, nil
 }
 
 // name names the registry in messages.

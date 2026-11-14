@@ -65,7 +65,6 @@
 //	        dir: api/clients/ruby         # Default.
 //	        name: widgets_client          # Default: <service.yaml name>_client.
 //	        versionFile: lib/widgets_client/version.rb # Default: lib/<name>/version.rb.
-//	        owner: acme                   # Default: the owner of the origin remote.
 //	    - python:                         # The Python client on AWS CodeArtifact.
 //	        dir: api/clients/python       # Default.
 //	        domain: acme                  # Required.

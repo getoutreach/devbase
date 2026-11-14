@@ -309,9 +309,13 @@ func newServiceFixtureWith(t *testing.T, rc string) *serviceFixture {
 	f.run("commit", "-q", "-m", "feat: init")
 	f.withRemote()
 
+	// The gem owner is the org of the box config in HOME, not the owner
+	// of the origin remote.
 	home := t.TempDir()
+	t.Setenv("HOME", home)
 	writeFile(t, home, ".npmrc", githubNpmrc)
 	writeFile(t, home, ".gem/credentials", gemCredentials)
+	writeFile(t, home, filepath.Join(".outreach", ".config", "box", "box.yaml"), "config:\n  org: acme-gems\n")
 	c := &serviceFixture{
 		publishFixture: &publishFixture{fixture: f, forge: forgetest.New(), cmds: newCmdStubs(t)},
 		api:            newFakePackages(t),
@@ -350,7 +354,7 @@ func (c *serviceFixture) expectNPMView(published bool) {
 func (c *serviceFixture) expectPublish() {
 	c.expectNPMView(false)
 	c.cmds.expect(cmdOK(""), npmPublishArgv(filepath.Join(c.git.Dir, "api", "clients", "node"), "latest", serviceRegistry)...)
-	c.cmds.expect(cmdOK(""), "gem", "push", "--key", "github", "--host", "https://rubygems.pkg.github.com/acme",
+	c.cmds.expect(cmdOK(""), "gem", "push", "--key", "github", "--host", "https://rubygems.pkg.github.com/acme-gems",
 		filepath.Join(c.git.Dir, "api", "clients", "ruby", "pkg", "widgets_client-1.0.0.gem"))
 }
 
@@ -390,7 +394,7 @@ func TestPublishClients(t *testing.T) {
 	for _, call := range c.cmds.calls()[1:3] {
 		assert.Equal(t, call.Cmd.Dir, gemDir)
 	}
-	assert.DeepEqual(t, c.api.paths, []string{"/orgs/acme/packages/rubygems/widgets_client/versions"})
+	assert.DeepEqual(t, c.api.paths, []string{"/orgs/acme-gems/packages/rubygems/widgets_client/versions"})
 	assert.Assert(t, !c.forge.Release("v1.0.0").Draft)
 
 	// No release commit: the tag and the branch are the plan commit, and

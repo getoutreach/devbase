@@ -68,7 +68,6 @@ const fullSection = `release:
         dir: api/clients/ruby
         name: widgets_client
         versionFile: lib/widgets_client/version.rb
-        owner: acme
     - python:
         dir: api/clients/python
         domain: acme
@@ -168,7 +167,7 @@ func TestParseFullSection(t *testing.T) {
 			{Forge: &spec.ForgePlugin{Provider: spec.ForgeGitHub, Assets: []string{"dist/*.tar.gz", "dist/checksums.txt"}}},
 			{NPM: &spec.NPMPlugin{PkgRoot: "api/clients/node"}},
 			{Gem: &spec.GemPlugin{
-				Dir: "api/clients/ruby", Name: "widgets_client", VersionFile: "lib/widgets_client/version.rb", Owner: "acme",
+				Dir: "api/clients/ruby", Name: "widgets_client", VersionFile: "lib/widgets_client/version.rb",
 			}},
 			{Python: &spec.PythonPlugin{
 				Dir: "api/clients/python", Domain: "acme", Account: "123456789012", Region: "eu-west-1",
@@ -348,6 +347,7 @@ func TestParseRejectsUnknownKeys(t *testing.T) {
 		{"publisher option", minimal + "  publishers:\n    - github:\n        asset: [a]\n", `line 9: unknown key "asset"`},
 		{"hooks option", minimal + "  publishers:\n    - hooks:\n        prepareCmd: x\n", `line 9: unknown key "prepareCmd"`},
 		{"gem option", minimal + "  publishers:\n    - gem:\n        version: x\n", `line 9: unknown key "version"`},
+		{"gem owner", minimal + "  publishers:\n    - gem:\n        owner: acme\n", `line 9: unknown key "owner"`},
 		{"python option", minimal + "  publishers:\n    - python:\n        package: x\n", `line 9: unknown key "package"`},
 		{"two publishers in one entry", minimal + "  publishers:\n    - {notes: {}, github: {}}\n", "a publisher is a name"},
 		{"options that are not a map", minimal + "  publishers:\n    - github: [a]\n", "the options are not a map"},
