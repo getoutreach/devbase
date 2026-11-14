@@ -114,7 +114,13 @@ func (p Pattern) Match(rel string) bool {
 		return false
 	}
 
-	// Most paths do not match, so check the last segment first when it must match.
+	// Most paths do not match, so rule them out quickly when possible. A path that the pattern
+	// matches contains the text of each literal segment.
+	for _, seg := range p.segments {
+		if seg.kind == literal && !strings.Contains(rel, seg.text) {
+			return false
+		}
+	}
 	if p.wholePath && !p.segments[len(p.segments)-1].match(rel[strings.LastIndexByte(rel, '/')+1:]) {
 		return false
 	}
