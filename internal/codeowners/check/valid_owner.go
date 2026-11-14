@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"iter"
 	"net/http"
 	"net/mail"
 	"slices"
@@ -21,6 +20,10 @@ import (
 // ErrInvalidRepository is wrapped by the error that NewValidOwner returns for a repository name
 // that is not in the form "owner/repository".
 var ErrInvalidRepository = errors.New("wrong repository name")
+
+// errRateLimitReserve is wrapped by the error for an API call that the check did not make, because
+// fewer requests remain in the rate limit than the reserve.
+var errRateLimitReserve = errors.New("rate-limit reserve reached")
 
 // ValidOwnerConfig configures the ValidOwner check.
 type ValidOwnerConfig struct {
@@ -45,7 +48,8 @@ type ValidOwnerConfig struct {
 
 	// RateLimitReserve is the number of GitHub API requests that the check leaves to the other
 	// clients of the same rate limit. When CheckSatisfied finds fewer remaining requests, Check
-	// skips the validation. Zero disables the reserve.
+	// skips the validation. When a later response shows fewer remaining requests, Check makes no
+	// further call, and returns the issues that it found before. Zero disables the reserve.
 	RateLimitReserve int
 }
 
@@ -77,6 +81,13 @@ type ValidOwner struct {
 	// rateLimitReserve is the number of requests that the check leaves to the other clients of the
 	// rate limit.
 	rateLimitReserve int
+
+	// remaining is the number of requests that remain in the rate limit, from the last API response
+	// that had the X-RateLimit-Remaining header. It is only valid when hasRemaining is true.
+	remaining int
+
+	// hasRemaining reports whether an API response had the X-RateLimit-Remaining header.
+	hasRemaining bool
 
 	// skip is the error, which wraps ErrSkipped, that Check returns before any API call, because
 	// CheckSatisfied found a low rate limit. It is nil otherwise.
@@ -125,6 +136,7 @@ func (*ValidOwner) Name() string {
 // CheckSatisfied returns nil and Check skips the validation.
 func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 	_, resp, err := v.gh.Repositories.Get(ctx, v.org, v.repo)
+	v.record(resp)
 	if resp != nil {
 		v.scopes = resp.Header.Get("X-Oauth-Scopes")
 	}
@@ -137,9 +149,9 @@ func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 			v.org, v.repo, err, repositoryEndpoint.hint(v.scopes))
 	case err != nil:
 		return v.apiError("get the repository "+v.fullName(), &repositoryEndpoint, err)
-	case resp.Header.Get(github.HeaderRateRemaining) != "" && resp.Rate.Remaining < v.rateLimitReserve:
+	case v.checkReserve() != nil:
 		v.skip = fmt.Errorf("%w: only %d GitHub API requests remain before the rate limit resets, fewer than the reserve of %d",
-			ErrSkipped, resp.Rate.Remaining, v.rateLimitReserve)
+			ErrSkipped, v.remaining, v.rateLimitReserve)
 	}
 
 	return nil
@@ -153,9 +165,10 @@ func (v *ValidOwner) CheckSatisfied(ctx context.Context) error {
 //
 // Source: https://help.github.com/articles/about-code-owners/#codeowners-syntax
 //
-// Each owner is validated once. When a GitHub API call fails, Check returns the issues found so
-// far and the error. The error wraps ErrSkipped when CheckSatisfied found a low rate limit, or
-// when a call fails because of a rate limit.
+// Each owner is validated once. When a GitHub API call fails, or when the rate-limit reserve
+// stops a call, Check returns the issues found so far and the error. The error wraps ErrSkipped
+// when CheckSatisfied found a low rate limit, when the reserve stops a call, or when a call fails
+// because of a rate limit.
 func (v *ValidOwner) Check(ctx context.Context, in Input) (Output, error) {
 	if v.skip != nil {
 		return Output{}, v.skip
@@ -223,7 +236,9 @@ func (v *ValidOwner) validate(ctx context.Context, owner string) (string, error)
 func (v *ValidOwner) validateUser(ctx context.Context, owner string) (string, error) {
 	if v.collaborators == nil {
 		opts := &github.ListCollaboratorsOptions{Affiliation: "all", ListOptions: github.ListOptions{PerPage: 100}}
-		users, err := collect(v.gh.Repositories.ListCollaboratorsIter(ctx, v.org, v.repo, opts))
+		users, err := listAll(v, &opts.ListOptions, func() ([]*github.User, *github.Response, error) {
+			return v.gh.Repositories.ListCollaborators(ctx, v.org, v.repo, opts)
+		})
 		if err != nil {
 			return "", v.apiError("list the collaborators of "+v.fullName(), &collaboratorsEndpoint, err)
 		}
@@ -255,7 +270,10 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 	}
 
 	if v.teams == nil {
-		teams, err := collect(v.gh.Repositories.ListTeamsIter(ctx, v.org, v.repo, &github.ListOptions{PerPage: 100}))
+		opts := &github.ListOptions{PerPage: 100}
+		teams, err := listAll(v, opts, func() ([]*github.Team, *github.Response, error) {
+			return v.gh.Repositories.ListTeams(ctx, v.org, v.repo, opts)
+		})
 		switch {
 		case statusCode(err) == http.StatusForbidden:
 			// The list needs the "Administration" (read) permission. Without it, an empty list makes
@@ -278,7 +296,11 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 	} else {
 		// The repository teams may not include a child team that inherits access from a parent team,
 		// so check the team directly.
-		repo, _, err := v.gh.Teams.IsTeamRepoBySlug(ctx, v.org, slug, v.org, v.repo)
+		if err := v.checkReserve(); err != nil {
+			return "", v.apiError(fmt.Sprintf("check the access of team %q to %s", slug, v.fullName()), &teamRepoEndpoint, err)
+		}
+		repo, resp, err := v.gh.Teams.IsTeamRepoBySlug(ctx, v.org, slug, v.org, v.repo)
+		v.record(resp)
 		switch {
 		case statusCode(err) == http.StatusNotFound:
 			return fmt.Sprintf("Team %q does not exist in organization %q or has no access to repository %q", owner, org, v.repo), nil
@@ -296,9 +318,12 @@ func (v *ValidOwner) validateTeam(ctx context.Context, owner string) (string, er
 }
 
 // apiError returns the error for a failed call to ep in Check. op describes the call. The error of
-// a rate limit wraps ErrSkipped.
+// a rate limit, or of a call that the rate-limit reserve stopped, wraps ErrSkipped.
 func (v *ValidOwner) apiError(op string, ep *endpoint, err error) error {
-	if isRateLimit(err) {
+	switch {
+	case errors.Is(err, errRateLimitReserve):
+		return fmt.Errorf("%w: the check is incomplete: %s: %w", ErrSkipped, op, err)
+	case isRateLimit(err):
 		return fmt.Errorf("%w: the check is incomplete: %s: GitHub rate limit reached: %w", ErrSkipped, op, err)
 	}
 
@@ -317,17 +342,45 @@ func (v *ValidOwner) fullName() string {
 	return v.org + "/" + v.repo
 }
 
-// collect returns the items of seq, or the first error. The result is not nil when there is no error.
-func collect[T any](seq iter.Seq2[T, error]) ([]T, error) {
+// record keeps the number of remaining requests of the rate limit from resp, when resp has it.
+func (v *ValidOwner) record(resp *github.Response) {
+	if resp != nil && resp.Header.Get(github.HeaderRateRemaining) != "" {
+		v.remaining, v.hasRemaining = resp.Rate.Remaining, true
+	}
+}
+
+// checkReserve returns an error that wraps errRateLimitReserve when the last response showed fewer
+// remaining requests than the reserve.
+func (v *ValidOwner) checkReserve() error {
+	if !v.hasRemaining || v.remaining >= v.rateLimitReserve {
+		return nil
+	}
+
+	return fmt.Errorf("%w: %d requests left, reserve %d", errRateLimitReserve, v.remaining, v.rateLimitReserve)
+}
+
+// listAll returns the items of all the pages of a list call. list returns the page that opts
+// selects. Before each page, listAll returns the error of v.checkReserve, if any. The result is not
+// nil when there is no error.
+func listAll[T any](v *ValidOwner, opts *github.ListOptions, list func() ([]T, *github.Response, error)) ([]T, error) {
 	items := []T{}
-	for item, err := range seq {
+	for {
+		if err := v.checkReserve(); err != nil {
+			return nil, err
+		}
+
+		page, resp, err := list()
+		v.record(resp)
 		if err != nil {
 			return nil, err
 		}
-		items = append(items, item)
-	}
 
-	return items, nil
+		items = append(items, page...)
+		if resp.NextPage == 0 {
+			return items, nil
+		}
+		opts.Page = resp.NextPage
+	}
 }
 
 // canWrite reports whether p allows to push to the repository: push, maintain, or admin.

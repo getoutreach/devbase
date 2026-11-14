@@ -180,7 +180,7 @@ When a call fails because of missing access, the error message names the access 
 
 ### Rate limit
 
-The `owners` check uses the GitHub API rate limit of its credentials. Other clients of the same credentials, for example other tools in CI, use the same limit. To keep requests for them, the check does not validate the owners when fewer requests remain than `--github-rate-limit-reserve`. The default is 500. The value 0 disables the reserve. The command gets the number of remaining requests from the response of `GET /repos/{owner}/{repo}`.
+The `owners` check uses the GitHub API rate limit of its credentials. Other clients of the same credentials, for example other tools in CI, use the same limit. To keep requests for them, the check does not validate the owners when fewer requests remain than `--github-rate-limit-reserve`. The default is 500. The value 0 disables the reserve. The command gets the number of remaining requests from each response. When fewer requests remain after `GET /repos/{owner}/{repo}`, the check does not validate the owners. When fewer requests remain after a later call, the check makes no more calls. It reports the issues that it found before, and that it is incomplete.
 
 The check also does not validate the owners when `GET /repos/{owner}/{repo}` fails because of a rate limit. When a later call fails because of a rate limit, the check reports the issues that it found before the failure, and that it is incomplete.
 

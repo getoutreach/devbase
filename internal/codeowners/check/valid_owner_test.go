@@ -8,11 +8,15 @@ package check
 import (
 	"context"
 	"errors"
+	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-github/v84/github"
@@ -655,6 +659,97 @@ func TestValidOwnerRateLimitReserveMessage(t *testing.T) {
 	_, err = v.Check(t.Context(), loadInput(t, "* @alice"))
 
 	assert.Error(t, err, "skipped: only 12 GitHub API requests remain before the rate limit resets, fewer than the reserve of 500")
+}
+
+// withDecreasingRate returns routes where each response, in the order of the requests, says that
+// one request less remains in the rate limit, starting with start-1.
+func withDecreasingRate(start int, routes map[string]http.HandlerFunc) map[string]http.HandlerFunc {
+	var remaining atomic.Int64
+	remaining.Store(int64(start))
+
+	wrapped := make(map[string]http.HandlerFunc, len(routes))
+	for route, h := range routes {
+		wrapped[route] = func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Ratelimit-Limit", "5000")
+			w.Header().Set("X-Ratelimit-Remaining", strconv.FormatInt(remaining.Add(-1), 10))
+			h(w, r)
+		}
+	}
+
+	return wrapped
+}
+
+// TestValidOwnerRateLimitReserveBeforeEachCall checks that Check stops before an API call when the
+// last response said that fewer requests remain than the reserve, and returns the issues that it
+// found before.
+func TestValidOwnerRateLimitReserveBeforeEachCall(t *testing.T) {
+	// paged responds with the collaborators in two pages. The user zed is on the second page.
+	paged := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("page") == "" {
+			next := *r.URL
+			q := next.Query()
+			q.Set("page", "2")
+			next.RawQuery = q.Encode()
+			w.Header().Set("Link", `<http://`+r.Host+next.String()+`>; rel="next"`)
+			reply(http.StatusOK, "", collaboratorsJSON)(w, r)
+			return
+		}
+		reply(http.StatusOK, "", `[{"login": "zed", "permissions": {"push": true}}]`)(w, r)
+	}
+
+	tests := map[string]struct {
+		// start is one more than the remaining requests in the response of routeRepository.
+		start      int
+		routes     map[string]http.HandlerFunc
+		codeowners string
+		remaining  int
+		calls      map[string]int
+	}{
+		"before the next page of a list": {
+			start:      501,
+			routes:     map[string]http.HandlerFunc{routeCollaborators: paged},
+			codeowners: "*.md @other/team\n*.go @zed",
+			remaining:  499,
+			calls:      map[string]int{routeCollaborators: 1},
+		},
+		"before the next team in the fallback for a forbidden team list": {
+			start:      502,
+			routes:     map[string]http.HandlerFunc{routeTeams: reply(http.StatusForbidden, "", `{"message": "Forbidden"}`)},
+			codeowners: "*.md @other/team\n*.go @org/child @org/child-reader",
+			remaining:  499,
+			calls:      map[string]int{routeTeams: 1, routeTeamRepo: 1},
+		},
+		"before the team list": {
+			start:      501,
+			codeowners: "*.md @other/team\n*.go @alice @org/writers",
+			remaining:  499,
+			calls:      map[string]int{routeCollaborators: 1, routeTeams: 0},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			routes := defaultRoutes()
+			maps.Copy(routes, tc.routes)
+			gh, fake := newFakeGitHub(t, withDecreasingRate(tc.start, routes))
+			v, err := NewValidOwner(ValidOwnerConfig{Repository: "org/repo", RateLimitReserve: 500}, gh)
+			assert.NilError(t, err)
+			assert.NilError(t, v.CheckSatisfied(t.Context()))
+
+			out, err := v.Check(t.Context(), loadInput(t, tc.codeowners))
+
+			assert.ErrorIs(t, err, ErrSkipped)
+			assert.ErrorContains(t, err, "the check is incomplete")
+			assert.ErrorContains(t, err, fmt.Sprintf("rate-limit reserve reached: %d requests left, reserve 500", tc.remaining))
+			assertSingleIssue(t, &Issue{
+				Severity: Error,
+				LineNo:   1,
+				Message:  `Team "@other/team" does not belong to "org" organization.`,
+			}, out.Issues)
+			for route, want := range tc.calls {
+				assert.Equal(t, fake.count(route), want, route)
+			}
+		})
+	}
 }
 
 func TestValidOwnerCanceledContext(t *testing.T) {
