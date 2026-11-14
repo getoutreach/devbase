@@ -77,14 +77,14 @@ A skipped check does not make the command fail. See [Only when CODEOWNERS change
 
 ## Checks
 
-| Name              | Default | Description                                                                                                                                                                                                                                                                         |
-| ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `files`           | Yes     | Reports each pattern that matches no file. The check uses the files that git tracks, except the files deleted from the working tree, and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index. A submodule counts as a directory. |
-| `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                                                                  |
-| `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                                                                 |
-| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address. It also reports a warning for each pattern that uses negation (`!`), a character range (`[ ]`), or an escaped `#` (`\#`). CODEOWNERS does not support these features.               |
-| `notowned`        | No      | Reports each file in the git index that no pattern matches. This check is experimental.                                                                                                                                                                                             |
-| `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                                                                            |
+| Name              | Default | Description                                                                                                                                                                                                                                                                                                    |
+| ----------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`           | Yes     | Reports each pattern that matches no file. See [Patterns](#patterns). The check uses the files that git tracks, except the files deleted from the working tree, and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index. A submodule counts as a directory. |
+| `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                                                                                             |
+| `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                                                                                            |
+| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address. It also reports a warning for each pattern that uses negation (`!`), a character range (`[ ]`), or an escaped `#` (`\#`). CODEOWNERS does not support these features.                                          |
+| `notowned`        | No      | Reports each file in the git index that no pattern matches. This check is experimental.                                                                                                                                                                                                                        |
+| `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                                                                                                       |
 
 ### The `owners` check
 
@@ -119,6 +119,27 @@ An owner can become invalid without a change to CODEOWNERS, for example when a u
 | `--subdirectories` | None    | Directories to limit the check to.                                          |
 
 Each `--subdirectories` value is a git pathspec (see `gitglossary(7)`), so it can also be a file or a glob. The check fails when a value matches no file in the git index.
+
+## Patterns
+
+The `files` check matches the CODEOWNERS patterns with the rules of GitHub. GitHub uses most of the rules of [gitignore files](https://git-scm.com/docs/gitignore#_pattern_format):
+
+- `*` matches any sequence of characters except `/`. `?` matches any one character except `/`.
+- `**/` at the start of a pattern matches in all directories. `/**` at the end matches everything below a directory. `/**/` in the middle matches zero or more directories.
+- A pattern with a `/` at the start or in the middle matches paths from the root of the repository. Another pattern matches at any level. For example, `apps/` matches the files in all the `apps` directories of the repository.
+- A pattern that ends with `/` matches only directories.
+- A pattern that matches a directory also matches all the files below the directory. For example, `/docs` matches `docs/guide/a.md`.
+
+Paths are case-sensitive. The GitHub documentation gives these differences from gitignore files:
+
+- `docs/*` matches `docs/getting-started.md`, but not `docs/build-app/troubleshooting.md`.
+- Negation with `!`, character ranges with `[ ]`, and escaping a leading `#` with `\` do not work. The `syntax` check reports a warning for each pattern that uses them.
+
+For the cases that the GitHub documentation does not describe, the command uses these rules:
+
+- When the last segment of a pattern has `*` or `?`, the pattern does not match the files below a directory that the segment matches. For example, `docs/*.md` does not match `docs/a.md/b.txt`. This rule does not apply to a pattern that ends with `/`. For example, `docs/*/` matches `docs/guide/a.md`.
+- `!`, `[`, `]`, and `\` match only themselves. For example, `/pages/[id].tsx` matches only the file `pages/[id].tsx`.
+- In all other cases, the command uses the rules of gitignore files.
 
 ## GitHub access
 
@@ -184,6 +205,7 @@ Set `--github-base-url` to the API base URL of the server, and `--github-upload-
 - The `owners` check requires a user to be a collaborator of the repository with write access. The upstream check requires a user to be a member of the organization.
 - The upstream command checks that a token has the `read:org` scope. This command does not check scopes, because fine-grained tokens and GitHub Apps use permissions instead of scopes.
 - The command takes its settings from flags, except for some authentication settings (see [GitHub access](#github-access)). `--checks` selects both the default and the experimental checks. The upstream command uses environment variables, with `CHECKS` and `EXPERIMENTAL_CHECKS` for the checks.
+- The `files` check matches the patterns with the rules of GitHub. See [Patterns](#patterns). The upstream check matches glob patterns against the files in the working tree.
 - `--trust-workspace` passes the repository directory as `safe.directory` to each git command. To find the root of the git work tree, it passes `*`, because the root is not known yet. The upstream command adds the directory to the global git configuration.
 - When a check fails, the command exits with 1. The upstream command exits with 3.
 - When the GitHub rate limit is low or reached, the `owners` check is skipped and does not make the command fail. The upstream command fails, or reports the rate limit as an issue.

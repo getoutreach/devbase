@@ -11,26 +11,17 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/getoutreach/devbase/v2/internal/codeowners"
 )
 
 // gitlinkMode is the mode of a submodule in the git index.
 const gitlinkMode = "160000"
 
 // FileExist validates that every pattern of the CODEOWNERS file matches at least one file of the
-// repository. The files are the ones in the git index. When Input.Staged is not set, they also
-// include the untracked files that git does not ignore, and exclude the files deleted from the
-// working tree. A submodule counts as a directory.
+// repository, with the rules of codeowners.Pattern. The files are the ones in the git index. When
+// Input.Staged is not set, they also include the untracked files that git does not ignore, and
+// exclude the files deleted from the working tree. A submodule counts as a directory.
 type FileExist struct{}
-
-// repoFile is a file of the repository.
-type repoFile struct {
-	// path is the path of the file, split at "/".
-	path []string
-
-	// isDir is true for a submodule.
-	isDir bool
-}
 
 // NewFileExist returns a new FileExist instance.
 func NewFileExist() *FileExist {
@@ -45,18 +36,18 @@ func (*FileExist) Check(ctx context.Context, in Input) (Output, error) {
 		return Output{}, err
 	}
 
-	files, err := repoFiles(ctx, in)
+	paths, err := repoPaths(ctx, in)
 	if err != nil {
 		return Output{}, err
 	}
 
-	index := newFileIndex(files)
+	index := newFileIndex(paths)
 	for _, entry := range in.Entries {
 		if err := ctx.Err(); err != nil {
 			return Output{}, err
 		}
 
-		if !index.match(entry.Pattern) {
+		if !index.match(codeowners.CompilePattern(entry.Pattern)) {
 			out.Report(fmt.Sprintf("%q does not match any files in repository", entry.Pattern), WithEntry(entry))
 		}
 	}
@@ -69,9 +60,10 @@ func (*FileExist) Name() string {
 	return "File Exist Checker"
 }
 
-// repoFiles returns the files in the git index. When in.Staged is not set, it also returns the
-// untracked files that git does not ignore, and leaves out the files deleted from the working tree.
-func repoFiles(ctx context.Context, in Input) ([]repoFile, error) {
+// repoPaths returns the paths of the files in the git index. When in.Staged is not set, it also
+// returns the untracked files that git does not ignore, and leaves out the files deleted from the
+// working tree. The path of a submodule ends with "/", so that patterns match it as a directory.
+func repoPaths(ctx context.Context, in Input) ([]string, error) {
 	// Each staged entry is "<mode> <object> <stage>\t<path>".
 	staged, err := gitLsFiles(ctx, in, "--stage")
 	if err != nil {
@@ -93,81 +85,48 @@ func repoFiles(ctx context.Context, in Input) ([]repoFile, error) {
 		gone[path] = true
 	}
 
-	files := make([]repoFile, 0, len(staged)+len(untracked))
+	paths := make([]string, 0, len(staged)+len(untracked))
 	for _, entry := range staged {
 		_, path, _ := strings.Cut(entry, "\t")
-		if !gone[path] {
-			files = append(files, repoFile{path: strings.Split(path, "/"), isDir: strings.HasPrefix(entry, gitlinkMode+" ")})
-		}
-	}
-	for _, path := range untracked {
-		files = append(files, repoFile{path: strings.Split(path, "/")})
-	}
-
-	return files, nil
-}
-
-// fileIndex is the files of the repository, also grouped by the first element of their path.
-type fileIndex struct {
-	// files are all the files.
-	files []repoFile
-
-	// byTop are the files grouped by the first element of their path.
-	byTop map[string][]repoFile
-}
-
-// newFileIndex returns the index of files.
-func newFileIndex(files []repoFile) *fileIndex {
-	byTop := make(map[string][]repoFile)
-	for _, f := range files {
-		byTop[f.path[0]] = append(byTop[f.path[0]], f)
-	}
-
-	return &fileIndex{files: files, byTop: byTop}
-}
-
-// match reports whether the CODEOWNERS pattern matches a file. For a pattern that anchoredTop
-// accepts, it only tries the files below the first element of the pattern.
-func (x *fileIndex) match(pattern string) bool {
-	// A pattern follows the rules of gitignore files. A negated pattern never excludes a file,
-	// so it matches no files. GitHub does not support negation either.
-	p := gitignore.ParsePattern(pattern, nil)
-
-	candidates := x.files
-	if top, ok := anchoredTop(pattern); ok {
-		candidates = x.byTop[top]
-	}
-
-	return slices.ContainsFunc(candidates, func(f repoFile) bool {
-		return p.Match(f.path, f.isDir) == gitignore.Exclude
-	})
-}
-
-// anchoredTop returns the first element of an anchored pattern, and false when the pattern is not
-// anchored or the element has glob characters. Like gitignore.ParsePattern, it ignores a leading
-// "!", trailing spaces, and a trailing "/". A pattern that still has a "/" is anchored, and its
-// first non-empty element only matches the first element of a path.
-func anchoredTop(pattern string) (string, bool) {
-	p := strings.TrimPrefix(pattern, "!")
-	if !strings.HasSuffix(p, `\ `) {
-		p = strings.TrimRight(p, " ")
-	}
-	p = strings.TrimSuffix(p, "/")
-
-	if !strings.Contains(p, "/") {
-		return "", false
-	}
-
-	for elem := range strings.SplitSeq(p, "/") {
-		if elem == "" {
+		if gone[path] {
 			continue
 		}
-		if strings.ContainsAny(elem, `*?[\`) {
-			return "", false
+		if strings.HasPrefix(entry, gitlinkMode+" ") {
+			path += "/"
 		}
-
-		return elem, true
+		paths = append(paths, path)
 	}
 
-	return "", false
+	return append(paths, untracked...), nil
+}
+
+// fileIndex is the paths of the files of the repository, also grouped by their first segment.
+type fileIndex struct {
+	// paths are the paths of all the files.
+	paths []string
+
+	// byFirst are the paths grouped by their first segment.
+	byFirst map[string][]string
+}
+
+// newFileIndex returns the index of the paths.
+func newFileIndex(paths []string) *fileIndex {
+	byFirst := make(map[string][]string)
+	for _, path := range paths {
+		first, _, _ := strings.Cut(path, "/")
+		byFirst[first] = append(byFirst[first], path)
+	}
+
+	return &fileIndex{paths: paths, byFirst: byFirst}
+}
+
+// match reports whether the pattern matches a file. When the pattern only matches paths that
+// start with one segment, it only tries the paths that start with that segment.
+func (x *fileIndex) match(p codeowners.Pattern) bool {
+	candidates := x.paths
+	if first, ok := p.FirstSegment(); ok {
+		candidates = x.byFirst[first]
+	}
+
+	return slices.ContainsFunc(candidates, p.Match)
 }

@@ -44,6 +44,8 @@ func TestPatternMatch(t *testing.T) {
 		{pattern: "a*b", match: []string{"ab", "axyb", "x/ab"}, noMatch: []string{"a/b", "axb/c"}},
 		{pattern: "/?.go", match: []string{"a.go", "é.go"}, noMatch: []string{"ab.go", ".go", "a/.go"}},
 		{pattern: "a?b", match: []string{"axb"}, noMatch: []string{"a/b", "ab"}},
+		{pattern: "a*b*c", match: []string{"abc", "axbyc", "abbc", "abcbc"}, noMatch: []string{"acb", "ab", "abcx"}},
+		{pattern: "ab*b", match: []string{"abb", "abxb"}, noMatch: []string{"ab"}},
 
 		// "**" as a leading, trailing, or middle segment.
 		{pattern: "**/foo", match: []string{"foo", "a/foo", "a/b/foo/x"}, noMatch: []string{"foox", "a/xfoo"}},
@@ -82,6 +84,8 @@ func TestPatternMatch(t *testing.T) {
 		{pattern: "/pages/[id].tsx", match: []string{"pages/[id].tsx"}, noMatch: []string{"pages/i.tsx"}},
 		{pattern: "*[id]*.tsx", match: []string{"a[id].tsx", "[id]b.tsx"}, noMatch: []string{"ai.tsx"}},
 		{pattern: "?]", match: []string{"a]"}, noMatch: []string{"a"}},
+		{pattern: "?[id].tsx", match: []string{"a[id].tsx"}, noMatch: []string{"ai.tsx"}},
+		{pattern: `?\x`, match: []string{`a\x`}, noMatch: []string{"ax"}},
 		{pattern: `\#a`, match: []string{`\#a`}, noMatch: []string{"#a"}},
 		{pattern: `a\*b`, match: []string{`a\xb`}, noMatch: []string{"a*b", "axb"}},
 

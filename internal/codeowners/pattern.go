@@ -17,6 +17,10 @@ const (
 	// literal matches a path segment that is equal to the text of the segment.
 	literal segmentKind = iota
 
+	// stars matches a path segment that matches the text of the segment, which has "*" and not
+	// "?".
+	stars
+
 	// glob matches a path segment that matches the text of the segment with path.Match.
 	glob
 
@@ -31,6 +35,9 @@ type segment struct {
 
 	// kind is the kind of the segment.
 	kind segmentKind
+
+	// parts are the parts of the text between the "*" of a stars segment.
+	parts []string
 }
 
 // Pattern is a compiled CODEOWNERS pattern. GitHub uses the rules of gitignore files for
@@ -84,14 +91,17 @@ func CompilePattern(pattern string) Pattern {
 		switch {
 		case text == "**":
 			seg.kind = anySegments
-		case strings.ContainsAny(text, "*?"):
+		case strings.Contains(text, "?"):
 			// For path.Match, "\" and "[" only match themselves when they are escaped.
 			seg = segment{text: strings.NewReplacer(`\`, `\\`, "[", `\[`).Replace(text), kind: glob}
+		case strings.Contains(text, "*"):
+			seg = segment{text: text, kind: stars, parts: strings.Split(text, "*")}
 		}
 		p.segments = append(p.segments, seg)
 	}
 
-	p.wholePath = !dirOnly && p.segments[len(p.segments)-1].kind == glob
+	last := p.segments[len(p.segments)-1].kind
+	p.wholePath = !dirOnly && (last == stars || last == glob)
 
 	return p
 }
@@ -101,6 +111,11 @@ func CompilePattern(pattern string) Pattern {
 func (p Pattern) Match(rel string) bool {
 	rel, isDir := strings.CutSuffix(rel, "/")
 	if len(p.segments) == 0 || rel == "" {
+		return false
+	}
+
+	// Most paths do not match, so check the last segment first when it must match.
+	if p.wholePath && !p.segments[len(p.segments)-1].match(rel[strings.LastIndexByte(rel, '/')+1:]) {
 		return false
 	}
 
@@ -160,14 +175,39 @@ func (p Pattern) match(segs []segment, rel string, isDir bool) bool {
 
 // match reports whether the segment matches name, a segment of a path.
 func (s segment) match(name string) bool {
-	if s.kind == literal {
+	switch s.kind {
+	case literal:
 		return s.text == name
+	case stars:
+		return matchStars(s.parts, name)
+	case glob:
+		// The text of a glob segment is a valid pattern for path.Match, so err is always nil.
+		ok, err := path.Match(s.text, name)
+
+		return ok && err == nil
+	case anySegments:
+		return true
+	default:
+		return false
+	}
+}
+
+// matchStars reports whether name matches a text whose only wildcard is "*". parts are the
+// parts of the text between the "*". path.Match does the same, but it is slower.
+func matchStars(parts []string, name string) bool {
+	rest, ok := strings.CutPrefix(name, parts[0])
+	if !ok {
+		return false
 	}
 
-	// The text of a glob segment is a valid pattern for path.Match, so err is always nil.
-	ok, err := path.Match(s.text, name)
+	// The first match of each middle part leaves the most room for the parts after it.
+	for _, part := range parts[1 : len(parts)-1] {
+		if _, rest, ok = strings.Cut(rest, part); !ok {
+			return false
+		}
+	}
 
-	return ok && err == nil
+	return strings.HasSuffix(rest, parts[len(parts)-1])
 }
 
 // Matcher finds the entry of a CODEOWNERS file that applies to a path, which is the last entry

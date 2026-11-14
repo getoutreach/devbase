@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/getoutreach/devbase/v2/internal/codeowners"
 	"gotest.tools/v3/assert"
 )
 
@@ -24,8 +24,9 @@ func newErrIssue(msg string) Issue {
 
 // TestFileExists validates that file exists checker supports
 // syntax used by CODEOWNERS. As the CODEOWNERS file uses a pattern that
-// follows the same rules used in gitignore files, the test cases cover
+// follows most of the rules used in gitignore files, the test cases cover
 // patterns from this document: https://git-scm.com/docs/gitignore#_pattern_format
+// and the rules where GitHub differs from it.
 func TestFileExists(t *testing.T) {
 	tests := map[string]struct {
 		codeownersInput string
@@ -107,6 +108,63 @@ func TestFileExists(t *testing.T) {
 			},
 			expectedIssues: []Issue{
 				newErrIssue(`"!/codeowners-validator" does not match any files in repository`),
+			},
+		},
+		"Should match a file in the directory of a pattern with a wildcard at the end": {
+			codeownersInput: `
+					docs/* @pico
+			`,
+			paths: []string{
+				"docs/getting-started.md",
+			},
+		},
+		"Should not match a nested file with a wildcard at the end": {
+			codeownersInput: `
+					docs/* @pico
+			`,
+			paths: []string{
+				"docs/build-app/troubleshooting.md",
+			},
+			expectedIssues: []Issue{
+				newErrIssue(`"docs/*" does not match any files in repository`),
+			},
+		},
+		"Should match brackets literally": {
+			codeownersInput: `
+					/pages/[id].tsx @pico
+			`,
+			paths: []string{
+				"pages/[id].tsx",
+			},
+		},
+		"Should not match a character range": {
+			codeownersInput: `
+					[ab].go @pico
+			`,
+			paths: []string{
+				"a.go",
+			},
+			expectedIssues: []Issue{
+				newErrIssue(`"[ab].go" does not match any files in repository`),
+			},
+		},
+		"Should match '!' literally": {
+			codeownersInput: `
+					!important.txt @pico
+			`,
+			paths: []string{
+				"!important.txt",
+			},
+		},
+		"Should not match the directory itself with a trailing '/**'": {
+			codeownersInput: `
+					abc/** @pico
+			`,
+			paths: []string{
+				"abc",
+			},
+			expectedIssues: []Issue{
+				newErrIssue(`"abc/**" does not match any files in repository`),
 			},
 		},
 		"Should not found JS file": {
@@ -266,72 +324,34 @@ func TestFileExistsDeletedFile(t *testing.T) {
 	}
 }
 
-func TestAnchoredTop(t *testing.T) {
-	tests := map[string]string{
-		"/docs/":          "docs",
-		"/docs":           "docs",
-		"docs/api":        "docs",
-		"/docs/**/v1.md":  "docs",
-		"//docs/x":        "docs",
-		"!/docs/x":        "docs",
-		"docs/api/v1.md ": "docs",
-		"docs/":           "",
-		"docs":            "",
-		"*.go":            "",
-		"**/api":          "",
-		"/**/x":           "",
-		"/d*/x":           "",
-		"/d?/x":           "",
-		"/[d]ocs/x":       "",
-		`/\[d]/x`:         "",
-		"a/ ":             "",
-		"/":               "",
-	}
-	for pattern, want := range tests {
-		t.Run(pattern, func(t *testing.T) {
-			top, ok := anchoredTop(pattern)
-			assert.Equal(t, top, want)
-			assert.Equal(t, ok, want != "")
-		})
-	}
-}
-
-// TestFileIndexMatchesFullScan checks that the lookup by the first element of the path finds the
+// TestFileIndexMatchesFullScan checks that the lookup by the first segment of the path finds the
 // same patterns as a match against every file.
 func TestFileIndexMatchesFullScan(t *testing.T) {
 	paths := []string{
 		"a.go", "docs/readme.md", "docs/api/v1.md", "src/app/main.go", "src/lib/util.go",
 		"build/logs/x.log", "foo/bar/baz.js", "a/x/y/b/c.txt", "with space/x", "[weird]/f", "star*/f",
-		"q?/f", ".github/CODEOWNERS", "deep/a/b/c/d/e.go", "embedded/",
+		"q?/f", ".github/CODEOWNERS", "deep/a/b/c/d/e.go", "embedded/", "vendor/lib/", "!bang/f", `\#hash/f`,
 	}
-	files := make([]repoFile, 0, len(paths)+1)
-	for _, path := range paths {
-		files = append(files, repoFile{path: strings.Split(path, "/")})
-	}
-	files = append(files, repoFile{path: []string{"vendor", "lib"}, isDir: true})
 
 	patterns := []string{
 		"*", "**", "/**", "/", "*.go", "a.go", "/a.go", "/a.go/", "a.go/", "/docs/", "/docs", "docs/", "docs/*",
-		"/docs/*.md", "docs/**", "/docs/**/v1.md", "**/api", "**/api/", "/docs//api", "//docs", "docs/api/v1.md ",
-		"/src/app/", "src/*/main.go", "/src/*/", "/src/app/main.go/", "/vendor/lib/", "vendor/lib/", "/vendor/lib",
+		"/docs/*.md", "docs/**", "/docs/**/v1.md", "**/api", "**/api/", "/docs//api", "//docs", "/src/app/",
+		"src/*/main.go", "/src/*/", "/src/app/main.go/", "/vendor/lib/", "vendor/lib/", "/vendor/lib",
 		"/vendor/lib/x", "lib/", "/build/logs/", "/build/logs", "build/logs/x.log", "foo/bar", "/foo/bar/",
-		"foo/bar/baz.js/", "a/**/b", "a/**/c.txt", "/a/x/", "/nope/", "nope/x", "/[weird]/f", `/\[weird\]/f`,
-		"/star*/f", `/star\*/f`, "/q?/f", "/with space/x", "!/docs/", "!docs/x", "/.github/", ".github/CODEOWNERS",
-		"/deep/a/", "deep/a/b/c/d/e.go", "/deep/a/b/c/d/e.go", "/embedded/", "/embedded", "a/ ", "x/ ", "/**/e.go",
-		"**/b/c.txt", "/deep/**", "/deep/**/e.go/", "/s*/app/", "/d?cs/", "/[ds]ocs/readme.md", `/\docs/`,
+		"foo/bar/baz.js/", "a/**/b", "a/**/c.txt", "/a/x/", "/nope/", "nope/x", "/[weird]/f", "/star*/f",
+		"/q?/f", "/with space/x", "!/docs/", "!bang/f", "/!bang/", `\#hash/f`, "/.github/", ".github/CODEOWNERS",
+		"/deep/a/", "deep/a/b/c/d/e.go", "/deep/a/b/c/d/e.go", "/embedded/", "/embedded", "/**/e.go",
+		"**/b/c.txt", "/deep/**", "/deep/**/e.go/", "/s*/app/", "/d?cs/", "/[ds]ocs/readme.md",
 	}
 
-	index := newFileIndex(files)
+	index := newFileIndex(paths)
 	indexed := 0
 	for _, p := range patterns {
+		pattern := codeowners.CompilePattern(p)
 		t.Run(p, func(t *testing.T) {
-			pattern := gitignore.ParsePattern(p, nil)
-			want := slices.ContainsFunc(files, func(f repoFile) bool {
-				return pattern.Match(f.path, f.isDir) == gitignore.Exclude
-			})
-			assert.Equal(t, index.match(p), want)
+			assert.Equal(t, index.match(pattern), slices.ContainsFunc(paths, pattern.Match))
 		})
-		if _, ok := anchoredTop(p); ok {
+		if _, ok := pattern.FirstSegment(); ok {
 			indexed++
 		}
 	}
