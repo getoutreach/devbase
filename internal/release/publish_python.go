@@ -194,8 +194,14 @@ func (py *pythonRegistry) prepare(ctx context.Context, p *regTarget) error {
 // repository with Poetry, as the publish:pyclient task does. When the
 // repository has the version (requirement 8), it uploads only the files
 // of the build that the version does not have, and skips the publish
-// when it has all of them. It returns no release info, as the exec hook
-// printed none.
+// when it has all of them. It gets the token only for an upload. It
+// returns no release info, as the exec hook printed none.
+//
+// The build comes before the skip, because the wheel file name has
+// tags that only the build knows: poetry-core takes them from the
+// Python versions of the package and from a build script, if any. The
+// build also gives the files whose hashes publish compares with the
+// files of the version.
 func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Published, error) {
 	s, err := py.open(p)
 	if err != nil {
@@ -205,37 +211,32 @@ func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Pub
 	if err != nil {
 		return nil, err
 	}
-	var assets []string
+	var assets []pythonAsset
 	if found {
 		if assets, err = py.assets(ctx, p, s); err != nil {
 			return nil, err
 		}
-		fmt.Fprintf(p.log, "%s has %s %s with the files: %s\n", py.name(), s.pkg, s.version, strings.Join(assets, ", "))
+		names := make([]string, len(assets))
+		for i, a := range assets {
+			names[i] = a.Name
+		}
+		fmt.Fprintf(p.log, "%s has %s %s with the files: %s\n", py.name(), s.pkg, s.version, strings.Join(names, ", "))
 	}
-	env, err := py.poetryEnv(ctx, p, s)
-	if err != nil {
-		return nil, err
-	}
-	// The token is in env, so the commands mask it.
-	ctx = rlog.WithMasker(ctx, rlog.NewMasker(env))
 	poetry, err := py.poetry(ctx, p, s)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: []string{"build"}}); err != nil {
+	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: s.env, name: poetry, args: []string{"build"}}); err != nil {
 		return nil, fmt.Errorf("poetry build: %w", err)
 	}
 	args := []string{"publish", "--repository", poetryRepository}
 	if found {
-		// A rerun builds the same commit again. CodeArtifact accepts a
-		// file again only with the same content, and a new build can
-		// differ, so the rerun uploads only the files that the version
-		// does not have, and keeps the files that it has.
-		files, err := s.distFiles()
+		// A rerun builds the same commit again, and uploads only the
+		// files that the version does not have.
+		missing, err := py.missingFiles(p, s, assets)
 		if err != nil {
 			return nil, err
 		}
-		missing := slices.DeleteFunc(files, func(f string) bool { return slices.Contains(assets, f) })
 		if len(missing) == 0 {
 			fmt.Fprintf(p.log, "Skip publishing to %s as %s %s exists with all the files of the build\n", py.name(), s.pkg, s.version)
 			return nil, nil //nolint:nilnil // Why: the hook gave no release info.
@@ -248,12 +249,56 @@ func (py *pythonRegistry) publish(ctx context.Context, p *regTarget) (*forge.Pub
 		fmt.Fprintf(p.log, "Upload the missing files of %s %s: %s\n", s.pkg, s.version, strings.Join(missing, ", "))
 		args = append(args, "--dist-dir", dir)
 	}
+	env, err := py.poetryEnv(ctx, p, s)
+	if err != nil {
+		return nil, err
+	}
+	// The token is in env, so the command masks it.
+	ctx = rlog.WithMasker(ctx, rlog.NewMasker(env))
 	fmt.Fprintf(p.log, "Publishing %s %s to %s\n", s.pkg, s.version, py.name())
 	if _, err := p.run(ctx, p.log, &command{dir: s.dir, env: env, name: poetry, args: args}); err != nil {
 		return nil, fmt.Errorf("poetry publish: %w", err)
 	}
 	fmt.Fprintf(p.log, "Published %s %s to %s\n", s.pkg, s.version, py.name())
 	return nil, nil //nolint:nilnil // Why: the hook gave no release info.
+}
+
+// missingFiles returns the files of the build that the version does not
+// have. For a file that the version has, it compares the SHA-256 of the
+// build with the hash of the version, and a difference is a warning, not
+// an error: CodeArtifact refuses other content for an existing file name
+// (HTTP 409 Conflict) until the version is deleted, so a rerun cannot
+// replace the file, and users already get it. The difference comes from
+// another build: poetry-core builds the same files again byte for byte,
+// but another Poetry version or other source files can change them.
+func (py *pythonRegistry) missingFiles(p *regTarget, s *pythonSession, assets []pythonAsset) ([]string, error) {
+	files, err := s.distFiles()
+	if err != nil {
+		return nil, err
+	}
+	var missing []string
+	for _, f := range files {
+		i := slices.IndexFunc(assets, func(a pythonAsset) bool { return a.Name == f })
+		if i < 0 {
+			missing = append(missing, f)
+			continue
+		}
+		want := assets[i].Hashes["SHA-256"]
+		if want == "" {
+			fmt.Fprintf(p.log, "Warning: %s gave no SHA-256 for %s, so publish cannot compare it with the build\n", py.name(), f)
+			continue
+		}
+		got, err := sha256File(filepath.Join(s.dir, "dist", f))
+		if err != nil {
+			return nil, err
+		}
+		if want != got {
+			fmt.Fprintf(p.log, "Warning: %s has %s with SHA-256 %s, but the build has %s; "+
+				"CodeArtifact refuses other content for a file name, so the file in %s stays\n",
+				py.name(), f, want, got, py.name())
+		}
+	}
+	return missing, nil
 }
 
 // distFiles returns the names of the files of the version in the dist
@@ -278,22 +323,33 @@ func (s *pythonSession) distFiles() ([]string, error) {
 	return files, nil
 }
 
-// assets returns the file names of the package version, with
+// pythonAsset is a file of a package version in CodeArtifact: an
+// AssetSummary of the API.
+type pythonAsset struct {
+	// Name is the file name.
+	Name string `json:"name"`
+
+	// Hashes are the hex hashes of the file by algorithm, such as
+	// "SHA-256".
+	Hashes map[string]string `json:"hashes"`
+}
+
+// assets returns the files of the package version, with
 // "aws codeartifact list-package-version-assets", which gets all the
 // pages.
-func (py *pythonRegistry) assets(ctx context.Context, p *regTarget, s *pythonSession) ([]string, error) {
+func (py *pythonRegistry) assets(ctx context.Context, p *regTarget, s *pythonSession) ([]pythonAsset, error) {
 	res, err := p.run(ctx, p.log, py.awsCommand(p, s, "list-package-version-assets",
 		"--repository", py.plugin.Repository, "--format", "pypi",
 		"--package", s.pkg, "--package-version", s.version,
-		"--query", "assets[].name", "--output", "json"))
+		"--query", "assets", "--output", "json"))
 	if err != nil {
 		return nil, fmt.Errorf("list the files of %s %s in %s: %w", s.pkg, s.version, py.name(), err)
 	}
-	var names []string
-	if err := json.Unmarshal([]byte(res.stdout), &names); err != nil {
+	var assets []pythonAsset
+	if err := json.Unmarshal([]byte(res.stdout), &assets); err != nil {
 		return nil, fmt.Errorf("parse the files of %s %s in %s: %w", s.pkg, s.version, py.name(), err)
 	}
-	return names, nil
+	return assets, nil
 }
 
 // stageFiles copies the files of dir to a new temporary folder, and

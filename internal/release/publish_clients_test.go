@@ -139,9 +139,9 @@ func expectClientsPublish(s *cmdStubs, dir string) {
 	s.expect(cmdOK(""), npmPublishArgv(filepath.Join(dir, "api", "clients", "node"), "latest", officialNPMRegistry)...)
 	expectMissingVersion(s, "1.0.0")
 	s.expectAll([]stubCmd{
-		codeArtifactToken,
 		misePoetry,
 		{[]string{"poetry", "build"}, cmdOK("")},
+		codeArtifactToken,
 		{[]string{"poetry", "publish", "--repository", "codeartifact"}, cmdOK("")},
 	})
 }
@@ -163,15 +163,14 @@ func TestPublishClientsMakeNoReleaseCommit(t *testing.T) {
 	assert.Assert(t, strings.Contains(status, "api/clients/python/pyproject.toml"), status)
 
 	// A rerun skips the published packages. The Python package is built
-	// again to compare its files with the files of the version.
+	// again to compare its files with the files of the version, and the
+	// rerun gets no CodeArtifact token.
 	expectClientsPrepare(p.cmds)
 	p.cmds.expect(cmdOK("1.0.0\n"), npmViewArgv("@acme/widgets-client@1.0.0", officialNPMRegistry)...)
 	p.cmds.expect(cmdOK("Published\n"), describeArgs("1.0.0")...)
 	wheel, sdist := "widgets_client-1.0.0-py3-none-any.whl", "widgets_client-1.0.0.tar.gz"
 	p.cmds.expectAll([]stubCmd{
-		{assetsArgs("1.0.0"), cmdOK(`["` + wheel + `", "` + sdist + `"]`)},
-		{endpointArgs, cmdOK(pythonEndpoint + "\n")},
-		codeArtifactToken,
+		{assetsArgs("1.0.0"), cmdOK(assetsJSON(wheel, sdist))},
 		misePoetry,
 		{[]string{"poetry", "build"}, poetryBuildWrites(wheel, sdist)},
 	})
