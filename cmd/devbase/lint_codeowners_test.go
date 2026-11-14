@@ -96,6 +96,17 @@ func TestLintCodeowners_Failure(t *testing.T) {
 	golden.Assert(t, out, "lint_codeowners_failure.golden")
 }
 
+// TestLintCodeowners_BracketPattern checks that a pattern with brackets, which match only
+// themselves, passes the files and syntax checks when the file exists.
+func TestLintCodeowners_BracketPattern(t *testing.T) {
+	repo := newCodeownersRepo(t, "/pages/[id].tsx @org/team\n", "pages/[id].tsx")
+
+	out, err := runLintCodeowners(t, "--repository-path", repo, "--checks", "files,syntax")
+
+	assert.NilError(t, err, out)
+	assert.Equal(t, strings.Count(out, "    Check OK\n"), 2, out)
+}
+
 // TestLintCodeowners_FailureLevel checks that --check-failure-level decides if warnings fail the run.
 func TestLintCodeowners_FailureLevel(t *testing.T) {
 	repo := newCodeownersRepo(t, "* @org/team\n/main.go @-bad\n", "main.go")

@@ -49,7 +49,7 @@ func (*ValidSyntax) Check(ctx context.Context, in Input) (Output, error) {
 			out.Report("Missing pattern", WithEntry(entry))
 		}
 
-		for _, feature := range unsupportedFeatures(entry.Pattern) {
+		if feature := unsupportedFeature(entry.Pattern); feature != "" {
 			out.Report(fmt.Sprintf("Pattern '%s' uses %s, which CODEOWNERS does not support", entry.Pattern, feature),
 				WithEntry(entry), WithSeverity(Warning))
 		}
@@ -74,20 +74,18 @@ func (*ValidSyntax) Name() string {
 	return "Valid Syntax Checker"
 }
 
-// unsupportedFeatures returns the features of gitignore files that pattern uses and that
-// CODEOWNERS does not support. codeowners.Pattern matches the characters of these features
-// literally.
-func unsupportedFeatures(pattern string) []string {
-	var features []string
+// unsupportedFeature returns the feature of gitignore files that the start of pattern uses and
+// that CODEOWNERS does not support, or "". codeowners.Pattern matches the characters of these
+// features literally. Brackets are not reported: they match only themselves, so a pattern such as
+// "/pages/[id].tsx" owns the file with that name, and a pattern that is meant as a character range
+// matches no file, which the files check reports.
+func unsupportedFeature(pattern string) string {
 	switch {
 	case strings.HasPrefix(pattern, "!"):
-		features = append(features, "negation with '!'")
+		return "negation with '!'"
 	case strings.HasPrefix(pattern, `\#`):
-		features = append(features, `an escape with '\'`)
+		return `an escape with '\'`
+	default:
+		return ""
 	}
-	if strings.ContainsAny(pattern, "[]") {
-		features = append(features, "a character range with '[ ]'")
-	}
-
-	return features
 }

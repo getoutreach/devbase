@@ -83,7 +83,7 @@ A skipped check does not make the command fail. See [Only when CODEOWNERS change
 | `files`           | Yes     | Reports each pattern that matches no file. See [Patterns](#patterns). The check uses the files that git tracks, except the files deleted from the working tree, and the untracked files that git does not ignore. With `--staged`, it uses only the files in the git index. A submodule counts as a directory. |
 | `owners`          | Yes     | Reports each owner that is not valid. This check needs GitHub access. See [The `owners` check](#the-owners-check).                                                                                                                                                                                             |
 | `duppatterns`     | Yes     | Reports each pattern that is on more than one line.                                                                                                                                                                                                                                                            |
-| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address. It also reports a warning for each pattern that uses negation (`!`), a character range (`[ ]`), or an escaped `#` (`\#`). CODEOWNERS does not support these features.                                          |
+| `syntax`          | Yes     | Reports each owner that does not look like a GitHub username, a team name, or an email address. It also reports a warning for each pattern that starts with `!` (negation) or `\#` (an escaped `#`). CODEOWNERS does not support these features.                                                               |
 | `notowned`        | No      | Reports each file in the git index that has no owner: no pattern matches the file, or the last pattern that matches it has no owners. See [Patterns](#patterns). A submodule counts as a directory. This check is experimental.                                                                                |
 | `avoid-shadowing` | No      | Reports each pattern that shadows an earlier pattern. The last matching pattern takes precedence, so put the patterns in order from the least specific to the most specific. This check is experimental.                                                                                                       |
 
@@ -138,7 +138,7 @@ The `files` and `notowned` checks match the CODEOWNERS patterns with the rules o
 Paths are case-sensitive. The GitHub documentation gives these differences from gitignore files:
 
 - `docs/*` matches `docs/getting-started.md`, but not `docs/build-app/troubleshooting.md`.
-- Negation with `!`, character ranges with `[ ]`, and escaping a leading `#` with `\` do not work. The `syntax` check reports a warning for each pattern that uses them.
+- Negation with `!`, character ranges with `[ ]`, and escaping a leading `#` with `\` do not work. The `syntax` check reports a warning for each pattern that starts with `!` or `\#`.
 
 For the cases that the GitHub documentation does not describe, the command uses these rules:
 
