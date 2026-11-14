@@ -181,9 +181,9 @@ var (
 //nolint:gochecknoglobals // Why: read-only list.
 var buildCommands = []string{"make release", "release:build", "major-release-checker.js"}
 
-// submodulesScript is the script that tags the Go submodules in the old
+// SubmodulesScript is the script that tags the Go submodules in the old
 // configuration. Go module units replace it.
-const submodulesScript = "release-submodules.sh"
+const SubmodulesScript = "release-submodules.sh"
 
 // clientHookRe matches a hook that runs the stencil Ruby or Python
 // client scripts, which the gem and python publishers replace.
@@ -514,8 +514,8 @@ func checkHookCommand(cmd string) error {
 	if clientHookRe.MatchString(cmd) {
 		return fmt.Errorf("%w: hook %q publishes a client; use the gem or python publisher", spec.ErrUnsupported, cmd)
 	}
-	if strings.Contains(cmd, submodulesScript) {
-		return fmt.Errorf("%w: hook %q runs %s; release the Go submodules as units", spec.ErrUnsupported, cmd, submodulesScript)
+	if strings.Contains(cmd, SubmodulesScript) {
+		return fmt.Errorf("%w: hook %q runs %s; release the Go submodules as units", spec.ErrUnsupported, cmd, SubmodulesScript)
 	}
 	return nil
 }

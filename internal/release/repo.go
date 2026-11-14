@@ -146,8 +146,10 @@ func loadLegacy(dir string, h hash.Hash) (*spec.Config, []string, error) {
 // returns the scripts/devbase.yaml document with the equivalent release
 // section. A .goreleaser.yml without the build hook in .releaserc.yaml
 // is the build of only the unstable release, as pre-release.sh reads
-// it. It also returns notes for the user: the warnings of the
-// configuration.
+// it. The Go submodules that release-submodules.sh tags become units
+// (see convertUnits). It also returns notes for the user: the warnings
+// of the configuration, the files to delete, and the Go modules and npm
+// packages that are not units.
 func ConvertConfig(dir string) (section []byte, notes []string, err error) {
 	cfg, notes, err := loadLegacy(dir, sha256.New())
 	if err != nil {
@@ -158,6 +160,11 @@ func ConvertConfig(dir string) (section []byte, notes []string, err error) {
 			return nil, nil, err
 		}
 	}
+	unitNotes, err := convertUnits(dir, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	notes = append(notes, unitNotes...)
 	if section, err = native.Marshal(cfg); err != nil {
 		return nil, nil, err
 	}
