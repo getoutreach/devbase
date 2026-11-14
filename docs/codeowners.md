@@ -112,7 +112,7 @@ When the two files are the same, the command skips the `owners` check, and it do
 
 When the command cannot read the earlier commit, for example in a shallow clone or when `--base` does not exist, the check runs, and the command prints a warning.
 
-On the `--base` branch, the check runs for each commit that changes CODEOWNERS. Thus it also validates a change whose check was skipped in its pull request, for example because of the [rate limit](#rate-limit).
+On the `--base` branch, a squash merge or a merge commit differs from its first parent by all the changes of its pull request. Thus the check also validates a change to CODEOWNERS whose check was skipped in the pull request, for example because of the [rate limit](#rate-limit).
 
 An owner can become invalid without a change to CODEOWNERS, for example when a user leaves the organization. With `--owners-if-changed`, the check does not find this issue until the next change to CODEOWNERS.
 
@@ -122,6 +122,8 @@ An owner can become invalid without a change to CODEOWNERS, for example when a u
 | ------------------ | ------- | --------------------------------------------------------------- |
 | `--skip-patterns`  | None    | Patterns that the check ignores, such as a default `*` pattern. |
 | `--subdirectories` | None    | Directories to limit the check to.                              |
+
+The check removes the lines whose pattern is a `--skip-patterns` value before it finds the last matching line of each file, so a file can fall back to an earlier matching line.
 
 Each `--subdirectories` value is a git pathspec (see `gitglossary(7)`), so it can also be a file or a glob. The check fails when a value matches no file in the git index.
 
@@ -210,7 +212,7 @@ Set `--github-base-url` to the API base URL of the server, and `--github-upload-
 - The `owners` check requires a user to be a collaborator of the repository with write access. The upstream check requires a user to be a member of the organization.
 - The upstream command checks that a token has the `read:org` scope. This command does not check scopes, because fine-grained tokens and GitHub Apps use permissions instead of scopes.
 - The command takes its settings from flags, except for some authentication settings (see [GitHub access](#github-access)). `--checks` selects both the default and the experimental checks. The upstream command uses environment variables, with `CHECKS` and `EXPERIMENTAL_CHECKS` for the checks.
-- The `files` and `notowned` checks match the patterns with the rules of GitHub. See [Patterns](#patterns). The upstream `files` check matches glob patterns against the files in the working tree. The upstream `notowned` check uses the rules of gitignore files.
+- The `files` and `notowned` checks match the patterns with the rules of GitHub. See [Patterns](#patterns). The upstream `files` check matches glob patterns against the files in the working tree. The upstream `notowned` check uses the rules of gitignore files through `git ls-files`, so it matches without regard to case when the git setting `core.ignoreCase` is `true`. This command always matches case-sensitively.
 - The `notowned` check reports a file when the last pattern that matches it has no owners. The upstream check reports a file only when no pattern matches it.
 - `--trust-workspace` passes the repository directory as `safe.directory` to each git command. To find the root of the git work tree, it passes `*`, because the root is not known yet. The upstream command adds the directory to the global git configuration.
 - When a check fails, the command exits with 1. The upstream command exits with 3.
