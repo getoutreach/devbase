@@ -680,6 +680,28 @@ func TestLintCodeowners_OwnersIfChangedUnreadableParent(t *testing.T) {
 	assert.Equal(t, strings.Count(stderr, "\n"), 1, stderr)
 }
 
+// TestLintCodeowners_OwnersIfChangedBloblessClone checks that the owners check runs in a blobless
+// clone, where the blob of CODEOWNERS in the merge base is missing.
+func TestLintCodeowners_OwnersIfChangedBloblessClone(t *testing.T) {
+	src := newBranchedCodeownersRepo(t, "* @bob\n", "* @alice\n")
+	runGit(t, src, "config", "uploadpack.allowFilter", "true")
+	repo := filepath.Join(t.TempDir(), "clone")
+	runGit(t, src, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+src, repo)
+	blob := strings.TrimSpace(gitOutput(t, src, "rev-parse", "main:.github/CODEOWNERS"))
+	missing := gitOutput(t, repo, "rev-list", "--objects", "--all", "--missing=print")
+	assert.Assert(t, strings.Contains(missing, "?"+blob+"\n"), "the blob %s is not missing:\n%s", blob, missing)
+	assert.NilError(t, os.MkdirAll(filepath.Join(repo, ".github"), 0o755))
+	assert.NilError(t, os.WriteFile(filepath.Join(repo, ".github", "CODEOWNERS"), []byte("* @alice\n"), 0o600))
+	var calls int
+
+	out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), "--base", "origin/main")...)
+
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+	assert.Equal(t, calls, 1)
+	assert.Equal(t, stderr, "")
+}
+
 // TestLintCodeowners_OwnersIfChangedStaged checks that --owners-if-changed compares the CODEOWNERS
 // file that the command loaded: the file in the working tree, or in the git index with --staged.
 func TestLintCodeowners_OwnersIfChangedStaged(t *testing.T) {

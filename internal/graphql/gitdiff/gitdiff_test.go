@@ -199,11 +199,22 @@ func TestMergeBaseOrParentFiles(t *testing.T) {
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
+	gitOutput(t, dir, args...)
+}
+
+// gitOutput runs git in dir, fails the test when git fails, and returns the standard output.
+func gitOutput(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+
 	identity := []string{"-c", "user.name=test", "-c", "user.email=test@example.com"}
 	cmd := exec.CommandContext(t.Context(), "git", append(identity, args...)...)
 	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	assert.NilError(t, err, "git %s: %s", strings.Join(args, " "), out)
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	assert.NilError(t, err, "git %s: %s", strings.Join(args, " "), stderr.String())
+
+	return string(out)
 }
 
 // TestMergeBaseFilesLinkedWorktree checks that the merge base is read when dir is a linked git
@@ -234,4 +245,35 @@ func TestMergeBaseFilesShallowCloneLinkedWorktree(t *testing.T) {
 
 	_, err := MergeBaseFiles(worktree, baseName, []string{"schema.graphql"})
 	assert.Assert(t, errors.Is(err, ErrShallowClone), "%v", err)
+}
+
+// TestMergeBaseOrParentFilesBloblessClone checks that a file whose blob is missing in a blobless
+// clone is left out, as if it did not exist in the compared commit.
+func TestMergeBaseOrParentFilesBloblessClone(t *testing.T) {
+	// The source has two commits on main, and the second commit changes .github/CODEOWNERS.
+	src := t.TempDir()
+	runGit(t, src, "init", "-q", "-b", "main")
+	runGit(t, src, "config", "uploadpack.allowFilter", "true")
+	path := filepath.Join(src, ".github", "CODEOWNERS")
+	assert.NilError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	for _, content := range []string{"* @bob\n", "* @alice\n"} {
+		assert.NilError(t, os.WriteFile(path, []byte(content), 0o600))
+		runGit(t, src, "add", "-A")
+		runGit(t, src, "commit", "-q", "-m", "change CODEOWNERS")
+	}
+
+	// The clone has no blob, and no checkout. The command reads CODEOWNERS from the working tree.
+	clone := filepath.Join(t.TempDir(), "clone")
+	runGit(t, src, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+src, clone)
+	blob := strings.TrimSpace(gitOutput(t, src, "rev-parse", "main~1:.github/CODEOWNERS"))
+	missing := gitOutput(t, clone, "rev-list", "--objects", "--all", "--missing=print")
+	assert.Assert(t, strings.Contains(missing, "?"+blob+"\n"), "the blob %s is not missing:\n%s", blob, missing)
+	assert.NilError(t, os.MkdirAll(filepath.Join(clone, ".github"), 0o755))
+	assert.NilError(t, os.WriteFile(filepath.Join(clone, ".github", "CODEOWNERS"), []byte("* @alice\n"), 0o600))
+
+	content, firstParent, err := MergeBaseOrParentFiles(clone, "main", []string{".github/CODEOWNERS"})
+
+	assert.NilError(t, err)
+	assert.Equal(t, firstParent, true)
+	assert.DeepEqual(t, content, map[string]string{})
 }
