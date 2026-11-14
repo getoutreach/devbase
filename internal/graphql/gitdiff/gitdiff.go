@@ -52,7 +52,9 @@ func MergeBaseFiles(dir, base string, files []string) (map[string]string, error)
 // MergeBaseOrParentFiles is like MergeBaseFiles, but when the merge base
 // is HEAD itself, as on the base branch, it reads the files from the
 // first parent of HEAD, and firstParent is true. When HEAD has no
-// parent, no file existed before it, so the map is empty.
+// parent, no file existed before it, so the map is empty. When the
+// first parent of HEAD cannot be read, the error comes with
+// firstParent true.
 func MergeBaseOrParentFiles(dir, base string, files []string) (contents map[string]string, firstParent bool, err error) {
 	repo, head, mergeBase, err := openMergeBase(dir, base)
 	if err != nil {

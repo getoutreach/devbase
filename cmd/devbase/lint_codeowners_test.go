@@ -35,10 +35,19 @@ var codeownersDurationRE = regexp.MustCompile(`\(\d[^)]*\)`)
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
+	gitOutput(t, dir, args...)
+}
+
+// gitOutput runs git in dir, fails the test when git fails, and returns the output of git.
+func gitOutput(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+
 	cmd := exec.CommandContext(t.Context(), "git", args...)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	assert.NilError(t, err, "git %s: %s", strings.Join(args, " "), out)
+
+	return string(out)
 }
 
 // newCodeownersRepo creates a git repository in a temporary directory with the files, a CODEOWNERS
@@ -556,7 +565,11 @@ func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
 		"unchanged":                 {base: owners, head: owners, skipped: sinceMergeBase},
 		"changed":                   {base: "* @bob\n", head: owners},
 		"missing at the merge base": {base: "", head: owners},
-		"unknown base":              {base: owners, head: owners, args: []string{"--base", "nope"}, warning: `"nope"`},
+		"unknown base": {
+			base: owners, head: owners, args: []string{"--base", "nope"},
+			warning: `warning: the owners check runs, because CODEOWNERS cannot be compared with the merge base of HEAD and nope: ` +
+				`resolve --base "nope"`,
+		},
 		"unchanged in HEAD on the base branch": {
 			base: owners, head: owners, args: []string{"--base", onTheBaseBranch},
 			skipped: sinceParent,
@@ -630,8 +643,26 @@ func TestLintCodeowners_OwnersIfChangedShallowClone(t *testing.T) {
 	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
 	assert.Equal(t, calls, 1)
 	assert.Equal(t, stderr,
-		"warning: the owners check runs, because CODEOWNERS cannot be compared with the merge base of HEAD and main: "+
-			"the repository is a shallow clone\n")
+		"warning: the owners check runs, because the repository is a shallow clone, so CODEOWNERS cannot be compared with an earlier commit\n")
+}
+
+// TestLintCodeowners_OwnersIfChangedUnreadableParent checks that the warning names the first parent
+// of HEAD when the command cannot read it.
+func TestLintCodeowners_OwnersIfChangedUnreadableParent(t *testing.T) {
+	repo := newBranchedCodeownersRepo(t, "* @bob\n", "* @alice\n")
+	tree := strings.TrimSpace(gitOutput(t, repo, "rev-parse", "main^{tree}"))
+	assert.NilError(t, os.Remove(filepath.Join(repo, ".git", "objects", tree[:2], tree[2:])))
+	var calls int
+
+	out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), "--base", "feature")...)
+
+	assert.NilError(t, err, out)
+	assert.Assert(t, strings.Contains(out, "    Check OK\n"), out)
+	assert.Equal(t, calls, 1)
+	assert.Assert(t, strings.HasPrefix(stderr,
+		"warning: the owners check runs, because CODEOWNERS cannot be compared with the first parent of HEAD: "+
+			"read .github/CODEOWNERS at the first parent of HEAD: "), stderr)
+	assert.Equal(t, strings.Count(stderr, "\n"), 1, stderr)
 }
 
 // TestLintCodeowners_OwnersIfChangedStaged checks that --owners-if-changed compares the CODEOWNERS

@@ -161,6 +161,25 @@ func TestMergeBaseOrParentFiles(t *testing.T) {
 		assert.DeepEqual(t, content, map[string]string{"schema.graphql": "type Foo { a: String }\n"})
 	})
 
+	t.Run("an error of the first parent of HEAD", func(t *testing.T) {
+		root, repo, baseName := newTestRepo(t)
+		wt, err := repo.Worktree()
+		assert.NilError(t, err)
+		assert.NilError(t, wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(baseName)}))
+		head, err := repo.Head()
+		assert.NilError(t, err)
+		commit, err := repo.CommitObject(head.Hash())
+		assert.NilError(t, err)
+		parent, err := commit.Parent(0)
+		assert.NilError(t, err)
+		tree := parent.TreeHash.String()
+		assert.NilError(t, os.Remove(filepath.Join(root, ".git", "objects", tree[:2], tree[2:])))
+
+		_, firstParent, err := MergeBaseOrParentFiles(root, baseName, files)
+		assert.ErrorContains(t, err, "at the first parent of HEAD")
+		assert.Equal(t, firstParent, true)
+	})
+
 	t.Run("a root commit has no files before it", func(t *testing.T) {
 		root := t.TempDir()
 		repo, err := git.PlainInit(root, false)

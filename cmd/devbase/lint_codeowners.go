@@ -256,15 +256,19 @@ func lintCodeowners(ctx context.Context, c *cli.Command, getToken tokenGetter) e
 // commit cannot be read. In the last case, it writes a warning line to w.
 func ownersSkipReason(w io.Writer, repoDir, base, rel string, content []byte) string {
 	previous, firstParent, err := gitdiff.MergeBaseOrParentFiles(repoDir, base, []string{rel})
-	if err != nil {
-		cause := err.Error()
-		if errors.Is(err, gitdiff.ErrShallowClone) {
-			// The message of ErrShallowClone names a flag of another command.
-			cause = "the repository is a shallow clone"
+	switch {
+	case errors.Is(err, gitdiff.ErrShallowClone):
+		// The message of ErrShallowClone names a flag of another command. The command does not look
+		// for the commit to compare with in a shallow clone, so the warning names none.
+		fmt.Fprintln(w, "warning: the owners check runs, because the repository is a shallow clone, "+
+			"so CODEOWNERS cannot be compared with an earlier commit")
+		return ""
+	case err != nil:
+		compared := "the merge base of HEAD and " + base
+		if firstParent {
+			compared = "the first parent of HEAD"
 		}
-		fmt.Fprintf(w, "warning: the owners check runs, because CODEOWNERS cannot be compared with the merge base of HEAD and %s: %s\n",
-			base, cause)
-
+		fmt.Fprintf(w, "warning: the owners check runs, because CODEOWNERS cannot be compared with %s: %v\n", compared, err)
 		return ""
 	}
 
