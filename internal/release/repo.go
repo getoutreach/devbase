@@ -136,24 +136,20 @@ func loadLegacy(dir string, h hash.Hash) (*spec.Config, []string, error) {
 	return cfg, warnings, nil
 }
 
-// ConvertConfig reads .releaserc.yaml, and .goreleaser.yml when it has
-// the build hook, in dir, and returns the scripts/devbase.yaml document
-// with the equivalent release section. It also returns notes for the
-// user: the warnings of the configuration, and a .goreleaser.yml that the
-// section leaves out.
+// ConvertConfig reads .releaserc.yaml and .goreleaser.yml in dir, and
+// returns the scripts/devbase.yaml document with the equivalent release
+// section. A .goreleaser.yml without the build hook in .releaserc.yaml
+// is the build of only the unstable release, as pre-release.sh reads
+// it. It also returns notes for the user: the warnings of the
+// configuration.
 func ConvertConfig(dir string) (section []byte, notes []string, err error) {
 	cfg, notes, err := loadLegacy(dir, sha256.New())
 	if err != nil {
 		return nil, nil, err
 	}
 	if !cfg.Build {
-		ok, err := exists(dir, goreleaser.File)
-		if err != nil {
+		if cfg.UnstableArtifacts, err = readUnstableGoReleaser(dir); err != nil {
 			return nil, nil, err
-		}
-		if ok {
-			notes = append(notes, fmt.Sprintf("%s has no build hook, so the section has no build key and "+
-				"the unstable release builds nothing; add a build key to build both releases", releaserc.File))
 		}
 	}
 	if section, err = native.Marshal(cfg); err != nil {
@@ -186,14 +182,24 @@ func readConfig(dir, name string, h hash.Hash) ([]byte, error) {
 }
 
 // unstableArtifacts returns the artifacts of the unstable release: the
-// release artifacts, or those of .goreleaser.yml when the release does
-// not build, as pre-release.sh reads it. It returns nil when the
-// repository has no .goreleaser.yml.
+// release artifacts, the artifacts of only the unstable release, or
+// those of .goreleaser.yml when the release does not build, as
+// pre-release.sh reads it. It returns nil when the repository has no
+// .goreleaser.yml.
 func (r *Repo) unstableArtifacts() (*spec.Artifacts, error) {
 	if r.Config.Artifacts != nil {
 		return r.Config.Artifacts, nil
 	}
-	b, err := os.ReadFile(filepath.Join(r.Git.Dir, goreleaser.File))
+	if r.Config.UnstableArtifacts != nil {
+		return r.Config.UnstableArtifacts, nil
+	}
+	return readUnstableGoReleaser(r.Git.Dir)
+}
+
+// readUnstableGoReleaser reads .goreleaser.yml in dir. It returns nil
+// when the file does not exist.
+func readUnstableGoReleaser(dir string) (*spec.Artifacts, error) {
+	b, err := os.ReadFile(filepath.Join(dir, goreleaser.File))
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil //nolint:nilnil // Why: no .goreleaser.yml means no artifacts.
 	}

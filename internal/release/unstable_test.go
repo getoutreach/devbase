@@ -70,6 +70,33 @@ func TestUnstable(t *testing.T) {
 	assert.Assert(t, strings.Contains(strings.Join(p.forge.Calls, " "), "DeleteRelease"))
 }
 
+// TestUnstableNativeUnstableOnly checks that a release section with a
+// build of only the unstable release builds the unstable release.
+func TestUnstableNativeUnstableOnly(t *testing.T) {
+	p := newUnstableFixture(t)
+	assert.NilError(t, os.Remove(filepath.Join(p.git.Dir, ".releaserc.yaml")))
+	assert.NilError(t, os.Remove(filepath.Join(p.git.Dir, ".goreleaser.yml")))
+	writeFile(t, p.git.Dir, "scripts/devbase.yaml", `release:
+  branches:
+    - name: main
+      prerelease: rc
+    - name: release
+  build:
+    unstableOnly: true
+    before: []
+    builds:
+      - binary: hello
+        ldflags: [-s -w]
+    targets: [linux/amd64]
+`)
+	repo := p.repo()
+	assert.Assert(t, repo.Config.Artifacts == nil)
+	assert.NilError(t, p.unstable("main"))
+	head := p.run("rev-parse", "HEAD")
+	assert.DeepEqual(t, assetNames(p.forge.Release(unstableTag)),
+		[]string{"widgets_0.0.0-unstable+" + head + "_linux_amd64.tar.gz", "checksums.txt"})
+}
+
 func TestUnstableSkips(t *testing.T) {
 	p := newUnstableFixture(t)
 

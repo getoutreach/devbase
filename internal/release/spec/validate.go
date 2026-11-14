@@ -47,8 +47,14 @@ func (c *Config) Validate() (warnings []string, err error) {
 	if err := c.validatePythonBranches(); err != nil {
 		return nil, err
 	}
-	if c.Artifacts != nil {
-		if err := c.Artifacts.Validate(); err != nil {
+	if c.Artifacts != nil && c.UnstableArtifacts != nil {
+		return nil, fmt.Errorf("%w: artifacts for the release and for only the unstable release", ErrUnsupported)
+	}
+	for _, a := range []*Artifacts{c.Artifacts, c.UnstableArtifacts} {
+		if a == nil {
+			continue
+		}
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 	}

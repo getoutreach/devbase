@@ -238,14 +238,37 @@ func TestConvertConfig(t *testing.T) {
 	assert.DeepEqual(t, repo.Config, old.Config)
 }
 
-// TestConvertConfigNotesUnstableOnlyBuild checks the note for a
-// .goreleaser.yml that only the unstable release reads.
-func TestConvertConfigNotesUnstableOnlyBuild(t *testing.T) {
+// TestConvertConfigUnstableOnlyBuild converts a .goreleaser.yml that
+// only the unstable release reads into a build of only the unstable
+// release.
+func TestConvertConfigUnstableOnlyBuild(t *testing.T) {
 	dir := t.TempDir()
 	writeFiles(t, dir, map[string]string{releaserc.File: fixtureConfig, goreleaser.File: fixtureGoReleaser})
+	old, err := LoadRepo(dir)
+	assert.NilError(t, err)
+	want, err := old.unstableArtifacts()
+	assert.NilError(t, err)
+
 	section, notes, err := ConvertConfig(dir)
 	assert.NilError(t, err)
-	assert.Assert(t, !strings.Contains(string(section), "build:"))
-	assert.Equal(t, len(notes), 1)
-	assert.Assert(t, strings.Contains(notes[0], "unstable release builds nothing"), notes[0])
+	assert.Equal(t, len(notes), 0)
+	assert.Assert(t, strings.Contains(string(section), "  build:\n    unstableOnly: true\n"), string(section))
+	assert.NilError(t, os.Remove(filepath.Join(dir, releaserc.File)))
+	assert.NilError(t, os.Remove(filepath.Join(dir, goreleaser.File)))
+	writeFiles(t, dir, map[string]string{native.File: string(section)})
+	repo, err := LoadRepo(dir)
+	assert.NilError(t, err)
+	assert.Assert(t, repo.Config.Artifacts == nil)
+	got, err := repo.unstableArtifacts()
+	assert.NilError(t, err)
+	assert.DeepEqual(t, got, want)
+}
+
+// TestConvertConfigRejectsUnstableOnlyBuild checks that a .goreleaser.yml
+// that the unstable release cannot build stops the conversion.
+func TestConvertConfigRejectsUnstableOnlyBuild(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{releaserc.File: fixtureConfig, goreleaser.File: fixtureGoReleaser + "nfpms: []\n"})
+	_, _, err := ConvertConfig(dir)
+	assert.ErrorIs(t, err, spec.ErrUnsupported)
 }

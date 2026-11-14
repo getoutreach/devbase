@@ -41,6 +41,11 @@ type Config struct {
 	// Artifacts are the binaries and archives to build, or nil.
 	Artifacts *Artifacts
 
+	// UnstableArtifacts are the binaries and archives of only the
+	// unstable release, when the release itself builds nothing
+	// (Artifacts is nil), or nil.
+	UnstableArtifacts *Artifacts
+
 	// Units are the extra release units, in release order. The root
 	// release is not one of them.
 	Units []Unit

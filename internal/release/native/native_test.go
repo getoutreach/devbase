@@ -39,6 +39,7 @@ const fullSection = `release:
     - type: perf
       release: patch
   build:
+    unstableOnly: false
     before: [make dep]
     builds:
       - binary: widgets
@@ -150,6 +151,17 @@ func TestParseDefaults(t *testing.T) {
 		Checksums: "checksums.txt",
 	})
 	assert.DeepEqual(t, cfg.Forge().Assets, []string{"dist/*.tar.gz", "dist/checksums.txt"})
+}
+
+// TestParseUnstableOnly checks that a build of only the unstable release
+// is not the build of the release, so that the GitHub release has no
+// default assets.
+func TestParseUnstableOnly(t *testing.T) {
+	cfg := parse(t, minimal+"  build:\n    unstableOnly: true\n    builds:\n      - binary: widgets\n")
+	assert.Assert(t, !cfg.Build)
+	assert.Assert(t, cfg.Artifacts == nil)
+	assert.DeepEqual(t, cfg.UnstableArtifacts.Builds, []spec.Build{stencilBuild("widgets")})
+	assert.Assert(t, cfg.Forge().Assets == nil)
 }
 
 func TestParseFullSection(t *testing.T) {

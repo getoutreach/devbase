@@ -107,6 +107,11 @@ func TestValidateFailsClosed(t *testing.T) {
 		"no checksums name":      func(c *spec.Config) { c.Artifacts.Checksums = "" },
 		"checksums path":         func(c *spec.Config) { c.Artifacts.Checksums = "dist/checksums.txt" },
 		"checksums template":     func(c *spec.Config) { c.Artifacts.Checksums = "{{ .Version }}.txt" },
+		"artifacts for both":     func(c *spec.Config) { c.UnstableArtifacts = c.Artifacts },
+		"unstable artifacts": func(c *spec.Config) {
+			c.UnstableArtifacts, c.Artifacts = c.Artifacts, nil
+			c.UnstableArtifacts.Builds = nil
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg := validConfig()

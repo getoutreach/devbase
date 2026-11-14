@@ -32,6 +32,7 @@
 //	      release: patch
 //	  # The Go binaries and archives. Without this key, nothing is built.
 //	  build:
+//	    unstableOnly: false               # Default; true builds only the unstable release.
 //	    before: [make dep]                # Default.
 //	    builds:
 //	      - binary: widgets
@@ -226,13 +227,16 @@ type rule struct {
 // releaseNone is the release of a rule that stops a release.
 const releaseNone = "none"
 
-// build is the Go binaries and archives of the release.
+// build is the Go binaries and archives of the release. With
+// UnstableOnly, only the unstable release builds them, and the release
+// builds nothing.
 type build struct {
-	Before    *[]string `yaml:"before,omitempty"`
-	Builds    []goBuild `yaml:"builds"`
-	Targets   *[]string `yaml:"targets,omitempty"`
-	Archive   *archive  `yaml:"archive,omitempty"`
-	Checksums string    `yaml:"checksums,omitempty"`
+	UnstableOnly bool      `yaml:"unstableOnly,omitempty"`
+	Before       *[]string `yaml:"before,omitempty"`
+	Builds       []goBuild `yaml:"builds"`
+	Targets      *[]string `yaml:"targets,omitempty"`
+	Archive      *archive  `yaml:"archive,omitempty"`
+	Checksums    string    `yaml:"checksums,omitempty"`
 }
 
 // goBuild is one Go program.
@@ -328,7 +332,11 @@ func (s *section) config() (*spec.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("build: %w", err)
 		}
-		cfg.Build, cfg.Artifacts = true, a
+		if s.Build.UnstableOnly {
+			cfg.UnstableArtifacts = a
+		} else {
+			cfg.Build, cfg.Artifacts = true, a
+		}
 	}
 	publishers := defaultPublisherList()
 	if s.Publishers != nil {

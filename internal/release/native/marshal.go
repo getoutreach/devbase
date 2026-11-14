@@ -69,11 +69,16 @@ func fromConfig(cfg *spec.Config) (*section, error) {
 		}
 		s.Rules = &rules
 	}
-	if cfg.Build != (cfg.Artifacts != nil) {
-		return nil, fmt.Errorf("%w: a build without artifacts, or artifacts without a build", spec.ErrUnsupported)
+	if cfg.Build != (cfg.Artifacts != nil) || (cfg.Artifacts != nil && cfg.UnstableArtifacts != nil) {
+		return nil, fmt.Errorf("%w: a build without artifacts, artifacts without a build, "+
+			"or artifacts for the release and for only the unstable release", spec.ErrUnsupported)
 	}
-	if cfg.Artifacts != nil {
+	switch {
+	case cfg.Artifacts != nil:
 		s.Build = fromArtifacts(cfg.Artifacts)
+	case cfg.UnstableArtifacts != nil:
+		s.Build = fromArtifacts(cfg.UnstableArtifacts)
+		s.Build.UnstableOnly = true
 	}
 	defaults, err := plugins(defaultPublisherList(), cfg.Artifacts)
 	if err != nil {
@@ -236,19 +241,27 @@ func normalize(cfg *spec.Config) *spec.Config {
 		u.Paths, u.Exclude = emptyToNil(u.Paths), emptyToNil(u.Exclude)
 		out.Units = append(out.Units, u)
 	}
-	if cfg.Artifacts != nil {
-		a := *cfg.Artifacts
-		a.Hooks = emptyToNil(a.Hooks)
-		a.Targets = emptyToNil(a.Targets)
-		a.Files = emptyToNil(a.Files)
-		a.Builds = nil
-		for _, b := range cfg.Artifacts.Builds {
-			b.LDFlags, b.Env = emptyToNil(b.LDFlags), emptyToNil(b.Env)
-			a.Builds = append(a.Builds, b)
-		}
-		out.Artifacts = &a
-	}
+	out.Artifacts = normalizeArtifacts(cfg.Artifacts)
+	out.UnstableArtifacts = normalizeArtifacts(cfg.UnstableArtifacts)
 	return &out
+}
+
+// normalizeArtifacts returns a copy of in with the empty lists set to
+// nil, or nil when in is nil.
+func normalizeArtifacts(in *spec.Artifacts) *spec.Artifacts {
+	if in == nil {
+		return nil
+	}
+	a := *in
+	a.Hooks = emptyToNil(a.Hooks)
+	a.Targets = emptyToNil(a.Targets)
+	a.Files = emptyToNil(a.Files)
+	a.Builds = nil
+	for _, b := range in.Builds {
+		b.LDFlags, b.Env = emptyToNil(b.LDFlags), emptyToNil(b.Env)
+		a.Builds = append(a.Builds, b)
+	}
+	return &a
 }
 
 // emptyToNil returns s, or nil when s is empty.

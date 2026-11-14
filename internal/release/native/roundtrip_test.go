@@ -40,8 +40,10 @@ func readFile(t *testing.T, path string) []byte {
 }
 
 // TestRoundTrip converts the 15 surveyed .releaserc.yaml files, the edge
-// case file and the Python client file. A config with the build hook is
-// converted with each .goreleaser.yml fixture.
+// case file and the Python client file. Each config is converted with
+// each .goreleaser.yml fixture: as the build of the release when it has
+// the build hook, and else also as the build of only the unstable
+// release.
 func TestRoundTrip(t *testing.T) {
 	setCodeArtifactEnv(t)
 	rcs, err := filepath.Glob("testdata/survey/*.releaserc.yaml")
@@ -58,14 +60,17 @@ func TestRoundTrip(t *testing.T) {
 			assert.NilError(t, err)
 			if !cfg.Build {
 				roundTrip(t, cfg)
-				return
 			}
 			for _, gr := range grs {
 				t.Run(filepath.Base(gr), func(t *testing.T) {
 					a, err := goreleaser.Parse(readFile(t, gr))
 					assert.NilError(t, err)
 					c := *cfg
-					c.Artifacts = a
+					if cfg.Build {
+						c.Artifacts = a
+					} else {
+						c.UnstableArtifacts = a
+					}
 					roundTrip(t, &c)
 				})
 			}
@@ -261,6 +266,7 @@ func TestMarshalOmitsDefaults(t *testing.T) {
 	for _, s := range []string{
 		"release:\n  branches:\n    - name: main\n",
 		"release:\n  branches:\n    - name: main\n  build:\n    builds:\n      - binary: widgets\n",
+		"release:\n  branches:\n    - name: main\n  build:\n    unstableOnly: true\n    builds:\n      - binary: widgets\n",
 	} {
 		cfg, _, err := native.Parse([]byte(s))
 		assert.NilError(t, err)
@@ -279,6 +285,7 @@ func TestMarshalRejectsWhatTheSectionCannotHold(t *testing.T) {
 		"prerelease channel":            func(c *spec.Config) { c.Branches[0].Channel = "beta" },
 		"build without artifacts":       func(c *spec.Config) { c.Artifacts = nil },
 		"artifacts without a build":     func(c *spec.Config) { c.Build = false },
+		"artifacts for both releases":   func(c *spec.Config) { c.UnstableArtifacts = c.Artifacts },
 		"invalid config":                func(c *spec.Config) { c.Branches = nil },
 	} {
 		c := *cfg
