@@ -104,6 +104,7 @@ func TestFileExists(t *testing.T) {
 					!/codeowners-validator @pico
 			`,
 			paths: []string{
+				"codeowners-validator",
 				"somewhere/over/the/rainbow/here/it/is.js",
 			},
 			expectedIssues: []Issue{

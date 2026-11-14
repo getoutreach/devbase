@@ -583,6 +583,12 @@ func TestValidOwnerAPIErrors(t *testing.T) {
 func TestValidOwnerTeamListForbidden(t *testing.T) {
 	routes := defaultRoutes()
 	routes[routeTeams] = reply(http.StatusForbidden, "", `{"message": "Resource not accessible by integration"}`)
+	teamRepo := routes[routeTeamRepo]
+	routes[routeTeamRepo] = func(w http.ResponseWriter, r *http.Request) {
+		// With this media type, the response has the permissions of the team on the repository.
+		assert.Check(t, cmp.Equal(r.Header.Get("Accept"), "application/vnd.github.v3.repository+json"))
+		teamRepo(w, r)
+	}
 	gh, fake := newFakeGitHub(t, routes)
 
 	out, err := newTestValidOwner(t, gh).Check(t.Context(),

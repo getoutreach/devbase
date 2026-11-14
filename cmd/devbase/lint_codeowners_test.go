@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -137,6 +138,78 @@ func TestLintCodeowners_Staged(t *testing.T) {
 		out, err = runLintCodeowners(t, "--repository-path", repo, "--checks", "files", "--staged")
 		assert.Equal(t, exitCode(t, err), 1)
 		assert.Assert(t, strings.Contains(out, `"/untracked.txt" does not match any files in repository`), out)
+	})
+}
+
+// TestLintCodeowners_NotOwnedFlags checks that --skip-patterns and --subdirectories change the
+// files that the notowned check reports.
+func TestLintCodeowners_NotOwnedFlags(t *testing.T) {
+	repo := newCodeownersRepo(t, "* @org/team\n/main.go @org/team\n", "main.go", "docs/readme.md")
+	args := []string{"--repository-path", repo, "--checks", "notowned"}
+
+	out, err := runLintCodeowners(t, args...)
+	assert.NilError(t, err, out)
+
+	out, err = runLintCodeowners(t, append(args, "--skip-patterns", "*")...)
+	assert.Equal(t, exitCode(t, err), 1)
+	assert.Assert(t, strings.Contains(out, `Found 2 not owned files (skipped patterns: "*"):`+
+		"\n            * .github/CODEOWNERS\n            * docs/readme.md\n"), out)
+
+	out, err = runLintCodeowners(t, append(args, "--skip-patterns", "*", "--subdirectories", "docs")...)
+	assert.Equal(t, exitCode(t, err), 1)
+	assert.Assert(t, strings.Contains(out, `Found 1 not owned files (skipped patterns: "*"):`+
+		"\n            * docs/readme.md\n"), out)
+}
+
+// TestLintCodeowners_TrustWorkspace checks that, with --trust-workspace, each git command of the
+// command trusts the repository. It changes the current directory and the environment, so it
+// cannot run in parallel.
+func TestLintCodeowners_TrustWorkspace(t *testing.T) {
+	// The flags make the command run git to find the root of the work tree, to read CODEOWNERS
+	// from the git index, and to list the files of the repository.
+	args := []string{"--checks", "files,notowned", "--staged"}
+
+	t.Run("another user owns the repository", func(t *testing.T) {
+		if os.Geteuid() != 0 {
+			t.Skip("only root can create a repository that another user owns")
+		}
+		repo := newCodeownersRepo(t, "* @org/team\n", "main.go")
+		chown := exec.CommandContext(t.Context(), "chown", "-R", "65534:65534", repo)
+		out, err := chown.CombinedOutput()
+		assert.NilError(t, err, string(out))
+		t.Chdir(repo)
+
+		_, err = runLintCodeowners(t, args...)
+		assert.ErrorContains(t, err, "dubious ownership")
+
+		stdout, err := runLintCodeowners(t, append(args, "--trust-workspace")...)
+		assert.NilError(t, err, stdout)
+	})
+
+	t.Run("git gets safe.directory", func(t *testing.T) {
+		repo := newCodeownersRepo(t, "* @org/team\n", "main.go")
+		git, err := exec.LookPath("git")
+		assert.NilError(t, err)
+
+		// A git wrapper that logs its arguments, one command per line.
+		bin := t.TempDir()
+		log := filepath.Join(bin, "git.log")
+		script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> " + strconv.Quote(log) + "\nexec " + strconv.Quote(git) + " \"$@\"\n"
+		assert.NilError(t, os.WriteFile(filepath.Join(bin, "git"), []byte(script), 0o700))
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		t.Chdir(repo)
+
+		stdout, err := runLintCodeowners(t, append(args, "--trust-workspace")...)
+		assert.NilError(t, err, stdout)
+
+		logged, err := os.ReadFile(log)
+		assert.NilError(t, err)
+		commands := strings.Split(strings.TrimSpace(string(logged)), "\n")
+		assert.Equal(t, commands[0], "-c safe.directory=* rev-parse --show-toplevel")
+		for _, command := range commands[1:] {
+			assert.Assert(t, strings.HasPrefix(command, "-c safe.directory="+repo+" "), command)
+		}
+		assert.Assert(t, len(commands) >= 4, "%q", commands)
 	})
 }
 
@@ -461,9 +534,13 @@ func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
 
 	tests := map[string]struct {
 		base, head string
-		args       []string
-		skipped    string
-		warning    string
+
+		// clone runs the command in a clone of the repository, where main is a remote-tracking
+		// branch, like in CI.
+		clone   bool
+		args    []string
+		skipped string
+		warning string
 	}{
 		"unchanged":                 {base: owners, head: owners, skipped: sinceMergeBase},
 		"changed":                   {base: "* @bob\n", head: owners},
@@ -475,10 +552,20 @@ func TestLintCodeowners_OwnersIfChanged(t *testing.T) {
 		},
 		"changed in HEAD on the base branch":  {base: "* @bob\n", head: owners, args: []string{"--base", onTheBaseBranch}},
 		"missing in the first parent of HEAD": {base: "", head: owners, args: []string{"--base", onTheBaseBranch}},
+		"unchanged since a remote-tracking base": {
+			base: owners, head: owners, clone: true, args: []string{"--base", "origin/main"},
+			skipped: "CODEOWNERS did not change since the merge base with origin/main",
+		},
+		"changed since a remote-tracking base": {base: "* @bob\n", head: owners, clone: true, args: []string{"--base", "origin/main"}},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			repo := newBranchedCodeownersRepo(t, tc.base, tc.head)
+			if tc.clone {
+				clone := filepath.Join(t.TempDir(), "clone")
+				runGit(t, repo, "clone", "-q", "file://"+repo, clone)
+				repo = clone
+			}
 			var calls int
 
 			out, stderr, err := runLintCodeownersWithToken(t, fakeToken(&calls), append(ownersIfChangedArgs(t, repo), tc.args...)...)
