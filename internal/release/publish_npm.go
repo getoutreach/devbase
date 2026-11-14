@@ -174,11 +174,15 @@ func (n *npmRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 }
 
 // exists reports whether the registry has the version of the plan. A
-// private package is never published, so it is false. It checks the
-// token as prepare does, because npm view of a restricted package with
-// a bad token fails with E404, as for a missing version.
+// private package is never published, so it is false. npm view gives
+// E404 for a missing version, but also for a wrong registry URL and for
+// a restricted package that the credentials cannot read. So a missing
+// version counts only when the registry returns the package document,
+// or, for a package that it does not return, when confirmRegistry
+// accepts the registry and the credentials. This works on any registry,
+// not only on the default registry where prepare checks the token.
 func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
-	s, err := n.open(ctx, p, true)
+	s, err := n.open(ctx, p, false)
 	if err != nil {
 		return false, err
 	}
@@ -186,7 +190,19 @@ func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 	if s.pkg.isPrivate() {
 		return false, nil
 	}
-	return n.view(ctx, p, s)
+	found, err := n.view(ctx, p, s)
+	if err != nil || found {
+		return found, err
+	}
+	// The registry returns the package document, so only the version
+	// is missing.
+	if _, seen, err := s.npmView(ctx, p, s.pkg.Name, "name"); err != nil || seen {
+		return false, err
+	}
+	if err := s.confirmRegistry(ctx, p); err != nil {
+		return false, fmt.Errorf("npm view gave E404 for %s, which can be a missing package or wrong credentials: %w", s.pkg.Name, err)
+	}
+	return false, nil
 }
 
 // view reports whether the registry has the version, with
@@ -194,18 +210,8 @@ func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 // exists. For a missing version, npm 7 and later fail with E404, and
 // older versions print nothing.
 func (n *npmRegistry) view(ctx context.Context, p *regTarget, s *npmSession) (bool, error) {
-	pkgVersion := s.pkg.Name + "@" + p.version
-	res, err := p.run(ctx, p.log, &command{
-		dir: p.dir, env: s.env, name: "npm",
-		args: []string{"view", pkgVersion, "version", "--userconfig", s.npmrc, "--registry", s.registry},
-	})
-	if err != nil {
-		if npmNotFoundRe.MatchString(res.stderr) {
-			return false, nil
-		}
-		return false, fmt.Errorf("npm view %s: %w", pkgVersion, err)
-	}
-	return strings.TrimSpace(res.stdout) != "", nil
+	out, ok, err := s.npmView(ctx, p, s.pkg.Name+"@"+p.version, "version")
+	return ok && strings.TrimSpace(out) != "", err
 }
 
 // npmSession is the package and the temporary npm config of one npm
@@ -229,11 +235,71 @@ type npmSession struct {
 
 	// env is the environment of the npm commands.
 	env []string
+
+	// basicAuth is true when npm authenticates to the registry with a
+	// user name and password, not a token.
+	basicAuth bool
 }
 
 // close removes the temporary npm config.
 func (s *npmSession) close() {
 	_ = os.RemoveAll(s.tmp)
+}
+
+// npmView runs "npm view <arg> <field>" and returns its stdout, and
+// false when npm fails with E404. npm fails with E404 when it does not
+// get the package document, and when no version matches arg. With the
+// package name as arg, it exits with 0 when it gets the document, also
+// when no version has the latest dist-tag.
+func (s *npmSession) npmView(ctx context.Context, p *regTarget, arg, field string) (stdout string, ok bool, err error) {
+	res, err := p.run(ctx, p.log, &command{
+		dir: p.dir, env: s.env, name: "npm",
+		args: []string{"view", arg, field, "--userconfig", s.npmrc, "--registry", s.registry},
+	})
+	if err != nil {
+		if npmNotFoundRe.MatchString(res.stderr) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("npm view %s: %w", arg, err)
+	}
+	return res.stdout, true, nil
+}
+
+// confirmRegistry checks that the registry URL is an npm registry that
+// accepts the credentials. With a token, npm whoami asks the registry
+// for the user of the token (GET /-/whoami), so it fails for a wrong
+// URL or a bad token. With a user name and password, npm whoami prints
+// the user name without a request, so confirmRegistry runs npm ping
+// (GET /-/ping) with the credentials instead, which fails for a wrong
+// URL, and for bad credentials only when the registry checks them on
+// ping.
+func (s *npmSession) confirmRegistry(ctx context.Context, p *regTarget) error {
+	if !s.basicAuth {
+		return s.whoami(ctx, p)
+	}
+	if err := s.registryCommand(ctx, p, "ping"); err != nil {
+		return fmt.Errorf("npm ping %s: %w", s.registry, err)
+	}
+	return nil
+}
+
+// whoami checks the token with npm whoami, as verify-auth.js does.
+func (s *npmSession) whoami(ctx context.Context, p *regTarget) error {
+	if err := s.registryCommand(ctx, p, "whoami"); err != nil {
+		return fmt.Errorf("%w for %s: %w", errNPMInvalidToken, s.registry, err)
+	}
+	return nil
+}
+
+// registryCommand runs "npm <op>" on the registry of s, without
+// DEFAULT_NPM_REGISTRY in the environment, as verify-auth.js runs npm
+// whoami.
+func (s *npmSession) registryCommand(ctx context.Context, p *regTarget, op string) error {
+	_, err := p.run(ctx, p.log, &command{
+		dir: p.dir, env: withoutEnv(s.env, "DEFAULT_NPM_REGISTRY"), name: "npm",
+		args: []string{op, "--userconfig", s.npmrc, "--registry", s.registry},
+	})
+	return err
 }
 
 // open reads package.json and, for a package that is not private, writes
@@ -267,17 +333,26 @@ func (n *npmRegistry) open(ctx context.Context, p *regTarget, whoami bool) (*npm
 		s.close()
 		return nil, err
 	}
+	s.basicAuth = npmBasicAuth(s.registry, cfg)
 	if whoami && normalizeRegistryURL(s.registry) == normalizeRegistryURL(defaultNPMRegistry(s.env)) {
-		_, err := p.run(ctx, p.log, &command{
-			dir: cwd, env: withoutEnv(s.env, "DEFAULT_NPM_REGISTRY"), name: "npm",
-			args: []string{"whoami", "--userconfig", s.npmrc, "--registry", s.registry},
-		})
-		if err != nil {
+		if err := s.whoami(ctx, p); err != nil {
 			s.close()
-			return nil, fmt.Errorf("%w for %s: %w", errNPMInvalidToken, s.registry, err)
+			return nil, err
 		}
 	}
 	return s, nil
+}
+
+// npmBasicAuth reports whether npm authenticates to registry with a user
+// name and password, as getCredentialsByURI of npm 10 finds them for
+// the nerf-dart of the registry: a token first, then a username and
+// _password, then _auth.
+func npmBasicAuth(registry string, cfg map[string]string) bool {
+	nerf := nerfDart(registry)
+	if cfg[nerf+":_authToken"] != "" {
+		return false
+	}
+	return cfg[nerf+":username"] != "" && cfg[nerf+":_password"] != "" || cfg[nerf+":_auth"] != ""
 }
 
 // readNPMPackage reads the package.json of dir, as get-pkg.js does.

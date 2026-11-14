@@ -236,6 +236,7 @@ func TestRollbackUnit(t *testing.T) {
 
 	// Without the package, --force removes the unit release only.
 	u.cmds.expect(cmdFails(npmE404), view...)
+	u.cmds.expect(cmdOK("@acme/widgets-client\n"), npmPkgViewArgv("@acme/widgets-client", unitRegistry)...)
 	deleted, _, err := rollback("nodejs-widgets-client-v1.2.0", true)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, deleted, []string{

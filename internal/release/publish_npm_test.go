@@ -75,6 +75,12 @@ func npmViewArgv(pkgVersion, registry string) []string {
 	return []string{"npm", "view", pkgVersion, "version", "--userconfig", execstub.AnyArg, "--registry", registry}
 }
 
+// npmPkgViewArgv is the argv of the npm view that checks that registry
+// returns the package document of name.
+func npmPkgViewArgv(name, registry string) []string {
+	return []string{"npm", "view", name, "name", "--userconfig", execstub.AnyArg, "--registry", registry}
+}
+
 // npmPublishArgv is the argv of npm publish of dir with distTag on
 // registry.
 func npmPublishArgv(dir, distTag, registry string) []string {
@@ -293,53 +299,154 @@ func TestNPMInstall(t *testing.T) {
 	assert.ErrorIs(t, err, errEmptyHook)
 }
 
+// npmPackageE404 is the stderr of npm 10 when the registry does not
+// return the package document.
+const npmPackageE404 = "npm error code E404\nnpm error 404 Not Found - GET https://npm.acme.test/@acme%2fclient - Not found\n"
+
+// basicNpmrc is an npm config with a user name and password for the
+// scope registry.
+const basicNpmrc = "@acme:registry=https://npm.acme.test/\n//npm.acme.test/:username=bot\n//npm.acme.test/:_password=cGFzcw==\n"
+
+// npmRegistryCmdArgv is the argv of "npm <op>" on registry.
+func npmRegistryCmdArgv(op, registry string) []string {
+	return []string{"npm", op, "--userconfig", execstub.AnyArg, "--registry", registry}
+}
+
+// TestNPMExists checks that a missing version counts only when the
+// registry returns the package document, or when npm whoami (a token)
+// or npm ping (a user name and password) accepts the registry and the
+// credentials, on any registry.
 func TestNPMExists(t *testing.T) {
+	const github = "https://npm.pkg.github.com/"
+	const acme = "https://npm.acme.test/"
+	view := npmViewArgv("@acme/client@1.0.0", github)
+	pkgView := npmPkgViewArgv("@acme/client", github)
+	acmeView, acmePkgView := npmViewArgv("@acme/client@1.0.0", acme), npmPkgViewArgv("@acme/client", acme)
 	tests := []struct {
-		name string
-		pkg  string
-		cmds []stubCmd
-		want bool
+		name    string
+		pkg     string
+		npmrc   string
+		cmds    []stubCmd
+		want    bool
+		wantErr error
 	}{
 		{
-			name: "published", pkg: `{"name": "@getoutreach/client"}`, want: true,
-			cmds: []stubCmd{{npmViewArgv("@getoutreach/client@1.0.0", "https://npm.pkg.github.com/"), cmdOK("1.0.0\n")}},
+			name: "published", pkg: `{"name": "@acme/client"}`, want: true,
+			cmds: []stubCmd{{view, cmdOK("1.0.0\n")}},
 		},
 		{
-			name: "missing", pkg: `{"name": "@getoutreach/client"}`,
-			cmds: []stubCmd{{npmViewArgv("@getoutreach/client@1.0.0", "https://npm.pkg.github.com/"), cmdFails(npmE404)}},
+			// The registry returns the package, so only the version is
+			// missing, and no credential check runs.
+			name: "missing version", pkg: `{"name": "@acme/client"}`,
+			cmds: []stubCmd{{view, cmdFails(npmE404)}, {pkgView, cmdOK("@acme/client\n")}},
 		},
-		{name: "private", pkg: `{"name": "@getoutreach/client", "private": true}`},
+		{
+			name: "missing package with a valid token", pkg: `{"name": "@acme/client"}`,
+			cmds: []stubCmd{
+				{view, cmdFails(npmE404)},
+				{pkgView, cmdFails(npmPackageE404)},
+				{npmRegistryCmdArgv("whoami", github), cmdOK("acme-bot\n")},
+			},
+		},
+		{
+			// A bad token or a wrong registry URL also gives E404 for the
+			// package, so npm whoami must accept them.
+			name: "E404 with a bad token or a wrong registry", pkg: `{"name": "@acme/client"}`,
+			cmds: []stubCmd{
+				{view, cmdFails(npmE404)},
+				{pkgView, cmdFails(npmPackageE404)},
+				{npmRegistryCmdArgv("whoami", github), cmdFails("npm error code E401\n")},
+			},
+			wantErr: errNPMInvalidToken,
+		},
+		{
+			name: "package lookup failure", pkg: `{"name": "@acme/client"}`,
+			cmds:    []stubCmd{{view, cmdFails(npmE404)}, {pkgView, cmdFails("npm error code E500\n")}},
+			wantErr: errExit,
+		},
+		{
+			// npm whoami prints the user name of a user name and password
+			// without a request, so npm ping checks the registry.
+			name: "missing package with a user name and password", pkg: `{"name": "@acme/client"}`, npmrc: basicNpmrc,
+			cmds: []stubCmd{
+				{acmeView, cmdFails(npmE404)},
+				{acmePkgView, cmdFails(npmPackageE404)},
+				{npmRegistryCmdArgv("ping", acme), cmdOK("")},
+			},
+		},
+		{
+			name: "wrong registry with a user name and password", pkg: `{"name": "@acme/client"}`, npmrc: basicNpmrc,
+			cmds: []stubCmd{
+				{acmeView, cmdFails(npmE404)},
+				{acmePkgView, cmdFails(npmPackageE404)},
+				{npmRegistryCmdArgv("ping", acme), cmdFails("npm error code E404\n")},
+			},
+			wantErr: errExit,
+		},
+		{name: "private", pkg: `{"name": "@acme/client", "private": true}`},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			f := newNPMFixture(t, "", tc.pkg)
-			writeFile(t, f.home, ".npmrc", githubNpmrc)
+			f := newNPMFixture(t, "", tc.pkg, "GH_TOKEN=gh-token")
+			npmrc := tc.npmrc
+			if npmrc == "" {
+				npmrc = "@acme:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${GH_TOKEN}\n"
+			}
+			writeFile(t, f.home, ".npmrc", npmrc)
 			f.cmds.expectAll(tc.cmds)
 			got, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
+			if tc.wantErr != nil {
+				assertErrIs(t, err, tc.wantErr)
+				return
+			}
 			assert.NilError(t, err)
 			assert.Equal(t, got, tc.want)
+			for _, c := range f.cmds.calls() {
+				if c.Args[0] != "view" {
+					assert.DeepEqual(t, c.Cmd.Env, withoutEnv(f.env, "DEFAULT_NPM_REGISTRY"))
+				}
+			}
 		})
 	}
 }
 
-// TestNPMExistsChecksToken checks that exists verifies the token with npm
-// whoami on the default registry, as prepare does, and fails before npm
-// view, which gives E404 for a restricted package with a bad token.
+// TestNPMExistsChecksToken checks the default registry: a bad token
+// fails exists when npm view gives E404 for the package, and a valid
+// token confirms a missing package.
 func TestNPMExistsChecksToken(t *testing.T) {
 	pkg := `{"name": "@acme/client"}`
 	view := npmViewArgv("@acme/client@1.0.0", officialNPMRegistry)
+	pkgView := npmPkgViewArgv("@acme/client", officialNPMRegistry)
 
 	f := newNPMFixture(t, "", pkg, "NPM_TOKEN=bad")
-	f.cmds.expect(cmdFails("npm error code E401\n"), npmWhoamiArgv...)
+	f.cmds.expectAll([]stubCmd{
+		{view, cmdFails(npmE404)}, {pkgView, cmdFails(npmPackageE404)}, {npmWhoamiArgv, cmdFails("npm error code E401\n")},
+	})
 	_, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
 	assert.ErrorIs(t, err, errNPMInvalidToken)
-	assert.Equal(t, len(f.cmds.calls()), 1, "exists runs no npm view")
 
 	f = newNPMFixture(t, "", pkg, "NPM_TOKEN=good")
-	f.cmds.expectAll([]stubCmd{{npmWhoamiArgv, cmdOK("acme\n")}, {view, cmdFails(npmE404)}})
+	f.cmds.expectAll([]stubCmd{{view, cmdFails(npmE404)}, {pkgView, cmdFails(npmPackageE404)}, {npmWhoamiArgv, cmdOK("acme\n")}})
 	got, err := f.registry("").exists(context.Background(), f.publisher("1.0.0", ""))
 	assert.NilError(t, err)
 	assert.Assert(t, !got)
+}
+
+func TestNPMBasicAuth(t *testing.T) {
+	const reg = "https://npm.acme.test/"
+	for name, tc := range map[string]struct {
+		cfg  map[string]string
+		want bool
+	}{
+		"token":                   {map[string]string{"//npm.acme.test/:_authToken": "t"}, false},
+		"user name and password":  {map[string]string{"//npm.acme.test/:username": "u", "//npm.acme.test/:_password": "p"}, true},
+		"_auth":                   {map[string]string{"//npm.acme.test/:_auth": "dTpw"}, true},
+		"token before a password": {map[string]string{"//npm.acme.test/:_authToken": "t", "//npm.acme.test/:_auth": "dTpw"}, false},
+		"user name only":          {map[string]string{"//npm.acme.test/:username": "u"}, false},
+		"other registry":          {map[string]string{"//npm.other.test/:_auth": "dTpw"}, false},
+	} {
+		assert.Equal(t, npmBasicAuth(reg, tc.cfg), tc.want, name)
+	}
 }
 
 // TestNPMPrepareRealNPM runs npm version as a real process, as
