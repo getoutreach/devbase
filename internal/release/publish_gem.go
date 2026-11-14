@@ -10,11 +10,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	gh "github.com/google/go-github/v84/github"
@@ -207,7 +209,7 @@ func (g *gemRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 	if err != nil {
 		return nil, err
 	}
-	found, err := g.hasVersion(ctx, s, owner)
+	found, err := g.hasVersion(ctx, p, s, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +238,7 @@ func (g *gemRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return g.hasVersion(ctx, s, owner)
+	return g.hasVersion(ctx, p, s, owner)
 }
 
 // hasVersion reports whether the GitHub Packages of owner have the gem
@@ -245,7 +247,7 @@ func (g *gemRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 // 404, but so are a missing owner, a user owner and a package that the
 // token cannot see, so a 404 counts as a missing version only after
 // confirmMissing.
-func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner string) (bool, error) {
+func (g *gemRegistry) hasVersion(ctx context.Context, p *regTarget, s *gemSession, owner string) (bool, error) {
 	token, err := gemToken(s.env)
 	if err != nil {
 		return false, err
@@ -263,7 +265,7 @@ func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner strin
 		versions, resp, err := client.Organizations.PackageGetAllVersions(ctx, owner, "rubygems", s.name, opts)
 		var ghErr *gh.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
-			return false, confirmMissing(ctx, client, s.name, owner)
+			return false, confirmMissing(ctx, client, p.log, s.name, owner)
 		}
 		if err != nil {
 			return false, fmt.Errorf("%w: gem %s in %s: %w", errGemLookup, s.name, owner, err)
@@ -281,20 +283,33 @@ func (g *gemRegistry) hasVersion(ctx context.Context, s *gemSession, owner strin
 }
 
 // confirmMissing checks, after a 404 for the versions of the gem name,
-// that owner is an organization whose packages the token can read, with
-// the REST API "List packages for an organization". That call fails for
-// a missing owner, a user owner and a token without read:packages, so
-// the 404 then means a missing gem, unless the token cannot see a
-// private gem.
-func confirmMissing(ctx context.Context, client *gh.Client, name, owner string) error {
-	_, _, err := client.Organizations.ListPackages(ctx, owner, &gh.PackageListOptions{
-		PackageType: gh.Ptr("rubygems"), ListOptions: gh.ListOptions{PerPage: 1},
-	})
-	if err != nil {
-		return fmt.Errorf("%w: gem %s: GitHub returned 404 for its versions, and cannot list the packages of %s; "+
-			"%s may not exist or may not be an organization, or the token may not have read:packages for it: %w",
-			errGemLookup, name, owner, owner, err)
+// that the 404 means a missing gem, with the REST API "List packages for
+// an organization": owner must be an organization whose RubyGems
+// packages the token can list, and the list must not have the gem. The
+// list fails for a missing owner, a user owner and a token without
+// read:packages. A listed gem whose versions give 404 is an error.
+// GitHub lists only the packages that the token can read, and gives 404
+// for the others, so no API call tells a private gem that the token
+// cannot read from a missing gem; the log says so.
+func confirmMissing(ctx context.Context, client *gh.Client, log io.Writer, name, owner string) error {
+	opts := &gh.PackageListOptions{PackageType: gh.Ptr("rubygems"), ListOptions: gh.ListOptions{PerPage: 100}}
+	for {
+		pkgs, resp, err := client.Organizations.ListPackages(ctx, owner, opts)
+		if err != nil {
+			return fmt.Errorf("%w: gem %s: GitHub returned 404 for its versions, and cannot list the packages of %s; "+
+				"%s may not exist or may not be an organization, or the token may not have read:packages for it: %w",
+				errGemLookup, name, owner, owner, err)
+		}
+		if slices.ContainsFunc(pkgs, func(pkg *gh.Package) bool { return strings.EqualFold(pkg.GetName(), name) }) {
+			return fmt.Errorf("%w: gem %s: GitHub lists it in %s, but returned 404 for its versions", errGemLookup, name, owner)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
+	fmt.Fprintf(log, "GitHub Packages has no gem %s in %s that the token can read; "+
+		"a private gem that the token cannot read looks the same\n", name, owner)
 	return nil
 }
 
