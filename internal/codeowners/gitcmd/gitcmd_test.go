@@ -86,3 +86,33 @@ func TestRunErrorWithoutStderr(t *testing.T) {
 	_, err := gitcmd.Run(t.Context(), dir, false, "rev-parse", "--verify", "--quiet", "missing")
 	assert.Error(t, err, "git rev-parse --verify --quiet missing in "+dir+": exit status 1")
 }
+
+func TestListIndex(t *testing.T) {
+	dir := newRepo(t)
+	run := func(args ...string) {
+		t.Helper()
+		_, err := gitcmd.Run(t.Context(), dir, false, args...)
+		assert.NilError(t, err)
+	}
+	assert.NilError(t, os.WriteFile(filepath.Join(dir, "run.sh"), nil, 0o700))
+	run("add", "--chmod=+x", "run.sh")
+	run("update-index", "--add", "--cacheinfo", "160000,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,sub module")
+
+	entries, err := gitcmd.ListIndex(t.Context(), dir, false)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, entries, []gitcmd.IndexEntry{
+		{Mode: "100644", Path: "a.txt"},
+		{Mode: "100755", Path: "run.sh"},
+		{Mode: "160000", Path: "sub module"},
+	})
+	assert.Assert(t, entries[0].IsRegularFile())
+	assert.Assert(t, entries[1].IsRegularFile())
+	assert.Assert(t, !entries[2].IsRegularFile())
+
+	entries, err = gitcmd.ListIndex(t.Context(), dir, false, "--", "missing")
+	assert.NilError(t, err)
+	assert.Equal(t, len(entries), 0)
+
+	_, err = gitcmd.ListIndex(t.Context(), t.TempDir(), false)
+	assert.ErrorContains(t, err, "not a git repository")
+}

@@ -63,7 +63,8 @@ func (e Entry) String() string {
 }
 
 // Load returns the entries of the CODEOWNERS file in repoDir. The file is looked up in the
-// root, docs/, and .github/ directories. See "CODEOWNERS file location" in:
+// root, docs/, and .github/ directories. A directory is not a CODEOWNERS file. See
+// "CODEOWNERS file location" in:
 // https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 func Load(repoDir string) ([]Entry, error) {
 	rel, content, err := Read(repoDir)
@@ -84,10 +85,12 @@ func Load(repoDir string) ([]Entry, error) {
 func Read(repoDir string) (rel string, content []byte, err error) {
 	var found []string
 	for _, loc := range locations() {
-		_, err := os.Stat(filepath.Join(repoDir, loc))
+		info, err := os.Stat(filepath.Join(repoDir, loc))
 		switch {
 		case err == nil:
-			found = append(found, loc)
+			if info.Mode().IsRegular() {
+				found = append(found, loc)
+			}
 		case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
 			// Not present at this location.
 		default:
@@ -139,10 +142,12 @@ func selectFile(repoDir string, found []string) (string, error) {
 	}
 }
 
-// oxfordList joins at least two items as an English list with an Oxford comma,
-// e.g. "a and b" or "a, b, and c".
+// oxfordList joins the items as an English list with an Oxford comma,
+// e.g. "a", "a and b", or "a, b, and c".
 func oxfordList(items []string) string {
 	switch len(items) {
+	case 0, 1:
+		return strings.Join(items, "")
 	case 2: //nolint:mnd // Why: two items are joined without a comma.
 		return items[0] + " and " + items[1]
 	default:

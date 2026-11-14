@@ -76,3 +76,42 @@ func Output(cmd *exec.Cmd) ([]byte, error) {
 func Run(ctx context.Context, dir string, trust bool, args ...string) ([]byte, error) {
 	return Output(Command(ctx, dir, trust, args...))
 }
+
+// IndexEntry is an entry of the git index.
+type IndexEntry struct {
+	// Mode is the mode of the entry in octal, such as "100644" for a file or "160000" for a submodule.
+	Mode string
+
+	// Path is the path of the entry, relative to the directory of the command, with "/" as the
+	// separator.
+	Path string
+}
+
+// IsRegularFile reports whether the entry is a regular file, which can be executable. A symbolic
+// link or a submodule is not a regular file.
+func (e IndexEntry) IsRegularFile() bool {
+	return e.Mode == "100644" || e.Mode == "100755"
+}
+
+// ListIndex runs "git ls-files -z --stage" with args in dir, and returns the listed entries. A file
+// in a merge conflict has one entry for each stage. With trust, git treats dir as a safe directory,
+// even when another user owns it.
+func ListIndex(ctx context.Context, dir string, trust bool, args ...string) ([]IndexEntry, error) {
+	out, err := Run(ctx, dir, trust, append([]string{"ls-files", "-z", "--stage"}, args...)...)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []IndexEntry
+	for line := range strings.SplitSeq(string(out), "\x00") {
+		// Each line is "<mode> <object> <stage>\t<path>".
+		info, path, ok := strings.Cut(line, "\t")
+		if !ok {
+			continue
+		}
+		mode, _, _ := strings.Cut(info, " ")
+		entries = append(entries, IndexEntry{Mode: mode, Path: path})
+	}
+
+	return entries, nil
+}

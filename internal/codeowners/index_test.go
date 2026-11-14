@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners"
@@ -121,4 +122,22 @@ func TestReadFromIndex(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, path, "docs/CODEOWNERS")
 	assert.Equal(t, string(content), "* @staged\n")
+}
+
+// TestReadFromIndexOnlyRegularFiles checks that a submodule or a symbolic link named CODEOWNERS in
+// the git index is not a CODEOWNERS file.
+func TestReadFromIndexOnlyRegularFiles(t *testing.T) {
+	repo := newStagedRepo(t, map[string]string{"docs/CODEOWNERS": "* @a\n"})
+	hash := exec.CommandContext(t.Context(), "git", "hash-object", "-w", "--stdin")
+	hash.Dir = repo
+	hash.Stdin = strings.NewReader("docs/CODEOWNERS")
+	blob, err := hash.Output()
+	assert.NilError(t, err)
+	runGit(t, repo, "update-index", "--add", "--cacheinfo", "160000,"+strings.TrimSpace(string(blob))+",CODEOWNERS")
+	runGit(t, repo, "update-index", "--add", "--cacheinfo", "120000,"+strings.TrimSpace(string(blob))+",.github/CODEOWNERS")
+
+	path, content, err := codeowners.ReadFromIndex(t.Context(), repo, false)
+	assert.NilError(t, err)
+	assert.Equal(t, path, "docs/CODEOWNERS")
+	assert.Equal(t, string(content), "* @a\n")
 }

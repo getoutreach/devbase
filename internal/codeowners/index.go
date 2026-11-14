@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/getoutreach/devbase/v2/internal/codeowners/gitcmd"
 )
@@ -36,14 +35,16 @@ func LoadFromIndex(ctx context.Context, repoDir string, trust bool) ([]Entry, er
 // in repoDir, relative to repoDir with "/" as the separator, and the content of the file in the
 // index. It looks up the file like LoadFromIndex.
 func ReadFromIndex(ctx context.Context, repoDir string, trust bool) (rel string, content []byte, err error) {
-	listed, err := gitcmd.Run(ctx, repoDir, trust, append([]string{"ls-files", "-z", "--cached", "--"}, locations()...)...)
+	listed, err := gitcmd.ListIndex(ctx, repoDir, trust, append([]string{"--"}, locations()...)...)
 	if err != nil {
 		return "", nil, fmt.Errorf("list the CODEOWNERS files in the git index: %w", err)
 	}
 
-	// A pathspec also matches the files below a directory, so only exact paths count.
-	staged := strings.Split(string(listed), "\x00")
-	found := slices.DeleteFunc(locations(), func(loc string) bool { return !slices.Contains(staged, loc) })
+	// A pathspec also matches the files below a directory, so only exact paths count. A submodule or
+	// a symbolic link is not a CODEOWNERS file.
+	found := slices.DeleteFunc(locations(), func(loc string) bool {
+		return !slices.ContainsFunc(listed, func(e gitcmd.IndexEntry) bool { return e.Path == loc && e.IsRegularFile() })
+	})
 
 	rel, err = selectFile(repoDir, found)
 	if err != nil {
