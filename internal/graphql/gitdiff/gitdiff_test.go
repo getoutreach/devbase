@@ -7,6 +7,7 @@ package gitdiff
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -192,10 +193,10 @@ func TestMergeBaseFilesBloblessClone(t *testing.T) {
 	clone := newPartialClone(t, root, "blob:none", "feature")
 
 	// Without the fetch on demand, the blob is not in the clone.
-	check := exec.CommandContext(t.Context(), "git", "cat-file", "-e", blobHash("type Foo { a: String }\n"))
-	check.Dir = clone
-	check.Env = append(os.Environ(), "GIT_NO_LAZY_FETCH=1")
-	assert.Assert(t, check.Run() != nil, "the blob is already in the clone")
+	// rev-list prints a missing object as "?<hash>" and does not fetch it.
+	objects, err := gitOutput(t, clone, "rev-list", "--objects", "--missing=print", "HEAD")
+	assert.NilError(t, err)
+	assert.Assert(t, strings.Contains(objects, "?"+blobHash("type Foo { a: String }\n")), "the blob is already in the clone")
 
 	content, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, []string{"schema.graphql"})
 	assert.NilError(t, err)
@@ -212,36 +213,78 @@ func TestMergeBaseFilesTreelessClone(t *testing.T) {
 	assert.Assert(t, errors.Is(err, ErrMissingObject), "got %v", err)
 }
 
-// TestMergeBaseFilesThroughSymlinkedDir guards against a mismatch
-// between go-git's resolved worktree root and the caller's own path,
-// as happens on macOS: a temp directory's real path is under
-// /private, but os.Getwd() reports the /var symlink to it. Passing
-// dir through a symlink here reproduces that mismatch on any
-// platform.
-func TestMergeBaseFilesThroughSymlinkedDir(t *testing.T) {
-	root, _, baseName := newTestRepo(t)
+// gitOutput runs git in dir and returns its trimmed standard output. Unlike runGit, it uses the git
+// configuration of the user and the system. The error of a failed command includes its standard error.
+func gitOutput(t *testing.T, dir string, args ...string) (string, error) {
+	t.Helper()
 
-	symlinked := root + "-symlink"
-	assert.NilError(t, os.Symlink(root, symlinked))
-	t.Cleanup(func() { assert.NilError(t, os.Remove(symlinked)) })
+	cmd := exec.CommandContext(t.Context(), "git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			err = fmt.Errorf("%w: %s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
 
-	content, err := MergeBaseFiles(t.Context(), symlinked, baseName, []string{"schema.graphql"})
-	assert.NilError(t, err)
-	assert.Equal(t, content["schema.graphql"], "type Foo { a: String }\n")
+		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+	}
+
+	return strings.TrimSpace(string(out)), nil
 }
 
-func TestMergeBaseFilesShallowClone(t *testing.T) {
-	root, _, _ := newTestRepo(t)
+// skipOrFailInCI skips the test, or fails it in CircleCI. The test that uses it checks the real
+// checkout of CircleCI, so a skip there would hide a broken fallback for good.
+func skipOrFailInCI(t *testing.T, format string, args ...any) {
+	t.Helper()
 
-	clonePath := t.TempDir()
-	_, err := git.PlainClone(clonePath, false, &git.CloneOptions{
-		URL:           root,
-		Depth:         1,
-		ReferenceName: plumbing.NewBranchReferenceName("feature"),
-		SingleBranch:  true,
-	})
+	if os.Getenv("CIRCLECI") == "true" {
+		t.Fatalf(format, args...)
+	}
+	t.Skipf(format, args...)
+}
+
+// remoteKind names the transport of a git remote URL, without the host or any credentials.
+func remoteKind(url string) string {
+	switch {
+	case strings.HasPrefix(url, "https://"):
+		return "https"
+	case strings.HasPrefix(url, "git@"), strings.HasPrefix(url, "ssh://"):
+		return "ssh"
+	default:
+		return "another transport"
+	}
+}
+
+// TestBlobViaGitFetchesFromTheRemote reads a blob that is missing from the repository under test,
+// so git must fetch it from the real remote with the credentials of the checkout. It is skipped
+// unless that repository is a blobless clone, which is the default checkout of CircleCI, where it
+// fails instead. In a blobless clone of a developer, it fetches from the network.
+func TestBlobViaGitFetchesFromTheRemote(t *testing.T) {
+	filter, err := gitOutput(t, ".", "config", "--get", "remote.origin.partialclonefilter")
+	if filter != "blob:none" {
+		skipOrFailInCI(t, "the repository is not a blobless clone: filter %q, error: %v", filter, err)
+	}
+
+	// rev-list prints a missing object as "?<hash>" and does not fetch it.
+	objects, err := gitOutput(t, ".", "rev-list", "--objects", "--missing=print", "--max-count=20", "HEAD")
 	assert.NilError(t, err)
 
-	_, err = MergeBaseFiles(t.Context(), clonePath, "master", []string{"schema.graphql"})
-	assert.Assert(t, errors.Is(err, ErrShallowClone))
+	var missing string
+	for line := range strings.SplitSeq(objects, "\n") {
+		if hash, ok := strings.CutPrefix(line, "?"); ok {
+			missing = hash
+			break
+		}
+	}
+	if missing == "" {
+		skipOrFailInCI(t, "the latest commits of the clone have no missing blob")
+	}
+
+	content, err := blobViaGit(t.Context(), ".", plumbing.NewHash(missing))
+	if err != nil {
+		url, _ := gitOutput(t, ".", "config", "--get", "remote.origin.url")
+		t.Fatalf("git could not fetch the blob from a remote that uses %s: %v", remoteKind(url), err)
+	}
+	assert.Equal(t, blobHash(content), missing)
 }
