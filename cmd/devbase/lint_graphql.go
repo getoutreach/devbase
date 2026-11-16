@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -116,7 +117,7 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 	}
 
 	if c.Bool("diff") {
-		violations, err = diffViolations(cwd, c.String("base"), files, violations, lintConfig)
+		violations, err = diffViolations(ctx, cwd, c.String("base"), files, violations, lintConfig)
 		if err != nil {
 			return fmt.Errorf("diff graphql files against merge-base: %w", err)
 		}
@@ -137,10 +138,13 @@ func lintGraphQL(ctx context.Context, c *cli.Command) error {
 // not already present at the merge-base of HEAD and base, by reading
 // files' merge-base content from the git repository containing dir and
 // linting it the same way as the working tree.
-func diffViolations(dir, base string, files []string, workingTreeViolations []lint.Violation,
+func diffViolations(ctx context.Context, dir, base string, files []string, workingTreeViolations []lint.Violation,
 	cfg *config.Lint,
 ) ([]lint.Violation, error) {
-	mergeBaseContent, err := gitdiff.MergeBaseFiles(dir, base, files)
+	mergeBaseContent, err := gitdiff.MergeBaseFiles(ctx, dir, base, files)
+	if errors.Is(err, gitdiff.ErrMissingObject) {
+		return nil, fmt.Errorf("%w (in CircleCI, set `checkout: method: full`)", err)
+	}
 	if err != nil {
 		return nil, err
 	}
