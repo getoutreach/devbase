@@ -79,9 +79,14 @@ The publishers are:
   the checksum file when the release builds.
 * `npm`: the npm package in `packageRoot` (default: the repository
   root).
-* `gem`: the Ruby client gem, with `dir`, `name` and `versionFile`.
+* `gem`: the Ruby client gem. `dir` defaults to `api/clients/ruby`,
+  `name` to `<service>_client`, where `<service>` is the `name` in
+  `service.yaml`, and `versionFile` to `lib/<gem name>/version.rb` in
+  `dir`.
 * `python`: the Python client on AWS CodeArtifact. `domain`, `region`
-  and `repository` are required.
+  and `repository` are required. `dir` defaults to
+  `api/clients/python`, and `account` to `aws.defaultAccountID` of the
+  box config.
 * `hooks`: shell commands for the `generateNotes`, `prepare`, `publish`
   and `success` steps.
 * `commit`: the release commit. `files` defaults to `CHANGELOG.md`,
@@ -117,10 +122,10 @@ gets the Go tags of its folder, such as `api/v1.2.0`. By default, it
 gets the version of the root release (`strategy: mirror`). The other
 kinds need a `tagFormat`, and by default compute their own versions
 (`strategy: independent`). An `npm` unit cannot use `mirror`. The
-optional unit keys are `name`, `paths`, `exclude`, `strategy` (`mirror`
-or `independent`), `skipPrereleases`, `allowMajorVersions`,
-`forgeRelease`, `npm.packageRoot`, `npm.install` and `go.pinRoot`
-(`auto` or `never`).
+optional unit keys are `name` (default: the base name of `dir`), `paths`
+(default: `dir`), `exclude`, `strategy` (`mirror` or `independent`),
+`skipPrereleases`, `allowMajorVersions`, `forgeRelease`,
+`npm.packageRoot`, `npm.install` and `go.pinRoot` (`auto` or `never`).
 
 ```yaml
 release:
