@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/cgi"
@@ -18,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/go-git/go-git/v5"
@@ -51,8 +53,12 @@ func newHTTPRemote(t *testing.T, source string, allowAnySHA1 bool, wrap func(htt
 
 	execPath, err := gitOutput(t, ".", "--exec-path")
 	assert.NilError(t, err)
+	backend := filepath.Join(execPath, "git-http-backend")
+	if _, err := os.Stat(backend); err != nil {
+		skipOrFailInCI(t, "this git has no git-http-backend: %v", err)
+	}
 	var handler http.Handler = &cgi.Handler{
-		Path: filepath.Join(execPath, "git-http-backend"),
+		Path: backend,
 		Env: []string{
 			"GIT_PROJECT_ROOT=" + projectRoot,
 			"GIT_HTTP_EXPORT_ALL=1",
@@ -80,15 +86,22 @@ func cloneBlobless(t *testing.T, url, branch string) string {
 	return clone
 }
 
-// baseBlobIsMissing reports whether the blob of baseContent is missing from the clone. rev-list
+// blobIsMissing reports whether the blob with the given content is missing from the clone. rev-list
 // prints a missing object as "?<hash>" and does not fetch it.
-func baseBlobIsMissing(t *testing.T, clone string) bool {
+func blobIsMissing(t *testing.T, clone, content string) bool {
 	t.Helper()
 
 	objects, err := gitOutput(t, clone, "rev-list", "--objects", "--missing=print", "HEAD")
 	assert.NilError(t, err)
 
-	return strings.Contains(objects, "?"+blobHash(baseContent))
+	return strings.Contains(objects, "?"+blobHash(content))
+}
+
+// baseBlobIsMissing reports whether the blob of baseContent is missing from the clone.
+func baseBlobIsMissing(t *testing.T, clone string) bool {
+	t.Helper()
+
+	return blobIsMissing(t, clone, baseContent)
 }
 
 // clearTokens removes the GitHub tokens of the environment for the test.
@@ -122,13 +135,56 @@ func TestMergeBaseFilesGoGitFallback(t *testing.T) {
 	clone := cloneBlobless(t, url, "feature")
 	assert.Assert(t, baseBlobIsMissing(t, clone), "the blob is already in the clone")
 
-	_, err := blobViaGoGit(t.Context(), url, plumbing.NewHash(blobHash(baseContent)))
+	_, err := parseGoGitRemote(url).fetch(t.Context(), plumbing.NewHash(blobHash(baseContent)))
 	assert.Assert(t, err != nil, "go-git fetched the blob, so the fallback is not tested")
 
 	content, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, []string{"schema.graphql"})
 	assert.NilError(t, err)
 	assert.Equal(t, content["schema.graphql"], baseContent)
 	assert.Assert(t, !baseBlobIsMissing(t, clone), "git did not fetch the blob")
+}
+
+// TestMergeBaseFilesSeveralMissingBlobs checks that go-git is tried again for each missing blob
+// while it works, and is tried only once after it failed.
+func TestMergeBaseFilesSeveralMissingBlobs(t *testing.T) {
+	const subBaseContent = "type Baz { a: String }\n"
+	files := []string{"schema.graphql", "sub/schema.graphql"}
+
+	// When go-git works, it fetches each blob and git does not run, so the blobs stay missing. When
+	// it fails, it fails once and git fetches the blobs into the clone.
+	for _, goGitWorks := range []bool{true, false} {
+		wantAttempts := int32(1)
+		if goGitWorks {
+			wantAttempts = int32(len(files))
+		}
+
+		t.Run(fmt.Sprintf("go-git works: %t", goGitWorks), func(t *testing.T) {
+			clearTokens(t)
+			root, repo, baseName := newTestRepo(t)
+			commitFile(t, repo, root, "sub/schema.graphql", "type Baz { a: String b: String }\n")
+
+			// go-git starts each fetch with a request for the references of the remote.
+			var attempts atomic.Int32
+			url := newHTTPRemote(t, root, goGitWorks, func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if strings.HasPrefix(r.UserAgent(), "go-git") && strings.HasSuffix(r.URL.Path, "/info/refs") {
+						attempts.Add(1)
+					}
+					next.ServeHTTP(w, r)
+				})
+			})
+			clone := cloneBlobless(t, url, "feature")
+			assert.Assert(t, baseBlobIsMissing(t, clone) && blobIsMissing(t, clone, subBaseContent), "a blob is in the clone")
+
+			content, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, files)
+			assert.NilError(t, err)
+			assert.Equal(t, content["schema.graphql"], baseContent)
+			assert.Equal(t, content["sub/schema.graphql"], subBaseContent)
+			assert.Equal(t, attempts.Load(), wantAttempts)
+			assert.Equal(t, baseBlobIsMissing(t, clone), goGitWorks)
+			assert.Equal(t, blobIsMissing(t, clone, subBaseContent), goGitWorks)
+		})
+	}
 }
 
 // TestFetchBlobSendsToken checks that the token candidate authenticates with a server that
@@ -165,7 +221,6 @@ func TestFetchBlobSendsToken(t *testing.T) {
 	assert.Equal(t, gotPassword, token)
 }
 
-// candidateKinds returns the kinds of candidates.
 func candidateKinds(candidates []authCandidate) []string {
 	kinds := make([]string, 0, len(candidates))
 	for _, c := range candidates {
@@ -175,7 +230,6 @@ func candidateKinds(candidates []authCandidate) []string {
 	return kinds
 }
 
-// newEndpoint parses url as a git remote URL.
 func newEndpoint(t *testing.T, url string) *transport.Endpoint {
 	t.Helper()
 
@@ -318,7 +372,7 @@ func TestAuthCandidatesSSH(t *testing.T) {
 	})
 }
 
-func TestGoGitRemoteURL(t *testing.T) {
+func TestOriginGoGitRemote(t *testing.T) {
 	tests := []struct{ name, url, want string }{
 		{name: "https", url: "https://github.com/getoutreach/devbase.git", want: "https://github.com/getoutreach/devbase.git"},
 		{name: "http", url: "http://127.0.0.1:1/repo.git", want: "http://127.0.0.1:1/repo.git"},
@@ -335,14 +389,20 @@ func TestGoGitRemoteURL(t *testing.T) {
 			_, err = repo.CreateRemote(&config.RemoteConfig{Name: "origin", URLs: []string{tt.url}})
 			assert.NilError(t, err)
 
-			assert.Equal(t, goGitRemoteURL(repo), tt.want)
+			remote := originGoGitRemote(repo)
+			if tt.want == "" {
+				assert.Assert(t, remote == nil, "got the remote %v", remote)
+				return
+			}
+			assert.Assert(t, remote != nil)
+			assert.Equal(t, remote.url, tt.want)
 		})
 	}
 
 	t.Run("no origin", func(t *testing.T) {
 		repo, err := git.Init(memory.NewStorage(), nil)
 		assert.NilError(t, err)
-		assert.Equal(t, goGitRemoteURL(repo), "")
+		assert.Assert(t, originGoGitRemote(repo) == nil)
 	})
 }
 
@@ -351,7 +411,7 @@ func TestGoGitRemoteURL(t *testing.T) {
 func TestGoGitErrorIsNotShown(t *testing.T) {
 	const url = "http://user:s3cr3t@127.0.0.1:1/x.git"
 
-	_, err := blobViaGoGit(t.Context(), url, plumbing.NewHash(blobHash(baseContent)))
+	_, err := parseGoGitRemote(url).fetch(t.Context(), plumbing.NewHash(blobHash(baseContent)))
 	assert.Assert(t, err != nil)
 	assert.Assert(t, !strings.Contains(err.Error(), "s3cr3t"), "got %v", err)
 

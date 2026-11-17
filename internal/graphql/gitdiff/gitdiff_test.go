@@ -288,10 +288,8 @@ func TestBlobViaGitFetchesFromTheRemote(t *testing.T) {
 	missing := missingBlobOfCheckout(t)
 
 	content, err := blobViaGit(t.Context(), ".", missing)
-	if err != nil {
-		url, _ := gitOutput(t, ".", "config", "--get", "remote.origin.url")
-		t.Fatalf("git could not fetch the blob from a remote that uses %s: %v", remoteKind(url), err)
-	}
+	url, _ := gitOutput(t, ".", "config", "--get", "remote.origin.url")
+	assert.NilError(t, err, "git could not fetch the blob from a remote that uses %s", remoteKind(url))
 	assert.Equal(t, blobHash(content), missing.String())
 }
 
@@ -305,15 +303,13 @@ func TestBlobViaGoGitFetchesFromTheRemote(t *testing.T) {
 
 	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
 	assert.NilError(t, err)
-	url := goGitRemoteURL(repo)
-	if url == "" {
+	remote := originGoGitRemote(repo)
+	if remote == nil {
 		skipOrFailInCI(t, "go-git does not fetch from the origin remote, which is not an ssh, http or https URL")
 	}
 
-	content, err := blobViaGoGit(t.Context(), url, missing)
-	if err != nil {
-		// The error names the kinds of authentication that go-git tried, and no secrets.
-		t.Fatalf("go-git could not fetch the blob from a remote that uses %s: %v", remoteKind(url), err)
-	}
+	// The error names the kinds of authentication that go-git tried, and no secrets.
+	content, err := remote.fetch(t.Context(), missing)
+	assert.NilError(t, err, "go-git could not fetch the blob from a remote that uses %s", remoteKind(remote.url))
 	assert.Equal(t, blobHash(content), missing.String())
 }

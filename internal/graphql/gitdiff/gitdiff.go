@@ -39,8 +39,8 @@ var ErrShallowClone = errors.New("shallow clone: deepen it (e.g. `git fetch --un
 var ErrMissingObject = errors.New(
 	"git objects of the merge-base commit are not available locally and could not be fetched: use a full clone")
 
-// blobFetchTimeout limits how long go-git, and then git, may take to fetch one missing blob, so
-// that a stalled connection cannot hang a CI job.
+// blobFetchTimeout limits how long the go-git fetch, and separately the git fallback, may each take
+// to fetch one missing blob, so that a stalled connection cannot hang a CI job.
 const blobFetchTimeout = 2 * time.Minute
 
 // errNoCommonAncestor is returned by resolveMergeBase when HEAD and
@@ -73,7 +73,7 @@ func MergeBaseFiles(ctx context.Context, dir, base string, files []string) (map[
 		return nil, err
 	}
 
-	return readFiles(ctx, mergeBase, root, goGitRemoteURL(repo), dir, files)
+	return readFiles(ctx, mergeBase, root, dir, originGoGitRemote(repo), files)
 }
 
 // checkNotShallow returns ErrShallowClone if repo has any shallow
@@ -136,10 +136,11 @@ func repoRoot(repo *git.Repository) (string, error) {
 
 // readFiles reads each of files (given relative to dir) from
 // mergeBase's tree, returning a map keyed by the original file string.
-// A blob that is missing from the object store is fetched from remoteURL
-// with go-git, or with git (see blobFetcher).
+// A blob that is missing from the object store is fetched from remote
+// with go-git, or with git (see blobFetcher). remote is nil when go-git
+// is not used.
 func readFiles(
-	ctx context.Context, mergeBase *object.Commit, root, remoteURL, dir string, files []string,
+	ctx context.Context, mergeBase *object.Commit, root, dir string, remote *goGitRemote, files []string,
 ) (map[string]string, error) {
 	// root, from go-git's Worktree, and dir/files, from the caller, can
 	// reach the same directory through different symlinks -- e.g. on
@@ -160,7 +161,7 @@ func readFiles(
 		return nil, fmt.Errorf("read the tree of the merge-base commit: %w", err)
 	}
 
-	fetcher := &blobFetcher{root: realRoot, remoteURL: remoteURL}
+	fetcher := &blobFetcher{root: realRoot, remote: remote}
 	contents := make(map[string]string, len(files))
 	for _, file := range files {
 		absPath := file
@@ -214,8 +215,10 @@ func readBlob(ctx context.Context, tree *object.Tree, entry *object.TreeEntry, f
 type blobFetcher struct {
 	// root is the root of the working tree of the repository.
 	root string
-	// remoteURL is the URL that go-git fetches from. It is empty when go-git is not used.
-	remoteURL string
+	// remote is the remote that go-git fetches from. It is nil when go-git is not used.
+	remote *goGitRemote
+	// goGitFailed is true after a go-git fetch failed.
+	goGitFailed bool
 }
 
 // fetch returns the content of the blob with the given hash. It tries go-git first, and git if
@@ -223,11 +226,12 @@ type blobFetcher struct {
 // credentials. After a go-git failure, the next blobs are read with git only, because go-git
 // would most likely fail again for the same reason.
 func (f *blobFetcher) fetch(ctx context.Context, hash plumbing.Hash) (string, error) {
-	if f.remoteURL != "" {
-		if content, err := blobViaGoGit(ctx, f.remoteURL, hash); err == nil {
+	if f.remote != nil && !f.goGitFailed {
+		content, err := f.remote.fetch(ctx, hash)
+		if err == nil {
 			return content, nil
 		}
-		f.remoteURL = ""
+		f.goGitFailed = true
 	}
 
 	return blobViaGit(ctx, f.root, hash)
