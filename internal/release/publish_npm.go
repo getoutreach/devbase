@@ -81,11 +81,10 @@ func (n *npmRegistry) name() string {
 	return "npm"
 }
 
-// prepare verifies the package and the npm authentication, as the
-// plugin's verifyConditions does, runs the install command of the
-// plugin, and then sets the version in package.json with npm version, as
-// prepare.js does. The version changes only in the checkout
-// (requirement 12).
+// prepare verifies the package and, with confirmRegistry, the npm
+// authentication, runs the install command of the plugin, and then sets
+// the version in package.json with npm version, as prepare.js does. The
+// version changes only in the checkout (requirement 12).
 func (n *npmRegistry) prepare(ctx context.Context, p *regTarget) error {
 	s, err := n.open(ctx, p, true)
 	if err != nil {
@@ -179,8 +178,7 @@ func (n *npmRegistry) publish(ctx context.Context, p *regTarget) (*forge.Publish
 // a restricted package that the credentials cannot read. So a missing
 // version counts only when the registry returns the package document,
 // or, for a package that it does not return, when confirmRegistry
-// accepts the registry and the credentials. This works on any registry,
-// not only on the default registry where prepare checks the token.
+// accepts the registry and the credentials. This works on any registry.
 func (n *npmRegistry) exists(ctx context.Context, p *regTarget) (bool, error) {
 	s, err := n.open(ctx, p, false)
 	if err != nil {
@@ -266,7 +264,9 @@ func (s *npmSession) npmView(ctx context.Context, p *regTarget, arg, field strin
 }
 
 // confirmRegistry checks that the registry URL is an npm registry that
-// accepts the credentials. With a token, npm whoami asks the registry
+// accepts the credentials. The plugin runs this check only on the
+// default registry. prepare runs it on every registry, so a bad token or
+// a wrong registry URL fails before the tag push. With a token, npm whoami asks the registry
 // for the user of the token (GET /-/whoami), so it fails for a wrong
 // URL or a bad token. With a user name and password, npm whoami prints
 // the user name without a request, so confirmRegistry runs npm ping
@@ -304,9 +304,8 @@ func (s *npmSession) registryCommand(ctx context.Context, p *regTarget, op strin
 
 // open reads package.json and, for a package that is not private, writes
 // the temporary npm config with the authentication, as verify-auth.js
-// does. With whoami, it then checks the token with npm whoami when the
-// registry is the default registry.
-func (n *npmRegistry) open(ctx context.Context, p *regTarget, whoami bool) (*npmSession, error) {
+// does. With check, it then runs confirmRegistry on the registry.
+func (n *npmRegistry) open(ctx context.Context, p *regTarget, check bool) (*npmSession, error) {
 	cwd := p.dir
 	s := &npmSession{dir: cwd, env: envOrProcess(p.env)}
 	if root := n.plugin.PkgRoot; root != "" {
@@ -334,8 +333,8 @@ func (n *npmRegistry) open(ctx context.Context, p *regTarget, whoami bool) (*npm
 		return nil, err
 	}
 	s.basicAuth = npmBasicAuth(s.registry, cfg)
-	if whoami && normalizeRegistryURL(s.registry) == normalizeRegistryURL(defaultNPMRegistry(s.env)) {
-		if err := s.whoami(ctx, p); err != nil {
+	if check {
+		if err := s.confirmRegistry(ctx, p); err != nil {
 			s.close()
 			return nil, err
 		}

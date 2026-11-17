@@ -332,9 +332,10 @@ func (c *serviceFixture) expectGemBuild() {
 	expectGemBuild(c.cmds, rakeBuildWrites("widgets_client", "lib/widgets_client/version.rb"))
 }
 
-// expectPrepare adds the commands of the prepare step: npm version and
-// the gem build.
+// expectPrepare adds the commands of the prepare step: npm whoami, npm
+// version and the gem build.
 func (c *serviceFixture) expectPrepare() {
+	c.cmds.expectAll([]stubCmd{npmWhoamiOK(serviceRegistry)})
 	c.cmds.expect(npmVersionWrites(), npmVersionArgv("1.0.0")...)
 	c.expectGemBuild()
 }
@@ -391,7 +392,7 @@ func TestPublishClients(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, plan.NextRelease.Version, "1.0.0")
 	gemDir := filepath.Join(c.git.Dir, "api", "clients", "ruby")
-	for _, call := range c.cmds.calls()[1:3] {
+	for _, call := range c.cmds.calls()[2:4] {
 		assert.Equal(t, call.Cmd.Dir, gemDir)
 	}
 	assert.DeepEqual(t, c.api.paths, []string{"/orgs/acme-gems/packages/rubygems/widgets_client/versions"})

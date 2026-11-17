@@ -114,6 +114,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 			// dist-tag latest, to the scope registry in ~/.npmrc.
 			name: "first publish", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
 			cmds: []stubCmd{
+				npmWhoamiOK(github),
 				{npmVersionArgv("1.0.0"), cmdOK("")},
 				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdFails(npmE404)},
 				{npmPublishArgv(pkg, "latest", github), cmdOK("")},
@@ -123,6 +124,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 		{
 			name: "first publish with old npm", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
 			cmds: []stubCmd{
+				npmWhoamiOK(github),
 				{npmVersionArgv("1.0.0"), cmdOK("")},
 				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdOK("")},
 				{npmPublishArgv(pkg, "latest", github), cmdOK("")},
@@ -132,6 +134,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 		{
 			name: "prerelease channel dist-tag", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0-rc.1", channel: "main",
 			cmds: []stubCmd{
+				npmWhoamiOK(github),
 				{npmVersionArgv("1.0.0-rc.1"), cmdOK("")},
 				{npmViewArgv("@getoutreach/client@1.0.0-rc.1", github), cmdFails(npmE404)},
 				{npmPublishArgv(pkg, "main", github), cmdOK("")},
@@ -141,6 +144,7 @@ func TestNPMPublishScenarios(t *testing.T) {
 		{
 			name: "already published version skipped", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
 			cmds: []stubCmd{
+				npmWhoamiOK(github),
 				{npmVersionArgv("1.0.0"), cmdOK("")},
 				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdOK("1.0.0\n")},
 			},
@@ -181,10 +185,19 @@ func TestNPMPublishScenarios(t *testing.T) {
 		{
 			name: "npm view failure", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
 			cmds: []stubCmd{
+				npmWhoamiOK(github),
 				{npmVersionArgv("1.0.0"), cmdOK("")},
 				{npmViewArgv("@getoutreach/client@1.0.0", github), cmdFails("npm error code E401\n")},
 			},
 			wantErr: errExit,
+		},
+		{
+			// prepare checks the token on a registry that is not the
+			// default registry, so a bad token stops the release before
+			// the tag push.
+			name: "invalid token on the scope registry", pkg: scoped, npmrc: githubNpmrc, version: "1.0.0",
+			cmds:    []stubCmd{{npmRegistryCmdArgv("whoami", github), cmdFails("npm error code E401\n")}},
+			wantErr: errNPMInvalidToken,
 		},
 	}
 	for _, tc := range tests {
@@ -269,11 +282,13 @@ func TestNPMInstall(t *testing.T) {
 	n, p := f.registry("node/widgets"), f.publisher("1.0.0", "")
 	n.plugin.Install = `yarn install --frozen-lockfile --network-concurrency "1" --token s3cr3t-value`
 	yarn := []string{"yarn", "install", "--frozen-lockfile", "--network-concurrency", "1", "--token", "s3cr3t-value"}
+	whoami := npmWhoamiOK("https://npm.pkg.github.com")
+	f.cmds.expectAll([]stubCmd{whoami})
 	f.cmds.expect(cmdOK("Done\n"), yarn...)
 	f.cmds.expect(cmdOK(""), npmVersionArgv("1.0.0")...)
 	assert.NilError(t, n.prepare(context.Background(), p))
 	dir := filepath.Join(f.repo, "node", "widgets")
-	install := f.cmds.calls()[0].Cmd
+	install := f.cmds.calls()[1].Cmd
 	assert.Equal(t, install.Dir, dir)
 	assert.DeepEqual(t, install.Env, f.env)
 	assert.Assert(t, strings.Contains(f.log.String(),
@@ -284,6 +299,7 @@ func TestNPMInstall(t *testing.T) {
 	// has the masked command line and stderr.
 	f.cmds = newCmdStubs(t)
 	p = f.publisher("1.0.0", "")
+	f.cmds.expectAll([]stubCmd{whoami})
 	f.cmds.expect(cmdFails("error s3cr3t-value"), yarn...)
 	err := n.prepare(context.Background(), p)
 	assertErrIs(t, err, errExit)
@@ -293,6 +309,7 @@ func TestNPMInstall(t *testing.T) {
 	// A command without a program, or with an open quote, is an error.
 	for _, bad := range []string{" ", `yarn "install`} {
 		n.plugin.Install = bad
+		f.cmds.expectAll([]stubCmd{whoami})
 		assert.Assert(t, n.prepare(context.Background(), p) != nil, bad)
 	}
 	_, err = npmInstallArgs("; echo")
@@ -310,6 +327,12 @@ const basicNpmrc = "@acme:registry=https://npm.acme.test/\n//npm.acme.test/:user
 // npmRegistryCmdArgv is the argv of "npm <op>" on registry.
 func npmRegistryCmdArgv(op, registry string) []string {
 	return []string{"npm", op, "--userconfig", execstub.AnyArg, "--registry", registry}
+}
+
+// npmWhoamiOK is the stub of npm whoami on registry, which accepts the
+// token.
+func npmWhoamiOK(registry string) stubCmd {
+	return stubCmd{npmRegistryCmdArgv("whoami", registry), cmdOK("acme-bot\n")}
 }
 
 // TestNPMExists checks that a missing version counts only when the

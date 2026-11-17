@@ -29,10 +29,21 @@ func (u *unitFixture) withNPMStubs() {
 	u.cmds = newCmdStubs(u.t)
 }
 
+// expectNPMWhoami adds npm whoami, the first command of prepare.
+func (u *unitFixture) expectNPMWhoami() {
+	u.cmds.expectAll([]stubCmd{npmWhoamiOK(unitRegistry)})
+}
+
 // expectNPMRelease adds the npm commands of the release of the unit
-// with version: npm version, then npm view, which gives view, and then
-// npm publish, which gives publish, when publish is not nil.
+// with version: npm whoami, and then the commands of expectNPMVersion.
 func (u *unitFixture) expectNPMRelease(version string, view execstub.Result, publish *execstub.Result) {
+	u.expectNPMWhoami()
+	u.expectNPMVersion(version, view, publish)
+}
+
+// expectNPMVersion adds npm version, then npm view, which gives view,
+// and then npm publish, which gives publish, when publish is not nil.
+func (u *unitFixture) expectNPMVersion(version string, view execstub.Result, publish *execstub.Result) {
 	u.cmds.expect(cmdOK(""), npmVersionArgv(version)...)
 	u.cmds.expect(view, npmViewArgv("@acme/widgets-client@"+version, unitRegistry)...)
 	if publish != nil {
@@ -64,7 +75,7 @@ func TestPublishUnits(t *testing.T) {
 	assert.Assert(t, u.remoteRef("refs/notes/semantic-release-nodejs-widgets-client-v1.2.0") != "")
 
 	// npm set the version in node/widgets-client and published it.
-	assert.Equal(t, u.cmds.calls()[0].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
+	assert.Equal(t, u.cmds.calls()[1].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
 
 	// The root release is the latest one; the unit release, which comes
 	// first, is not.
@@ -108,11 +119,13 @@ func TestPublishUnitInstall(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	// The install runs in the unit folder before npm version.
+	// The install runs in the unit folder after npm whoami and before
+	// npm version.
+	u.expectNPMWhoami()
 	u.cmds.expect(cmdOK(""), "yarn", "install", "--frozen-lockfile")
-	u.expectNPMRelease("1.1.1", cmdFails(npmE404), &execstub.Result{})
+	u.expectNPMVersion("1.1.1", cmdFails(npmE404), &execstub.Result{})
 	assert.NilError(t, u.publishUnits(plan))
-	assert.Equal(t, u.cmds.calls()[0].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
+	assert.Equal(t, u.cmds.calls()[1].Cmd.Dir, filepath.Join(u.git.Dir, "node", "widgets-client"))
 }
 
 func TestPublishUnitOnly(t *testing.T) {

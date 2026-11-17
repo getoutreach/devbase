@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getoutreach/gobox/pkg/exec/execstub"
 	"gotest.tools/v3/assert"
 )
 
@@ -217,13 +216,13 @@ func TestSetNpmrcAuth(t *testing.T) {
 // TestNPMVerifyAuth ports test/verify-auth.test.js with stubs of npm
 // whoami.
 func TestNPMVerifyAuth(t *testing.T) {
-	// open opens the package with npm whoami, which gives whoami when it
-	// is not nil.
-	open := func(t *testing.T, pkg string, whoami *execstub.Result, env ...string) (*npmFixture, error) {
+	// open opens the package with the npm whoami stub whoami, when it is
+	// not nil.
+	open := func(t *testing.T, pkg string, whoami *stubCmd, env ...string) (*npmFixture, error) {
 		t.Helper()
 		f := newNPMFixture(t, "", pkg, env...)
 		if whoami != nil {
-			f.cmds.expect(*whoami, npmWhoamiArgv...)
+			f.cmds.expectAll([]stubCmd{*whoami})
 		}
 		s, err := f.registry("").open(t.Context(), f.publisher("1.0.0", ""), true)
 		if s != nil {
@@ -233,7 +232,7 @@ func TestNPMVerifyAuth(t *testing.T) {
 	}
 	t.Run("that the provided token is verified with `npm whoami` when trusted publishing is not established "+
 		"for the official registry", func(t *testing.T) {
-		me := cmdOK("me\n")
+		me := stubCmd{npmWhoamiArgv, cmdOK("me\n")}
 		f, err := open(t, `{"name": "client"}`, &me, "NPM_TOKEN=t", "DEFAULT_NPM_REGISTRY="+officialNPMRegistry, "foo=bar")
 		assert.NilError(t, err)
 		whoami := f.cmds.calls()[0].Cmd
@@ -242,18 +241,17 @@ func TestNPMVerifyAuth(t *testing.T) {
 	})
 	t.Run("that the auth context for the official registry is considered invalid when no token is provided "+
 		"and trusted publishing is not established", func(t *testing.T) {
-		unauthorized := cmdFails("npm error code E401\n")
+		unauthorized := stubCmd{npmWhoamiArgv, cmdFails("npm error code E401\n")}
 		_, err := open(t, `{"name": "client"}`, &unauthorized, "NPM_TOKEN=t")
 		assert.ErrorIs(t, err, errNPMInvalidToken)
 	})
-	// "that a publish dry run is performed to validate token presence
-	// when publishing to a custom registry" (and from a sub-directory):
-	// verify-auth.js 13.2.0 does not call attemptPublishDryRun, and these
-	// tests only check that it does not fail. A custom registry runs no
-	// command.
-	t.Run("custom registry runs no command", func(t *testing.T) {
-		pkg := `{"name": "client", "publishConfig": {"registry": "https://other.registry.org"}}`
-		_, err := open(t, pkg, nil, "NPM_TOKEN=t")
+	// verify-auth.js runs no command for a custom registry. devbase
+	// checks the token there too.
+	t.Run("custom registry is checked with npm whoami", func(t *testing.T) {
+		const other = "https://other.registry.org"
+		pkg := `{"name": "client", "publishConfig": {"registry": "` + other + `"}}`
+		w := npmWhoamiOK(other)
+		_, err := open(t, pkg, &w, "NPM_TOKEN=t")
 		assert.NilError(t, err)
 	})
 	t.Run("that errors from setting up auth bubble through this function", func(t *testing.T) {

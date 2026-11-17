@@ -78,7 +78,9 @@ The publishers are:
 * `github`: the GitHub release. `assets` defaults to the archives and
   the checksum file when the release builds.
 * `npm`: the npm package in `packageRoot` (default: the repository
-  root).
+  root). The `prepare` step checks the credentials on the registry of
+  the package, before the tag push: `npm whoami` for a token, and
+  `npm ping` for a user name and password.
 * `gem`: the Ruby client gem. `dir` defaults to `api/clients/ruby`,
   `name` to `<service>_client`, where `<service>` is the `name` in
   `service.yaml`, and `versionFile` to `lib/<gem name>/version.rb` in
