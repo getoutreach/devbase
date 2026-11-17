@@ -256,11 +256,12 @@ func remoteKind(url string) string {
 	}
 }
 
-// TestBlobViaGitFetchesFromTheRemote reads a blob that is missing from the repository under test,
-// so git must fetch it from the real remote with the credentials of the checkout. It is skipped
-// unless that repository is a blobless clone, which is the default checkout of CircleCI, where it
-// fails instead. In a blobless clone of a developer, it fetches from the network.
-func TestBlobViaGitFetchesFromTheRemote(t *testing.T) {
+// missingBlobOfCheckout returns the hash of a blob that is missing from the repository under test.
+// It skips the test, or fails it in CircleCI, unless that repository is a blobless clone, which is
+// the default checkout of CircleCI.
+func missingBlobOfCheckout(t *testing.T) plumbing.Hash {
+	t.Helper()
+
 	filter, err := gitOutput(t, ".", "config", "--get", "remote.origin.partialclonefilter")
 	if filter != "blob:none" {
 		skipOrFailInCI(t, "the repository is not a blobless clone: filter %q, error: %v", filter, err)
@@ -270,21 +271,49 @@ func TestBlobViaGitFetchesFromTheRemote(t *testing.T) {
 	objects, err := gitOutput(t, ".", "rev-list", "--objects", "--missing=print", "--max-count=20", "HEAD")
 	assert.NilError(t, err)
 
-	var missing string
 	for line := range strings.SplitSeq(objects, "\n") {
 		if hash, ok := strings.CutPrefix(line, "?"); ok {
-			missing = hash
-			break
+			return plumbing.NewHash(hash)
 		}
 	}
-	if missing == "" {
-		skipOrFailInCI(t, "the latest commits of the clone have no missing blob")
-	}
+	skipOrFailInCI(t, "the latest commits of the clone have no missing blob")
 
-	content, err := blobViaGit(t.Context(), ".", plumbing.NewHash(missing))
+	return plumbing.ZeroHash
+}
+
+// TestBlobViaGitFetchesFromTheRemote reads a blob that is missing from the repository under test,
+// so git must fetch it from the real remote with the credentials of the checkout. In a blobless
+// clone of a developer, it fetches from the network.
+func TestBlobViaGitFetchesFromTheRemote(t *testing.T) {
+	missing := missingBlobOfCheckout(t)
+
+	content, err := blobViaGit(t.Context(), ".", missing)
 	if err != nil {
 		url, _ := gitOutput(t, ".", "config", "--get", "remote.origin.url")
 		t.Fatalf("git could not fetch the blob from a remote that uses %s: %v", remoteKind(url), err)
 	}
-	assert.Equal(t, blobHash(content), missing)
+	assert.Equal(t, blobHash(content), missing.String())
+}
+
+// TestBlobViaGoGitFetchesFromTheRemote fetches a blob that is missing from the repository under
+// test with go-git, from the real remote URL of the checkout and with the authentication
+// candidates of authCandidates. In CircleCI, go-git may not reach the checkout key, because it
+// reads no IdentityFile from the ssh configuration. A failure there is information about the
+// go-git fetch, not a bug of MergeBaseFiles: the git fallback still reads the blob.
+func TestBlobViaGoGitFetchesFromTheRemote(t *testing.T) {
+	missing := missingBlobOfCheckout(t)
+
+	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
+	assert.NilError(t, err)
+	url := goGitRemoteURL(repo)
+	if url == "" {
+		skipOrFailInCI(t, "go-git does not fetch from the origin remote, which is not an ssh, http or https URL")
+	}
+
+	content, err := blobViaGoGit(t.Context(), url, missing)
+	if err != nil {
+		// The error names the kinds of authentication that go-git tried, and no secrets.
+		t.Fatalf("go-git could not fetch the blob from a remote that uses %s: %v", remoteKind(url), err)
+	}
+	assert.Equal(t, blobHash(content), missing.String())
 }
