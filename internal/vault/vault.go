@@ -130,7 +130,7 @@ func New(addr string) (*Client, error) {
 	// VAULT_CACERT is set by whoever runs the process, as with the vault CLI.
 	// The file is only parsed as PEM certificates, and its content is never printed.
 	if caFile := os.Getenv("VAULT_CACERT"); caFile != "" {
-		pem, err := os.ReadFile(caFile)
+		pem, err := os.ReadFile(caFile) //nolint:gosec // Why: VAULT_CACERT is set by the operator, as with the vault CLI.
 		if err != nil {
 			return nil, fmt.Errorf("read VAULT_CACERT: %w", err)
 		}
