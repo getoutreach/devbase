@@ -52,16 +52,26 @@ teardown() {
   assert_output --partial "config: $MISE_CONFIG_DIR"
 }
 
-# stub_gh_pr JSON makes `gh pr view ... --jq FILTER` print FILTER applied
-# to JSON, so the tests exercise the caller's real filter.
-stub_gh_pr() {
-  printf '%s' "$1" >"$BATS_TEST_TMPDIR/pr.json"
+# stub_gh_prs NUMBER=JSON... makes `gh api repos/OWNER/REPO/pulls/NUMBER --jq
+# FILTER` print FILTER applied to that pull request's JSON, so the tests
+# exercise the caller's real filter. A number without JSON fails like a
+# GitHub error.
+stub_gh_prs() {
+  local spec
+  for spec in "$@"; do
+    printf '%s' "${spec#*=}" >"$BATS_TEST_TMPDIR/pr-${spec%%=*}.json"
+  done
   cat >"$STUB_DIR/gh" <<EOF
 #!/usr/bin/env bash
 echo "gh \$*" >>"\$STUB_CALLS_FILE"
+file="$BATS_TEST_TMPDIR/pr-\${2##*/}.json"
+if [[ ! -f \$file ]]; then
+  echo "HTTP 502" >&2
+  exit 1
+fi
 while [[ \$# -gt 0 ]]; do
   if [[ \$1 == --jq ]]; then
-    exec jq -r "\$2" "$BATS_TEST_TMPDIR/pr.json"
+    exec jq -r "\$2" "\$file"
   fi
   shift
 done
@@ -69,37 +79,70 @@ EOF
   chmod +x "$STUB_DIR/gh"
 }
 
-@test "github_pr_is_draft_without_label is true for a draft without the label" {
-  local pr="https://github.com/getoutreach/example/pull/7"
-  stub_gh_pr '{"isDraft": true, "labels": [{"name": "bug"}]}'
+@test "github_prs_are_drafts_without_label is true for a draft without the label" {
+  stub_gh_prs '7={"draft": true, "labels": [{"name": "bug"}]}'
 
-  run github_pr_is_draft_without_label "$pr" run-e2e
+  run github_prs_are_drafts_without_label run-e2e https://github.com/getoutreach/example/pull/7
   assert_success
 
-  run grep -F "gh pr view $pr --json isDraft,labels --jq " "$STUB_CALLS_FILE"
+  run grep -F "gh api repos/getoutreach/example/pulls/7 --jq " "$STUB_CALLS_FILE"
   assert_success
 }
 
-@test "github_pr_is_draft_without_label is false for a draft with the label" {
-  stub_gh_pr '{"isDraft": true, "labels": [{"name": "bug"}, {"name": "run-e2e"}]}'
+@test "github_prs_are_drafts_without_label is false for a draft with the label" {
+  stub_gh_prs '7={"draft": true, "labels": [{"name": "bug"}, {"name": "run-e2e"}]}'
 
-  run github_pr_is_draft_without_label https://github.com/getoutreach/example/pull/7 run-e2e
+  run github_prs_are_drafts_without_label run-e2e https://github.com/getoutreach/example/pull/7
   assert_failure
 }
 
-@test "github_pr_is_draft_without_label is false for a pull request that is ready for review" {
-  stub_gh_pr '{"isDraft": false, "labels": []}'
+@test "github_prs_are_drafts_without_label is false for a pull request that is ready for review" {
+  stub_gh_prs '7={"draft": false, "labels": []}'
 
-  run github_pr_is_draft_without_label https://github.com/getoutreach/example/pull/7 run-e2e
+  run github_prs_are_drafts_without_label run-e2e https://github.com/getoutreach/example/pull/7
   assert_failure
 }
 
-@test "github_pr_is_draft_without_label is false when the pull request can't be read" {
-  stub_command gh "HTTP 502" 1
+@test "github_prs_are_drafts_without_label is true when every pull request is a draft without the label" {
+  stub_gh_prs '7={"draft": true, "labels": []}' '8={"draft": true, "labels": []}'
 
-  run github_pr_is_draft_without_label https://github.com/getoutreach/example/pull/7 run-e2e
+  run github_prs_are_drafts_without_label run-e2e \
+    https://github.com/getoutreach/example/pull/7 https://github.com/getoutreach/example/pull/8
+  assert_success
+}
+
+@test "github_prs_are_drafts_without_label is false when one of the pull requests is ready for review" {
+  stub_gh_prs '7={"draft": true, "labels": []}' '8={"draft": false, "labels": []}'
+
+  run github_prs_are_drafts_without_label run-e2e \
+    https://github.com/getoutreach/example/pull/7 https://github.com/getoutreach/example/pull/8
   assert_failure
-  assert_output --partial "Could not read https://github.com/getoutreach/example/pull/7"
+}
+
+@test "github_prs_are_drafts_without_label is false when a pull request can't be read" {
+  stub_gh_prs '7={"draft": true, "labels": []}'
+
+  run github_prs_are_drafts_without_label run-e2e \
+    https://github.com/getoutreach/example/pull/7 https://github.com/getoutreach/example/pull/8
+  assert_failure
+  assert_output --partial "Could not read https://github.com/getoutreach/example/pull/8"
+}
+
+@test "github_prs_are_drafts_without_label is false for a URL that isn't a pull request" {
+  stub_gh_prs '7={"draft": true, "labels": []}'
+
+  run github_prs_are_drafts_without_label run-e2e https://github.com/getoutreach/example/issues/7
+  assert_failure
+  assert_output --partial "Could not read https://github.com/getoutreach/example/issues/7"
+  assert_stub_not_called gh
+}
+
+@test "github_prs_are_drafts_without_label is false without pull requests" {
+  stub_gh_prs
+
+  run github_prs_are_drafts_without_label run-e2e
+  assert_failure
+  assert_stub_not_called gh
 }
 
 @test "latest_github_release_version asks gh to exclude pre-releases when they are not wanted" {

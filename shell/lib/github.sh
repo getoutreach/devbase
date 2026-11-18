@@ -48,19 +48,32 @@ github_token() {
   run_gh auth token
 }
 
-# github_pr_is_draft_without_label(prURL, label)
+# github_prs_are_drafts_without_label(label, prURL...)
 #
-# Returns 0 if the pull request at prURL is a draft without the given
-# label, and 1 otherwise. Also returns 1, with a warning, if the pull
-# request can't be read, so callers fall back to their non-draft behavior.
-github_pr_is_draft_without_label() {
-  local prURL="$1" label="$2" result
-  if ! result="$(run_gh pr view "$prURL" --json isDraft,labels \
-    --jq ".isDraft and ([.labels[].name] | index(\"$label\") | not)")"; then
-    warn "Could not read $prURL"
+# Returns 0 if every pull request URL given is a draft without the label,
+# and 1 otherwise, including when no URL is given. Also returns 1, with a
+# warning, if a pull request can't be read, so callers fall back to their
+# non-draft behavior. Each pull request costs one REST API request.
+github_prs_are_drafts_without_label() {
+  local label="$1" prURL path result
+  shift
+  if [[ $# -eq 0 ]]; then
     return 1
   fi
-  [[ $result == "true" ]]
+  for prURL in "$@"; do
+    # https://github.com/OWNER/REPO/pull/NUMBER -> repos/OWNER/REPO/pulls/NUMBER
+    path="${prURL#https://github.com/}"
+    path="repos/${path/\/pull\//\/pulls\/}"
+    if [[ ! $path =~ ^repos/[^/]+/[^/]+/pulls/[0-9]+$ ]] ||
+      ! result="$(run_gh api "$path" \
+        --jq ".draft and ([.labels[].name] | index(\"$label\") | not)")"; then
+      warn "Could not read $prURL"
+      return 1
+    fi
+    if [[ $result != "true" ]]; then
+      return 1
+    fi
+  done
 }
 
 # Determines the latest release version of a GitHub repository.
