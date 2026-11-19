@@ -24,8 +24,13 @@ buf_formatter() {
   run_buf format --write
 }
 
+buf_lint_linter() {
+  run_buf lint
+}
+
 linter() {
-  run_command "buf" buf_linter
+  run_command "buf format" buf_linter
+  run_command "buf lint" buf_lint_linter
 }
 
 formatter() {
