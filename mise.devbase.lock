@@ -268,38 +268,38 @@ url = "https://github.com/getoutreach/kubecfg/releases/download/v0.34.0/kubecfg-
 url_api = "https://api.github.com/repos/getoutreach/kubecfg/releases/assets/124756986"
 
 [[tools."github:getoutreach/lintroller"]]
-version = "1.20.0"
+version = "1.21.0"
 backend = "github:getoutreach/lintroller"
 
 [tools."github:getoutreach/lintroller"."platforms.linux-arm64"]
-checksum = "sha256:7be1f82949c2920656ceacd6c35662f9d715bb2b154366ed4de7837457083c0c"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233407"
+checksum = "sha256:172354c7e378919773f67a821f53c10cf62e2e60b751a5670e5793521d043ab7"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235299"
 
 [tools."github:getoutreach/lintroller"."platforms.linux-arm64-musl"]
-checksum = "sha256:7be1f82949c2920656ceacd6c35662f9d715bb2b154366ed4de7837457083c0c"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233407"
+checksum = "sha256:172354c7e378919773f67a821f53c10cf62e2e60b751a5670e5793521d043ab7"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235299"
 
 [tools."github:getoutreach/lintroller"."platforms.linux-x64"]
-checksum = "sha256:af77feb558a2adfbee6f3067036ee07ef178a026f3c312a2b7b302b9773565a6"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233424"
+checksum = "sha256:1989a0dee02d8c824ef9f8ff21d0d51f129325ec5834af2c48d8b5b2a117e8e4"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235338"
 
 [tools."github:getoutreach/lintroller"."platforms.linux-x64-musl"]
-checksum = "sha256:af77feb558a2adfbee6f3067036ee07ef178a026f3c312a2b7b302b9773565a6"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233424"
+checksum = "sha256:1989a0dee02d8c824ef9f8ff21d0d51f129325ec5834af2c48d8b5b2a117e8e4"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235338"
 
 [tools."github:getoutreach/lintroller"."platforms.macos-arm64"]
-checksum = "sha256:44f5487dffdf3bfa5297c3f036ff06fce29088960234f7c911baaedb558e88bd"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233413"
+checksum = "sha256:49736972d50e9681b993149c4a0bcf0607d0d6873f15df420052955b0f28a580"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235239"
 
 [tools."github:getoutreach/lintroller"."platforms.macos-x64"]
-checksum = "sha256:e36f195412e1367351b688008af1b12b52e1455316bf24ecfb0ebfe5d61ee2da"
-url = "https://github.com/getoutreach/lintroller/releases/download/v1.20.0/lintroller_1.20.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/370233421"
+checksum = "sha256:200c977265c944461d34e13efb80dd1a2040ee2d67ec4e586f51157152aafef9"
+url = "https://github.com/getoutreach/lintroller/releases/download/v1.21.0/lintroller_1.21.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/getoutreach/lintroller/releases/assets/766235272"
 
 [[tools."github:getoutreach/orc"]]
 version = "1.124.1"
