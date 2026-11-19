@@ -5,7 +5,7 @@ modules:
       version: local
     - name: github.com/getoutreach/stencil-base
       url: https://github.com/getoutreach/stencil-base
-      version: v0.21.1
+      version: v0.21.2-rc.1
     - name: github.com/getoutreach/stencil-circleci
       url: https://github.com/getoutreach/stencil-circleci
       version: v1.20.0
@@ -72,6 +72,12 @@ files:
       module: github.com/getoutreach/stencil-golang
     - name: cmd/devbase/devbase.go
       template: cmd/main_cli.go.tpl
+      module: github.com/getoutreach/stencil-golang
+    - name: deployments/devbase/Dockerfile
+      template: deployments/appname/Dockerfile.tpl
+      module: github.com/getoutreach/stencil-golang
+    - name: deployments/docker.yaml
+      template: deployments/docker.yaml.tpl
       module: github.com/getoutreach/stencil-golang
     - name: docs/agents/stencil-commands.md
       template: docs/agents/stencil-commands.md.tpl
