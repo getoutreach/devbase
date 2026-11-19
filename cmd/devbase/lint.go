@@ -13,6 +13,7 @@ func newLintCommand() *cli.Command {
 		Usage: "Run lint checks on the codebase",
 		Commands: []*cli.Command{
 			newLintGraphQLCommand(),
+			newLintMiseLockCommand(),
 		},
 	}
 }
