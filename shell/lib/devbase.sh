@@ -53,8 +53,8 @@ devbase_mise_tool() {
 }
 
 # devbase_tree_is_dirty succeeds if the git tree at the given directory has
-# uncommitted changes. It ignores the deletion of service.yaml, which
-# scripts/devbase.sh makes in every non-local .bootstrap clone.
+# uncommitted changes. It ignores the deleted service.yaml that
+# scripts/devbase.sh leaves in non-local .bootstrap clones.
 devbase_tree_is_dirty() {
   local treeRoot="$1"
   [[ -n "$(git -C "$treeRoot" status --porcelain 2>/dev/null | grep -vx ' D service.yaml' || true)" ]]
@@ -128,10 +128,9 @@ devbase_dirty_tree_hash() {
   } | sha256sum | awk '{ print $1 }'
 }
 
-# devbase_tree_has_external_build_inputs succeeds if a build of the go
-# module at the given directory can use files outside the directory: a
-# go.work file in it or a parent directory, or a go.mod replace with a
-# local path.
+# devbase_tree_has_external_build_inputs succeeds if the go module at the
+# given directory can build from files outside it, through a go.work file
+# or a go.mod replace with a local path.
 devbase_tree_has_external_build_inputs() {
   local dir="$1"
 
@@ -152,13 +151,11 @@ devbase_tree_has_external_build_inputs() {
 # devbase_cached_source_binary echoes the path to a devbase binary built
 # from this source tree. It builds only if the cache has no binary for the
 # tree's state. The cache key is the current commit, plus a hash of the
-# uncommitted changes if the tree is dirty, so two edits at the same
-# commit do not share a binary. The key cannot cover build inputs outside
-# the tree, so a tree with any (see devbase_tree_has_external_build_inputs)
-# rebuilds into one fixed slot on every call. The build goes to a temporary
-# file that replaces the cached binary in one step, so parallel callers
-# never run a partial binary. Callers that run devbase many times
-# (yq_wrapper, devbase_cli) use it instead of devbase_build_from_source.
+# uncommitted changes if the tree is dirty. The key cannot cover files
+# outside the tree, so a tree with such inputs rebuilds on every call. The
+# build is moved into place so that parallel callers never run a partial
+# binary. Callers that run devbase many times (yq_wrapper, devbase_cli)
+# use it instead of devbase_build_from_source.
 devbase_cached_source_binary() {
   local treeRoot rev cacheKey cached tmp rebuild=false
   treeRoot="$(devbase_tree_root)"
