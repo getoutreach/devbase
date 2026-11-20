@@ -438,3 +438,70 @@ stub_go_git() {
 
   assert_equal "$(cat "$build_count_file")" "1"
 }
+
+@test "devbase_cached_source_binary builds into a temporary file and leaves only the cached binary" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_tree_root() { echo "/fake/tree"; }
+  stub_go_git "$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_build_from_source() {
+    echo "$1" >"$BATS_TEST_TMPDIR/build_target"
+    touch "$1"
+  }
+
+  cached="$(devbase_cached_source_binary)"
+
+  assert_not_equal "$(cat "$BATS_TEST_TMPDIR/build_target")" "$cached"
+  assert [ -x "$cached" ]
+  assert_equal "$(ls "$(dirname "$cached")")" "$(basename "$cached")"
+}
+
+@test "devbase_cached_source_binary rebuilds on every call when go.mod has a local replace" {
+  tree="$(mktempdir devbase-external-XXXXXX)"
+  printf 'module x\n\nreplace github.com/getoutreach/gobox => ../gobox\n' >"$tree/go.mod"
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_tree_root() { echo "$tree"; }
+  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
+  stub_go_git "$build_count_file"
+
+  first="$(devbase_cached_source_binary)"
+  second="$(devbase_cached_source_binary)"
+
+  assert_equal "$first" "$second"
+  assert_equal "$(cat "$build_count_file")" "2"
+  rm -rf "$tree"
+}
+
+@test "devbase_tree_has_external_build_inputs detects a go.work in a parent directory" {
+  tree="$(mktempdir devbase-external-XXXXXX)"
+  mkdir -p "$tree/devbase"
+  echo "module x" >"$tree/devbase/go.mod"
+
+  run devbase_tree_has_external_build_inputs "$tree/devbase"
+  assert_failure
+
+  touch "$tree/go.work"
+  run devbase_tree_has_external_build_inputs "$tree/devbase"
+  assert_success
+
+  GOWORK=off run devbase_tree_has_external_build_inputs "$tree/devbase"
+  assert_failure
+  rm -rf "$tree"
+}
+
+@test "devbase_version_from_git ignores a deleted service.yaml" {
+  make_git_repo
+  echo "name: devbase" >"$repo/service.yaml"
+  git -C "$repo" add service.yaml
+  git -C "$repo" commit -q -m two
+  git -C "$repo" tag v1.2.3
+  rm "$repo/service.yaml"
+
+  run devbase_version_from_git "$repo"
+  assert_success
+  assert_output "v1.2.3"
+
+  echo x >"$repo/new"
+  run devbase_version_from_git "$repo"
+  assert_output "v1.2.3+dirty"
+}

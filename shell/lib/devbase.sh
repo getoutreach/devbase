@@ -52,6 +52,14 @@ devbase_mise_tool() {
   echo 'http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.tar.gz]'
 }
 
+# devbase_tree_is_dirty succeeds if the git tree at the given directory has
+# uncommitted changes. It ignores the deletion of service.yaml, which
+# scripts/devbase.sh makes in every non-local .bootstrap clone.
+devbase_tree_is_dirty() {
+  local treeRoot="$1"
+  [[ -n "$(git -C "$treeRoot" status --porcelain 2>/dev/null | grep -vx ' D service.yaml' || true)" ]]
+}
+
 # devbase_version_from_git echoes the Go module version of the git
 # checkout at the given directory: the tag if HEAD is on one, otherwise a
 # pseudo-version built as the go command builds it. It appends "+dirty"
@@ -79,7 +87,7 @@ devbase_version_from_git() {
     version="v${major}.${minor}.$((${patch%%+*} + 1))-0.${ts}-${hash}"
   fi
 
-  if [[ -n $(git -C "$dir" status --porcelain 2>/dev/null) ]]; then
+  if devbase_tree_is_dirty "$dir"; then
     version="${version}+dirty"
   fi
   echo "$version"
@@ -120,26 +128,61 @@ devbase_dirty_tree_hash() {
   } | sha256sum | awk '{ print $1 }'
 }
 
+# devbase_tree_has_external_build_inputs succeeds if a build of the go
+# module at the given directory can use files outside the directory: a
+# go.work file in it or a parent directory, or a go.mod replace with a
+# local path.
+devbase_tree_has_external_build_inputs() {
+  local dir="$1"
+
+  if [[ ${GOWORK:-} != off ]]; then
+    if [[ -n ${GOWORK:-} ]]; then
+      return 0
+    fi
+    local parent="$dir"
+    while [[ $parent != / && $parent != . ]]; do
+      [[ -e $parent/go.work ]] && return 0
+      parent="$(dirname "$parent")"
+    done
+  fi
+
+  grep -Eq '=>[[:space:]]*(\.|/)' "$dir/go.mod" 2>/dev/null
+}
+
 # devbase_cached_source_binary echoes the path to a devbase binary built
 # from this source tree. It builds only if the cache has no binary for the
 # tree's state. The cache key is the current commit, plus a hash of the
 # uncommitted changes if the tree is dirty, so two edits at the same
-# commit do not share a binary. Callers that run devbase many times
+# commit do not share a binary. The key cannot cover build inputs outside
+# the tree, so a tree with any (see devbase_tree_has_external_build_inputs)
+# rebuilds into one fixed slot on every call. The build goes to a temporary
+# file that replaces the cached binary in one step, so parallel callers
+# never run a partial binary. Callers that run devbase many times
 # (yq_wrapper, devbase_cli) use it instead of devbase_build_from_source.
 devbase_cached_source_binary() {
-  local treeRoot rev cacheKey cached
+  local treeRoot rev cacheKey cached tmp rebuild=false
   treeRoot="$(devbase_tree_root)"
   rev="$(git -C "$treeRoot" rev-parse HEAD)" || fatal "failed to resolve $treeRoot's current commit"
-  cacheKey="$rev"
-  # A clean tree skips devbase_dirty_tree_hash, which costs more.
-  if [[ -n "$(git -C "$treeRoot" status --porcelain)" ]]; then
+  if devbase_tree_has_external_build_inputs "$treeRoot"; then
+    cacheKey="external-inputs"
+    rebuild=true
+  elif devbase_tree_is_dirty "$treeRoot"; then
+    # A clean tree skips devbase_dirty_tree_hash, which costs more.
     cacheKey="dirty-$(devbase_dirty_tree_hash "$treeRoot")-${rev}"
+  else
+    cacheKey="$rev"
   fi
 
-  cached="$(get_cached_binary devbase-src "$cacheKey")"
-  if [[ -z $cached ]]; then
-    cached="$(cached_binary_path devbase-src "$cacheKey")"
-    devbase_build_from_source "$cached" || exit 1
+  cached="$(cached_binary_path devbase-src "$cacheKey")"
+  if [[ $rebuild == true || ! -e $cached ]]; then
+    mkdir -p "$(dirname "$cached")"
+    tmp="$(mktemp "$cached.XXXXXX")"
+    if ! devbase_build_from_source "$tmp"; then
+      rm -f "$tmp"
+      exit 1
+    fi
+    chmod +x "$tmp"
+    mv -f "$tmp" "$cached"
   fi
   echo "$cached"
 }
