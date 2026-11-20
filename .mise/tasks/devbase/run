@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Run an arbitrary script from the devbase repo (in the shell dir)"
 #MISE depends=["devbase:sync"]
+#MISE dir="{{cwd}}"
 #USAGE arg "<script>" help="The script to run"
 #USAGE complete "script" run="for f in `ls .bootstrap/shell/*.sh`; do basename \"$f\" .sh; done"
 #USAGE arg "[args]..." help="arguments to pass to the script"
