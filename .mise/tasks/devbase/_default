@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Run the devbase CLI for this version of devbase"
 #MISE depends=["devbase:sync"]
+#MISE dir="{{cwd}}"
 
 set -euo pipefail
 
