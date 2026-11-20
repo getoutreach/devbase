@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Run the devbase CLI for this version of devbase"
+#MISE depends=["devbase:sync"]
+#MISE dir="{{cwd}}"
+
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DEVBASE_DIR="$DIR/../../../shell"
+
+"$DEVBASE_DIR"/cli.sh "$@"
