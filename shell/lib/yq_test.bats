@@ -22,123 +22,16 @@ teardown() {
   unset DEVBASE_CACHED_BINARY_STORAGE_PATH
 }
 
-# stub_go_git stubs `go` and `git` for yq_build_from_source: `git`
-# reports a clean, fixed commit ("deadbeefcafe", or $2 when given), and
-# `go build -o <path> ...` just creates an empty executable at <path>
-# and records a call count in $1, instead of doing a real (slow,
-# network-independent-but-still slow) build.
-stub_go_git() {
-  local build_count_file="$1"
-  local rev="${2:-deadbeefcafe}"
-  local dirty_diff="${3:-}"
-  [[ -e $build_count_file ]] || echo 0 >"$build_count_file"
-
-  # shellcheck disable=SC2317 # Why: called indirectly as a stub.
-  go() {
-    local out=""
-    local prev=""
-    for arg in "$@"; do
-      if [[ $prev == "-o" ]]; then
-        out="$arg"
-      fi
-      prev="$arg"
-    done
-    echo "$(($(cat "$BUILD_COUNT_FILE") + 1))" >"$BUILD_COUNT_FILE"
-    touch "$out"
-    chmod +x "$out"
-  }
-
-  # shellcheck disable=SC2317 # Why: called indirectly as a stub.
-  git() {
-    case "$3" in
-    rev-parse) echo "$REV" ;;
-    status) [[ -n $DIRTY_DIFF ]] && echo " M some-file" ;; # empty -> a clean working tree.
-    diff) echo "$DIRTY_DIFF" ;;
-    ls-files) : ;; # no untracked files in these stubs.
-    esac
-  }
-
-  BUILD_COUNT_FILE="$build_count_file"
-  REV="$rev"
-  DIRTY_DIFF="$dirty_diff"
-  export BUILD_COUNT_FILE REV DIRTY_DIFF
-}
-
-@test "yq_build_from_source builds once and reuses the cached binary on a second call" {
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
-  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
-  stub_go_git "$build_count_file"
-
-  first="$(yq_build_from_source)"
-  second="$(yq_build_from_source)"
-
-  assert_equal "$first" "$second"
-  assert_equal "$(cat "$build_count_file")" "1"
-}
-
-@test "yq_build_from_source rebuilds when the source tree's commit changes" {
-  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
-  stub_go_git "$build_count_file"
-
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/one"; }
-  first="$(yq_build_from_source)"
-
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/two"; }
-  stub_go_git "$build_count_file" "differentcommit"
-  second="$(yq_build_from_source)"
-
-  assert_not_equal "$first" "$second"
-  assert_equal "$(cat "$build_count_file")" "2"
-}
-
-# TestYqBuildFromSourceContentAwareCacheKey is a regression test for a
-# real bug found during review: two different uncommitted edits at the
-# same commit used to collide on a single flat "dirty-<rev>" cache key,
-# so the second edit silently reused the first edit's stale binary.
-@test "yq_build_from_source rebuilds when uncommitted changes differ at the same commit" {
-  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
-
-  stub_go_git "$build_count_file" "deadbeefcafe" "diff content A"
-  first="$(yq_build_from_source)"
-
-  stub_go_git "$build_count_file" "deadbeefcafe" "diff content B"
-  second="$(yq_build_from_source)"
-
-  assert_not_equal "$first" "$second"
-  assert_equal "$(cat "$build_count_file")" "2"
-}
-
-@test "yq_build_from_source reuses the cached binary for identical uncommitted changes" {
-  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
-
-  stub_go_git "$build_count_file" "deadbeefcafe" "same diff content"
-  first="$(yq_build_from_source)"
-  second="$(yq_build_from_source)"
-
-  assert_equal "$first" "$second"
-  assert_equal "$(cat "$build_count_file")" "1"
-}
-
-@test "yq_resolve_bin uses yq_build_from_source for a local/dev version" {
+@test "yq_resolve_bin uses devbase_cached_source_binary for a local/dev version" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   devbase_cli_version() { echo "local"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   find_tool() { echo "/fake/go"; }
-  local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
-  stub_go_git "$build_count_file"
-  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  # shellcheck disable=SC2317,SC2329 # Why: called indirectly as a stub.
+  devbase_cached_source_binary() { echo "/fake/devbase-src"; }
 
   yq_resolve_bin
-  assert [ -n "$DEVBASE_YQ_BIN" ]
-  assert [ -x "$DEVBASE_YQ_BIN" ]
+  assert_equal "$DEVBASE_YQ_BIN" "/fake/devbase-src"
 }
 
 @test "yq_resolve_bin uses devbase_cli_binary for a tagged version" {
@@ -258,7 +151,7 @@ stub_gojq_env() {
 
 @test "yq_resolve_bin does not build devbase when go is missing" {
   stub_gojq_env local ""
-  yq_build_from_source() {
+  devbase_cached_source_binary() {
     echo "unexpected build" >&2
     return 1
   }

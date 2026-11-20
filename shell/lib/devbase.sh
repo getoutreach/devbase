@@ -52,20 +52,96 @@ devbase_mise_tool() {
   echo 'http:devbase[url=https://github.com/getoutreach/devbase/releases/download/v{{ version }}/devbase_{{ version }}_{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.tar.gz]'
 }
 
+# devbase_version_from_git echoes the Go module version of the git
+# checkout at the given directory: the tag if HEAD is on one, otherwise a
+# pseudo-version built as the go command builds it. It appends "+dirty"
+# for uncommitted changes, and fails if the directory is not a checkout.
+devbase_version_from_git() {
+  local dir="$1"
+  local hash ts tag version
+
+  hash="$(git -C "$dir" rev-parse --verify --short=12 HEAD 2>/dev/null)" || return 1
+  ts="$(TZ=UTC git -C "$dir" show -s --format=%cd --date=format-local:%Y%m%d%H%M%S HEAD)"
+
+  # Like the go command, use the highest reachable tag. versionsort.suffix
+  # sorts v1.0.0-rc.1 before v1.0.0.
+  tag="$(git -C "$dir" -c versionsort.suffix=- tag --merged HEAD --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+
+  if [[ -z $tag ]]; then
+    version="v0.0.0-${ts}-${hash}"
+  elif [[ $(git -C "$dir" rev-parse "$tag^{commit}") == "$(git -C "$dir" rev-parse HEAD)" ]]; then
+    version="$tag"
+  elif [[ $tag == *-* ]]; then
+    version="${tag%%+*}.0.${ts}-${hash}"
+  else
+    local major minor patch
+    IFS=. read -r major minor patch <<<"${tag#v}"
+    version="v${major}.${minor}.$((${patch%%+*} + 1))-0.${ts}-${hash}"
+  fi
+
+  if [[ -n $(git -C "$dir" status --porcelain 2>/dev/null) ]]; then
+    version="${version}+dirty"
+  fi
+  echo "$version"
+}
+
 # devbase_build_from_source builds devbase from this source tree to the
-# given path. It returns non-zero after printing an error if the build
-# fails.
+# given path. It sets gobox's app.Version from git when it can. It
+# returns non-zero after printing an error if the build fails.
 devbase_build_from_source() {
   local output="$1"
-  local treeRoot goPath
+  local treeRoot goPath version
   treeRoot="$(devbase_tree_root)"
   # find_tool also finds a go that mise manages but that is not on PATH.
   goPath="$(find_tool go 2>/dev/null || true)"
 
-  PATH="${goPath:+$(dirname "$goPath"):}$PATH" go -C "$treeRoot" build -o "$output" ./cmd/devbase || {
+  local ldflags=()
+  if version="$(devbase_version_from_git "$treeRoot")"; then
+    ldflags=(-ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=${version}")
+  fi
+
+  PATH="${goPath:+$(dirname "$goPath"):}$PATH" go -C "$treeRoot" build -o "$output" ${ldflags[@]+"${ldflags[@]}"} ./cmd/devbase || {
     error "failed to build devbase from $treeRoot"
     return 1
   }
+}
+
+# devbase_dirty_tree_hash hashes the uncommitted content of the git tree
+# at the given directory: changes against HEAD (staged or not, including
+# binary diffs) and untracked, non-ignored files. It runs one `cat` per
+# untracked file because `xargs -0 cat` with empty input reads stdin, and
+# GNU (Linux) and BSD (macOS) xargs differ in that case.
+devbase_dirty_tree_hash() {
+  local treeRoot="$1"
+  {
+    git -C "$treeRoot" diff HEAD --binary
+    git -C "$treeRoot" ls-files --others --exclude-standard -z |
+      while IFS= read -r -d '' f; do cat "$treeRoot/$f"; done
+  } | sha256sum | awk '{ print $1 }'
+}
+
+# devbase_cached_source_binary echoes the path to a devbase binary built
+# from this source tree. It builds only if the cache has no binary for the
+# tree's state. The cache key is the current commit, plus a hash of the
+# uncommitted changes if the tree is dirty, so two edits at the same
+# commit do not share a binary. Callers that run devbase many times
+# (yq_wrapper, devbase_cli) use it instead of devbase_build_from_source.
+devbase_cached_source_binary() {
+  local treeRoot rev cacheKey cached
+  treeRoot="$(devbase_tree_root)"
+  rev="$(git -C "$treeRoot" rev-parse HEAD)" || fatal "failed to resolve $treeRoot's current commit"
+  cacheKey="$rev"
+  # A clean tree skips devbase_dirty_tree_hash, which costs more.
+  if [[ -n "$(git -C "$treeRoot" status --porcelain)" ]]; then
+    cacheKey="dirty-$(devbase_dirty_tree_hash "$treeRoot")-${rev}"
+  fi
+
+  cached="$(get_cached_binary devbase-src "$cacheKey")"
+  if [[ -z $cached ]]; then
+    cached="$(cached_binary_path devbase-src "$cacheKey")"
+    devbase_build_from_source "$cached" || exit 1
+  fi
+  echo "$cached"
 }
 
 # devbase_install_from_source builds devbase from this source tree into
@@ -147,19 +223,12 @@ devbase_cli() {
   version="$(devbase_cli_version)"
 
   if ! devbase_cli_is_tagged_version "$version"; then
-    local bin status
-    bin="$(mktemp)"
-    # Not `go run -C`: it would also change the binary's working
+    local bin
+    # Do not use `go run -C`: it also changes the binary's working
     # directory, which breaks relative path arguments.
-    if ! devbase_build_from_source "$bin"; then
-      rm -f "$bin"
-      exit 1
-    fi
-    chmod +x "$bin"
+    bin="$(devbase_cached_source_binary)" || exit 1
     devbase_run "$bin" "$@"
-    status=$?
-    rm -f "$bin"
-    exit "$status"
+    exit $?
   fi
 
   # Replace this shell with devbase, so signals reach it directly. That
