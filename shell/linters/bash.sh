@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Linters for Bash
+#
+# In addition to formatting/linting shell scripts with the sh/bash/bats
+# extensions, the .mise/tasks tree is also scanned for scripts with bash
+# shebangs. Paths in the space-delimited DEVBASE_LINTER_BASH_SHEBANG_PATHS
+# variable are scanned as well.
+
 SHELLFMTPATH="$DIR/shfmt.sh"
 SHELLCHECKPATH="$DIR/shellcheck.sh"
 
@@ -7,6 +13,8 @@ SHELLCHECKPATH="$DIR/shellcheck.sh"
 # shellcheck disable=SC2034
 extensions=(sh bash bats)
 shebang_paths=(.mise/tasks)
+read -ra extra_shebang_paths <<<"${DEVBASE_LINTER_BASH_SHEBANG_PATHS:-}"
+shebang_paths+=("${extra_shebang_paths[@]}")
 
 find_shell_files() {
   (
