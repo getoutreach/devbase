@@ -546,6 +546,21 @@ JSON
     --title "fix(stencil): upgrade modules (2026-11-21)" --body-file "$(stub_argv gh | tail -n 1)"
 }
 
+@test "open PR path works when the checkout is already on the PR branch" {
+  job_setup
+  push_bot_branch stencil-upgrade/2026-11-20
+  stub_command gh "stencil-upgrade/2026-11-20"
+  upgrade_to v1.2.0
+  git fetch -q origin stencil-upgrade/2026-11-20
+  git switch -q -c stencil-upgrade/2026-11-20 FETCH_HEAD
+
+  run_job
+  assert_success
+  assert_pushes "push"
+  run git -C "$ORIGIN" show stencil-upgrade/2026-11-20:stencil.lock
+  assert_output --partial "version: v1.2.0"
+}
+
 @test "open PR without a version change against the default branch logs a warning" {
   job_setup
   push_bot_branch stencil-upgrade/2026-11-20

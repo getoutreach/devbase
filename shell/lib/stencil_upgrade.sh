@@ -299,7 +299,7 @@ stencil_upgrade_existing_pr() {
     return 0
   fi
 
-  git switch -q --no-track -c "$branch" "origin/$branch" || return 1
+  git switch -q --no-track -C "$branch" "origin/$branch" || return 1
   # The plain git push needs an upstream. git switch --track works only
   # when a fetch refspec covers the branch, so the config is set directly.
   git config "branch.$branch.remote" origin || return 1
