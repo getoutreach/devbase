@@ -3,13 +3,17 @@
 # pull request that upgrades the Stencil modules of a repository.
 #
 # Requires the following libraries:
-# * github.sh (for run_gh)
+# * box.sh (for get_box_field)
+# * cli.sh (for devbase_cli, sourced by yq.sh)
+# * github.sh (for run_gh and mise_exec_tool_with_bin)
 # * logging.sh (required by github.sh)
 # * yq.sh (for yq_wrapper)
 
 # LIB_DIR is the directory that shell script libraries live in.
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
+# shellcheck source=box.sh
+source "$LIB_DIR/box.sh"
 # shellcheck source=logging.sh
 source "$LIB_DIR/logging.sh"
 # shellcheck source=github.sh
@@ -115,4 +119,218 @@ stencil_upgrade_decide() {
   else
     echo "stop-empty"
   fi
+}
+
+# stencil_upgrade_default_branch echoes the default branch of origin, or
+# "main" when origin/HEAD is not set.
+stencil_upgrade_default_branch() {
+  local ref
+  if ref="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    echo "${ref#origin/}"
+  else
+    echo "main"
+  fi
+}
+
+# stencil_upgrade_stencil_version echoes the version of stencil, without
+# the "stencil version" prefix.
+stencil_upgrade_stencil_version() {
+  local output
+  output="$(mise_exec_tool_with_bin github:getoutreach/stencil stencil --skip-update --version)" || return 1
+  echo "${output#stencil version }"
+}
+
+# stencil_upgrade_stencil runs the stencil upgrade in the checkout, then
+# writes the lock-diff JSON between the old lockfile and the new
+# stencil.lock to changes.json in the work directory.
+#
+# $1: The work directory, outside of the checkout.
+# $2: The path to the old stencil.lock.
+stencil_upgrade_stencil() {
+  local work_dir="$1" old_lock="$2"
+  local checkout origin_url
+
+  checkout="$(git rev-parse --show-toplevel)" || return 1
+  origin_url="$(git remote get-url origin)" || return 1
+  # Stencil module repositories need their own build before stencil runs.
+  if [[ "$(basename "$origin_url" .git)" == stencil-* ]]; then
+    make || return 1
+  fi
+  # mise refuses to run tasks from a config that it does not trust.
+  MISE_TRUSTED_CONFIG_PATHS="$checkout" mise run stencil:upgrade || return 1
+
+  # devbase_cli can replace its shell, so it runs in a subshell.
+  (devbase_cli stencil lock-diff --old "$old_lock" --new stencil.lock) >"$work_dir/changes.json"
+}
+
+# stencil_upgrade_is_dry_run succeeds when STENCIL_UPGRADE_DRYRUN is
+# "true".
+stencil_upgrade_is_dry_run() {
+  [[ ${STENCIL_UPGRADE_DRYRUN:-false} == "true" ]]
+}
+
+# stencil_upgrade_commit writes the pull request body to body.md in the
+# work directory, then commits all changes with the title. In a dry run,
+# it prints the title and body instead, and does not commit.
+#
+# $1: The work directory, outside of the checkout.
+# $2: The pull request title, which is also the commit message.
+stencil_upgrade_commit() {
+  local work_dir="$1" title="$2"
+  local version
+
+  version="$(stencil_upgrade_stencil_version)" || return 1
+  (devbase_cli stencil pr-body --changes - --stencil-version "$version" --service-yaml service.yaml) \
+    <"$work_dir/changes.json" >"$work_dir/body.md" || return 1
+
+  if stencil_upgrade_is_dry_run; then
+    info "dry run, so nothing is pushed. Title and body:"
+    echo "$title"
+    echo
+    cat "$work_dir/body.md"
+    return
+  fi
+
+  git add -A || return 1
+  git commit -q -m "$title"
+}
+
+# stencil_upgrade_new_pr upgrades the modules on a new branch, then
+# pushes it and opens a pull request.
+#
+# $1: The work directory, outside of the checkout.
+# $2: The new branch.
+# $3: The pull request title.
+stencil_upgrade_new_pr() {
+  local work_dir="$1" branch="$2" title="$3"
+  local ls_remote_status=0 count force_pr changed tree_dirty=false
+
+  # ls-remote exits with 2 when origin does not have the branch.
+  git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null || ls_remote_status=$?
+  if ((ls_remote_status == 0)); then
+    error "$branch already exists on origin without an open pull request. A person must look at it."
+    return 1
+  elif ((ls_remote_status != 2)); then
+    error "could not list the branches on origin"
+    return 1
+  fi
+
+  cp stencil.lock "$work_dir/old.lock" || return 1
+  git switch -q -c "$branch" || return 1
+  stencil_upgrade_stencil "$work_dir" "$work_dir/old.lock" || return 1
+
+  count="$(stencil_upgrade_version_change_count "$work_dir/changes.json")" || return 1
+  force_pr="$(stencil_upgrade_force_pr "${STENCIL_UPGRADE_FORCE_PR:-false}" stencil.lock)" || return 1
+  changed="$(git status --porcelain)" || return 1
+  if [[ -n $changed ]]; then
+    tree_dirty=true
+  fi
+
+  case "$(stencil_upgrade_decide "$count" "$force_pr" "$tree_dirty")" in
+  stop-no-changes)
+    info "no module changes, skipping"
+    return 0
+    ;;
+  stop-empty)
+    info "the pull request would be empty, skipping"
+    return 0
+    ;;
+  esac
+
+  stencil_upgrade_commit "$work_dir" "$title" || return 1
+  if stencil_upgrade_is_dry_run; then
+    return 0
+  fi
+  git push -u origin "$branch" || return 1
+  run_gh pr create --title "$title" --head "$branch" --body-file "$work_dir/body.md"
+}
+
+# stencil_upgrade_existing_pr adds a commit with the newest upgrade to
+# the branch of an open pull request, then updates the pull request. It
+# skips the pull request when a person committed to its branch.
+#
+# $1: The work directory, outside of the checkout.
+# $2: The branch of the open pull request.
+# $3: The pull request title.
+# $4: The author name of the bot.
+# $5: The author email of the bot.
+stencil_upgrade_existing_pr() {
+  local work_dir="$1" branch="$2" title="$3" name="$4" email="$5"
+  local default_branch other_commit changed
+
+  default_branch="$(stencil_upgrade_default_branch)"
+  git fetch -q origin "$default_branch" "$branch" || return 1
+
+  if ! other_commit="$(stencil_upgrade_only_bot_commits "origin/$default_branch" "origin/$branch" "$name" "$email")"; then
+    # Without a commit, the check itself failed.
+    if [[ -z $other_commit ]]; then
+      return 1
+    fi
+    info "open PR has human commits, skipping: $other_commit"
+    return 0
+  fi
+
+  git switch -q "$branch" || return 1
+  # The body lists every module change in the pull request, so the diff
+  # starts from the default branch.
+  git show "origin/$default_branch:stencil.lock" >"$work_dir/old.lock" || return 1
+  stencil_upgrade_stencil "$work_dir" "$work_dir/old.lock" || return 1
+
+  changed="$(git status --porcelain)" || return 1
+  if [[ -z $changed ]]; then
+    info "the open PR is already current, skipping"
+    return 0
+  fi
+
+  stencil_upgrade_commit "$work_dir" "$title" || return 1
+  if stencil_upgrade_is_dry_run; then
+    return 0
+  fi
+  # Never force-push: the branch only gains commits.
+  git push || return 1
+  run_gh pr edit "$branch" --title "$title" --body-file "$work_dir/body.md"
+}
+
+# stencil_upgrade_run runs the stencil-upgrade job in the current
+# checkout. It opens a pull request that upgrades the Stencil modules, or
+# adds the upgrade to the open pull request from an earlier run.
+#
+# It reads these environment variables:
+# * STENCIL_UPGRADE_FORCE_PR: "true" opens a pull request when the
+#   working tree changed, even without module version changes. Default:
+#   "false".
+# * STENCIL_UPGRADE_DRYRUN: "true" prints the title and body, and pushes
+#   nothing. Default: "false".
+#
+# It returns 0 on success or when it stops on purpose.
+stencil_upgrade_run() {
+  local name email open_pr branch title work_dir status=0
+
+  name="$(get_box_field ci.circleci.releaseUser.name)" || return 1
+  email="$(get_box_field ci.circleci.releaseUser.email)" || return 1
+  if [[ -z $name || -z $email ]]; then
+    error "the box fields ci.circleci.releaseUser.name and ci.circleci.releaseUser.email must be set"
+    return 1
+  fi
+  git config user.name "$name" || return 1
+  git config user.email "$email" || return 1
+
+  # A stencilbot/ pull request belongs to the dtss-tools stencilbot command.
+  open_pr="$(stencil_upgrade_open_prs stencilbot/)" || return 1
+  if [[ -n $open_pr ]]; then
+    info "open stencilbot PR ${open_pr//$'\n'/ }, skipping"
+    return 0
+  fi
+  open_pr="$(stencil_upgrade_open_prs stencil-upgrade/)" || return 1
+
+  branch="$(stencil_upgrade_branch_name)" || return 1
+  title="fix(stencil): upgrade modules (${branch#stencil-upgrade/})"
+  work_dir="$(mktemp -d)" || return 1
+  if [[ -n $open_pr ]]; then
+    stencil_upgrade_existing_pr "$work_dir" "${open_pr%%$'\n'*}" "$title" "$name" "$email" || status=$?
+  else
+    stencil_upgrade_new_pr "$work_dir" "$branch" "$title" || status=$?
+  fi
+  rm -rf "$work_dir"
+  return "$status"
 }
