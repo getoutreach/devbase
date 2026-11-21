@@ -28,7 +28,8 @@ stencil_upgrade_branch_name() {
 }
 
 # stencil_upgrade_open_prs echoes the head branch of each open pull
-# request whose branch name starts with the prefix.
+# request whose branch name starts with the prefix. It ignores pull
+# requests from forks.
 #
 # $1: The branch prefix, e.g. "stencil-upgrade/".
 stencil_upgrade_open_prs() {
@@ -37,8 +38,8 @@ stencil_upgrade_open_prs() {
 
   # The search matches loosely, so the exact prefix check follows.
   branches="$(run_gh pr list --state open --limit 200 \
-    --search "head:${prefix%/}" --json headRefName \
-    --jq '.[].headRefName')" || return 1
+    --search "head:${prefix%/}" --json headRefName,isCrossRepository \
+    --jq '.[] | select(.isCrossRepository | not) | .headRefName')" || return 1
 
   while IFS= read -r branch; do
     if [[ $branch == "$prefix"* ]]; then
@@ -121,15 +122,36 @@ stencil_upgrade_decide() {
   fi
 }
 
-# stencil_upgrade_default_branch echoes the default branch of origin, or
-# "main" when origin/HEAD is not set.
+# stencil_upgrade_default_branch echoes the default branch of origin. It
+# reads origin/HEAD, then asks origin, and echoes "main" when both fail.
 stencil_upgrade_default_branch() {
-  local ref
+  local ref name
   if ref="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"; then
     echo "${ref#origin/}"
-  else
-    echo "main"
+    return
   fi
+
+  # The output has the line "ref: refs/heads/<name><TAB>HEAD".
+  while IFS=$'\t' read -r ref name; do
+    if [[ $ref == "ref: refs/heads/"* && $name == "HEAD" ]]; then
+      echo "${ref#ref: refs/heads/}"
+      return
+    fi
+  done < <(git ls-remote --symref origin HEAD 2>/dev/null)
+  echo "main"
+}
+
+# stencil_upgrade_fetch fetches each branch from origin to its
+# remote-tracking ref. The refspecs are explicit because a CI checkout
+# can fetch only some branches by default.
+#
+# $@: The branches.
+stencil_upgrade_fetch() {
+  local branch refspecs=()
+  for branch in "$@"; do
+    refspecs+=("+refs/heads/$branch:refs/remotes/origin/$branch")
+  done
+  git fetch -q origin "${refspecs[@]}"
 }
 
 # stencil_upgrade_stencil_version echoes the version of stencil, without
@@ -141,15 +163,18 @@ stencil_upgrade_stencil_version() {
 }
 
 # stencil_upgrade_stencil runs the stencil upgrade in the checkout, then
-# writes the lock-diff JSON between the old lockfile and the new
-# stencil.lock to changes.json in the work directory.
+# writes the lock-diff JSON between the stencil.lock of the default
+# branch and the new stencil.lock to changes.json in the work directory.
+# The diff starts from the default branch so that it lists every module
+# change in the pull request.
 #
 # $1: The work directory, outside of the checkout.
-# $2: The path to the old stencil.lock.
+# $2: The default branch, fetched to origin/<name>.
 stencil_upgrade_stencil() {
-  local work_dir="$1" old_lock="$2"
-  local checkout origin_url
+  local work_dir="$1" default_branch="$2"
+  local old_lock="$work_dir/old.lock" checkout origin_url
 
+  git show "origin/$default_branch:stencil.lock" >"$old_lock" || return 1
   checkout="$(git rev-parse --show-toplevel)" || return 1
   origin_url="$(git remote get-url origin)" || return 1
   # Stencil module repositories need their own build before stencil runs.
@@ -203,21 +228,25 @@ stencil_upgrade_commit() {
 # $3: The pull request title.
 stencil_upgrade_new_pr() {
   local work_dir="$1" branch="$2" title="$3"
-  local ls_remote_status=0 count force_pr changed tree_dirty=false
+  local ls_remote_status=0 default_branch count force_pr changed tree_dirty=false
 
   # ls-remote exits with 2 when origin does not have the branch.
   git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null || ls_remote_status=$?
   if ((ls_remote_status == 0)); then
-    error "$branch already exists on origin without an open pull request. A person must look at it."
+    error "$branch already exists on origin without an open pull request." \
+      "Delete the branch, or open a pull request for it."
     return 1
   elif ((ls_remote_status != 2)); then
     error "could not list the branches on origin"
     return 1
   fi
 
-  cp stencil.lock "$work_dir/old.lock" || return 1
-  git switch -q -c "$branch" || return 1
-  stencil_upgrade_stencil "$work_dir" "$work_dir/old.lock" || return 1
+  # The branch starts from the default branch, not from the checkout,
+  # which can be on another branch in a manual run.
+  default_branch="$(stencil_upgrade_default_branch)"
+  stencil_upgrade_fetch "$default_branch" || return 1
+  git switch -q --no-track -c "$branch" "origin/$default_branch" || return 1
+  stencil_upgrade_stencil "$work_dir" "$default_branch" || return 1
 
   count="$(stencil_upgrade_version_change_count "$work_dir/changes.json")" || return 1
   force_pr="$(stencil_upgrade_force_pr "${STENCIL_UPGRADE_FORCE_PR:-false}" stencil.lock)" || return 1
@@ -256,10 +285,10 @@ stencil_upgrade_new_pr() {
 # $5: The author email of the bot.
 stencil_upgrade_existing_pr() {
   local work_dir="$1" branch="$2" title="$3" name="$4" email="$5"
-  local default_branch other_commit changed
+  local default_branch other_commit count force_pr changed
 
   default_branch="$(stencil_upgrade_default_branch)"
-  git fetch -q origin "$default_branch" "$branch" || return 1
+  stencil_upgrade_fetch "$default_branch" "$branch" || return 1
 
   if ! other_commit="$(stencil_upgrade_only_bot_commits "origin/$default_branch" "origin/$branch" "$name" "$email")"; then
     # Without a commit, the check itself failed.
@@ -270,11 +299,18 @@ stencil_upgrade_existing_pr() {
     return 0
   fi
 
-  git switch -q "$branch" || return 1
-  # The body lists every module change in the pull request, so the diff
-  # starts from the default branch.
-  git show "origin/$default_branch:stencil.lock" >"$work_dir/old.lock" || return 1
-  stencil_upgrade_stencil "$work_dir" "$work_dir/old.lock" || return 1
+  git switch -q --no-track -c "$branch" "origin/$branch" || return 1
+  # The plain git push needs an upstream. git switch --track works only
+  # when a fetch refspec covers the branch, so the config is set directly.
+  git config "branch.$branch.remote" origin || return 1
+  git config "branch.$branch.merge" "refs/heads/$branch" || return 1
+  stencil_upgrade_stencil "$work_dir" "$default_branch" || return 1
+
+  count="$(stencil_upgrade_version_change_count "$work_dir/changes.json")" || return 1
+  force_pr="$(stencil_upgrade_force_pr "${STENCIL_UPGRADE_FORCE_PR:-false}" stencil.lock)" || return 1
+  if ((count == 0)) && [[ $force_pr != "true" ]]; then
+    warn "no module version differs from $default_branch, so the open PR may now be empty and can be closed"
+  fi
 
   changed="$(git status --porcelain)" || return 1
   if [[ -z $changed ]]; then

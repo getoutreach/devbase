@@ -141,6 +141,15 @@ upgrade_to() {
 JSON
 }
 
+# narrow_checkout clones origin with only the default branch, removes
+# origin/HEAD, and changes to that checkout. This is like a CI checkout
+# that is not a full git clone.
+narrow_checkout() {
+  git clone -q --single-branch --branch trunk "$ORIGIN" "$TEST_DIR/narrow" 2>/dev/null
+  cd "$TEST_DIR/narrow"
+  git remote set-head origin --delete
+}
+
 # run_job runs stencil_upgrade_run and logs only the git calls it makes.
 run_job() {
   : >"$STUB_DIR/git.log"
@@ -182,7 +191,27 @@ assert_mise_ran_stencil() {
   assert_success
   assert_output "stencil-upgrade/2026-11-20"
   assert_stub_called gh pr list --state open --limit 200 \
-    --search head:stencil-upgrade --json headRefName --jq .[].headRefName
+    --search head:stencil-upgrade --json headRefName,isCrossRepository \
+    --jq ".[] | select(.isCrossRepository | not) | .headRefName"
+}
+
+@test "stencil_upgrade_open_prs should ignore pull requests from forks" {
+  # The gh stub applies the --jq filter to the JSON that gh would read.
+  cat >"$STUB_DIR/prs.json" <<'JSON'
+[
+  {"headRefName": "stencil-upgrade/2026-11-20", "isCrossRepository": false},
+  {"headRefName": "stencil-upgrade/fork", "isCrossRepository": true}
+]
+JSON
+  cat >"$STUB_DIR/gh" <<'EOF'
+#!/usr/bin/env bash
+jq -r "${@: -1}" "$STUB_DIR/prs.json"
+EOF
+  chmod +x "$STUB_DIR/gh"
+
+  run stencil_upgrade_open_prs "stencil-upgrade/"
+  assert_success
+  assert_output "stencil-upgrade/2026-11-20"
 }
 
 @test "stencil_upgrade_open_prs should fail when gh fails" {
@@ -347,6 +376,42 @@ TABLE
   assert_equal "${#lines[@]}" 8
 }
 
+@test "new PR path starts from the default branch, not from the checkout" {
+  job_setup
+  upgrade_to v1.1.0
+  local trunk
+  trunk="$(git rev-parse trunk)"
+  git switch -q -c feature
+  write_lock stencil.lock v0.9.0
+  commit_as human human@example.com "feature work"
+
+  run_job
+  assert_success
+  assert_pushes "push -u origin stencil-upgrade/2026-11-21"
+  run cat "$STUB_DIR/lock-diff.old"
+  assert_output --partial "version: v1.0.0"
+  run git -C "$ORIGIN" rev-parse stencil-upgrade/2026-11-21~1
+  assert_output "$trunk"
+  run git -C "$ORIGIN" log --format=%s trunk..stencil-upgrade/2026-11-21
+  assert_output "fix(stencil): upgrade modules (2026-11-21)"
+}
+
+@test "new PR path works without origin/HEAD and with a narrow fetch refspec" {
+  job_setup
+  upgrade_to v1.1.0
+  local trunk
+  trunk="$(git rev-parse trunk)"
+  narrow_checkout
+
+  run_job
+  assert_success
+  assert_pushes "push -u origin stencil-upgrade/2026-11-21"
+  run git -C "$ORIGIN" rev-parse stencil-upgrade/2026-11-21~1
+  assert_output "$trunk"
+  run git -C "$ORIGIN" show stencil-upgrade/2026-11-21:stencil.lock
+  assert_output --partial "version: v1.1.0"
+}
+
 @test "dry run prints the body and pushes nothing" {
   job_setup
   upgrade_to v1.1.0
@@ -438,6 +503,7 @@ JSON
 
   run_job
   assert_success
+  refute_output --partial "may now be empty"
   assert_pushes "push"
   # The diff compares the lock on the default branch, not on the PR branch.
   run cat "$STUB_DIR/lock-diff.old"
@@ -458,6 +524,43 @@ JSON
   assert_line --index 4 "fix(stencil): upgrade modules (2026-11-21)"
   assert_line --index 5 --body-file
   assert_equal "${#lines[@]}" 7
+}
+
+@test "open PR path works without origin/HEAD and with a narrow fetch refspec" {
+  job_setup
+  push_bot_branch stencil-upgrade/2026-11-20
+  stub_command gh "stencil-upgrade/2026-11-20"
+  upgrade_to v1.2.0
+  local before
+  before="$(git -C "$ORIGIN" rev-parse stencil-upgrade/2026-11-20)"
+  narrow_checkout
+
+  run_job
+  assert_success
+  assert_pushes "push"
+  run git -C "$ORIGIN" rev-parse stencil-upgrade/2026-11-20~1
+  assert_output "$before"
+  run git -C "$ORIGIN" show stencil-upgrade/2026-11-20:stencil.lock
+  assert_output --partial "version: v1.2.0"
+  assert_stub_called gh pr edit stencil-upgrade/2026-11-20 \
+    --title "fix(stencil): upgrade modules (2026-11-21)" --body-file "$(stub_argv gh | tail -n 1)"
+}
+
+@test "open PR without a version change against the default branch logs a warning" {
+  job_setup
+  push_bot_branch stencil-upgrade/2026-11-20
+  stub_command gh "stencil-upgrade/2026-11-20"
+  # The default branch already has the version of the PR branch.
+  write_lock stencil.lock v1.1.0
+  git commit -q -am "upgrade by hand"
+  git push -q origin trunk
+  write_lock "$STUB_DIR/new.lock" v1.1.0
+
+  run_job
+  assert_success
+  assert_output --partial "no module version differs from trunk, so the open PR may now be empty and can be closed"
+  assert_output --partial "the open PR is already current, skipping"
+  assert_pushes
 }
 
 @test "open PR that is already current is left alone" {
@@ -505,6 +608,7 @@ JSON
   run_job
   assert_failure
   assert_output --partial "stencil-upgrade/2026-11-21 already exists on origin"
+  assert_output --partial "Delete the branch, or open a pull request for it."
   assert_mise_ran_stencil 0
   assert_pushes
   run grep -c '^gh pr create' "$STUB_CALLS_FILE"
