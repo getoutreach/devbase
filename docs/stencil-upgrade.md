@@ -28,7 +28,7 @@ The job has no opt-in check of its own. The schedule exists only for repositorie
 
 - The title is `fix(stencil): upgrade modules (<UTC date>)`.
 - The branch is `stencil-upgrade/<UTC date>`.
-- The description links to the release notes of each module. For a module with more than 20 new versions, it links the newest 20 and counts the older ones.
+- The description has a table of the changed modules, with a link to the repository of each module. It links the release notes of each new version, or the commit history for a module on `unstable`. A module that uses a local directory has no release notes link. For a module with more than 20 new versions, it links the newest 20 and counts the older ones.
 - The pull request is not a draft. It has no labels, reviewers or assignees.
 
 A person must approve the pull request, for compliance reasons. The job does not enable auto-merge.
@@ -38,7 +38,9 @@ A person must approve the pull request, for compliance reasons. The job does not
 Before it makes changes, the job looks for open pull requests.
 
 - If a pull request from a branch that starts with `stencilbot/` is open, the job stops.
-- If a pull request from a branch that starts with `stencil-upgrade/` is open, the job runs the upgrade on that branch. If any file changed, even if only generated files changed, the job adds a commit and updates the title and description. If no file changed, the job logs that the pull request is already current. If no module version differs from the default branch, the job logs a warning that the pull request may be empty. The job does not close it.
+- If a pull request from a branch that starts with `stencil-upgrade/` is open, the job runs the upgrade on that branch.
+  - If any file changed, even if only generated files changed, the job adds a commit and updates the title and description. Otherwise, the job logs that the pull request is already current.
+  - If no module version differs from the default branch and `forcePR` does not apply, the job logs a warning that the pull request may be empty. The job does not close it.
 - If a person pushed a commit to the branch of the open pull request, the job skips the pull request. The job never force-pushes.
 - The job ignores pull requests from forks.
 - If the branch for today exists on the remote, but has no open pull request, the job fails. A person must delete the branch or open a pull request for it.
