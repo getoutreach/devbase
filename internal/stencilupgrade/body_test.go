@@ -146,7 +146,33 @@ func TestRenderBodyCap(t *testing.T) {
 	body := render(t, BodyInput{Changes: []ModuleChange{{Module: testModule, Old: "v1.0.0", New: "v1.25.0"}}}, vl)
 
 	assert.Equal(t, strings.Count(body, "/releases/tag/"), MaxLinksPerModule)
-	assert.Assert(t, strings.Contains(body, "and 5 more"), body)
+	assert.Assert(t, strings.Contains(body, "- and 5 more\n- [v1.6.0]"), body)
+	for i := 1; i <= 5; i++ {
+		assert.Assert(t, !strings.Contains(body, releaseLink(fmt.Sprintf("v1.%d.0", i))+")"), body)
+	}
+	for i := 6; i <= 25; i++ {
+		assert.Assert(t, strings.Contains(body, releaseLink(fmt.Sprintf("v1.%d.0", i))+")"), body)
+	}
+}
+
+func TestRenderBodyMajorVersionModule(t *testing.T) {
+	const module = "github.com/org/mod/v2"
+	in := BodyInput{Changes: []ModuleChange{{Module: module, Old: "v2.0.0", New: "v2.1.0"}}}
+
+	body := render(t, in, fakeLister{releases: releasesOf("v2.1.0")})
+	assert.Assert(t, strings.Contains(body, "| [github.com/org/mod/v2](https://github.com/org/mod) |"), body)
+	assert.Assert(t, strings.Contains(body, "(https://github.com/org/mod/releases/tag/v2.1.0)"), body)
+
+	body = render(t, in, fakeLister{releasesErr: errRateLimited})
+	assert.Assert(t, strings.Contains(body, "(https://github.com/org/mod/compare/v2.0.0...v2.1.0)"), body)
+
+	in.Changes[0] = ModuleChange{Module: module, Old: UnstableVersion, New: UnstableVersion, Unstable: true}
+	body = render(t, in, fakeLister{defaultBranch: "main"})
+	assert.Assert(t, strings.Contains(body, "(https://github.com/org/mod/commits/main)"), body)
+
+	body = render(t, in, fakeLister{branchErr: errBoom})
+	assert.Assert(t, strings.Contains(body, "[Repository](https://github.com/org/mod)"), body)
+	assert.Assert(t, !strings.Contains(body, "/v2/"), body)
 }
 
 func TestRenderBodyEmptyChanges(t *testing.T) {

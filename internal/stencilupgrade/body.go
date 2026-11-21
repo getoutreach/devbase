@@ -19,7 +19,8 @@ import (
 )
 
 // MaxLinksPerModule is the largest number of version links shown for
-// one module. The rest are counted in an "and N more" line.
+// one module. The newest versions are shown, and the older ones are
+// counted in an "and N more" line.
 const MaxLinksPerModule = 20
 
 const (
@@ -59,8 +60,9 @@ type bodyData struct {
 
 // bodyRow is one row of the table of changes.
 type bodyRow struct {
-	Module string
-	Change string
+	Module  string
+	RepoURL string
+	Change  string
 }
 
 // bodyNote is the release notes of one module. Each link is Markdown.
@@ -75,7 +77,7 @@ type bodyNote struct {
 func RenderBody(ctx context.Context, in BodyInput, vl VersionLister) (string, error) {
 	data := bodyData{StencilVersion: in.StencilVersion}
 	for _, c := range in.Changes {
-		data.Rows = append(data.Rows, bodyRow{Module: c.Module, Change: changeText(c)})
+		data.Rows = append(data.Rows, bodyRow{Module: c.Module, RepoURL: repositoryURL(c.Module), Change: changeText(c)})
 		if links := moduleLinks(ctx, c, in.Channels, vl); len(links) > 0 {
 			data.Notes = append(data.Notes, bodyNote{Module: c.Module, Links: links})
 		}
@@ -101,9 +103,21 @@ func changeText(c ModuleChange) string {
 	return fmt.Sprintf("%#q -> %#q", c.Old, c.New)
 }
 
+// repositoryURL returns the URL of the GitHub repository of module, so
+// that a major version suffix such as "/v2" or a module in a
+// subdirectory links to the repository root. A module that is not on
+// GitHub links to its full path.
+func repositoryURL(module string) string {
+	owner, repo, err := splitModule(module)
+	if err != nil {
+		return "https://" + module
+	}
+	return "https://github.com/" + owner + "/" + repo
+}
+
 // moduleLinks returns the Markdown links for the release notes of c.
 func moduleLinks(ctx context.Context, c ModuleChange, channels map[string]string, vl VersionLister) []string {
-	repoURL := "https://" + c.Module
+	repoURL := repositoryURL(c.Module)
 	switch {
 	case c.Old == localVersion || c.New == localVersion:
 		return nil
@@ -136,12 +150,14 @@ func moduleLinks(ctx context.Context, c ModuleChange, channels map[string]string
 		tags = versionsBetween(releases, oldVer, newVer, channelOf(c, channels) == channelRC)
 	}
 
+	// The newest versions matter most, so the oldest ones are left out.
 	links := make([]string, 0, min(len(tags), MaxLinksPerModule)+1)
-	for _, tag := range tags[:min(len(tags), MaxLinksPerModule)] {
-		links = append(links, tagLink(repoURL, tag))
-	}
 	if more := len(tags) - MaxLinksPerModule; more > 0 {
 		links = append(links, fmt.Sprintf("and %d more", more))
+		tags = tags[more:]
+	}
+	for _, tag := range tags {
+		links = append(links, tagLink(repoURL, tag))
 	}
 	return links
 }
