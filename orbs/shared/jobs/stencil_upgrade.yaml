@@ -1,5 +1,9 @@
 description: Opens a pull request that upgrades the Stencil modules of the repository
 parameters:
+  dryrun:
+    description: Print the pull request title and body instead of pushing a branch and opening a pull request
+    type: boolean
+    default: false
   force_pr:
     description: Open a pull request when generated files changed, even if no module version changed
     type: boolean
@@ -33,6 +37,7 @@ steps:
   - run:
       name: Upgrade Stencil modules
       environment:
+        STENCIL_UPGRADE_DRYRUN: << parameters.dryrun >>
         STENCIL_UPGRADE_FORCE_PR: << parameters.force_pr >>
       command: ./scripts/shell-wrapper.sh ci/stencil-upgrade.sh
       no_output_timeout: << parameters.no_output_timeout >>
