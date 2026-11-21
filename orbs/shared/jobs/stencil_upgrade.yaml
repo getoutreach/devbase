@@ -1,0 +1,38 @@
+description: Opens a pull request that upgrades the Stencil modules of the repository
+parameters:
+  force_pr:
+    description: Open a pull request when generated files changed, even if no module version changed
+    type: boolean
+    default: false
+  machine:
+    description: Denotes that we're using a machine executor. Will need to set executor manually
+    type: boolean
+    default: false
+  resource_class:
+    description: The resource class to use for the upgrade
+    type: string
+    default: "large.gen2"
+  executor:
+    description: The executor to use for the job
+    type: executor
+    default: testbed-docker-aws
+  no_output_timeout:
+    description: The timeout that gets applied when CircleCI receives no output during the upgrade
+    type: string
+    default: 10m
+  setup_remote_docker:
+    description: Enable running Docker on the underlying virtual machine running the container
+    type: boolean
+    default: false
+resource_class: << parameters.resource_class >>
+executor: << parameters.executor >>
+steps:
+  - setup_environment:
+      machine: << parameters.machine >>
+      setup_remote_docker: << parameters.setup_remote_docker >>
+  - run:
+      name: Upgrade Stencil modules
+      environment:
+        STENCIL_UPGRADE_FORCE_PR: << parameters.force_pr >>
+      command: ./scripts/shell-wrapper.sh ci/stencil-upgrade.sh
+      no_output_timeout: << parameters.no_output_timeout >>
