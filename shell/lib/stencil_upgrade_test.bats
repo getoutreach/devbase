@@ -89,6 +89,16 @@ write_lock() {
   assert_output --partial "human <human@example.com>"
 }
 
+@test "stencil_upgrade_only_bot_commits should pass for an empty range" {
+  cd "$TEST_DIR"
+  git init -q -b main
+  commit_as human human@example.com base
+
+  run stencil_upgrade_only_bot_commits main main bot bot@example.com
+  assert_success
+  assert_output ""
+}
+
 @test "stencil_upgrade_only_bot_commits should fail for a bad ref" {
   cd "$TEST_DIR"
   git init -q -b main

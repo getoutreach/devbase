@@ -57,6 +57,11 @@ stencil_upgrade_only_bot_commits() {
 
   # Read the log before the loop so that a bad ref fails the function.
   commits="$(git log --format=$'%h\t%an\t%ae\t%s' "$base_ref..$head_ref")" || return 1
+  # An empty range has no other author. Without this, read would see one
+  # empty line and report a commit that does not exist.
+  if [[ -z $commits ]]; then
+    return 0
+  fi
 
   while IFS=$'\t' read -r sha author_name author_email subject; do
     if [[ $author_name != "$name" || $author_email != "$email" ]]; then
