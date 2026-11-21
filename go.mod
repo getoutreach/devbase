@@ -7,6 +7,7 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/getoutreach/gobox v1.120.1
 	github.com/getoutreach/localizer v1.15.19
+	github.com/getoutreach/stencil v1.47.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/go-github/v84 v84.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
