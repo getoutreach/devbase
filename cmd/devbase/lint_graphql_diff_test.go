@@ -73,15 +73,36 @@ func TestLintGraphQLDiff(t *testing.T) {
 // only the new "bar" violation, and not the old "foo" violation.
 func TestLintGraphQLDiffBloblessClone(t *testing.T) {
 	root, baseName := newDiffRepo(t)
-	runGit(t, root, "config", "uploadpack.allowFilter", "true")
-
-	clone := filepath.Join(t.TempDir(), "clone")
-	runGit(t, filepath.Dir(clone), "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+root, clone)
-	runGit(t, clone, "checkout", "-q", "feature")
+	clone := newDiffPartialClone(t, root, "blob:none")
 
 	out, runErr := runGraphQLDiff(t, clone, "origin/"+baseName)
 
 	assertOnlyNewViolation(t, out, runErr)
+}
+
+// TestLintGraphQLDiffTreelessClone runs the check in a clone without trees. It cannot read the
+// merge-base version of the schema file, so the run must fail with the advice for CircleCI, and must
+// not report wrong violations.
+func TestLintGraphQLDiffTreelessClone(t *testing.T) {
+	root, baseName := newDiffRepo(t)
+	clone := newDiffPartialClone(t, root, "tree:0")
+
+	_, err := runGraphQLDiff(t, clone, "origin/"+baseName)
+	assert.ErrorContains(t, err, "set `checkout: method: full`")
+}
+
+// newDiffPartialClone clones the repository at root without the objects that filter excludes, and
+// checks out its feature branch.
+func newDiffPartialClone(t *testing.T, root, filter string) string {
+	t.Helper()
+
+	runGit(t, root, "config", "uploadpack.allowFilter", "true")
+
+	clone := filepath.Join(t.TempDir(), "clone")
+	runGit(t, filepath.Dir(clone), "clone", "-q", "--filter="+filter, "--no-checkout", "file://"+root, clone)
+	runGit(t, clone, "checkout", "-q", "feature")
+
+	return clone
 }
 
 // assertOnlyNewViolation checks that the run failed because of the new "bar" violation, and that the
