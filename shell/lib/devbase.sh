@@ -152,8 +152,8 @@ devbase_tree_has_external_build_inputs() {
 # from this source tree. It builds only if the cache has no binary for the
 # tree's state. The cache key is the current commit, plus a hash of the
 # uncommitted changes if the tree is dirty. The key cannot cover files
-# outside the tree, so a tree with such inputs rebuilds on every call. The
-# build is moved into place so that parallel callers never run a partial
+# outside the tree, so a tree with such inputs rebuilds on every call, into a
+# binary path that is specific to the tree's path. The build is moved into place so that parallel callers never run a partial
 # binary. Callers that run devbase many times (yq_wrapper, devbase_cli)
 # use it instead of devbase_build_from_source.
 devbase_cached_source_binary() {
@@ -161,7 +161,7 @@ devbase_cached_source_binary() {
   treeRoot="$(devbase_tree_root)"
   rev="$(git -C "$treeRoot" rev-parse HEAD)" || fatal "failed to resolve $treeRoot's current commit"
   if devbase_tree_has_external_build_inputs "$treeRoot"; then
-    cacheKey="external-inputs"
+    cacheKey="external-inputs-$(printf '%s' "$treeRoot" | sha256sum | cut -c1-16)"
     rebuild=true
   elif devbase_tree_is_dirty "$treeRoot"; then
     # A clean tree skips devbase_dirty_tree_hash, which costs more.

@@ -472,6 +472,25 @@ stub_go_git() {
   rm -rf "$tree"
 }
 
+@test "devbase_cached_source_binary uses separate binaries for different trees with external inputs" {
+  tree_a="$(mktempdir devbase-external-XXXXXX)"
+  tree_b="$(mktempdir devbase-external-XXXXXX)"
+  for t in "$tree_a" "$tree_b"; do
+    printf 'module x\n\nreplace github.com/getoutreach/gobox => ../gobox\n' >"$t/go.mod"
+  done
+  stub_go_git "$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
+
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_tree_root() { echo "$tree_a"; }
+  first="$(devbase_cached_source_binary)"
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  devbase_tree_root() { echo "$tree_b"; }
+  second="$(devbase_cached_source_binary)"
+
+  assert_not_equal "$first" "$second"
+  rm -rf "$tree_a" "$tree_b"
+}
+
 @test "devbase_tree_has_external_build_inputs detects a go.work in a parent directory" {
   tree="$(mktempdir devbase-external-XXXXXX)"
   mkdir -p "$tree/devbase"
