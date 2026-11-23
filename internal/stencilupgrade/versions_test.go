@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 )
@@ -55,4 +56,20 @@ func TestGitHubListerNonGitHubModule(t *testing.T) {
 	assert.ErrorContains(t, err, "gitlab.com")
 	_, err = vl.DefaultBranch(context.Background(), "github.com/org")
 	assert.Assert(t, err != nil)
+}
+
+func TestGitHubListerTimeout(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/repos/org/mod", func(_ http.ResponseWriter, r *http.Request) {
+		// Hold the request until the client gives up.
+		<-r.Context().Done()
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	vl := NewGitHubLister("tok", WithBaseURL(srv.URL+"/"), WithTimeout(50*time.Millisecond))
+	start := time.Now()
+	_, err := vl.DefaultBranch(context.Background(), "github.com/org/mod")
+	assert.ErrorContains(t, err, "get repository org/mod")
+	assert.Assert(t, time.Since(start) < 5*time.Second)
 }

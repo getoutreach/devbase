@@ -8,8 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v84/github"
 )
@@ -19,6 +21,9 @@ var errNotGitHubModule = errors.New("module is not a github.com module")
 
 // releasesPerPage is the largest page size of the GitHub API.
 const releasesPerPage = 100
+
+// defaultTimeout is the timeout of each GitHub API request.
+const defaultTimeout = 30 * time.Second
 
 // Release is one release of a module.
 type Release struct {
@@ -47,10 +52,17 @@ func WithBaseURL(u string) GitHubOption {
 	return func(l *githubLister) { l.baseURL = u }
 }
 
+// WithTimeout sets the timeout of each GitHub API request. The default is
+// 30 seconds.
+func WithTimeout(d time.Duration) GitHubOption {
+	return func(l *githubLister) { l.timeout = d }
+}
+
 // githubLister is a VersionLister backed by the GitHub API.
 type githubLister struct {
 	client  *github.Client
 	baseURL string
+	timeout time.Duration
 }
 
 // NewGitHubLister returns a VersionLister that reads releases from
@@ -58,12 +70,12 @@ type githubLister struct {
 // "github.com/<owner>/<repo>[/...]", and only the first three parts are
 // used. The lister returns an error for any other module.
 func NewGitHubLister(token string, opts ...GitHubOption) VersionLister {
-	l := &githubLister{}
+	l := &githubLister{timeout: defaultTimeout}
 	for _, o := range opts {
 		o(l)
 	}
 
-	client := github.NewClient(nil)
+	client := github.NewClient(&http.Client{Timeout: l.timeout})
 	if token != "" {
 		client = client.WithAuthToken(token)
 	}
