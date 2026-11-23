@@ -49,11 +49,16 @@ Before it makes changes, the job looks for open pull requests.
 
 The pipeline parameter `stencil_upgrade` (boolean) starts the `manual-stencil-upgrade` workflow. Set it to `true` when you trigger a pipeline in the CircleCI web app or with the CircleCI API.
 
+The job parameter `note` (string, default empty) adds Markdown at the top of the pull request description, above the table of changes. Use it to explain a change that the module versions do not show, for example a move to another vendor.
+
+The `stencil-circleci` module passes its pipeline parameter `stencil_upgrade_note` (string, default empty) to `note` in the job that the `stencil-upgrade` and `manual-stencil-upgrade` workflows both use. Set it together with `stencil_upgrade` when you trigger a pipeline. The schedule does not set it, so the default applies. A run that changes the branch of an open pull request replaces the description, so the note stays only if that run sets it again.
+
 The job parameter `dryrun` (boolean, default `false`) makes a dry run. The workflows from `stencil-circleci` do not set it. To make a dry run, run the job with `dryrun: true` in a CircleCI config, for example on a test branch.
 
 ## Environment variables
 
-The job passes `force_pr` and `dryrun` to the script as `STENCIL_UPGRADE_FORCE_PR` and `STENCIL_UPGRADE_DRYRUN`. The script `shell/ci/stencil-upgrade.sh` reads these variables:
+The job passes `force_pr`, `note` and `dryrun` to the script as `STENCIL_UPGRADE_FORCE_PR`, `STENCIL_UPGRADE_NOTE` and `STENCIL_UPGRADE_DRYRUN`. The script `shell/ci/stencil-upgrade.sh` runs `stencil_upgrade_run` from `shell/lib/stencil_upgrade.sh`, which reads these variables:
 
 - `STENCIL_UPGRADE_FORCE_PR` is `true` or `false`. The default is `false`.
+- `STENCIL_UPGRADE_NOTE` is Markdown for the top of the pull request description. The default is empty.
 - `STENCIL_UPGRADE_DRYRUN` is `true` or `false`. The default is `false`. When it is `true`, the script prints the title and description, and pushes nothing.
