@@ -417,6 +417,16 @@ TABLE
   assert_output --partial "version: v1.1.0"
 }
 
+@test "a note is passed to the body command" {
+  job_setup
+  upgrade_to v1.1.0
+
+  run_job "STENCIL_UPGRADE_NOTE=We are moving vendors."
+  assert_success
+  assert_stub_called devbase_cli stencil pr-body --changes - \
+    --stencil-version v1.47.0 --service-yaml service.yaml --note "We are moving vendors."
+}
+
 @test "dry run prints the body and pushes nothing" {
   job_setup
   upgrade_to v1.1.0

@@ -205,8 +205,11 @@ stencil_upgrade_commit() {
   local version
 
   version="$(stencil_upgrade_stencil_version)" || return 1
-  (devbase_cli stencil pr-body --changes - --stencil-version "$version" --service-yaml service.yaml) \
-    <"$work_dir/changes.json" >"$work_dir/body.md" || return 1
+  local args=(--changes - --stencil-version "$version" --service-yaml service.yaml)
+  if [[ -n ${STENCIL_UPGRADE_NOTE:-} ]]; then
+    args+=(--note "$STENCIL_UPGRADE_NOTE")
+  fi
+  (devbase_cli stencil pr-body "${args[@]}") <"$work_dir/changes.json" >"$work_dir/body.md" || return 1
 
   if stencil_upgrade_is_dry_run; then
     info "dry run, so nothing is pushed. Title and body:"
@@ -335,6 +338,8 @@ stencil_upgrade_existing_pr() {
 # * STENCIL_UPGRADE_FORCE_PR: "true" opens a pull request when the
 #   working tree changed, even without module version changes. Default:
 #   "false".
+# * STENCIL_UPGRADE_NOTE: Markdown shown at the top of the pull request
+#   description. Default: empty, which shows no note.
 # * STENCIL_UPGRADE_DRYRUN: "true" prints the title and body, and pushes
 #   nothing. Default: "false".
 #
