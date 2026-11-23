@@ -1,28 +1,22 @@
 # Stencil Upgrade
 
-The `shared/stencil_upgrade` orb job upgrades the Stencil modules of a repository. It runs on a schedule and opens a pull request with the result.
+The `shared/stencil_upgrade` orb job upgrades the Stencil modules of a repository and opens a pull request with the result. The `stencil-circleci` module runs the job for repositories that opt in. The [module documentation](https://github.com/getoutreach/stencil-circleci/blob/main/docs/arguments.md) describes the arguments and the manual trigger.
 
 ## What the job does
 
 The job runs `mise run stencil:upgrade` in the repository. For repositories with a name that starts with `stencil-`, it runs `make` first.
 
-When no upgrade pull request is open, the job works on a new branch from the default branch. If a module version changed, the job commits the changes to that branch and opens a pull request. If no module version changed, the job stops, unless `forcePR` applies. The job never opens an empty pull request.
+When no upgrade pull request is open, the job works on a new branch from the default branch. If a module version changed, the job commits the changes to that branch and opens a pull request. If no module version changed, the job stops, unless `force_pr` applies. The job never opens an empty pull request.
 
-## Opt in
+## Parameters
 
-Set these arguments for the `stencil-circleci` module in `service.yaml`. Only `scheduled` is required:
+- `force_pr` (boolean, default `false`) makes the job open a pull request if generated files changed, even if no module version changed. The job also treats `force_pr` as `true` when `stencil.lock` has a module with the version `unstable`.
+- `note` (string, default empty) adds Markdown at the top of the pull request description, above the table of changes. Use it to explain a change that the module versions do not show, for example a move to another vendor. A run that changes the branch of an open pull request replaces the description, so the note stays only if that run sets it again.
+- `dryrun` (boolean, default `false`) prints the title and description of the pull request that the job would open or update, and pushes nothing. The `stencil-circleci` workflows do not set it. To make a dry run, run the job with `dryrun: true` in a CircleCI config, for example on a test branch.
 
-```yaml
-arguments:
-  stencilUpgrade:
-    scheduled: true
-```
+The job also takes `machine`, `resource_class`, `executor`, `no_output_timeout` and `setup_remote_docker`. They configure the job environment. See `orbs/shared/jobs/stencil_upgrade.yaml` for the defaults.
 
-- `stencilUpgrade.scheduled` is a boolean that controls the scheduled job. Running `stencil` by hand is not affected.
-- `stencilUpgrade.cron` is a schedule in cron syntax, in UTC. The default is Thursday. The time of day comes from the service name, so repositories do not all run at the same time.
-- `stencilUpgrade.forcePR` is a boolean. The default is `false`. When it is `true`, the job opens a pull request if generated files changed, even if no module version changed. The job also does this when `stencil.lock` has a module with the version `unstable`.
-
-The job has no opt-in check of its own. The schedule exists only for repositories that opt in.
+The job passes the parameters to `shell/ci/stencil-upgrade.sh` as `STENCIL_UPGRADE_FORCE_PR`, `STENCIL_UPGRADE_NOTE` and `STENCIL_UPGRADE_DRYRUN`. The script runs `stencil_upgrade_run` from `shell/lib/stencil_upgrade.sh`, which reads them.
 
 ## The pull request
 
@@ -40,25 +34,7 @@ Before it makes changes, the job looks for open pull requests.
 - If a pull request from a branch that starts with `stencilbot/` is open, the job stops.
 - If a pull request from a branch that starts with `stencil-upgrade/` is open, the job runs the upgrade on that branch.
   - If any file changed, even if only generated files changed, the job adds a commit and updates the title and description. Otherwise, the job logs that the pull request is already current.
-  - If no module version differs from the default branch and `forcePR` does not apply, the job logs a warning that the pull request may be empty. The job does not close it.
+  - If no module version differs from the default branch and `force_pr` does not apply, the job logs a warning that the pull request may be empty. The job does not close it.
 - If a person pushed a commit to the branch of the open pull request, the job skips the pull request. The job never force-pushes.
 - The job ignores pull requests from forks.
 - If the branch for today exists on the remote, but has no open pull request, the job fails. A person must delete the branch or open a pull request for it.
-
-## Manual runs
-
-The pipeline parameter `stencil_upgrade` (boolean) starts the `manual-stencil-upgrade` workflow. Set it to `true` when you trigger a pipeline in the CircleCI web app or with the CircleCI API.
-
-The job parameter `note` (string, default empty) adds Markdown at the top of the pull request description, above the table of changes. Use it to explain a change that the module versions do not show, for example a move to another vendor.
-
-The `stencil-circleci` module passes its pipeline parameter `stencil_upgrade_note` (string, default empty) to `note` in the job that the `stencil-upgrade` and `manual-stencil-upgrade` workflows both use. Set it together with `stencil_upgrade` when you trigger a pipeline. The schedule does not set it, so the default applies. A run that changes the branch of an open pull request replaces the description, so the note stays only if that run sets it again.
-
-The job parameter `dryrun` (boolean, default `false`) makes a dry run. The workflows from `stencil-circleci` do not set it. To make a dry run, run the job with `dryrun: true` in a CircleCI config, for example on a test branch.
-
-## Environment variables
-
-The job passes `force_pr`, `note` and `dryrun` to the script as `STENCIL_UPGRADE_FORCE_PR`, `STENCIL_UPGRADE_NOTE` and `STENCIL_UPGRADE_DRYRUN`. The script `shell/ci/stencil-upgrade.sh` runs `stencil_upgrade_run` from `shell/lib/stencil_upgrade.sh`, which reads these variables:
-
-- `STENCIL_UPGRADE_FORCE_PR` is `true` or `false`. The default is `false`.
-- `STENCIL_UPGRADE_NOTE` is Markdown for the top of the pull request description. The default is empty.
-- `STENCIL_UPGRADE_DRYRUN` is `true` or `false`. The default is `false`. When it is `true`, the script prints the title and description, and pushes nothing.
