@@ -296,7 +296,7 @@ stub_gojq_env() {
 
 @test "yq_wrapper fails without running a binary when devbase cannot be resolved" {
   stub_gojq_env local /usr/bin/go
-  yq_build_from_source() { return 1; }
+  stub_function yq_build_from_source 1
   stub_function devbase_run
 
   run yq_wrapper .a
@@ -306,7 +306,7 @@ stub_gojq_env() {
 
 @test "tomlq_wrapper fails without running a binary when devbase cannot be resolved" {
   stub_gojq_env local /usr/bin/go
-  yq_build_from_source() { return 1; }
+  stub_function yq_build_from_source 1
   stub_function devbase_run
 
   run tomlq_wrapper .a
