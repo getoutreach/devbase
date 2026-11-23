@@ -15,6 +15,9 @@ setup() {
   # with a real cached binary.
   DEVBASE_CACHED_BINARY_STORAGE_PATH="$(mktempdir devbase-cache-XXXXXX)"
   export DEVBASE_CACHED_BINARY_STORAGE_PATH
+  # devbase_build_from_source cds into the tree root, so it must exist.
+  FAKE_TREE="$BATS_TEST_TMPDIR/tree"
+  mkdir -p "$FAKE_TREE/one" "$FAKE_TREE/two"
 }
 
 teardown() {
@@ -289,7 +292,7 @@ EOF
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   find_tool() { echo "/fake/go"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  go() { echo "built" >"$5"; }
+  go() { echo "built" >"$3"; }
 
   run devbase_install_from_source "$BATS_TEST_TMPDIR/bin"
   assert_success
@@ -305,6 +308,20 @@ EOF
   run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
   assert_failure
   assert_output --partial "failed to build devbase from"
+}
+
+# Why: a version manager's go shim picks its Go version from the cwd.
+@test "devbase_build_from_source finds and runs go from the source tree" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "$PWD" >"$BATS_TEST_TMPDIR/find_tool_pwd"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  go() { echo "$PWD" >"$BATS_TEST_TMPDIR/pwd"; }
+
+  cd "$BATS_TEST_TMPDIR" || exit 1
+  run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
+  assert_success
+  assert_equal "$(cat "$BATS_TEST_TMPDIR/find_tool_pwd")" "$(devbase_tree_root)"
+  assert_equal "$(cat "$BATS_TEST_TMPDIR/pwd")" "$(devbase_tree_root)"
 }
 
 @test "devbase_build_from_source puts the directory of the go found by find_tool on PATH" {
@@ -364,7 +381,7 @@ stub_go_git() {
 
 @test "devbase_cached_source_binary builds once and reuses the cached binary on a second call" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   stub_go_git "$build_count_file"
 
@@ -380,11 +397,11 @@ stub_go_git() {
   stub_go_git "$build_count_file"
 
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/one"; }
+  devbase_tree_root() { echo "$FAKE_TREE/one"; }
   first="$(devbase_cached_source_binary)"
 
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/two"; }
+  devbase_tree_root() { echo "$FAKE_TREE/two"; }
   stub_go_git "$build_count_file" "differentcommit"
   second="$(devbase_cached_source_binary)"
 
@@ -398,7 +415,7 @@ stub_go_git() {
 @test "devbase_cached_source_binary rebuilds when uncommitted changes differ at the same commit" {
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
 
   stub_go_git "$build_count_file" "deadbeefcafe" "diff content A"
   first="$(devbase_cached_source_binary)"
@@ -413,7 +430,7 @@ stub_go_git() {
 @test "devbase_cached_source_binary reuses the cached binary for identical uncommitted changes" {
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
 
   stub_go_git "$build_count_file" "deadbeefcafe" "same diff content"
   first="$(devbase_cached_source_binary)"
@@ -427,7 +444,7 @@ stub_go_git() {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   devbase_cli_version() { echo "local"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   stub_go_git "$build_count_file"
 
@@ -441,7 +458,7 @@ stub_go_git() {
 
 @test "devbase_cached_source_binary builds into a temporary file and leaves only the cached binary" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
   stub_go_git "$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   devbase_build_from_source() {

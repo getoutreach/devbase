@@ -98,17 +98,23 @@ devbase_version_from_git() {
 # returns non-zero after printing an error if the build fails.
 devbase_build_from_source() {
   local output="$1"
-  local treeRoot goPath version
+  local treeRoot version
   treeRoot="$(devbase_tree_root)"
-  # find_tool also finds a go that mise manages but that is not on PATH.
-  goPath="$(find_tool go 2>/dev/null || true)"
 
   local ldflags=()
   if version="$(devbase_version_from_git "$treeRoot")"; then
     ldflags=(-ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=${version}")
   fi
 
-  PATH="${goPath:+$(dirname "$goPath"):}$PATH" go -C "$treeRoot" build -o "$output" ${ldflags[@]+"${ldflags[@]}"} ./cmd/devbase || {
+  # cd instead of `go -C`: a version manager's go shim picks its Go version
+  # from the working directory, and `go -C` leaves that as the caller's.
+  # find_tool is version-sensitive in the same way, so it runs after the cd.
+  (
+    cd "$treeRoot" || exit 1
+    # find_tool also finds a go that mise manages but that is not on PATH.
+    goPath="$(find_tool go 2>/dev/null || true)"
+    PATH="${goPath:+$(dirname "$goPath"):}$PATH" go build -o "$output" ${ldflags[@]+"${ldflags[@]}"} ./cmd/devbase
+  ) || {
     error "failed to build devbase from $treeRoot"
     return 1
   }
