@@ -226,3 +226,28 @@ func TestChannelsFromServiceYaml(t *testing.T) {
 	_, err = ChannelsFromServiceYaml(filepath.Join(t.TempDir(), "missing.yaml"))
 	assert.Assert(t, err != nil)
 }
+
+func TestRenderBodyNote(t *testing.T) {
+	in := BodyInput{
+		Changes:        []ModuleChange{{Module: testModule, Old: "v1.0.0", New: "v1.1.0"}},
+		StencilVersion: "v1.47.0",
+		Note:           "\n## We are moving vendors\n\nSee the migration guide.\n\n",
+	}
+	vl := fakeLister{releases: releasesOf("v1.1.0")}
+
+	body := render(t, in, vl)
+	// The note comes first, with the surrounding blank lines removed.
+	assert.Assert(t, strings.HasPrefix(body, "## We are moving vendors\n\nSee the migration guide.\n\n---\n\nThis PR contains"), body)
+
+	// Without a note, the body is the same as before.
+	in.Note = ""
+	assert.Assert(t, strings.HasPrefix(render(t, in, vl), "This PR contains"))
+	in.Note = " \n\t\n"
+	assert.Assert(t, strings.HasPrefix(render(t, in, vl), "This PR contains"))
+}
+
+func TestRenderBodyNoteWithoutChanges(t *testing.T) {
+	body := render(t, BodyInput{Note: "Heads up."}, fakeLister{})
+	assert.Assert(t, strings.HasPrefix(body, "Heads up.\n\n---\n\nThis PR contains"), body)
+	assert.Assert(t, strings.Contains(body, "No module version changed."), body)
+}

@@ -88,6 +88,7 @@ func newStencilPRBodyCommand(vl stencilupgrade.VersionLister) *cli.Command {
 			},
 			&cli.StringFlag{Name: "stencil-version", Usage: "Version of stencil that made the changes"},
 			&cli.StringFlag{Name: "service-yaml", Usage: "Path to service.yaml, to read the module channels from"},
+			&cli.StringFlag{Name: "note", Usage: "Markdown to show at the top of the body"},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 			return runStencilPRBody(ctx, c, vl)
@@ -106,7 +107,11 @@ func runStencilPRBody(ctx context.Context, c *cli.Command, vl stencilupgrade.Ver
 		return fmt.Errorf("decode changes: %w", err)
 	}
 
-	in := stencilupgrade.BodyInput{Changes: changes, StencilVersion: c.String("stencil-version")}
+	in := stencilupgrade.BodyInput{
+		Changes:        changes,
+		StencilVersion: c.String("stencil-version"),
+		Note:           c.String("note"),
+	}
 	if path := c.String("service-yaml"); path != "" {
 		if in.Channels, err = stencilupgrade.ChannelsFromServiceYaml(path); err != nil {
 			return fmt.Errorf("read module channels: %w", err)

@@ -49,6 +49,10 @@ type BodyInput struct {
 	// Channels maps a module name to its channel in service.yaml. An
 	// empty or missing channel means "stable".
 	Channels map[string]string
+
+	// Note is Markdown that is shown at the top of the body, before the
+	// table of changes. Empty means no note.
+	Note string
 }
 
 // bodyData is the data given to the body template.
@@ -56,6 +60,7 @@ type bodyData struct {
 	Rows           []bodyRow
 	Notes          []bodyNote
 	StencilVersion string
+	Note           string
 }
 
 // bodyRow is one row of the table of changes.
@@ -75,7 +80,7 @@ type bodyNote struct {
 // request. A failure to list versions does not fail the render: the
 // module gets a compare or repository link instead.
 func RenderBody(ctx context.Context, in BodyInput, vl VersionLister) (string, error) {
-	data := bodyData{StencilVersion: in.StencilVersion}
+	data := bodyData{StencilVersion: in.StencilVersion, Note: strings.TrimSpace(in.Note)}
 	for _, c := range in.Changes {
 		data.Rows = append(data.Rows, bodyRow{Module: c.Module, RepoURL: repositoryURL(c.Module), Change: changeText(c)})
 		if links := moduleLinks(ctx, c, in.Channels, vl); len(links) > 0 {

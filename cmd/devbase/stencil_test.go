@@ -67,3 +67,11 @@ func TestStencilPRBodyCommandFile(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, strings.Contains(stdout, "github.com/org/mod"), stdout)
 }
+
+func TestStencilPRBodyCommandNote(t *testing.T) {
+	changes := `[{"module":"github.com/org/mod","old":"v1.0.0","new":"v1.1.0"}]`
+	stdout, _, err := runSubcommand(t, newStencilCommandWithLister(fakeLister{}), changes,
+		"pr-body", "--changes", "-", "--note", "Moving to a new vendor.")
+	assert.NilError(t, err)
+	assert.Assert(t, strings.HasPrefix(stdout, "Moving to a new vendor.\n\n---\n\n"), stdout)
+}
