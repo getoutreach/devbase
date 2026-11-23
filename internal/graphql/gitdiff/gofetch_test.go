@@ -416,7 +416,7 @@ func TestGoGitErrorIsNotShown(t *testing.T) {
 	assert.Assert(t, !strings.Contains(err.Error(), "s3cr3t"), "got %v", err)
 
 	root, _, baseName := newTestRepo(t)
-	clone := newPartialClone(t, root, "blob:none", "feature")
+	clone := newPartialClone(t, root, "blob:none")
 	runGit(t, clone, "remote", "set-url", "origin", url)
 
 	_, err = MergeBaseFiles(t.Context(), clone, "origin/"+baseName, []string{"schema.graphql"})

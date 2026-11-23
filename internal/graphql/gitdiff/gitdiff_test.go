@@ -112,16 +112,16 @@ func runGit(t *testing.T, dir string, args ...string) {
 }
 
 // newPartialClone clones the repository at source without the objects that filter excludes (for
-// example "blob:none"), checks out branch, and returns the clone. The remote of the clone is
-// origin, so the base branch is "origin/<name>".
-func newPartialClone(t *testing.T, source, filter, branch string) string {
+// example "blob:none"), checks out the "feature" branch of newTestRepo, and returns the clone. The
+// remote of the clone is origin, so the base branch is "origin/<name>".
+func newPartialClone(t *testing.T, source, filter string) string {
 	t.Helper()
 
 	runGit(t, source, "config", "uploadpack.allowFilter", "true")
 
 	clone := filepath.Join(t.TempDir(), "clone")
 	runGit(t, filepath.Dir(clone), "clone", "-q", "--filter="+filter, "--no-checkout", "file://"+source, clone)
-	runGit(t, clone, "checkout", "-q", branch)
+	runGit(t, clone, "checkout", "-q", "feature")
 
 	return clone
 }
@@ -190,7 +190,7 @@ func TestMergeBaseFilesDirectoryIsOmitted(t *testing.T) {
 // through git, which fetches it from the remote.
 func TestMergeBaseFilesBloblessClone(t *testing.T) {
 	root, _, baseName := newTestRepo(t)
-	clone := newPartialClone(t, root, "blob:none", "feature")
+	clone := newPartialClone(t, root, "blob:none")
 
 	// Without the fetch on demand, the blob is not in the clone.
 	// rev-list prints a missing object as "?<hash>" and does not fetch it.
@@ -207,7 +207,7 @@ func TestMergeBaseFilesBloblessClone(t *testing.T) {
 // a missing blob. go-git cannot read it, and git is only used for blobs.
 func TestMergeBaseFilesTreelessClone(t *testing.T) {
 	root, _, baseName := newTestRepo(t)
-	clone := newPartialClone(t, root, "tree:0", "feature")
+	clone := newPartialClone(t, root, "tree:0")
 
 	_, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, []string{"schema.graphql"})
 	assert.Assert(t, errors.Is(err, ErrMissingObject), "got %v", err)

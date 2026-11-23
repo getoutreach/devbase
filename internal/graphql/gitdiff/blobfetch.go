@@ -20,20 +20,22 @@ import (
 // to fetch one missing blob, so that a stalled connection cannot hang a CI job.
 const blobFetchTimeout = 2 * time.Minute
 
+// gitWaitDelay limits how long a read with git waits for the output to close after git was killed.
+// A child process of git, such as ssh, can keep the output open and stall after git is gone.
+const gitWaitDelay = 2 * time.Second
+
 // blobFetcher fetches blobs that are missing from the repository at root, as in a partial clone.
 type blobFetcher struct {
-	// root is the root of the working tree of the repository.
 	root string
 	// remote is the remote that go-git fetches from. It is nil when go-git is not used.
 	remote *goGitRemote
-	// goGitFailed is true after a go-git fetch failed.
+	// goGitFailed makes the next blobs skip go-git, which would most likely fail again.
 	goGitFailed bool
 }
 
 // fetch returns the content of the blob with the given hash. It tries go-git first, and git if
 // go-git fails. The go-git error is discarded, because it can contain the remote URL with its
-// credentials. After a go-git failure, the next blobs are read with git only, because go-git
-// would most likely fail again for the same reason.
+// credentials. A canceled run returns the cancellation, because it is not a missing object.
 func (f *blobFetcher) fetch(ctx context.Context, hash plumbing.Hash) (string, error) {
 	if f.remote != nil && !f.goGitFailed {
 		content, err := f.remote.fetch(ctx, hash)
@@ -43,7 +45,12 @@ func (f *blobFetcher) fetch(ctx context.Context, hash plumbing.Hash) (string, er
 		f.goGitFailed = true
 	}
 
-	return blobViaGit(ctx, f.root, hash)
+	content, err := blobViaGit(ctx, f.root, hash)
+	if err != nil && ctx.Err() != nil {
+		return "", fmt.Errorf("fetch the blob %s: %w", hash, ctx.Err())
+	}
+
+	return content, err
 }
 
 // blobViaGit reads the blob with the given hash from the repository at root with `git cat-file`.
@@ -61,6 +68,7 @@ func blobViaGit(ctx context.Context, root string, hash plumbing.Hash) (string, e
 	// A fetch that needs credentials must fail, not wait for a password on the terminal.
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 	cmd.Stdout = &stdout
+	cmd.WaitDelay = gitWaitDelay
 
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%w: git could not read blob %s: %w", ErrMissingObject, hash, err)
