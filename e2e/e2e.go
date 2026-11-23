@@ -531,6 +531,7 @@ func newDevenvCmd(ctx context.Context, args ...string) (*exec.Cmd, error) {
 		return nil, errors.Wrap(err, "Failed to find devenv binary")
 	}
 	devenvArgs := append([]string{"--skip-update"}, args...)
+	//nolint:gosec // Why: devenv is resolved from PATH or mise, and args come from this e2e program's own code, not from untrusted input.
 	return exec.CommandContext(ctx, devenv, devenvArgs...), nil
 }
 

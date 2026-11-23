@@ -62,6 +62,9 @@ const (
 	enumValueDefinitionSelector = "EnumValueDefinition"
 )
 
+// inputPropertyLabel is the violation-message label for an InputValueDefinition.
+const inputPropertyLabel = "Input property"
+
 // rootFieldSelector returns the "FieldDefinition[parent.name.value=...]"
 // selector key for a field declared directly on role ("Query",
 // "Mutation", or "Subscription"), matching @graphql-eslint's own
@@ -309,7 +312,7 @@ func namingSites(defs []scopedDefinition, directives ast.DirectiveDefinitionList
 				continue
 			}
 			if def.Kind == ast.InputObject {
-				addIfInScope(namingSite{pos: f.Position, name: f.Name, kindLabel: "Input property", baseSelector: inputValueDefinitionSelector})
+				addIfInScope(namingSite{pos: f.Position, name: f.Name, kindLabel: inputPropertyLabel, baseSelector: inputValueDefinitionSelector})
 			} else {
 				addIfInScope(namingSite{
 					pos: f.Position, name: f.Name, kindLabel: "Field",
@@ -317,7 +320,7 @@ func namingSites(defs []scopedDefinition, directives ast.DirectiveDefinitionList
 				})
 			}
 			for _, arg := range f.Arguments {
-				addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: "Input property", baseSelector: inputValueDefinitionSelector})
+				addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: inputPropertyLabel, baseSelector: inputValueDefinitionSelector})
 			}
 		}
 		for _, ev := range def.EnumValues {
@@ -339,7 +342,7 @@ func namingSites(defs []scopedDefinition, directives ast.DirectiveDefinitionList
 	for _, dd := range directives {
 		addIfInScope(namingSite{pos: dd.Position, name: dd.Name, kindLabel: "Directive", baseSelector: directiveDefinitionSelector})
 		for _, arg := range dd.Arguments {
-			addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: "Input property", baseSelector: inputValueDefinitionSelector})
+			addIfInScope(namingSite{pos: arg.Position, name: arg.Name, kindLabel: inputPropertyLabel, baseSelector: inputValueDefinitionSelector})
 		}
 	}
 
