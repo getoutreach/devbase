@@ -120,7 +120,7 @@ yq_wrapper() {
     yq_run_gojq "$@"
     return
   fi
-  yq_resolve_bin
+  yq_resolve_bin || return
   devbase_run "$DEVBASE_YQ_BIN" yq "$@"
 }
 
@@ -132,6 +132,6 @@ tomlq_wrapper() {
   if yq_use_gojq; then
     fatal "go not found and devbase is not a tagged release; cannot run tomlq"
   fi
-  yq_resolve_bin
+  yq_resolve_bin || return
   devbase_run "$DEVBASE_YQ_BIN" tomlq "$@"
 }

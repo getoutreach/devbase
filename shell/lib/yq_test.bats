@@ -15,9 +15,11 @@ setup() {
   DEVBASE_CACHED_BINARY_STORAGE_PATH="$(mktempdir devbase-yq-cache-XXXXXX)"
   export DEVBASE_CACHED_BINARY_STORAGE_PATH
   DEVBASE_YQ_BIN=""
+  setup_command_stubs
 }
 
 teardown() {
+  teardown_command_stubs
   rm -rf "$DEVBASE_CACHED_BINARY_STORAGE_PATH"
   unset DEVBASE_CACHED_BINARY_STORAGE_PATH
 }
@@ -290,6 +292,26 @@ stub_gojq_env() {
   assert_output "devbase --skip-update tomlq -r .a file.toml"
 
   rm -rf "$fake_bin_dir"
+}
+
+@test "yq_wrapper fails without running a binary when devbase cannot be resolved" {
+  stub_gojq_env local /usr/bin/go
+  yq_build_from_source() { return 1; }
+  stub_function devbase_run
+
+  run yq_wrapper .a
+  assert_failure
+  assert_stub_not_called devbase_run
+}
+
+@test "tomlq_wrapper fails without running a binary when devbase cannot be resolved" {
+  stub_gojq_env local /usr/bin/go
+  yq_build_from_source() { return 1; }
+  stub_function devbase_run
+
+  run tomlq_wrapper .a
+  assert_failure
+  assert_stub_not_called devbase_run
 }
 
 @test "tomlq_wrapper fails with a clear error instead of falling back to gojq" {
