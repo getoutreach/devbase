@@ -2,8 +2,6 @@
 
 // Description: Compares two stencil lockfiles to find changed modules.
 
-// Package stencilupgrade holds the logic behind the scheduled
-// stencil-upgrade CI job.
 package stencilupgrade
 
 import (

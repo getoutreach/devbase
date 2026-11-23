@@ -23,6 +23,8 @@ import (
 // counted in an "and N more" line.
 const MaxLinksPerModule = 20
 
+// These constants are the module versions and service.yaml channels that
+// the pull request body treats specially.
 const (
 	// localVersion is the version stencil records for a module that is
 	// used from a local directory.
@@ -35,6 +37,8 @@ const (
 	channelStable = "stable"
 )
 
+// bodyTemplateText is the Markdown template of the pull request body.
+//
 //go:embed body.md.tmpl
 var bodyTemplateText string
 
