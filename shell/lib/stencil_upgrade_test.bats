@@ -339,7 +339,7 @@ TABLE
 
   run_job
   assert_success
-  assert_output --partial "open stencilbot PR stencilbot/2026-11-19, skipping"
+  assert_output --partial "open stencilbot PR stencilbot/2026-11-19, skipping. Close it to let this job run."
   assert_mise_ran_stencil 0
   assert_pushes
 }

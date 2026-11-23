@@ -358,7 +358,7 @@ stencil_upgrade_run() {
   # A stencilbot/ pull request belongs to the dtss-tools stencilbot command.
   open_pr="$(stencil_upgrade_open_prs stencilbot/)" || return 1
   if [[ -n $open_pr ]]; then
-    info "open stencilbot PR ${open_pr//$'\n'/ }, skipping"
+    warn "open stencilbot PR ${open_pr//$'\n'/ }, skipping. Close it to let this job run."
     return 0
   fi
   open_pr="$(stencil_upgrade_open_prs stencil-upgrade/)" || return 1

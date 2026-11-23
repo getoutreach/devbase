@@ -31,7 +31,7 @@ A person must approve the pull request, for compliance reasons. The job does not
 
 Before it makes changes, the job looks for open pull requests.
 
-- If a pull request from a branch that starts with `stencilbot/` is open, the job stops.
+- If a pull request from a branch that starts with `stencilbot/` is open, the job logs a warning and stops.
 - If a pull request from a branch that starts with `stencil-upgrade/` is open, the job runs the upgrade on that branch.
   - If any file changed, even if only generated files changed, the job adds a commit and updates the title and description. Otherwise, the job logs that the pull request is already current.
   - If no module version differs from the default branch and `force_pr` does not apply, the job logs a warning that the pull request may be empty. The job does not close it.
