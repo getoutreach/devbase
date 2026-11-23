@@ -33,4 +33,4 @@ if [[ -n ${CIRCLECI_ORB_REQUIRES_PRIVATE_ORB:-} ]]; then
   args+=(--org-slug "github/$org")
 fi
 
-exec circleci orb validate orb.yml "${args[@]}"
+exec circleci --skip-update-check orb validate orb.yml "${args[@]}"
