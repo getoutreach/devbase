@@ -24,10 +24,6 @@ info:
   x-cortex-git:
     github:
       repository: getoutreach/devbase
-  x-cortex-oncall:
-    pagerduty:
-      id: P9HJAUT
-      type: SERVICE
   x-cortex-link:
     ## These are useful documentation links for this service. Please fill in the customLinks block if you have additional documentation links.
     ## name: The name of the link
