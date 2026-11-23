@@ -15,7 +15,7 @@ setup() {
 
 teardown() {
   # Some tests cd into TEST_DIR, which the next line removes.
-  cd "$BATS_TEST_DIRNAME"
+  cd "$BATS_TEST_DIRNAME" || return 1
   teardown_command_stubs
   rm -rf "$TEST_DIR"
 }
@@ -60,7 +60,7 @@ job_setup() {
   # A force push that rewrites history fails.
   git -C "$ORIGIN" config receive.denyNonFastForwards true
   git clone -q "$ORIGIN" "$TEST_DIR/work" 2>/dev/null
-  cd "$TEST_DIR/work"
+  cd "$TEST_DIR/work" || return 1
   git config user.name human
   git config user.email human@example.com
   echo "name: $name" >service.yaml
@@ -146,13 +146,18 @@ JSON
 # that is not a full git clone.
 narrow_checkout() {
   git clone -q --single-branch --branch trunk "$ORIGIN" "$TEST_DIR/narrow" 2>/dev/null
-  cd "$TEST_DIR/narrow"
+  cd "$TEST_DIR/narrow" || return 1
   git remote set-head origin --delete
 }
 
 # run_job runs stencil_upgrade_run and logs only the git calls it makes.
+# run_job [NAME=value]... runs the job with the given environment variables.
 run_job() {
   : >"$STUB_DIR/git.log"
+  local assignment
+  for assignment in "$@"; do
+    export "${assignment?}"
+  done
   run stencil_upgrade_run
 }
 
@@ -415,9 +420,7 @@ TABLE
 @test "dry run prints the body and pushes nothing" {
   job_setup
   upgrade_to v1.1.0
-  export STENCIL_UPGRADE_DRYRUN=true
-
-  run_job
+  run_job STENCIL_UPGRADE_DRYRUN=true
   assert_success
   assert_line "fix(stencil): upgrade modules (2026-11-21)"
   assert_line "PR body"
@@ -452,9 +455,7 @@ TABLE
 [{"module": "example.com/module0", "old": "unstable", "new": "unstable", "unstable": true}]
 JSON
   # The unstable module implies forcePR.
-  export STENCIL_UPGRADE_FORCE_PR=false
-
-  run_job
+  run_job STENCIL_UPGRADE_FORCE_PR=false
   assert_success
   assert_pushes "push -u origin stencil-upgrade/2026-11-21"
   run git -C "$ORIGIN" show stencil-upgrade/2026-11-21:generated.txt
@@ -465,9 +466,7 @@ JSON
 
 @test "forcePR never opens an empty PR" {
   job_setup
-  export STENCIL_UPGRADE_FORCE_PR=true
-
-  run_job
+  run_job STENCIL_UPGRADE_FORCE_PR=true
   assert_success
   assert_output --partial "the pull request would be empty, skipping"
   assert_pushes
