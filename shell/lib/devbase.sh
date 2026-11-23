@@ -57,12 +57,18 @@ devbase_mise_tool() {
 # fails.
 devbase_build_from_source() {
   local output="$1"
-  local treeRoot goPath
+  local treeRoot
   treeRoot="$(devbase_tree_root)"
-  # find_tool also finds a go that mise manages but that is not on PATH.
-  goPath="$(find_tool go 2>/dev/null || true)"
 
-  PATH="${goPath:+$(dirname "$goPath"):}$PATH" go -C "$treeRoot" build -o "$output" ./cmd/devbase || {
+  # cd instead of `go -C`: a version manager's go shim picks its Go version
+  # from the working directory, and `go -C` leaves that as the caller's.
+  # find_tool is version-sensitive in the same way, so it runs after the cd.
+  (
+    cd "$treeRoot" || exit 1
+    # find_tool also finds a go that mise manages but that is not on PATH.
+    goPath="$(find_tool go 2>/dev/null || true)"
+    PATH="${goPath:+$(dirname "$goPath"):}$PATH" go build -o "$output" ./cmd/devbase
+  ) || {
     error "failed to build devbase from $treeRoot"
     return 1
   }

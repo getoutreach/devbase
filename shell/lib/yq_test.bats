@@ -16,6 +16,9 @@ setup() {
   export DEVBASE_CACHED_BINARY_STORAGE_PATH
   DEVBASE_YQ_BIN=""
   setup_command_stubs
+  # devbase_build_from_source cds into the tree root, so it must exist.
+  FAKE_TREE="$BATS_TEST_TMPDIR/tree"
+  mkdir -p "$FAKE_TREE/one" "$FAKE_TREE/two"
 }
 
 teardown() {
@@ -68,7 +71,7 @@ stub_go_git() {
 
 @test "yq_build_from_source builds once and reuses the cached binary on a second call" {
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   stub_go_git "$build_count_file"
 
@@ -84,11 +87,11 @@ stub_go_git() {
   stub_go_git "$build_count_file"
 
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/one"; }
+  devbase_tree_root() { echo "$FAKE_TREE/one"; }
   first="$(yq_build_from_source)"
 
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree/two"; }
+  devbase_tree_root() { echo "$FAKE_TREE/two"; }
   stub_go_git "$build_count_file" "differentcommit"
   second="$(yq_build_from_source)"
 
@@ -103,7 +106,7 @@ stub_go_git() {
 @test "yq_build_from_source rebuilds when uncommitted changes differ at the same commit" {
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
 
   stub_go_git "$build_count_file" "deadbeefcafe" "diff content A"
   first="$(yq_build_from_source)"
@@ -118,7 +121,7 @@ stub_go_git() {
 @test "yq_build_from_source reuses the cached binary for identical uncommitted changes" {
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
 
   stub_go_git "$build_count_file" "deadbeefcafe" "same diff content"
   first="$(yq_build_from_source)"
@@ -136,7 +139,7 @@ stub_go_git() {
   local build_count_file="$DEVBASE_CACHED_BINARY_STORAGE_PATH/count"
   stub_go_git "$build_count_file"
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  devbase_tree_root() { echo "/fake/tree"; }
+  devbase_tree_root() { echo "$FAKE_TREE"; }
 
   yq_resolve_bin
   assert [ -n "$DEVBASE_YQ_BIN" ]
