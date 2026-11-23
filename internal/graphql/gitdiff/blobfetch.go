@@ -63,7 +63,6 @@ func blobViaGit(ctx context.Context, root string, hash plumbing.Hash) (string, e
 	defer cancel()
 
 	var stdout bytes.Buffer
-	//nolint:gosec // Why: The command is always git cat-file, and the argument is a hash.
 	cmd := exec.CommandContext(ctx, "git", "-C", root, "cat-file", "blob", hash.String())
 	// A fetch that needs credentials must fail, not wait for a password on the terminal.
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
