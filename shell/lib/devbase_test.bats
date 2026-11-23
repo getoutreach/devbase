@@ -220,3 +220,29 @@ EOF
   assert_success
   assert_equal "$(cut -d: -f1 "$BATS_TEST_TMPDIR/path")" "/fake/mise/go/bin"
 }
+
+# Regression test: under the strict mode shell/cli.sh sets, a failing
+# subcommand used to exit the shell before the built binary was removed.
+@test "devbase_cli removes the built binary and keeps the exit status when the subcommand fails" {
+  libDir="$(cd "$BATS_TEST_DIRNAME" && pwd)"
+  binPathFile="$BATS_TEST_TMPDIR/bin-path"
+
+  BIN_PATH_FILE="$binPathFile" run bash -c '
+    set -euo pipefail
+    source "$1/logging.sh"
+    source "$1/shell.sh"
+    source "$1/devbase.sh"
+    devbase_cli_version() { echo "local"; }
+    devbase_build_from_source() {
+      echo "$1" >"$BIN_PATH_FILE"
+      : >"$1"
+    }
+    devbase_run() { return 3; }
+    devbase_cli lint mise-lock
+  ' _ "$libDir"
+  assert_failure 3
+
+  bin="$(cat "$binPathFile")"
+  assert [ -n "$bin" ]
+  assert [ ! -e "$bin" ]
+}

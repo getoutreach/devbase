@@ -162,8 +162,10 @@ devbase_cli() {
       exit 1
     fi
     chmod +x "$bin"
-    devbase_run "$bin" "$@"
-    status=$?
+    # `|| status=$?` keeps a failing subcommand from exiting the shell
+    # under `set -e` before the binary is removed.
+    status=0
+    devbase_run "$bin" "$@" || status=$?
     rm -f "$bin"
     exit "$status"
   fi
