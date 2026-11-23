@@ -162,10 +162,9 @@ stencil_upgrade_stencil_version() {
   echo "${output#stencil version }"
 }
 
-# stencil_upgrade_stencil runs the stencil upgrade in the checkout, then
-# writes the lock-diff JSON between the stencil.lock of the default
-# branch and the new stencil.lock to changes.json in the work directory.
-# The diff starts from the default branch so that it lists every module
+# stencil_upgrade_stencil runs the stencil upgrade, then writes the
+# lock-diff JSON to changes.json in the work directory. The diff is from
+# the stencil.lock of the default branch, so that it lists every module
 # change in the pull request.
 #
 # $1: The work directory, outside of the checkout.

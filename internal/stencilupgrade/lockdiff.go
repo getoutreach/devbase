@@ -16,13 +16,13 @@ import (
 )
 
 // UnstableVersion is the version stencil records for a module that
-// tracks a branch instead of a release. The name does not change when
-// the module content does, so such modules are always reported.
+// tracks a branch instead of a release. The version does not change when
+// the module does, so such modules are always reported.
 const UnstableVersion = "unstable"
 
-// errNoModules is returned when a lockfile decodes without any modules.
-// A valid stencil.lock always lists at least one module, so an empty
-// list means the file format changed.
+// errNoModules is returned when a lockfile has no modules. A valid
+// stencil.lock lists at least one, so an empty list means the format
+// changed.
 var errNoModules = errors.New("lockfile has no modules")
 
 // ModuleChange describes one module whose version changed between two
@@ -43,7 +43,7 @@ type ModuleChange struct {
 }
 
 // LoadLock decodes the stencil lockfile at path. It returns an error if
-// the file cannot be read or decoded, or if it has no modules.
+// the file cannot be read or decoded, or has no modules.
 func LoadLock(path string) (*stencil.Lockfile, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {

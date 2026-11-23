@@ -14,12 +14,10 @@ import (
 	"github.com/google/go-github/v84/github"
 )
 
-// errNotGitHubModule is returned for a module that is not hosted on
-// GitHub.
+// errNotGitHubModule is returned for a module that is not on GitHub.
 var errNotGitHubModule = errors.New("module is not a github.com module")
 
-// releasesPerPage is the page size used to list releases, the largest
-// size the GitHub API allows.
+// releasesPerPage is the largest page size of the GitHub API.
 const releasesPerPage = 100
 
 // Release is one release of a module.
@@ -27,8 +25,7 @@ type Release struct {
 	// Tag is the release tag, for example "v1.2.3".
 	Tag string
 
-	// Prerelease is true when GitHub marks the release as a
-	// pre-release.
+	// Prerelease is true when GitHub marks the release as a pre-release.
 	Prerelease bool
 }
 
@@ -44,8 +41,8 @@ type VersionLister interface {
 // GitHubOption configures a lister made by NewGitHubLister.
 type GitHubOption func(*githubLister)
 
-// WithBaseURL sets the GitHub API host, for example the URL of a test
-// server. The "/api/v3/" path is added to it.
+// WithBaseURL sets the GitHub API host, for example a test server. The
+// "/api/v3/" path is added to it.
 func WithBaseURL(u string) GitHubOption {
 	return func(l *githubLister) { l.baseURL = u }
 }
@@ -57,8 +54,8 @@ type githubLister struct {
 }
 
 // NewGitHubLister returns a VersionLister that reads releases from
-// GitHub. An empty token makes unauthenticated requests. A module is
-// "github.com/<owner>/<repo>[/...]". Only the first three parts are
+// GitHub. An empty token makes unauthenticated requests. A module must be
+// "github.com/<owner>/<repo>[/...]", and only the first three parts are
 // used. The lister returns an error for any other module.
 func NewGitHubLister(token string, opts ...GitHubOption) VersionLister {
 	l := &githubLister{}
@@ -71,8 +68,8 @@ func NewGitHubLister(token string, opts ...GitHubOption) VersionLister {
 		client = client.WithAuthToken(token)
 	}
 	if l.baseURL != "" {
-		// A bad URL is reported by the first request, so that the
-		// constructor has no error to return.
+		// A bad URL is reported by the first request, because the
+		// constructor returns no error.
 		if c, err := client.WithEnterpriseURLs(l.baseURL, l.baseURL); err == nil {
 			client = c
 		}

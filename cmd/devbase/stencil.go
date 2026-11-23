@@ -25,8 +25,8 @@ func newStencilCommand() *cli.Command {
 	return newStencilCommandWithLister(stencilupgrade.NewGitHubLister(token))
 }
 
-// newStencilCommandWithLister is newStencilCommand with the source of
-// module versions given, so that tests need no network.
+// newStencilCommandWithLister is newStencilCommand with the version
+// source given, so that tests need no network.
 func newStencilCommandWithLister(vl stencilupgrade.VersionLister) *cli.Command {
 	return &cli.Command{
 		Name:  "stencil",

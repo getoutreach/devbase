@@ -18,16 +18,13 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// MaxLinksPerModule is the largest number of version links shown for
-// one module. The newest versions are shown, and the older ones are
-// counted in an "and N more" line.
+// MaxLinksPerModule is the most version links that one module gets. The
+// older versions are counted in an "and N more" line.
 const MaxLinksPerModule = 20
 
-// These constants are the module versions and service.yaml channels that
-// the pull request body treats specially.
+// These are the versions and channels that the body treats specially.
 const (
-	// localVersion is the version stencil records for a module that is
-	// used from a local directory.
+	// localVersion is the version of a module used from a local directory.
 	localVersion = "local"
 
 	// channelRC is the service.yaml channel that includes pre-releases.
@@ -54,8 +51,8 @@ type BodyInput struct {
 	// empty or missing channel means "stable".
 	Channels map[string]string
 
-	// Note is Markdown that is shown at the top of the body, before the
-	// table of changes. Empty means no note.
+	// Note is Markdown for the top of the body, above the table. Empty
+	// means no note.
 	Note string
 }
 
@@ -80,9 +77,8 @@ type bodyNote struct {
 	Links  []string
 }
 
-// RenderBody returns the Markdown body of the stencil-upgrade pull
-// request. A failure to list versions does not fail the render: the
-// module gets a compare or repository link instead.
+// RenderBody returns the Markdown body of the pull request. If listing
+// versions fails, the module gets a compare or repository link instead.
 func RenderBody(ctx context.Context, in BodyInput, vl VersionLister) (string, error) {
 	data := bodyData{StencilVersion: in.StencilVersion, Note: strings.TrimSpace(in.Note)}
 	for _, c := range in.Changes {
@@ -112,10 +108,9 @@ func changeText(c ModuleChange) string {
 	return fmt.Sprintf("%#q -> %#q", c.Old, c.New)
 }
 
-// repositoryURL returns the URL of the GitHub repository of module, so
-// that a major version suffix such as "/v2" or a module in a
-// subdirectory links to the repository root. A module that is not on
-// GitHub links to its full path.
+// repositoryURL returns the GitHub repository URL of module, without a
+// major version suffix such as "/v2" or a subdirectory. A module that is
+// not on GitHub links to its full path.
 func repositoryURL(module string) string {
 	owner, repo, err := splitModule(module)
 	if err != nil {
@@ -143,7 +138,7 @@ func moduleLinks(ctx context.Context, c ModuleChange, channels map[string]string
 		return nil
 	}
 	// An old version that is empty or not a version, such as "unstable",
-	// has no range to list: only the new version is linked.
+	// has no range, so only the new version is linked.
 	oldVer := parseVersion(c.Old)
 
 	releases, err := vl.Releases(ctx, c.Module)
@@ -159,7 +154,7 @@ func moduleLinks(ctx context.Context, c ModuleChange, channels map[string]string
 		tags = versionsBetween(releases, oldVer, newVer, channelOf(c, channels) == channelRC)
 	}
 
-	// The newest versions matter most, so the oldest ones are left out.
+	// The newest versions matter most, so the oldest are left out.
 	links := make([]string, 0, min(len(tags), MaxLinksPerModule)+1)
 	if more := len(tags) - MaxLinksPerModule; more > 0 {
 		links = append(links, fmt.Sprintf("and %d more", more))
@@ -171,8 +166,7 @@ func moduleLinks(ctx context.Context, c ModuleChange, channels map[string]string
 	return links
 }
 
-// parseVersion returns the semantic version in v, or nil if v is not
-// one.
+// parseVersion returns v as a semantic version, or nil if it is not one.
 func parseVersion(v string) *semver.Version {
 	ver, err := semver.NewVersion(v)
 	if err != nil {
@@ -186,9 +180,8 @@ func tagLink(repoURL, tag string) string {
 	return fmt.Sprintf("[%s](%s/releases/tag/%s)", tag, repoURL, tag)
 }
 
-// channelOf returns the channel of the module of c: the one in
-// service.yaml, else "rc" if the new version is a release candidate,
-// else "stable".
+// channelOf returns the service.yaml channel of c, else "rc" for a
+// release candidate, else "stable".
 func channelOf(c ModuleChange, channels map[string]string) string {
 	if ch := channels[c.Module]; ch != "" {
 		return ch
@@ -199,10 +192,9 @@ func channelOf(c ModuleChange, channels map[string]string) string {
 	return channelStable
 }
 
-// versionsBetween returns the tags of releases that are newer than
-// oldVer and not newer than newVer, in
-// ascending version order. Tags that are not versions are skipped, and
-// so are pre-releases unless includePre is true.
+// versionsBetween returns the tags of releases newer than oldVer and not
+// newer than newVer, in ascending order. It skips tags that are not
+// versions, and pre-releases unless includePre is true.
 func versionsBetween(releases []Release, oldVer, newVer *semver.Version, includePre bool) []string {
 	type tagged struct {
 		tag string
