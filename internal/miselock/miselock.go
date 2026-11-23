@@ -50,10 +50,23 @@ var errNotTOML = errors.New("mise config path does not end in .toml")
 // locked tool version, for example "platforms.linux-x64".
 const lockPlatformPrefix = "platforms."
 
+// requestedVersion returns the version that one item of a tool's value
+// requests: a version string, or a table with a version key.
+func requestedVersion(item any) (string, bool) {
+	switch v := item.(type) {
+	case string:
+		return v, true
+	case map[string]any:
+		version, ok := v["version"].(string)
+		return version, ok
+	}
+	return "", false
+}
+
 // parseConfig returns the versions that the [tools] table of a mise
-// config requests, by tool. A tool's value is a version string, an
-// inline table with a version key, or an array of version strings; any
-// other value requests no version.
+// config requests, by tool. A tool's value is a version string, a table
+// with a version key, or a list of either, written inline or as
+// [[tools.<tool>]] blocks; any other value requests no version.
 func parseConfig(data []byte) (map[string][]string, error) {
 	var config struct {
 		Tools map[string]any `toml:"tools"`
@@ -64,19 +77,24 @@ func parseConfig(data []byte) (map[string][]string, error) {
 
 	requested := make(map[string][]string, len(config.Tools))
 	for tool, value := range config.Tools {
-		var versions []string
+		// BurntSushi/toml decodes an inline list to []any and
+		// [[tools.<tool>]] blocks to []map[string]any.
+		var items []any
 		switch v := value.(type) {
-		case string:
-			versions = append(versions, v)
-		case map[string]any:
-			if version, ok := v["version"].(string); ok {
-				versions = append(versions, version)
-			}
 		case []any:
-			for _, item := range v {
-				if version, ok := item.(string); ok {
-					versions = append(versions, version)
-				}
+			items = v
+		case []map[string]any:
+			for _, table := range v {
+				items = append(items, table)
+			}
+		default:
+			items = []any{v}
+		}
+
+		var versions []string
+		for _, item := range items {
+			if version, ok := requestedVersion(item); ok {
+				versions = append(versions, version)
 			}
 		}
 		requested[tool] = versions
@@ -117,11 +135,11 @@ func parseLockfile(data []byte) (map[string][]lockedTool, error) {
 	return locked, nil
 }
 
-// matches reports whether the locked version satisfies the requested
+// matchesVersion reports whether the locked version satisfies the requested
 // one: it is the same version, the request is a prefix of it that ends
 // at a version component ("20" matches "20.11.0"), or the request is
 // "latest".
-func matches(requested, lockedVersion string) bool {
+func matchesVersion(requested, lockedVersion string) bool {
 	return requested == "latest" || lockedVersion == requested || strings.HasPrefix(lockedVersion, requested+".")
 }
 
@@ -131,7 +149,7 @@ func missingVersions(requested map[string][]string, locked map[string][]lockedTo
 	var missing []string
 	for _, tool := range slices.Sorted(maps.Keys(requested)) {
 		for _, version := range requested[tool] {
-			if !slices.ContainsFunc(locked[tool], func(lt lockedTool) bool { return matches(version, lt.Version) }) {
+			if !slices.ContainsFunc(locked[tool], func(lt lockedTool) bool { return matchesVersion(version, lt.Version) }) {
 				missing = append(missing, tool+"@"+version)
 			}
 		}
@@ -161,7 +179,7 @@ func staleVersions(requested map[string][]string, locked map[string][]lockedTool
 			continue
 		}
 		for _, lt := range locked[tool] {
-			if !slices.ContainsFunc(versions, func(version string) bool { return matches(version, lt.Version) }) {
+			if !slices.ContainsFunc(versions, func(version string) bool { return matchesVersion(version, lt.Version) }) {
 				stale = append(stale, tool+"@"+lt.Version)
 			}
 		}
@@ -191,6 +209,9 @@ func checksumOptional(backend string) bool {
 		// The aqua registry downloads the AWS CLI from awscli.amazonaws.com,
 		// which publishes PGP signatures but no checksums.
 		"aqua:aws/aws-cli",
+		// The aqua registry downloads bats from GitHub's source archive
+		// tarball, which has no published checksum.
+		"aqua:bats-core/bats-core",
 		// This fork's releases have neither a checksums file nor GitHub
 		// release asset digests.
 		"github:getoutreach/kubecfg":

@@ -24,6 +24,33 @@ func parse(t *testing.T, config, lock string) (requested map[string][]string, lo
 	return requested, locked
 }
 
+// TestParseConfig confirms each way mise.toml can request versions,
+// including option tables inside a version list and [[tools.x]] blocks.
+func TestParseConfig(t *testing.T) {
+	requested, err := parseConfig([]byte(`
+[tools]
+plain = "1.2.3"
+table = { version = "2.0", os = ["linux"] }
+list = ["3.1", "3.2"]
+mixed = ["4.1", { version = "4.2", os = ["linux"] }]
+
+[[tools.blocks]]
+version = "5.1"
+
+[[tools.blocks]]
+version = "5.2"
+os = ["macos"]
+`))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, requested, map[string][]string{
+		"plain":  {"1.2.3"},
+		"table":  {"2.0"},
+		"list":   {"3.1", "3.2"},
+		"mixed":  {"4.1", "4.2"},
+		"blocks": {"5.1", "5.2"},
+	})
+}
+
 // TestMissingVersions confirms that each requested version needs a
 // locked version that equals it, or that it is a dotted prefix of, and
 // that "latest" accepts any locked version.
@@ -212,6 +239,20 @@ checksum = "blake3:aa"
 url = "https://example.com/aws-linux"
 [tools.aws-cli."platforms.macos-arm64"]
 url = "https://example.com/aws-darwin"
+`,
+			want: nil,
+		},
+		{
+			name: "bats may have a checksum on only some platforms",
+			lock: `
+[[tools.bats]]
+version = "1.14.0"
+backend = "aqua:bats-core/bats-core"
+[tools.bats."platforms.linux-x64"]
+checksum = "blake3:aa"
+url = "https://example.com/bats.tar.gz"
+[tools.bats."platforms.macos-arm64"]
+url = "https://example.com/bats.tar.gz"
 `,
 			want: nil,
 		},
