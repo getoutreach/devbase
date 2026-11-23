@@ -524,3 +524,15 @@ stub_go_git() {
   run devbase_version_from_git "$repo"
   assert_output "v1.2.3+dirty"
 }
+
+@test "devbase_prune_source_binaries removes only entries older than the limit" {
+  base="$DEVBASE_CACHED_BINARY_STORAGE_PATH/devbase-src"
+  mkdir -p "$base/old" "$base/new"
+  touch "$base/old/devbase-src" "$base/new/devbase-src"
+  touch -d '30 days ago' "$base/old" 2>/dev/null || touch -t 202001010000 "$base/old"
+
+  run devbase_prune_source_binaries
+  assert_success
+  assert [ ! -e "$base/old" ]
+  assert [ -e "$base/new/devbase-src" ]
+}

@@ -148,14 +148,27 @@ devbase_tree_has_external_build_inputs() {
   grep -Eq '=>[[:space:]]*(\.|/)' "$dir/go.mod" 2>/dev/null
 }
 
+# devbase_prune_source_binaries removes cached source binaries that were
+# built more than DEVBASE_SOURCE_CACHE_MAX_AGE_DAYS (default 14) days ago.
+# It prunes by age because the cache is shared by every source tree on the
+# machine, so keeping only the newest entry would evict other trees.
+devbase_prune_source_binaries() {
+  local dir
+  dir="$(dirname "$(dirname "$(cached_binary_path devbase-src x)")")"
+  [[ -d $dir ]] || return 0
+  find "$dir" -mindepth 1 -maxdepth 1 -type d \
+    -mtime "+${DEVBASE_SOURCE_CACHE_MAX_AGE_DAYS:-14}" -exec rm -rf {} + 2>/dev/null || true
+}
+
 # devbase_cached_source_binary echoes the path to a devbase binary built
 # from this source tree. It builds only if the cache has no binary for the
 # tree's state. The cache key is the current commit, plus a hash of the
 # uncommitted changes if the tree is dirty. The key cannot cover files
 # outside the tree, so a tree with such inputs rebuilds on every call, into a
-# binary path that is specific to the tree's path. The build is moved into place so that parallel callers never run a partial
-# binary. Callers that run devbase many times (yq_wrapper, devbase_cli)
-# use it instead of devbase_build_from_source.
+# binary path that is specific to the tree's path. The build is moved into
+# place so that parallel callers never run a partial binary. Callers that run
+# devbase many times (yq_wrapper, devbase_cli) use it instead of
+# devbase_build_from_source.
 devbase_cached_source_binary() {
   local treeRoot rev cacheKey cached tmp rebuild=false
   treeRoot="$(devbase_tree_root)"
@@ -180,6 +193,7 @@ devbase_cached_source_binary() {
     fi
     chmod +x "$tmp"
     mv -f "$tmp" "$cached"
+    devbase_prune_source_binaries
   fi
   echo "$cached"
 }
