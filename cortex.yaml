@@ -24,10 +24,6 @@ info:
   x-cortex-git:
     github:
       repository: getoutreach/devbase
-  x-cortex-oncall:
-    pagerduty:
-      id: P9HJAUT
-      type: SERVICE
   x-cortex-link:
     ## These are useful documentation links for this service. Please fill in the customLinks block if you have additional documentation links.
     ## name: The name of the link
@@ -45,8 +41,8 @@ info:
     repo: https://github.com/getoutreach/devbase
     framework: stencil
     language: Golang
-    stencil_version: v1.47.0
-    golang_version: 1.25.7
+    stencil_version: v1.47.1-rc.3
+    golang_version: 1.27.4
     cli: false
     service: false
     product: Outreach

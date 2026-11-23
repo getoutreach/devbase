@@ -178,7 +178,7 @@ EOF
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
   find_tool() { echo "/fake/go"; }
   # shellcheck disable=SC2329 # Why: called indirectly as a stub.
-  go() { echo "built" >"$5"; }
+  go() { echo "built" >"$3"; }
 
   run devbase_install_from_source "$BATS_TEST_TMPDIR/bin"
   assert_success
@@ -194,6 +194,20 @@ EOF
   run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
   assert_failure
   assert_output --partial "failed to build devbase from"
+}
+
+# Why: a version manager's go shim picks its Go version from the cwd.
+@test "devbase_build_from_source finds and runs go from the source tree" {
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  find_tool() { echo "$PWD" >"$BATS_TEST_TMPDIR/find_tool_pwd"; }
+  # shellcheck disable=SC2329 # Why: called indirectly as a stub.
+  go() { echo "$PWD" >"$BATS_TEST_TMPDIR/pwd"; }
+
+  cd "$BATS_TEST_TMPDIR" || exit 1
+  run devbase_build_from_source "$BATS_TEST_TMPDIR/devbase"
+  assert_success
+  assert_equal "$(cat "$BATS_TEST_TMPDIR/find_tool_pwd")" "$(devbase_tree_root)"
+  assert_equal "$(cat "$BATS_TEST_TMPDIR/pwd")" "$(devbase_tree_root)"
 }
 
 @test "devbase_build_from_source puts the directory of the go found by find_tool on PATH" {
