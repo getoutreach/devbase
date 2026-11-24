@@ -1,6 +1,6 @@
 # Stencil Upgrade
 
-The `shared/stencil_upgrade` orb job upgrades the Stencil modules of a repository and opens a pull request with the result. The `stencil-circleci` module runs the job for repositories that opt in. The [module documentation](https://github.com/getoutreach/stencil-circleci/blob/main/docs/arguments.md) describes the arguments and the manual trigger.
+The `shared/stencil_upgrade` orb job upgrades the Stencil modules of a repository and opens a pull request with the result. The `stencil-circleci` module adds a workflow that runs the job on demand, and a weekly schedule for repositories that opt in. The [module documentation](https://github.com/getoutreach/stencil-circleci/blob/main/docs/arguments.md) describes the arguments and the manual trigger.
 
 ## What the job does
 
