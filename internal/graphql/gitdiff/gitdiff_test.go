@@ -99,6 +99,40 @@ func TestMergeBaseFiles(t *testing.T) {
 	})
 }
 
+// TestMergeBaseFilesThroughSymlinkedDir guards against a mismatch
+// between go-git's resolved worktree root and the caller's own path,
+// as happens on macOS: a temp directory's real path is under
+// /private, but os.Getwd() reports the /var symlink to it. Passing
+// dir through a symlink here reproduces that mismatch on any
+// platform.
+func TestMergeBaseFilesThroughSymlinkedDir(t *testing.T) {
+	root, _, baseName := newTestRepo(t)
+
+	symlinked := root + "-symlink"
+	assert.NilError(t, os.Symlink(root, symlinked))
+	t.Cleanup(func() { assert.NilError(t, os.Remove(symlinked)) })
+
+	content, err := MergeBaseFiles(t.Context(), symlinked, baseName, []string{"schema.graphql"})
+	assert.NilError(t, err)
+	assert.Equal(t, content["schema.graphql"], "type Foo { a: String }\n")
+}
+
+func TestMergeBaseFilesShallowClone(t *testing.T) {
+	root, _, _ := newTestRepo(t)
+
+	clonePath := t.TempDir()
+	_, err := git.PlainClone(clonePath, false, &git.CloneOptions{
+		URL:           root,
+		Depth:         1,
+		ReferenceName: plumbing.NewBranchReferenceName("feature"),
+		SingleBranch:  true,
+	})
+	assert.NilError(t, err)
+
+	_, err = MergeBaseFiles(t.Context(), clonePath, "master", []string{"schema.graphql"})
+	assert.Assert(t, errors.Is(err, ErrShallowClone))
+}
+
 // runGit runs git in dir, without the git configuration of the user or the system. It fails the
 // test when git fails.
 func runGit(t *testing.T, dir string, args ...string) {
