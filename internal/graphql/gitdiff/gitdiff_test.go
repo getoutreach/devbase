@@ -149,6 +149,23 @@ func TestMergeBaseFilesFileBecomesDirectory(t *testing.T) {
 	assert.Equal(t, len(content), 0)
 }
 
+// TestMergeBaseFilesBelowSubmodule checks that a path below a submodule is a path that did not exist,
+// and is not a missing object.
+func TestMergeBaseFilesBelowSubmodule(t *testing.T) {
+	root := t.TempDir()
+	runGit(t, root, "init", "-q", "-b", "main")
+	runGit(t, root, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("a", 40)+",vendor/lib")
+	runGit(t, root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "base")
+
+	// MergeBaseFiles resolves symlinks of the file, so the file must exist in the working tree.
+	assert.NilError(t, os.MkdirAll(filepath.Join(root, "vendor", "lib"), 0o755))
+	assert.NilError(t, os.WriteFile(filepath.Join(root, "vendor", "lib", "x.graphql"), []byte("type Bar { a: String }\n"), 0o600))
+
+	content, err := MergeBaseFiles(t.Context(), root, "main", []string{"vendor/lib/x.graphql"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(content), 0)
+}
+
 // runGit runs git in dir, without the git configuration of the user or the system. It fails the
 // test when git fails.
 func runGit(t *testing.T, dir string, args ...string) {
