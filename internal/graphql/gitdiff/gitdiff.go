@@ -136,6 +136,11 @@ func repoRoot(repo *git.Repository) (string, error) {
 func readFiles(
 	ctx context.Context, mergeBase *object.Commit, root, dir string, remote *goGitRemote, files []string,
 ) (map[string]string, error) {
+	// With nothing to read, the tree is not needed, and it can be missing in a treeless clone.
+	if len(files) == 0 {
+		return map[string]string{}, nil
+	}
+
 	// root, from go-git's Worktree, and dir/files, from the caller, can
 	// reach the same directory through different symlinks -- e.g. on
 	// macOS, where a temp directory's real path is under /private but

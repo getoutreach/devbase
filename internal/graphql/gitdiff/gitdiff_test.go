@@ -261,6 +261,11 @@ func TestMergeBaseFilesTreelessClone(t *testing.T) {
 
 	_, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, []string{"schema.graphql"})
 	assert.Assert(t, errors.Is(err, ErrMissingObject), "got %v", err)
+
+	// With no file to read, the tree is not needed.
+	content, err := MergeBaseFiles(t.Context(), clone, "origin/"+baseName, nil)
+	assert.NilError(t, err)
+	assert.Equal(t, len(content), 0)
 }
 
 // gitOutput runs git in dir and returns its trimmed standard output. Unlike runGit, it uses the git
