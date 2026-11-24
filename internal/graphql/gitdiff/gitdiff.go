@@ -136,7 +136,7 @@ func repoRoot(repo *git.Repository) (string, error) {
 func readFiles(
 	ctx context.Context, mergeBase *object.Commit, root, dir string, remote *goGitRemote, files []string,
 ) (map[string]string, error) {
-	// With nothing to read, the tree is not needed, and it can be missing in a treeless clone.
+	// The tree can be missing in a treeless clone, so do not load it when there is nothing to read.
 	if len(files) == 0 {
 		return map[string]string{}, nil
 	}
@@ -196,7 +196,7 @@ func readFiles(
 }
 
 // findEntry is like Tree.FindEntry, but a path below a file, as when a file is replaced by a directory,
-// is object.ErrEntryNotFound and not plumbing.ErrObjectNotFound. That error means only that a tree is
+// is object.ErrEntryNotFound. plumbing.ErrObjectNotFound from findEntry means only that a tree is
 // missing from the object store.
 func findEntry(tree *object.Tree, path string) (*object.TreeEntry, error) {
 	entry, err := tree.FindEntry(path)
