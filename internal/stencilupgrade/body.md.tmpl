@@ -1,0 +1,36 @@
+{{ if .Note -}}
+{{ .Note }}
+
+---
+
+{{ end -}}
+This PR contains the following updates:
+
+{{ if .Rows -}}
+| Module | Change |
+| --- | --- |
+{{ range .Rows -}}
+| [{{ .Module }}]({{ .RepoURL }}) | {{ .Change }} |
+{{ end }}
+{{ if .Notes -}}
+---
+
+### Release Notes
+
+{{ range .Notes -}}
+<details><summary>{{ .Module }}</summary>
+
+{{ range .Links -}}
+- {{ . }}
+{{ end }}
+</details>
+
+{{ end -}}
+{{ end -}}
+{{ else -}}
+No module version changed. Generated files changed.
+
+{{ end -}}
+---
+
+<details><summary>Metadata</summary><b>Stencil Version</b>: <code>{{ .StencilVersion }}</code></details>
