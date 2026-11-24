@@ -133,6 +133,22 @@ func TestMergeBaseFilesShallowClone(t *testing.T) {
 	assert.Assert(t, errors.Is(err, ErrShallowClone))
 }
 
+// TestMergeBaseFilesFileBecomesDirectory checks that a path below a file of the merge-base is a path
+// that did not exist, like any other new path, and is not a missing object.
+func TestMergeBaseFilesFileBecomesDirectory(t *testing.T) {
+	root, repo, baseName := newTestRepo(t)
+
+	wt, err := repo.Worktree()
+	assert.NilError(t, err)
+	_, err = wt.Remove("schema.graphql")
+	assert.NilError(t, err)
+	commitFile(t, repo, root, "schema.graphql/x.graphql", "type Bar { a: String }\n")
+
+	content, err := MergeBaseFiles(t.Context(), root, baseName, []string{"schema.graphql/x.graphql"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(content), 0)
+}
+
 // runGit runs git in dir, without the git configuration of the user or the system. It fails the
 // test when git fails.
 func runGit(t *testing.T, dir string, args ...string) {

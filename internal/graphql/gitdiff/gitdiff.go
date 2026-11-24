@@ -15,9 +15,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
@@ -171,7 +173,7 @@ func readFiles(
 
 		// A path with no tree entry, or one that is not a file (a directory or a submodule), is
 		// treated as new. A subtree that is missing from the object store is not a missing path.
-		entry, err := tree.FindEntry(filepath.ToSlash(relPath))
+		entry, err := findEntry(tree, filepath.ToSlash(relPath))
 		if errors.Is(err, plumbing.ErrObjectNotFound) {
 			return nil, fmt.Errorf("read %s at merge-base: %w", file, ErrMissingObject)
 		}
@@ -186,6 +188,29 @@ func readFiles(
 		contents[file] = content
 	}
 	return contents, nil
+}
+
+// findEntry is like Tree.FindEntry, but a path below a file, as when a file is replaced by a directory,
+// is object.ErrEntryNotFound and not plumbing.ErrObjectNotFound. That error means only that a tree is
+// missing from the object store.
+func findEntry(tree *object.Tree, path string) (*object.TreeEntry, error) {
+	entry, err := tree.FindEntry(path)
+	if !errors.Is(err, plumbing.ErrObjectNotFound) {
+		return entry, err
+	}
+
+	parts := strings.Split(path, "/")
+	for i := 1; i < len(parts); i++ {
+		parent, parentErr := tree.FindEntry(strings.Join(parts[:i], "/"))
+		if parentErr != nil {
+			return nil, err
+		}
+		if parent.Mode != filemode.Dir {
+			return nil, object.ErrEntryNotFound
+		}
+	}
+
+	return nil, err
 }
 
 // readBlob returns the content of the file of entry. A blob that is not in the local object store
