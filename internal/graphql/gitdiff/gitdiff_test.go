@@ -118,7 +118,7 @@ func TestMergeBaseFilesThroughSymlinkedDir(t *testing.T) {
 }
 
 func TestMergeBaseFilesShallowClone(t *testing.T) {
-	root, _, _ := newTestRepo(t)
+	root, _, baseName := newTestRepo(t)
 
 	clonePath := t.TempDir()
 	_, err := git.PlainClone(clonePath, false, &git.CloneOptions{
@@ -129,7 +129,7 @@ func TestMergeBaseFilesShallowClone(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	_, err = MergeBaseFiles(t.Context(), clonePath, "master", []string{"schema.graphql"})
+	_, err = MergeBaseFiles(t.Context(), clonePath, baseName, []string{"schema.graphql"})
 	assert.Assert(t, errors.Is(err, ErrShallowClone))
 }
 
