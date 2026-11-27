@@ -130,7 +130,7 @@ func TestLintGraphQLConfigFlag(t *testing.T) {
 	assert.NilError(t, os.WriteFile(configPath, []byte(devbaseYAML), 0o600))
 
 	t.Run("applies the given config file", func(t *testing.T) {
-		defer chdir(t, repo)()
+		t.Chdir(repo)
 
 		cmd := newLintGraphQLCommand()
 		var out bytes.Buffer
@@ -146,7 +146,7 @@ func TestLintGraphQLConfigFlag(t *testing.T) {
 	})
 
 	t.Run("fails when the config file is missing", func(t *testing.T) {
-		defer chdir(t, repo)()
+		t.Chdir(repo)
 
 		cmd := newLintGraphQLCommand()
 		cmd.ExitErrHandler = func(context.Context, *cli.Command, error) {}
@@ -157,7 +157,7 @@ func TestLintGraphQLConfigFlag(t *testing.T) {
 	})
 
 	t.Run("fails when the config path is empty", func(t *testing.T) {
-		defer chdir(t, repo)()
+		t.Chdir(repo)
 
 		cmd := newLintGraphQLCommand()
 		cmd.ExitErrHandler = func(context.Context, *cli.Command, error) {}

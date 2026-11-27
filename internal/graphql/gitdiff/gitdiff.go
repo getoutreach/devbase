@@ -11,12 +11,15 @@
 package gitdiff
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
@@ -28,6 +31,13 @@ import (
 // fetch --unshallow origin <branch> <base>`) and retry.
 var ErrShallowClone = errors.New("shallow clone: deepen it (e.g. `git fetch --unshallow`) before using --diff")
 
+// ErrMissingObject is returned when a tree of the merge-base commit is not local, or when a blob is
+// not local and neither go-git nor git can fetch it, as in a partial (blobless or treeless) clone.
+// Treating the file as new would report all of its old violations as new ones, so the read fails
+// instead.
+var ErrMissingObject = errors.New(
+	"git objects of the merge-base commit are not available locally and could not be fetched: use a full clone")
+
 // errNoCommonAncestor is returned by resolveMergeBase when HEAD and
 // base share no history, which `git merge-base` also rejects.
 var errNoCommonAncestor = errors.New("no common ancestor")
@@ -38,7 +48,7 @@ var errNoCommonAncestor = errors.New("no common ancestor")
 // keyed by the same strings given in files; a file that did not yet
 // exist at the merge-base is omitted rather than treated as an error,
 // since it can't have had any violations at that point.
-func MergeBaseFiles(dir, base string, files []string) (map[string]string, error) {
+func MergeBaseFiles(ctx context.Context, dir, base string, files []string) (map[string]string, error) {
 	repo, err := git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return nil, fmt.Errorf("open git repository containing %s: %w", dir, err)
@@ -58,7 +68,7 @@ func MergeBaseFiles(dir, base string, files []string) (map[string]string, error)
 		return nil, err
 	}
 
-	return readFiles(mergeBase, root, dir, files)
+	return readFiles(ctx, mergeBase, root, dir, originGoGitRemote(repo), files)
 }
 
 // checkNotShallow returns ErrShallowClone if repo has any shallow
@@ -121,7 +131,16 @@ func repoRoot(repo *git.Repository) (string, error) {
 
 // readFiles reads each of files (given relative to dir) from
 // mergeBase's tree, returning a map keyed by the original file string.
-func readFiles(mergeBase *object.Commit, root, dir string, files []string) (map[string]string, error) {
+// A blob that is missing from the object store is fetched (see
+// blobFetcher). remote is the remote that go-git fetches from, or nil.
+func readFiles(
+	ctx context.Context, mergeBase *object.Commit, root, dir string, remote *goGitRemote, files []string,
+) (map[string]string, error) {
+	// The tree can be missing in a treeless clone, so do not load it when there is nothing to read.
+	if len(files) == 0 {
+		return map[string]string{}, nil
+	}
+
 	// root, from go-git's Worktree, and dir/files, from the caller, can
 	// reach the same directory through different symlinks -- e.g. on
 	// macOS, where a temp directory's real path is under /private but
@@ -133,6 +152,15 @@ func readFiles(mergeBase *object.Commit, root, dir string, files []string) (map[
 		return nil, fmt.Errorf("resolve symlinks for repository root %s: %w", root, err)
 	}
 
+	tree, err := mergeBase.Tree()
+	if errors.Is(err, plumbing.ErrObjectNotFound) {
+		return nil, fmt.Errorf("the tree of the merge-base commit: %w", ErrMissingObject)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read the tree of the merge-base commit: %w", err)
+	}
+
+	fetcher := &blobFetcher{root: realRoot, remote: remote}
 	contents := make(map[string]string, len(files))
 	for _, file := range files {
 		absPath := file
@@ -148,19 +176,59 @@ func readFiles(mergeBase *object.Commit, root, dir string, files []string) (map[
 			return nil, fmt.Errorf("resolve %s relative to repository root %s: %w", file, root, err)
 		}
 
-		f, err := mergeBase.File(relPath)
-		if errors.Is(err, object.ErrFileNotFound) {
+		// A path with no tree entry, or one that is not a file (a directory or a submodule), is
+		// treated as new. A subtree that is missing from the object store is not a missing path.
+		entry, err := findEntry(tree, filepath.ToSlash(relPath))
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return nil, fmt.Errorf("read %s at merge-base: %w", file, ErrMissingObject)
+		}
+		if err != nil || !entry.Mode.IsFile() {
 			continue
 		}
-		if err != nil {
-			return nil, fmt.Errorf("read %s at merge-base: %w", file, err)
-		}
 
-		content, err := f.Contents()
+		content, err := readBlob(ctx, tree, entry, fetcher)
 		if err != nil {
 			return nil, fmt.Errorf("read %s at merge-base: %w", file, err)
 		}
 		contents[file] = content
 	}
 	return contents, nil
+}
+
+// findEntry is like Tree.FindEntry, but a path below a file, as when a file is replaced by a directory,
+// is object.ErrEntryNotFound. plumbing.ErrObjectNotFound from findEntry means only that a tree is
+// missing from the object store.
+func findEntry(tree *object.Tree, path string) (*object.TreeEntry, error) {
+	entry, err := tree.FindEntry(path)
+	if !errors.Is(err, plumbing.ErrObjectNotFound) {
+		return entry, err
+	}
+
+	parts := strings.Split(path, "/")
+	for i := 1; i < len(parts); i++ {
+		parent, parentErr := tree.FindEntry(strings.Join(parts[:i], "/"))
+		if parentErr != nil {
+			return nil, err
+		}
+		if parent.Mode != filemode.Dir {
+			return nil, object.ErrEntryNotFound
+		}
+	}
+
+	return nil, err
+}
+
+// readBlob returns the content of the file of entry. A blob that is not in the local object store
+// is read with fetcher. Tree.File would report that case as a missing file, so the entry is read
+// with TreeEntryFile, which reports plumbing.ErrObjectNotFound.
+func readBlob(ctx context.Context, tree *object.Tree, entry *object.TreeEntry, fetcher *blobFetcher) (string, error) {
+	f, err := tree.TreeEntryFile(entry)
+	if errors.Is(err, plumbing.ErrObjectNotFound) {
+		return fetcher.fetch(ctx, entry.Hash)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	return f.Contents()
 }
