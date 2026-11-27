@@ -49,6 +49,18 @@ teardown() {
   assert_output ". moduleA" # output is sorted
 }
 
+@test "go_coverage_profile names the profile after the module directory" {
+  run go_coverage_profile api
+  assert_success
+  assert_output "/tmp/coverage-api.out"
+}
+
+@test "go_coverage_profile replaces the path separators of a nested module directory" {
+  run go_coverage_profile pkg/aiagents
+  assert_success
+  assert_output "/tmp/coverage-pkg-aiagents.out"
+}
+
 @test "golangci_lint_built_with_go reads the Go version from golangci-lint --version" {
   run golangci_lint_built_with_go "golangci-lint has version 2.9.0 built with go1.26.0 from abc1234 on 2026-02-10T18:00:00Z"
   assert_success

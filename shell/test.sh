@@ -83,7 +83,9 @@ COVER_FLAGS=(${COVER_FLAGS:-})
 # WITH_COVERAGE is a boolean flag that enables coverage reporting. If
 # set at all, a coverage file will be generated during the test. It
 # will be outputted to /tmp/coverage.out. When running in CI, this is
-# always enabled.
+# always enabled. If the repository has more than one Go module, only
+# the first one writes /tmp/coverage.out and the others write
+# /tmp/coverage-<module>.out, so that they do not overwrite it.
 WITH_COVERAGE="${WITH_COVERAGE:-}"
 
 # GO_TEST_TIMEOUT is the timeout to pass to `go test -timeout`. If not
@@ -136,6 +138,13 @@ go_ldflags() {
 run_go_tests() {
   local projectDir="$1"
   shift
+
+  # COVER_FLAGS writes /tmp/coverage.out, and the last -coverprofile flag wins.
+  local profileFlags=()
+  if [[ -n $WITH_COVERAGE && $projectDir != "$coverageDir" ]]; then
+    profileFlags+=("-coverprofile=$(go_coverage_profile "$projectDir")")
+  fi
+
   pushd "$projectDir" >/dev/null || fatal "Failed to change directory to $projectDir"
   info "Running go test (${TEST_TAGS[*]}) in $projectDir"
   local exitCode=0
@@ -159,7 +168,7 @@ run_go_tests() {
       info_sub "Running E2E tests with Go toolchain $toolchain"
     fi
     mise_exec_tool gotestsum --junitfile "$junitFile" --format "$format" -- \
-      "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${TEST_FLAGS[@]}" \
+      "${BENCH_FLAGS[@]}" "${COVER_FLAGS[@]}" "${profileFlags[@]}" "${TEST_FLAGS[@]}" \
       -ldflags "$(go_ldflags)" -tags="$test_tags_string" "$@" "${TEST_PACKAGES[@]}"
   ) || exitCode=$?
 
@@ -265,7 +274,9 @@ if [[ "$(git ls-files '*_test.go' | wc -l | tr -d ' ')" -gt 0 ]]; then
     # for more information.
     exec "$DIR/dlv.sh" exec "${TESTBIN}" -- "$@"
   else
-    for godir in $(go_mod_dirs); do
+    goModDirs="$(go_mod_dirs)"
+    coverageDir="${goModDirs%% *}"
+    for godir in $goModDirs; do
       run_go_tests "$godir" "$@" || fatal "Tests failed in $godir"
     done
   fi

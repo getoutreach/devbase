@@ -19,6 +19,15 @@ go_mod_dirs() {
   done | sort | uniq | xargs echo
 }
 
+# go_coverage_profile(module_dir)
+#
+# Prints the path of the coverage profile for the Go module in module_dir,
+# for modules that must not write /tmp/coverage.out. For example, "api" and
+# "pkg/aiagents" print /tmp/coverage-api.out and /tmp/coverage-pkg-aiagents.out.
+go_coverage_profile() {
+  echo "/tmp/coverage-${1//\//-}.out"
+}
+
 # golangci_lint_built_with_go(version_output)
 #
 # Prints the Go version that built golangci-lint, from the first line of the
